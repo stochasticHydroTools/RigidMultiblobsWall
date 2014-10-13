@@ -10,7 +10,7 @@ class ConstrainedIntegrator(object):
     a timestepping scheme, and a Mobility Matrix.
 
     args
-      scheme:            string - must be one of "EULER" or "RFD".  EULER indicates
+      scheme:            string - must be one of "OTTINGER" or "RFD".  OTTINGER indicates
                            an unconstrained step that is projected back to the surface.
                            RFD gives a projected step using the Random Finite Difference to
                            generate the drift.
@@ -41,7 +41,7 @@ class ConstrainedIntegrator(object):
       raise ValueError("Initial position is either the wrong dimension or"
                         " is not on the constraint.")
       
-    if scheme not in ["RFD", "EULER"]:
+    if scheme not in ["RFD", "OTTINGER"]:
       print "Only RFD and Euler Schemes are implemented"
       raise NotImplementedError("Only RFD and Euler schemes are implemented")
     else:
@@ -54,8 +54,8 @@ class ConstrainedIntegrator(object):
      """
     if self.scheme == "RFD":
       self.RFDTimeStep(dt)
-    elif self.scheme == "EULER":
-      self.EulerTimeStep(dt)
+    elif self.scheme == "OTTINGER":
+      self.OttingerTimeStep(dt)
     else:
       print "Should not get here in TimeStep."
       sys.exit()
@@ -77,13 +77,32 @@ class ConstrainedIntegrator(object):
     return velocity
 
   def ApplyProjection(self, vector):
-    """ Apply the P_m projection to a vector. """
-
-  def EulerTimeStep(self, dt):
+    """ Apply the P_m projection to a vector. 
+    
+    output
+      projected_vector: array of floats - vector after being projected. 
+    """
+    projection = self.ProjectionMatrix()
+    projected_vector = np.zeros(self.dim)
+    for j in range(self.dim):
+      for k in range(self.dim):
+        projected_vector[j] += projection[j][k]*vector[k]
+    return projected_vector
+        
+  def OttingerTimeStep(self, dt):
+    """ Take a step of the Ottinger scheme """
     pass
 
   def RFDTimeStep(self, dt):
-    pass
+    """ Take a step of the RFD scheme """
+    Wtilde = np.random.normal(0.0, 1.0, self.dim)
+    predictor_position = zeros(self.dim)
+    for k in range(self.dim):
+      predictor_position[k] = self.position[k] + self.rfdelta*Wtilde[k]
+      
+    #For now we have no potential.
+    corrector_position = zeros(self.dim)
+    for k in range(
 
   def NormalVector(self):
     """ At the current initial position, calculate normalized gradient
@@ -135,3 +154,4 @@ class ConstrainedIntegrator(object):
 
   
         
+    
