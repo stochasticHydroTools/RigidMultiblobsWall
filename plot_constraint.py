@@ -12,7 +12,5 @@ for theta in theta_vector:
   x.append(r*np.cos(theta))
   y.append(r*np.sin(theta))
   
-print x
-print y
 pyplot.plot(x, y, 'b--')
 pyplot.show()

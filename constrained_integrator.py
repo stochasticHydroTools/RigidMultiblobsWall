@@ -23,9 +23,10 @@ class ConstrainedIntegrator(object):
                            the same dimension as the mobility matrix, and we must have
                            surface_function(initial_position) = 0.
     '''
+    # Set random generator.
     self.random_generator = np.random.normal
     #TODO: make this dynamic somehow.
-    self.rfdelta = 1.0e-8
+    self.rfdelta = 1.0e-6
     self.surface_function = surface_function
     #TODO: make this a function of position that returns a matrix.
     self.mobility = mobility
@@ -37,12 +38,14 @@ class ConstrainedIntegrator(object):
 
     self.current_time = 0.
 
-    # Initial Position must be a matrix.
+    # Initial Position must be a 'matrix.'
     if (initial_position.shape[0] == self.dim and 
         self.surface_function(initial_position) == 0.):
       self.position = initial_position
     else:
-      print "initial position.shape[0] is ", initial_position.shape[0]
+      print 'initial position.shape is ', initial_position.shape
+      print ('constraint function of initial position is ', 
+             self.surface_function(initial_position))
       raise ValueError('Initial position is either the wrong dimension or'
                         ' is not on the constraint.')
       
@@ -51,6 +54,8 @@ class ConstrainedIntegrator(object):
       raise NotImplementedError('Only RFD and Ottinger schemes are implemented')
     else:
       self.scheme = scheme
+
+    self.path = [self.position]
 
 
   def MockRandomGenerator(self):
@@ -72,6 +77,11 @@ class ConstrainedIntegrator(object):
     else:
       print 'Should not get here in TimeStep.'
       sys.exit()
+    
+    self.ProjectToConstraint()
+    if (np.abs(self.surface_function(self.position)) > 1e-8):
+      print 'WARNING: off constraint this step'
+    self.SavePath(self.position)
 
         
   def OttingerTimeStep(self, dt):
@@ -81,24 +91,16 @@ class ConstrainedIntegrator(object):
 
   def RFDTimeStep(self, dt):
     ''' Take a step of the RFD scheme '''
-    #TODO: Make this dynamic
+    #TODO: Make this variable
     kT = 1.0
     w_tilde = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
-    print "w_tilde is ", w_tilde
     w = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
-    print 'w is ', w
-    predictor_position = self.position + self.rfdelta*w_tilde
-
-    print 'predictor_position is ', predictor_position
-      
+    p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
+    predictor_position = self.position + self.rfdelta*p_l2*w_tilde
     # For now we have no potential.
     force = np.matrix([[0.] for _ in range(self.dim)])
     p = self.ProjectionMatrix(self.position)
     p_tilde = self.ProjectionMatrix(predictor_position)
-    print 'p is ', p
-    print 'p_tilde is ', p_tilde
-    print "RFD drift is ", (dt*kT/self.rfdelta)*(p_tilde - p)*w_tilde
-    print "stochastic term is ", np.sqrt(2*kT*dt)*p*self.mobility*w
     #TODO: variable mobility and mobility factor.
     #TODO: This is incorrect, I need an L2 projection for drift.
     corrector_position = (self.position + dt*p*self.mobility*force +
@@ -106,6 +108,11 @@ class ConstrainedIntegrator(object):
                           np.sqrt(2*kT*dt)*p*self.mobility*w)
 
     self.position = corrector_position
+
+
+
+  def SavePath(self, position):
+    self.path.append(position)
 
 
   def NormalVector(self, position):
@@ -120,32 +127,37 @@ class ConstrainedIntegrator(object):
                        funtion at self.position, evaluated numerically.
     '''
     normal_vector = np.matrix([[0.] for _ in range(self.dim)])
-    delta = 1.0e-8
-    vector_size = 0.0
+    vector_magnitude = 0.0
     for k in range(self.dim):
       direction = np.matrix([[0.0] for _ in range(self.dim)])
-      direction[k,0] = delta
+      direction[k,0] = self.rfdelta
       normal_vector[k,0] = ((self.surface_function(position + direction) - 
                           self.surface_function(position - direction))/
-                          (2.0*delta))
-      vector_size += normal_vector[k,0]**2
+                          (2.0*self.rfdelta))
+      vector_magnitude += normal_vector[k,0]**2
     
-    vector_size = np.sqrt(vector_size)
+    vector_magnitude = np.sqrt(vector_magnitude)
     for k in range(self.dim):
-        normal_vector[k,0] /= vector_size
-      
-    print "normal vector is ", normal_vector
+        normal_vector[k,0] /= vector_magnitude
     return normal_vector
 
       
-  def ProjectionMatrix(self, position):
+  def ProjectionMatrix(self, position, D_matrix = None):
     ''' Calculate projection matrix at given position,
-    P_m = delta_ik - (Mn X n) /(n^tMn) '''
+    P_m = I - (Dn X n) /(n^tDn) 
+      args
+        position:  dim x 1 vector of floats - position to evaluate n at
+                      (and later mobility).
+        D_matrix:  dim x dim matrix of floats - D in the above expression for
+                     the projection matrix.
+    '''
+    if D_matrix is None:
+      D_matrix = self.mobility
     normal_vector = self.NormalVector(position)
     projection = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
 
     # First calcualate n^t M n for denominator.
-    nMn = normal_vector.T*self.mobility*normal_vector
+    nMn = normal_vector.T*D_matrix*normal_vector
 
     # Now calculate projection matrix.
     projection = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
@@ -158,6 +170,39 @@ class ConstrainedIntegrator(object):
 
     return projection
 
-  
+  def ProjectToConstraint(self):
+    ''' Project the current position to the nearest point on
+    the constraint with a newtons method line search.  We search
+    along the gradient of the constraint function, so we have:
+      0 \approx q(x) + \grad(q) \cdot \grad(q) \alpha
+      => \alpha = -q(x)/||\grad(q)||^2
+      x_new = x + \grad_q*\alpha
+    we then iterate until we get the constraint close to 0.
+    '''
+    TOL = 1e-8
+    iteration_num = 0
+    while (np.abs(self.surface_function(self.position)) > TOL and
+           iteration_num < 6):
+      grad_q = np.matrix([[0.] for _ in range(self.dim)])
+      vector_magnitude = 0.0
+      for k in range(self.dim):
+        direction = np.matrix([[0.0] for _ in range(self.dim)])
+        direction[k,0] = self.rfdelta
+        grad_q[k,0] = ((self.surface_function(self.position + direction) - 
+                        self.surface_function(self.position - direction))/
+                       (2.0*self.rfdelta))
+        vector_magnitude += grad_q[k,0]**2
         
-    
+      vector_magnitude = np.sqrt(vector_magnitude)
+        
+      # Line search alpha
+      alpha = -1.*self.surface_function(self.position)/(vector_magnitude**2)
+      self.position = self.position + alpha*grad_q
+      iteration_num += 1
+
+    if iteration_num == 5:
+      print ('WARNING: 5 iterations of line search without getting within ' +
+            'tolerance of the constraint. TOL = ', TOL)
+           
+      
+      
