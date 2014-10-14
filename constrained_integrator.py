@@ -28,12 +28,11 @@ class ConstrainedIntegrator(object):
     #TODO: make this dynamic somehow.
     self.rfdelta = 1.0e-6
     self.surface_function = surface_function
-    #TODO: make this a function of position that returns a matrix.
     self.mobility = mobility
-    self.dim = mobility.shape[0]
-    if mobility.shape[1] != self.dim:
+    self.dim = self.mobility(initial_position).shape[0]
+    if mobility(initial_position).shape[1] != self.dim:
       print 'Mobility Matrix must be square.  # rows is ', self.dim, 
-      print ' # Columns is ', len(self.mobility[k])
+      print ' # Columns is ', self.mobility(initial_position).shape[1]
       sys.exit()
 
     self.current_time = 0.
@@ -79,8 +78,7 @@ class ConstrainedIntegrator(object):
       sys.exit()
     
     self.ProjectToConstraint()
-    if (np.abs(self.surface_function(self.position)) > 1e-8):
-      print 'WARNING: off constraint this step'
+
     self.SavePath(self.position)
 
         
@@ -101,11 +99,13 @@ class ConstrainedIntegrator(object):
     force = np.matrix([[0.] for _ in range(self.dim)])
     p = self.ProjectionMatrix(self.position)
     p_tilde = self.ProjectionMatrix(predictor_position)
-    #TODO: variable mobility and mobility factor.
+    mobility = self.mobility(self.position)
+    mobility_tilde = self.mobility(predictor_position)
     #TODO: This is incorrect, I need an L2 projection for drift.
-    corrector_position = (self.position + dt*p*self.mobility*force +
-                          (dt*kT/self.rfdelta)*(p_tilde*w_tilde - p*w_tilde) +
-                          np.sqrt(2*kT*dt)*p*self.mobility*w)
+    corrector_position = (self.position + dt*p*mobility*force +
+                          (dt*kT/self.rfdelta)*(p_tilde*mobility_tilde*w_tilde
+                                                - p*mobility*w_tilde) +
+                          np.sqrt(2*kT*dt)*p*mobility*w)
 
     self.position = corrector_position
 
@@ -152,9 +152,8 @@ class ConstrainedIntegrator(object):
                      the projection matrix.
     '''
     if D_matrix is None:
-      D_matrix = self.mobility
+      D_matrix = self.mobility(position)
     normal_vector = self.NormalVector(position)
-    projection = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
 
     # First calcualate n^t M n for denominator.
     nMn = normal_vector.T*D_matrix*normal_vector
@@ -163,7 +162,7 @@ class ConstrainedIntegrator(object):
     projection = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
     for j in range(self.dim):
       for k in range(self.dim):
-        projection[j,k] = -1.*((self.mobility[j]*normal_vector)*
+        projection[j,k] = -1.*((D_matrix[j]*normal_vector)*
                                normal_vector[k,0])
         projection[j,k] /= nMn
       projection[j,j] += 1.0
@@ -179,10 +178,10 @@ class ConstrainedIntegrator(object):
       x_new = x + \grad_q*\alpha
     we then iterate until we get the constraint close to 0.
     '''
-    TOL = 1e-8
+    TOL = 1e-5
     iteration_num = 0
     while (np.abs(self.surface_function(self.position)) > TOL and
-           iteration_num < 6):
+           iteration_num <= 5):
       grad_q = np.matrix([[0.] for _ in range(self.dim)])
       vector_magnitude = 0.0
       for k in range(self.dim):
@@ -203,6 +202,5 @@ class ConstrainedIntegrator(object):
     if iteration_num == 5:
       print ('WARNING: 5 iterations of line search without getting within ' +
             'tolerance of the constraint. TOL = ', TOL)
-           
       
       

@@ -5,7 +5,11 @@ from constrained_integrator import ConstrainedIntegrator
 class TestConstrainedIntegrator(unittest.TestCase):
 
   def setUp(self):
-    self.mobility = np.matrix([[1.0, 0.0], [0.0, 1.0]])
+    pass
+    
+  def IdentityMobility(self, x):
+    mobility = np.matrix([[1.0, 0.0], [0.0, 1.0]])
+    return mobility
     
   def empty_constraint(self, x):
     return 0.0
@@ -16,14 +20,14 @@ class TestConstrainedIntegrator(unittest.TestCase):
     initial_position = np.matrix([[0.0], [0.0]])
     
     test_integrator = ConstrainedIntegrator(
-      self.empty_constraint, self.mobility, scheme, initial_position)
+      self.empty_constraint, self.IdentityMobility, scheme, initial_position)
     # Test dimensions
     self.assertEqual(test_integrator.dim, 2)
     # Test Mobility
-    self.assertEqual(test_integrator.mobility[0, 0], 1.0)
-    self.assertEqual(test_integrator.mobility[1, 0], 0.0)
-    self.assertEqual(test_integrator.mobility[0, 1], 0.0)
-    self.assertEqual(test_integrator.mobility[1, 1], 1.0)
+    self.assertEqual(test_integrator.mobility(initial_position)[0, 0], 1.0)
+    self.assertEqual(test_integrator.mobility(initial_position)[1, 0], 0.0)
+    self.assertEqual(test_integrator.mobility(initial_position)[0, 1], 0.0)
+    self.assertEqual(test_integrator.mobility(initial_position)[1, 1], 1.0)
     # Test constraint.
     self.assertEqual(test_integrator.surface_function(10.0), 0.0)
     # Test scheme.
@@ -36,7 +40,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
     self.assertRaises(
       NotImplementedError,
       ConstrainedIntegrator,
-      self.empty_constraint, self.mobility, scheme, initial_position)
+      self.empty_constraint, self.IdentityMobility, scheme, initial_position)
     
   def test_normal_vector(self):
     """ Test that normal vector points in the right direction """
@@ -46,7 +50,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
       return np.sqrt(x[0,0]*x[0,0] + x[1,0]*x[1,0]) - 1.2
     
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.mobility, scheme, initial_position)
+      sphere_constraint, self.IdentityMobility, scheme, initial_position)
     
     normal_vector = test_integrator.NormalVector(initial_position)
     self.assertAlmostEqual(normal_vector[0, 0], 1.0)
@@ -68,7 +72,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
       return np.sqrt(x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0]) - 1.2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.mobility, scheme, initial_position)
+      sphere_constraint, self.IdentityMobility, scheme, initial_position)
 
     projection_vector = test_integrator.ProjectionMatrix(initial_position)
     self.assertAlmostEqual(projection_vector[0, 0], 0.0)
@@ -84,7 +88,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
       return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.mobility, scheme, initial_position)
+      sphere_constraint, self.IdentityMobility, scheme, initial_position)
     test_integrator.MockRandomGenerator()
     
     test_integrator.TimeStep(0.01)
