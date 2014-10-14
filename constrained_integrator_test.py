@@ -68,6 +68,22 @@ class TestConstrainedIntegrator(unittest.TestCase):
     self.assertEqual(projection_vector[1,0], 0.0)
     self.assertEqual(projection_vector[1,1], 1.0)
 
+  def test_rfd_step(self):
+    ''' Test that the RFD step does the correct thing'''
+    scheme = 'RFD'
+    initial_position = np.matrix([[1.2], [0.0]])
+    def sphere_constraint(x):
+      return np.sqrt(x[0,0]*x[0,0] + x[1,0]*x[1,0]) - 1.2
+
+    test_integrator = ConstrainedIntegrator(
+      sphere_constraint, self.mobility, scheme, initial_position)
+    test_integrator.MockRandomGenerator()
+    
+    test_integrator.TimeStep(0.01)
+    self.assertEqual(test_integrator.position[1,0], np.sqrt(2)/10)
+    self.assertEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
+
+
 if __name__ == "__main__":
   unittest.main()
     

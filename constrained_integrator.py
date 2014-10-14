@@ -23,7 +23,11 @@ class ConstrainedIntegrator(object):
                            the same dimension as the mobility matrix, and we must have
                            surface_function(initial_position) = 0.
     '''
+    self.random_generator = np.random.normal
+    #TODO: make this dynamic somehow.
+    self.rfdelta = 1.0e-8
     self.surface_function = surface_function
+    #TODO: make this a function of position that returns a matrix.
     self.mobility = mobility
     self.dim = mobility.shape[0]
     if mobility.shape[1] != self.dim:
@@ -47,6 +51,14 @@ class ConstrainedIntegrator(object):
       raise NotImplementedError('Only RFD and Ottinger schemes are implemented')
     else:
       self.scheme = scheme
+
+
+  def MockRandomGenerator(self):
+    ''' For testing, replace random generator with something that just returns 1. '''
+    def OnlyOnesRandomGenerator(a, b, n):
+      return np.ones(n)
+    self.random_generator = OnlyOnesRandomGenerator
+
     
   def TimeStep(self, dt):
     ''' Step from current time to next time with timestep of size dt.
@@ -69,13 +81,31 @@ class ConstrainedIntegrator(object):
 
   def RFDTimeStep(self, dt):
     ''' Take a step of the RFD scheme '''
-    Wtilde = np.random.normal(0.0, 1.0, self.dim)
-    predictor_position = zeros(self.dim)
-    for k in range(self.dim):
-      predictor_position[k] = self.position[k] + self.rfdelta*Wtilde[k]
+    #TODO: Make this dynamic
+    kT = 1.0
+    w_tilde = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
+    print "w_tilde is ", w_tilde
+    w = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
+    print 'w is ', w
+    predictor_position = self.position + self.rfdelta*w_tilde
+
+    print 'predictor_position is ', predictor_position
       
-    #For now we have no potential.
-    corrector_position = zeros(self.dim)
+    # For now we have no potential.
+    force = np.matrix([[0.] for _ in range(self.dim)])
+    p = self.ProjectionMatrix(self.position)
+    p_tilde = self.ProjectionMatrix(predictor_position)
+    print 'p is ', p
+    print 'p_tilde is ', p_tilde
+    print "RFD drift is ", (dt*kT/self.rfdelta)*(p_tilde - p)*w_tilde
+    print "stochastic term is ", np.sqrt(2*kT*dt)*p*self.mobility*w
+    #TODO: variable mobility and mobility factor.
+    #TODO: This is incorrect, I need an L2 projection for drift.
+    corrector_position = (self.position + dt*p*self.mobility*force +
+                          (dt*kT/self.rfdelta)*(p_tilde*w_tilde - p*w_tilde) +
+                          np.sqrt(2*kT*dt)*p*self.mobility*w)
+
+    self.position = corrector_position
 
 
   def NormalVector(self, position):
@@ -90,20 +120,21 @@ class ConstrainedIntegrator(object):
                        funtion at self.position, evaluated numerically.
     '''
     normal_vector = np.matrix([[0.] for _ in range(self.dim)])
-    delta = 1.0e-5
+    delta = 1.0e-8
     vector_size = 0.0
     for k in range(self.dim):
       direction = np.matrix([[0.0] for _ in range(self.dim)])
       direction[k,0] = delta
       normal_vector[k,0] = ((self.surface_function(position + direction) - 
-                          self.surface_function(self.position - direction))/
-                          delta)
+                          self.surface_function(position - direction))/
+                          (2.0*delta))
       vector_size += normal_vector[k,0]**2
     
     vector_size = np.sqrt(vector_size)
     for k in range(self.dim):
         normal_vector[k,0] /= vector_size
       
+    print "normal vector is ", normal_vector
     return normal_vector
 
       
@@ -116,10 +147,7 @@ class ConstrainedIntegrator(object):
     # First calcualate n^t M n for denominator.
     nMn = normal_vector.T*self.mobility*normal_vector
 
-#    for j in range(self.dim):
-#      for k in range(self.dim):
-#        nMn += normal_vector[j]*self.mobility[j][k]*normal_vector[k]
-
+    # Now calculate projection matrix.
     projection = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
     for j in range(self.dim):
       for k in range(self.dim):
