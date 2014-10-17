@@ -14,6 +14,9 @@ from matplotlib import pyplot
 import numpy as np
 import sys
 import cProfile, pstats, StringIO
+import constrained_diff_ext  # Functions implemented in C++ for speed.
+
+PROFILE = 0
 
 class RunAnalyzer:
   ''' Small class to store historgrams from runs and plot the results. '''
@@ -68,7 +71,6 @@ class RunAnalyzer:
     
 
 if __name__ == "__main__":
-  PROFILE = 0
   if PROFILE:
     pr = cProfile.Profile()
     pr.enable()
@@ -84,15 +86,13 @@ if __name__ == "__main__":
                       [0., 1. + 0.25*x[1, 0]**2]])
 
   def CurveConstraint(x):
-    r_squared = (x[0, 0]**2 + x[1, 0]**2)
-    theta = np.arctan(x[1, 0]/x[0, 0]) + (np.pi)*(x[0, 0] < 0)
-    return r_squared - (0.25*np.cos(3.*theta) + 1.)**2
+    return constrained_diff_ext.CosineConstraint(x[0, 0], x[1, 0])
 
   curve_integrator = ConstrainedIntegrator(CurveConstraint, MobilityFunction,
                                            'RFD', initial_position)
 
-  # 50 is the resolution for the bins.
-  run_analyzer = RunAnalyzer(50)
+  # arg is the resolution for the bins.
+  run_analyzer = RunAnalyzer(100)
 
   for j in range(n_runs):
     for k in range(n_steps):
@@ -100,7 +100,6 @@ if __name__ == "__main__":
     run_analyzer.BinTheta(curve_integrator.path)
     print "Completed run ", j
 
-#  run_analyzer.PlotDistribution(curve_integrator.path)
   run_analyzer.PlotThetaHistogram(filename)
   
   if PROFILE:
