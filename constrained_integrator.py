@@ -91,20 +91,20 @@ class ConstrainedIntegrator(object):
     ''' Take a step of the RFD scheme '''
     #TODO: Make this variable
     kT = 1.0
+
     w_tilde = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
     w = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
     p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
     predictor_position = self.position + self.rfdelta*p_l2*w_tilde
     # For now we have no potential.
-    force = np.matrix([[0.] for _ in range(self.dim)])
+    # force = np.matrix([[0.] for _ in range(self.dim)])
     p = self.ProjectionMatrix(self.position)
     p_tilde = self.ProjectionMatrix(predictor_position)
     mobility = self.mobility(self.position)
     mobility_tilde = self.mobility(predictor_position)
-    #TODO: This is incorrect, I need an L2 projection for drift.
-    corrector_position = (self.position + dt*p*mobility*force +
-                          (dt*kT/self.rfdelta)*(p_tilde*mobility_tilde*w_tilde
-                                                - p*mobility*w_tilde) +
+    # (self.position + dt*p*mobility*force +
+    corrector_position = self.position + ((dt*kT/self.rfdelta)*(p_tilde*mobility_tilde
+                                                - p*mobility)*p_l2*w_tilde +
                           np.sqrt(2*kT*dt)*p*mobility*w)
 
     self.position = corrector_position
@@ -168,6 +168,7 @@ class ConstrainedIntegrator(object):
       projection[j,j] += 1.0
 
     return projection
+
 
   def ProjectToConstraint(self):
     ''' Project the current position to the nearest point on

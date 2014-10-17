@@ -50,10 +50,9 @@ class RunAnalyzer:
     self.theta_hists.append(hist[0])
 
       
-  def PlotThetaHistogram(self):
+  def PlotThetaHistogram(self, filename):
     ''' plot the mean and std def of all path binned with BinTheta '''
 
-    n_runs = len(self.theta_hists)
     bin_centers = (self.bins[:-1] + self.bins[1:])/2.
     theta_means = []
     theta_stds = []
@@ -65,7 +64,7 @@ class RunAnalyzer:
     theory_dist = (1. + 0.25*np.cos(3.*bin_centers))/(2.*np.pi)
     pyplot.plot(bin_centers, theory_dist, 'k--')
     pyplot.errorbar(bin_centers, theta_means, yerr=2.*np.array(theta_stds))
-    pyplot.savefig('./ThetaDistribution.pdf')
+    pyplot.savefig(filename)
     
 
 if __name__ == "__main__":
@@ -77,6 +76,7 @@ if __name__ == "__main__":
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
   n_runs = int(sys.argv[3])
+  filename = './ThetaDistribution-dt-%s-n-%s-runs-%s.pdf' % (dt, n_steps, n_runs)
   # Set initial condition.
   initial_position = np.matrix([[1.25], [0.0]])
   def MobilityFunction(x):
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     print "Completed run ", j
 
 #  run_analyzer.PlotDistribution(curve_integrator.path)
-  run_analyzer.PlotThetaHistogram()
+  run_analyzer.PlotThetaHistogram(filename)
   
   if PROFILE:
     pr.disable()
