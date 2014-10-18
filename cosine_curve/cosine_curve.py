@@ -14,7 +14,8 @@ from matplotlib import pyplot
 import numpy as np
 import sys
 import cProfile, pstats, StringIO
-import constrained_diff_ext  # Functions implemented in C++ for speed.
+import cosine_curve_ext  # Functions implemented in C++ for speed.
+import cPickle
 
 PROFILE = 0
 
@@ -52,11 +53,35 @@ class RunAnalyzer:
 
     self.theta_hists.append(hist[0])
 
+  
+  def SaveHistogram(self, filename):
+    ''' 
+    Save the histogram as a pkl object to combine with other runs and 
+    plot. 
+    args:
+       filename:  string - name of the file to save to.
+    '''
+    with open('./data/' + filename,'wb') as f:
+      cPickle.dump(self.theta_hists, f)
+
+    
+  def LoadHistogram(self, filename):
+    '''
+    Load histograms from a given file and append to 
+    self.theta_hists
+    '''
+    with open('./data/' + filename, 'rb') as f:
+      loaded_theta_hists = cPickle.load(f)
+    for hist in loaded_theta_hists:
+      self.theta_hists.append(hist)
+
       
   def PlotThetaHistogram(self, filename):
     ''' plot the mean and std def of all path binned with BinTheta '''
 
     bin_centers = (self.bins[:-1] + self.bins[1:])/2.
+    n_runs = len(self.theta_hists)
+    print n_runs
     theta_means = []
     theta_stds = []
     for k in range(self.resolution-1):
@@ -67,7 +92,7 @@ class RunAnalyzer:
     theory_dist = (1. + 0.25*np.cos(3.*bin_centers))/(2.*np.pi)
     pyplot.plot(bin_centers, theory_dist, 'k--')
     pyplot.errorbar(bin_centers, theta_means, yerr=2.*np.array(theta_stds))
-    pyplot.savefig(filename)
+    pyplot.savefig("./Plots/" + str(filename))
     
 
 if __name__ == "__main__":
@@ -78,7 +103,8 @@ if __name__ == "__main__":
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
   n_runs = int(sys.argv[3])
-  filename = './ThetaDistribution-dt-%s-n-%s-runs-%s.pdf' % (dt, n_steps, n_runs)
+  data_name = sys.argv[4]
+  plot_name = './ThetaDistribution-dt-%s-n-%s-runs-%s.pdf' % (dt, n_steps, n_runs)
   # Set initial condition.
   initial_position = np.matrix([[1.25], [0.0]])
   def MobilityFunction(x):
@@ -86,12 +112,12 @@ if __name__ == "__main__":
                       [0., 1. + 0.25*x[1, 0]**2]])
 
   def CurveConstraint(x):
-    return constrained_diff_ext.CosineConstraint(x[0, 0], x[1, 0])
+    return cosine_curve_ext.CosineConstraint(x[0, 0], x[1, 0])
 
   curve_integrator = ConstrainedIntegrator(CurveConstraint, MobilityFunction,
                                            'RFD', initial_position)
 
-  # arg is the resolution for the bins.
+  # Argument is the resolution for the bins.
   run_analyzer = RunAnalyzer(100)
 
   for j in range(n_runs):
@@ -100,7 +126,7 @@ if __name__ == "__main__":
     run_analyzer.BinTheta(curve_integrator.path)
     print "Completed run ", j
 
-  run_analyzer.PlotThetaHistogram(filename)
+  run_analyzer.SaveHistogram(data_name)
   
   if PROFILE:
     pr.disable()

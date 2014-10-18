@@ -1,3 +1,8 @@
+''' Constrained Integrator object used to integrate langevin equations 
+on a given constraint.  Uses a projection method to stay on the constraint, and
+an RFD term to generate the correct (slightly modified) thermal drift to account for the
+surface measure of the constraint. '''
+
 import sys
 import numpy as np
 
