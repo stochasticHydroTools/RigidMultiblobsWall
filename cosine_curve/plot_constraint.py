@@ -23,10 +23,11 @@ if __name__ == '__main__':
 
   run_analyzer = RunAnalyzer(100)
 
-  for filename in sys.argv[1:]:
+  for filename in sys.argv[2:]:
     run_analyzer.LoadHistogram(filename)
 
-  run_analyzer.PlotThetaHistogram("ThetaDistributionTestPlot.pdf")
+  plot_name = sys.argv[1]
+  run_analyzer.PlotThetaHistogram(plot_name)
     
 
   
