@@ -81,7 +81,6 @@ class RunAnalyzer:
 
     bin_centers = (self.bins[:-1] + self.bins[1:])/2.
     n_runs = len(self.theta_hists)
-    print n_runs
     theta_means = []
     theta_stds = []
     for k in range(self.resolution-1):
@@ -124,6 +123,7 @@ if __name__ == "__main__":
     for k in range(n_steps):
       curve_integrator.TimeStep(dt)
     run_analyzer.BinTheta(curve_integrator.path)
+    curve_integrator.ResetPath()
     print "Completed run ", j
 
   run_analyzer.SaveHistogram(data_name)

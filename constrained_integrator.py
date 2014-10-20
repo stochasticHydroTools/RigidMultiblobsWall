@@ -46,6 +46,8 @@ class ConstrainedIntegrator(object):
     if (initial_position.shape[0] == self.dim and 
         self.surface_function(initial_position) == 0.):
       self.position = initial_position
+      # Save initial position so we can reset for multiple runs.
+      self.initial_position = initial_position
     else:
       print 'initial position.shape is ', initial_position.shape
       print ('constraint function of initial position is ', 
@@ -119,6 +121,13 @@ class ConstrainedIntegrator(object):
   def SavePath(self, position):
     self.path.append(position)
 
+  def ResetPath(self):
+    ''' 
+    Clear the path variable for a new run, and set 
+    position to initial_position 
+    '''
+    self.position = self.initial_position
+    self.path = [self.position]
 
   def NormalVector(self, position):
     ''' At the given position, calculate normalized gradient
