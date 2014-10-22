@@ -10,6 +10,10 @@ class TestConstrainedIntegrator(unittest.TestCase):
   def IdentityMobility(self, x):
     mobility = np.matrix([[1.0, 0.0], [0.0, 1.0]])
     return mobility
+
+  def DiagonalQuadraticMobility(self, x):
+    mobility = np.matrix([[1.0 + x[0, 0]**2, 0.0], [0.0, 1.0 + x[1, 0]**2]]) 
+    return mobility
     
   def empty_constraint(self, x):
     return 0.0
@@ -96,6 +100,31 @@ class TestConstrainedIntegrator(unittest.TestCase):
     # self.assertAlmostEqual(test_integrator.position[1,0], np.sqrt(2)/10)
     # self.assertAlmostEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
 
+  def test_noise_magnitude_diagonal(self):
+    ''' 
+    Test that we can do the correct cholesky decomposition for
+    diagonal matrices
+    '''
+    scheme = 'RFD'
+    initial_position = np.matrix([[1.2], [0.0]])
+    def sphere_constraint(x):
+      return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
+
+    test_integrator = ConstrainedIntegrator(
+      sphere_constraint, self.DiagonalQuadraticMobility, scheme, initial_position)
+    
+    noise_magnitude = test_integrator.NoiseMagnitude(initial_position)
+    self.assertAlmostEqual(noise_magnitude[0, 0], np.sqrt(1.0 + 1.2*1.2))
+    self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
+    self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 1.0)
+
+    noise_magnitude = test_integrator.NoiseMagnitude(np.matrix([[0.84852813742385691],
+                                                                [0.84852813742385691]]))
+    self.assertAlmostEqual(noise_magnitude[0, 0], 1.31148770486)
+    self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
+    self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 1.31148770486)
 
 if __name__ == "__main__":
   unittest.main()

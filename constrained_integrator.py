@@ -108,11 +108,12 @@ class ConstrainedIntegrator(object):
     p = self.ProjectionMatrix(self.position)
     p_tilde = self.ProjectionMatrix(predictor_position)
     mobility = self.mobility(self.position)
+    noise_magnitude = self.NoiseMagnitude(self.position)
     mobility_tilde = self.mobility(predictor_position)
     # (self.position + dt*p*mobility*force +
     corrector_position = self.position + ((dt*kT/self.rfdelta)*(p_tilde*mobility_tilde
                                                 - p*mobility)*p_l2*w_tilde +
-                          np.sqrt(2*kT*dt)*p*mobility*w)
+                          np.sqrt(2*kT*dt)*p*noise_magnitude*w)
 
     self.position = corrector_position
 
@@ -183,6 +184,30 @@ class ConstrainedIntegrator(object):
 
     return projection
 
+
+  def NoiseMagnitude(self, position):
+    ''' 
+    Calculate cholesky decomposition of mobility for noise term.  For
+    now this just works on diagonal matrices.  
+    args 
+      position:  np.matrix - position where we evaluate M^1/2, 
+                            the noise magnitude.
+    returns
+      noise_magnitude: np.matrix - Square root of mobility evaluated 
+                                   at position.
+    NOTE: FOR NOW THIS IS ONLY IMPLEMENTED FOR DIAGONAL MOBILITY.
+    '''
+    noise_magnitude = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
+    mobility_matrix = self.mobility(position)
+    for j in range(self.dim):
+      for k in range(self.dim):
+        if j == k:
+          noise_magnitude[j, k] = np.sqrt(mobility_matrix[j, k])
+        elif mobility_matrix[j, k] != 0:
+          raise NotImplementedError('Noise magnitude for non-diagonal'
+                                    'mobility not yet implemented')
+
+    return noise_magnitude
 
   def ProjectToConstraint(self):
     ''' Project the current position to the nearest point on
