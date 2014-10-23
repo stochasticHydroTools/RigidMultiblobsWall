@@ -197,16 +197,8 @@ class ConstrainedIntegrator(object):
                                    at position.
     NOTE: FOR NOW THIS IS ONLY IMPLEMENTED FOR DIAGONAL MOBILITY.
     '''
-    noise_magnitude = np.matrix([np.zeros(self.dim) for _ in range(self.dim)])
     mobility_matrix = self.mobility(position)
-    for j in range(self.dim):
-      for k in range(self.dim):
-        if j == k:
-          noise_magnitude[j, k] = np.sqrt(mobility_matrix[j, k])
-        elif mobility_matrix[j, k] != 0:
-          raise NotImplementedError('Noise magnitude for non-diagonal'
-                                    'mobility not yet implemented')
-
+    noise_magnitude = np.linalg.cholesky(mobility_matrix)
     return noise_magnitude
 
   def ProjectToConstraint(self):

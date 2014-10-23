@@ -11,8 +11,9 @@ class TestConstrainedIntegrator(unittest.TestCase):
     mobility = np.matrix([[1.0, 0.0], [0.0, 1.0]])
     return mobility
 
-  def DiagonalQuadraticMobility(self, x):
-    mobility = np.matrix([[1.0 + x[0, 0]**2, 0.0], [0.0, 1.0 + x[1, 0]**2]]) 
+  def QuadraticMobility(self, x):
+    mobility = np.matrix([[1. + x[0, 0]**2, x[0, 0]*x[1, 0]],
+                          [x[0, 0]*x[1, 0], 1. + x[1, 0]**2]]) 
     return mobility
     
   def empty_constraint(self, x):
@@ -100,7 +101,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
     # self.assertAlmostEqual(test_integrator.position[1,0], np.sqrt(2)/10)
     # self.assertAlmostEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
 
-  def test_noise_magnitude_diagonal(self):
+  def test_noise_magnitude(self):
     ''' 
     Test that we can do the correct cholesky decomposition for
     diagonal matrices
@@ -111,20 +112,20 @@ class TestConstrainedIntegrator(unittest.TestCase):
       return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.DiagonalQuadraticMobility, scheme, initial_position)
+      sphere_constraint, self.QuadraticMobility, scheme, initial_position)
     
     noise_magnitude = test_integrator.NoiseMagnitude(initial_position)
-    self.assertAlmostEqual(noise_magnitude[0, 0], np.sqrt(1.0 + 1.2*1.2))
+    self.assertAlmostEqual(noise_magnitude[0, 0], sqrt(1.2**2 + 1.))
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
     self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
-    self.assertAlmostEqual(noise_magnitude[1, 1], 1.0)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 0.0)
 
     noise_magnitude = test_integrator.NoiseMagnitude(np.matrix([[0.84852813742385691],
                                                                 [0.84852813742385691]]))
-    self.assertAlmostEqual(noise_magnitude[0, 0], 1.31148770486)
+    self.assertAlmostEqual(noise_magnitude[0, 0], 0.84852813742385691)
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
-    self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
-    self.assertAlmostEqual(noise_magnitude[1, 1], 1.31148770486)
+    self.assertAlmostEqual(noise_magnitude[1, 0], 0.84852813742385691)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 0.)
 
 if __name__ == "__main__":
   unittest.main()
