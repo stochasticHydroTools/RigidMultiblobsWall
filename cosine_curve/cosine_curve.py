@@ -114,7 +114,7 @@ if __name__ == "__main__":
     return cosine_curve_ext.CosineConstraint(x[0, 0], x[1, 0])
 
   curve_integrator = ConstrainedIntegrator(CurveConstraint, MobilityFunction,
-                                           'RFD', initial_position)
+                                           'FIXMAN', initial_position)
 
   # Argument is the resolution for the bins.
   run_analyzer = RunAnalyzer(100)

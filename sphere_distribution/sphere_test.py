@@ -1,3 +1,9 @@
+'''
+Small test to verify that a uniformly distributed rotation
+corresponds to a quaternion uniformly distributed on the surface
+of the 3-Sphere.
+'''
+
 import numpy as np
 
 def GenerateRandomRotationMatrix():
@@ -11,12 +17,10 @@ def GenerateRandomRotationMatrix():
 
   return R
 
-def MatrixToQuaterion():
-  ''' Convert rotation matrix to a quaternion '''
+def MatrixToQuaterion(R):
+  ''' Convert rotation matrix to a quaternion. '''
   
-
-
-
+  
 if __name__ == "__main__":
   
   

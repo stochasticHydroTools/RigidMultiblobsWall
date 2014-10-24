@@ -101,6 +101,21 @@ class TestConstrainedIntegrator(unittest.TestCase):
     # self.assertAlmostEqual(test_integrator.position[1,0], np.sqrt(2)/10)
     # self.assertAlmostEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
 
+  def test_fixman_step(self):
+    ''' Test that the Fixman step does the correct thing '''
+    scheme = 'FIXMAN'
+    initial_position = np.matrix([[1.2], [0.0]])
+    def sphere_constraint(x):
+      return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
+
+    test_integrator = ConstrainedIntegrator(
+      sphere_constraint, self.IdentityMobility, scheme, initial_position)
+    test_integrator.MockRandomGenerator()
+    
+    # Take a timestep dt = 0.01
+    test_integrator.TimeStep(0.01)
+    
+
   def test_noise_magnitude(self):
     ''' 
     Test that we can do the correct cholesky decomposition for

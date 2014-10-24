@@ -32,6 +32,8 @@ class ConstrainedIntegrator(object):
     self.random_generator = np.random.normal
     #TODO: make this dynamic somehow.
     self.rfdelta = 1.0e-6
+    self.kT = 1.0
+
     self.surface_function = surface_function
     self.mobility = mobility
     self.dim = self.mobility(initial_position).shape[0]
@@ -55,9 +57,9 @@ class ConstrainedIntegrator(object):
       raise ValueError('Initial position is either the wrong dimension or'
                         ' is not on the constraint.')
       
-    if scheme not in ['RFD', 'OTTINGER']:
-      print 'Only RFD and Ottinger Schemes are implemented'
-      raise NotImplementedError('Only RFD and Ottinger schemes are implemented')
+    if scheme not in ['RFD', 'FIXMAN']:
+      print 'Only RFD and FIXMAN Schemes are implemented'
+      raise NotImplementedError('Only RFD and FIXMAN schemes are implemented')
     else:
       self.scheme = scheme
 
@@ -78,6 +80,8 @@ class ConstrainedIntegrator(object):
      '''
     if self.scheme == 'RFD':
       self.RFDTimeStep(dt)
+    elif self.scheme == 'FIXMAN':
+      self.FixmanTimeStep(dt)
     elif self.scheme == 'OTTINGER':
       self.OttingerTimeStep(dt)
     else:
@@ -85,7 +89,6 @@ class ConstrainedIntegrator(object):
       sys.exit()
     
     self.ProjectToConstraint()
-
     self.SavePath(self.position)
 
         
@@ -96,10 +99,8 @@ class ConstrainedIntegrator(object):
 
   def RFDTimeStep(self, dt):
     ''' Take a step of the RFD scheme '''
-    #TODO: Make this variable
-    kT = 1.0
-
-    w_tilde = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
+    w_tilde = np.matrix(
+      [[a] for a in self.random_generator(0.0, 1.0, self.dim)])
     w = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
     p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
     predictor_position = self.position + self.rfdelta*p_l2*w_tilde
@@ -111,12 +112,31 @@ class ConstrainedIntegrator(object):
     noise_magnitude = self.NoiseMagnitude(self.position)
     mobility_tilde = self.mobility(predictor_position)
     # (self.position + dt*p*mobility*force +
-    corrector_position = self.position + ((dt*kT/self.rfdelta)*(p_tilde*mobility_tilde
+    corrector_position = self.position + ((dt*self.kT/self.rfdelta)*(p_tilde*mobility_tilde
                                                 - p*mobility)*p_l2*w_tilde +
-                          np.sqrt(2*kT*dt)*p*noise_magnitude*w)
+                          np.sqrt(2*self.kT*dt)*p*noise_magnitude*w)
 
     self.position = corrector_position
 
+
+  def FixmanTimeStep(self, dt):
+    ''' Take a step of the Fixman scheme '''
+    # Note, this currently assumes no potential.
+    noise = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
+    p = self.ProjectionMatrix(self.position)
+    p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
+    noise_magnitude = self.NoiseMagnitude(self.position)
+    predictor_position = (self.position + 
+                          np.sqrt(0.5*self.kT*dt)*noise_magnitude*noise)
+
+    mobility_matrix = self.mobility(self.position)
+    mobility_tilde = self.mobility(predictor_position)
+    mobility_inv = np.linalg.inv(mobility_matrix)
+    mobility_half = np.linalg.cholesky(mobility_matrix)
+    corrector_position = (self.position + 
+                          np.sqrt(2.0*self.kT*dt)*mobility_tilde*
+                          p_l2*mobility_inv*mobility_half*noise)
+    self.position = corrector_position
 
 
   def SavePath(self, position):
