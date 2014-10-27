@@ -19,7 +19,10 @@ def GenerateRandomRotationMatrix():
 
 def MatrixToQuaterion(R):
   ''' Convert rotation matrix to a quaternion. '''
+  p1_over_s = R[]
   
+
+
   
 if __name__ == "__main__":
   
