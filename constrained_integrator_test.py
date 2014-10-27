@@ -19,7 +19,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
   def empty_constraint(self, x):
     return 0.0
 
-  def test_initialize(self):
+  def test_Initialize(self):
     """ Test that the integrator is set up correctly. """
     scheme = "RFD"
     initial_position = np.matrix([[0.0], [0.0]])
@@ -51,11 +51,11 @@ class TestConstrainedIntegrator(unittest.TestCase):
     """ Test that normal vector points in the right direction """
     scheme = 'RFD'
     initial_position = np.matrix([[1.2], [0.0]])
-    def sphere_constraint(x):
+    def SphereConstraint(x):
       return np.sqrt(x[0,0]*x[0,0] + x[1,0]*x[1,0]) - 1.2
     
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.IdentityMobility, scheme, initial_position)
+      SphereConstraint, self.IdentityMobility, scheme, initial_position)
     
     normal_vector = test_integrator.NormalVector(initial_position)
     self.assertAlmostEqual(normal_vector[0, 0], 1.0)
@@ -73,11 +73,11 @@ class TestConstrainedIntegrator(unittest.TestCase):
   def test_projection_matrix(self):
     scheme = 'RFD'
     initial_position = np.matrix([[1.2], [0.0]])
-    def sphere_constraint(x):
+    def SphereConstraint(x):
       return np.sqrt(x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0]) - 1.2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.IdentityMobility, scheme, initial_position)
+      SphereConstraint, self.IdentityMobility, scheme, initial_position)
 
     projection_vector = test_integrator.ProjectionMatrix(initial_position)
     self.assertAlmostEqual(projection_vector[0, 0], 0.0)
@@ -89,11 +89,11 @@ class TestConstrainedIntegrator(unittest.TestCase):
     ''' Test that the RFD step does the correct thing'''
     scheme = 'RFD'
     initial_position = np.matrix([[1.2], [0.0]])
-    def sphere_constraint(x):
+    def SphereConstraint(x):
       return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.IdentityMobility, scheme, initial_position)
+      SphereConstraint, self.IdentityMobility, scheme, initial_position)
     test_integrator.MockRandomGenerator()
     
     test_integrator.TimeStep(0.01)
@@ -105,11 +105,11 @@ class TestConstrainedIntegrator(unittest.TestCase):
     ''' Test that the Fixman step does the correct thing '''
     scheme = 'FIXMAN'
     initial_position = np.matrix([[1.2], [0.0]])
-    def sphere_constraint(x):
+    def SphereConstraint(x):
       return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.IdentityMobility, scheme, initial_position)
+      SphereConstraint, self.IdentityMobility, scheme, initial_position)
     test_integrator.MockRandomGenerator()
     
     # Take a timestep dt = 0.01
@@ -123,11 +123,11 @@ class TestConstrainedIntegrator(unittest.TestCase):
     '''
     scheme = 'RFD'
     initial_position = np.matrix([[1.2], [0.0]])
-    def sphere_constraint(x):
+    def SphereConstraint(x):
       return x[0, 0]*x[0, 0] + x[1, 0]*x[1, 0] - 1.2**2
 
     test_integrator = ConstrainedIntegrator(
-      sphere_constraint, self.QuadraticMobility, scheme, initial_position)
+      SphereConstraint, self.QuadraticMobility, scheme, initial_position)
     
     noise_magnitude = test_integrator.NoiseMagnitude(initial_position)
     self.assertAlmostEqual(noise_magnitude[0, 0], sqrt(1.2**2 + 1.))
