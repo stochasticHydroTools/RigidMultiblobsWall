@@ -13,12 +13,11 @@ def GenerateRandomRotationMatrix():
   random distributed rotation.
   '''
   A = np.matrix([np.random.normal(0., 1., 3) for _ in range(3)])
-  P = np.linalg.cholesky(A.T*A)
-  R = A*np.linalg.inv(P)
-
+  U, sigma, V = np.linalg.svd(A)
+  R = U*V.T
   return R
 
-def MatrixToQuaterion(R):
+def MatrixToQuaternion(R):
   ''' 
   Convert rotation matrix to a quaternion. 
   The matrix R looks like (in terms of quaternion entries)
@@ -32,19 +31,17 @@ def MatrixToQuaterion(R):
   '''
   # Find ratios of p entries to s.
   p1_over_s = (R[2, 0] + R[0, 2])/(R[0, 1] - R[1, 0])
-  p2_over_s = (R[1, 0] + R[0, 1])/(R[2, 1] - R[1, 2])
+  p2_over_s = (R[1, 0] + R[0, 1])/(R[1, 2] - R[2, 1])
   p3_over_s = (R[1, 2] + R[2, 1])/(R[2, 0] - R[0, 2])
   
   # Find s_squared.
   s_squared = 1./(1. + p1_over_s**2 + p2_over_s**2 + p3_over_s**2)
   
-  # Back out values of p.
-  p1 = np.sqrt(R[0, 0] - s_squared + 0.5)
-  p2 = np.sqrt(R[1, 1] - s_squared + 0.5)
-  p3 = np.sqrt(R[2, 2] - s_squared + 0.5)
-  
-  # Calculate S.
+  # Back out values of s and p.
   s = np.sqrt(s_squared)
+  p1 = p1_over_s*s
+  p2 = p2_over_s*s
+  p3 = p3_over_s*s
   
   return [s, p1, p2, p3]
 
@@ -56,8 +53,8 @@ if __name__ == "__main__":
     samples.append(MatrixToQuaternion(GenerateRandomRotationMatrix()))
   
   # Analyze distribution on 3-sphere
-  ua.UniformAnalyzer(samples)
-  ua.AnalyzeSamples()
+  uniform_analyzer =ua.UniformAnalyzer(samples)
+  uniform_analyzer.AnalyzeSamples()
     
   
 

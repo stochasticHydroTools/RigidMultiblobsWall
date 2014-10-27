@@ -31,8 +31,8 @@ class UniformAnalyzer(object):
           u = np.inner(xi, sample)
           v = np.inner(eta, sample)
           theta = np.arctan(v/u)
-          harmonics.append(cos(l*theta))
-        print "Mean at L = %d is: %d" % (L, mean(harmonics))
+          harmonics.append(np.cos(L*theta))
+        print "Mean at L = %d is: %f" % (L, np.mean(harmonics))
 
 
   def GenerateXiEta(self):
