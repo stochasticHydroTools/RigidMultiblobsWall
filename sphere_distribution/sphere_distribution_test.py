@@ -26,19 +26,21 @@ class TestSphereDistribution(unittest.TestCase):
 
   def test_matrix_to_quaternion(self):
     ''' Test that we get the right quaternion back from a rotation matrix '''
+    # First construct any random unit quaternion.
     s = 2*random.random() - 1.
     p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
     p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
           (1. - np.abs(s) - np.abs(p1)))
     p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
     
+    # Create the rotation matrix associated with (s, p).
     R = 2.0*np.matrix([[p1**2 + s**2 - 0.5, p2*p1 + s*p3, p3*p1 - s*p2],
                        [p1*p2 - s*p3, p2**2 + s**2 - 0.5, p3*p2 + s*p1],
                        [p1*p3 + s*p2, p2*p3 - s*p1, p3**2 + s**2 - 0.5]])
-
+    # Get the Quaternion from the matrix.
     quaternion = sphere_distribution.MatrixToQuaternion(R)
-    # The + and - of a quaternion indicate the same rotation.  Check which
-    # we got, then make sure the rest of the entries match.
+    # The + and - of a quaternion indicate the same rotation. We always choose
+    # s to be positive for no real reason.
     if (quaternion[0]/s) > 0:
       self.assertAlmostEqual(quaternion[0], s)
       self.assertAlmostEqual(quaternion[1], p1)

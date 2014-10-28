@@ -19,6 +19,6 @@ class TestUnifSphereDist(unittest.TestCase):
     self.assertAlmostEqual(np.linalg.norm(xi), 1.0)
     self.assertAlmostEqual(np.linalg.norm(eta), 1.0)
     self.assertAlmostEqual(np.inner(eta, xi), 0.0)
-
+    
 if __name__ == "__main__":
   unittest.main()

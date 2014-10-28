@@ -20,19 +20,23 @@ class UniformAnalyzer(object):
 
   def AnalyzeSamples(self):
     ''' Analyze samples by calculating means of spherical harmonics. '''
-    for k in range(5):
-      print '-'*60
-      print 'xi, eta pair: ', k
+    statistics = [[] for _ in range(10)]
+    n_xi_eta_pairs = 16
+    for k in range(n_xi_eta_pairs):
       xi, eta = self.GenerateXiEta()
-    
-      for L in range(1, 11):
+      for L in range(1, len(statistics) + 1):
         harmonics = []
         for sample in self.samples:
           u = np.inner(xi, sample)
           v = np.inner(eta, sample)
-          theta = np.arctan(v/u)
+          # Numpy arctan is always between -pi/2 and pi/2.
+          theta = np.arctan(v/u)  + (u < 0)*np.pi
           harmonics.append(np.cos(L*theta))
-        print "Mean at L = %d is: %f" % (L, np.mean(harmonics))
+        statistics[L-1].append(np.mean(harmonics))
+    for L in range(1, len(statistics) + 1):
+      print ('Mean at L = %d is: %f +/- %f' % 
+             (L, np.mean(statistics[L-1]), 
+              np.std(statistics[L-1])/np.sqrt(n_xi_eta_pairs)))
 
 
   def GenerateXiEta(self):
