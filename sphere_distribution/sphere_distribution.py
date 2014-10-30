@@ -6,6 +6,9 @@ of the 3-Sphere.
 import sys
 import numpy as np
 import uniform_analyzer as ua
+import cProfile, pstats, StringIO
+
+PROFILE = 0
 
 def GenerateRandomRotationMatrix():
   ''' 
@@ -48,6 +51,10 @@ def MatrixToQuaternion(R):
   
 if __name__ == "__main__":
   ''' Generate a number of samples, then test for uniformity '''
+  if PROFILE:
+    pr = cProfile.Profile()
+    pr.enable()
+
   samples = []
   for k in range(int(sys.argv[1])):
     samples.append(MatrixToQuaternion(GenerateRandomRotationMatrix()))
@@ -56,6 +63,12 @@ if __name__ == "__main__":
   uniform_analyzer =ua.UniformAnalyzer(samples)
   uniform_analyzer.AnalyzeSamples()
     
-  
+  if PROFILE:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()  
 
   

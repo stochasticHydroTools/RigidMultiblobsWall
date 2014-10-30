@@ -36,7 +36,7 @@ class UniformAnalyzer(object):
     for L in range(1, len(statistics) + 1):
       print ('Mean at L = %d is: %f +/- %f' % 
              (L, np.mean(statistics[L-1]), 
-              np.std(statistics[L-1])/np.sqrt(n_xi_eta_pairs)))
+              np.std(statistics[L-1])))
 
 
   def GenerateXiEta(self):
