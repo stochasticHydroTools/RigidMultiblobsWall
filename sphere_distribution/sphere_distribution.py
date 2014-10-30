@@ -13,13 +13,34 @@ PROFILE = 0
 def GenerateRandomRotationMatrix():
   ''' 
   Generate a rotation matrix that represents a uniformly
-  random distributed rotation.
+  random distributed rotation.  This uses polar decomposition.
   '''
   A = np.matrix([np.random.normal(0., 1., 3) for _ in range(3)])
   U, sigma, V = np.linalg.svd(A)
   R = U*V.T
   return R
 
+def GenerateRandomRotationMatrixManual():
+  ''' 
+  Generate a random rotation matrix uniformly by choosing
+  one axis at a time. 
+  '''
+  # Generate x, uniformly on the sphere.
+  x = np.random.normal(0., 1., 3)
+  x = x/np.linalg.norm(x)
+  
+  # Generate y, uniformly on the circle around x.
+  p = np.random.normal(0., 1., 3)
+  p = p/np.linalg.norm(p)
+  y = np.cross(x, p)
+  y = y/np.linalg.norm(y)
+  
+  # Generate z as x cross y.
+  z = np.cross(x, y)
+  z = z/np.linalg.norm(z)
+  return np.matrix([x, y, z])
+
+  
 def MatrixToQuaternion(R):
   ''' 
   Convert rotation matrix to a quaternion. 
@@ -42,6 +63,10 @@ def MatrixToQuaternion(R):
   
   # Back out values of s and p.
   s = np.sqrt(s_squared)
+  # + and - are the same rotation, pick a sign randomly 
+  # to test against the uniform distribution.
+  if np.random.randint(2) == 0:
+    s = -1.*s
   p1 = p1_over_s*s
   p2 = p2_over_s*s
   p3 = p3_over_s*s
@@ -56,13 +81,18 @@ if __name__ == "__main__":
     pr.enable()
 
   samples = []
+  uniform_samples = []
   for k in range(int(sys.argv[1])):
     samples.append(MatrixToQuaternion(GenerateRandomRotationMatrix()))
+    x = np.random.normal(0., 1., 4)
+    x = x/np.linalg.norm(x)
+    uniform_samples.append(x)
   
   # Analyze distribution on 3-sphere
-  uniform_analyzer =ua.UniformAnalyzer(samples)
-  uniform_analyzer.AnalyzeSamples()
-    
+  rotation_analyzer = ua.UniformAnalyzer(samples, 'Rotations')
+  uniform_analyzer = ua.UniformAnalyzer(uniform_samples, 'Uniform')
+  ua.CompareDistributions([rotation_analyzer, uniform_analyzer])
+      
   if PROFILE:
     pr.disable()
     s = StringIO.StringIO()

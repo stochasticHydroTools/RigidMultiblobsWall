@@ -8,7 +8,6 @@ class TestSphereDistribution(unittest.TestCase):
   def setUp(self):
     pass
 
-
   def test_generate_random_matrix(self):
     ''' Test that the matrix generated is a rotation. '''
 
@@ -23,6 +22,22 @@ class TestSphereDistribution(unittest.TestCase):
     self.assertAlmostEqual(np.inner(A[0], A[1]), 0.)
     self.assertAlmostEqual(np.inner(A[1], A[2]), 0.)
     self.assertAlmostEqual(np.inner(A[0], A[2]), 0.)
+
+  def test_generate_random_matrix_manual(self):
+    ''' Test that the matrix generated is a rotation. '''
+
+    A = sphere_distribution.GenerateRandomRotationMatrixManual()
+
+    # Check for unit norm.
+    self.assertAlmostEqual(np.linalg.norm(A[0]), 1.0)
+    self.assertAlmostEqual(np.linalg.norm(A[1]), 1.0)
+    self.assertAlmostEqual(np.linalg.norm(A[2]), 1.0)
+
+    # Check for orthogonality.
+    self.assertAlmostEqual(np.inner(A[0], A[1]), 0.)
+    self.assertAlmostEqual(np.inner(A[1], A[2]), 0.)
+    self.assertAlmostEqual(np.inner(A[0], A[2]), 0.)
+
 
   def test_matrix_to_quaternion(self):
     ''' Test that we get the right quaternion back from a rotation matrix '''
@@ -39,8 +54,8 @@ class TestSphereDistribution(unittest.TestCase):
                        [p1*p3 + s*p2, p2*p3 - s*p1, p3**2 + s**2 - 0.5]])
     # Get the Quaternion from the matrix.
     quaternion = sphere_distribution.MatrixToQuaternion(R)
-    # The + and - of a quaternion indicate the same rotation. We always choose
-    # s to be positive for no real reason.
+    # The + and - of a quaternion indicate the same rotation. We choose the sign 
+    # with 50% probability each.
     if (quaternion[0]/s) > 0:
       self.assertAlmostEqual(quaternion[0], s)
       self.assertAlmostEqual(quaternion[1], p1)

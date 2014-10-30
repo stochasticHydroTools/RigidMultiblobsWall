@@ -1,5 +1,5 @@
 '''
-Simple quaternion integrator.  
+Simple quaternion object for use with quaternion integrators.
 '''
 import numpy as np
 
