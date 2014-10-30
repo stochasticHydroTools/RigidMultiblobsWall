@@ -1,10 +1,10 @@
 import unittest
 import numpy as np
 import random
-from quaternion_integrator import Quaternion
+from quaternion import Quaternion
 
 
-class TestQuaternionIntegrator(unittest.TestCase):
+class TestQuaternion(unittest.TestCase):
 
   def setUp(self):
     pass
