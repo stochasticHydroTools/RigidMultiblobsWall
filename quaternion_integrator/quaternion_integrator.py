@@ -25,19 +25,23 @@ class Quaternion(object):
     Quaternion multiplication.  In this case, other is the 
     right quaternion. 
     '''
-    s = (self.entries[0]*other.entries[0] - 
-         np.dot(self.entries[1:4], other.entries[1:4]))
-    p = (self.entries[0]*other.entries[1:4] + other.entries[0]*self.entries[1:4]
-         - np.cross(self.entries[1:4], other.entries[1:4]))
+    s = (self.GetS()*other.GetS() - 
+         np.dot(self.GetP(), other.GetP()))
+    p = (self.GetS()*other.GetP() + other.GetS()*self.GetP()
+         - np.cross(self.GetP(), other.GetP()))
     
     return Quaternion(np.concatenate(([s], p)))
   
   
   def GetP(self):
-    ''' Get the p vector, last 3 entries '''
+    ''' Get the p vector, last 3 entries. '''
     #TODO: Figure out how to use params decorator.
     return self.entries[1:4]
-  
+
   
   def GetS(self):
+    ''' Return scalar s, the first entry. '''
+    #TODO: Figure out how to use params decorator.
+    return self.entries[0]
+
 

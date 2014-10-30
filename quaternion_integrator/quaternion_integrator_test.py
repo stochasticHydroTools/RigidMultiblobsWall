@@ -42,8 +42,10 @@ class TestQuaternionIntegrator(unittest.TestCase):
     
     product = theta1*theta2
     
-    self.assertAlmostEqual(product.entries[0], t*s - p1*q1 - p2*q2 - p3*q3)
-
+    self.assertAlmostEqual(product.GetS(), t*s - p1*q1 - p2*q2 - p3*q3)
+    self.assertAlmostEqual(product.entries[1], s*q1 + t*p1 - p2*q3 + p3*q2)
+    self.assertAlmostEqual(product.entries[2], s*q2 + t*p2 - p3*q1 + p1*q3)
+    self.assertAlmostEqual(product.entries[3], s*q3 + t*p3 - p1*q2 + p2*q1)
 
 
 if __name__ == '__main__':
