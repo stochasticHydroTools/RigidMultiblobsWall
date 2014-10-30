@@ -52,6 +52,8 @@ def MatrixToQuaternion(R):
 
   One can then add and subtract entries to get rations of p_k/s, and
   then use the fact that the quaternion is unit norm to get the values.
+  This code will generate the sign of s randomly, since plus and minus 
+  of a quaternion represent the same rotation.
   '''
   # Find ratios of p entries to s.
   p1_over_s = (R[2, 0] + R[0, 2])/(R[0, 1] - R[1, 0])
