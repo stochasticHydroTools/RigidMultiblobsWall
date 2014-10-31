@@ -25,7 +25,7 @@ class UniformAnalyzer(object):
     ''' Analyze samples by calculating means of spherical harmonics. '''
     # Here 10 is the number of L's we will look at.
     statistics = [[] for _ in range(10)]  
-    n_xi_eta_pairs = 2
+    n_xi_eta_pairs = 1
     for k in range(n_xi_eta_pairs):
       xi, eta = self.GenerateXiEta()
       for L in range(1, len(statistics) + 1):
@@ -67,7 +67,10 @@ def CompareDistributions(uniform_analyzer_list):
   for ua in uniform_analyzer_list:
     pyplot.plot(ua.AnalyzeSamples(), label=ua.name)
   
+    
   pyplot.legend(loc="best", prop={'size': 9})
+  pyplot.title('Comparison of distributions on the sphere, N = %d' % len(ua.samples))
+  pyplot.xlabel('L')
   pyplot.savefig("./CompareDistributions.pdf")
   
   

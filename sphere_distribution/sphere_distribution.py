@@ -86,7 +86,7 @@ if __name__ == "__main__":
   samples = []
   uniform_samples = []
   for k in range(int(sys.argv[1])):
-    samples.append(MatrixToQuaternion(GenerateRandomRotationMatrix()))
+    samples.append(MatrixToQuaternion(GenerateRandomRotationMatrixManual()))
     x = np.random.normal(0., 1., 4)
     x = x/np.linalg.norm(x)
     uniform_samples.append(x)
