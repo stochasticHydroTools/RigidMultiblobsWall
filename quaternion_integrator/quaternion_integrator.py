@@ -17,7 +17,9 @@ class QuaternionIntegrator(object):
                 and returns a matrix of the mobility evaluated there.
 
       torque_calculator: function that takes a vector of positions
-                         (quaternions) and returns the torque evaluated there.
+                         (quaternions) and returns the torque evaluated there as 
+                         a numpy array where the first three components are the 
+                         torque on the first quaternion, etc.
 
       initial_position: vector of quaternions representing the initial configuration
                         of the system.
@@ -37,8 +39,8 @@ class QuaternionIntegrator(object):
     mobility_half = np.linalg.cholesky(mobility)
     torque = self.torque_calculator(self.position)
     noise = np.random.normal(0.0, 1.0, self.dim*4)
-    
     omega = mobility*torque + np.sqrt(2.0*self.kT/dt)*mobility_half*noise
+
     # Update each quaternion
     position_midpoint = []
     for i in range(self.dim):
@@ -47,7 +49,18 @@ class QuaternionIntegrator(object):
       
     mobility_tilde = self.mobility(position_midpoint)
     torque_tilde = self.torque_calculator(position_midpoint)
+    mobility_half_inv = np.linalg.inv(mobility_half)
+    omega_tilde = (mobility_tilde*torque_tilde +
+                   np.sqrt(2*self.kT/dt)*mobility_tilde*mobility_half_inv*noise)
     
+    new_position = []
+    for i in range(self.dim):
+      quaternion_dt = Quaternion.FromRotation((omega_tilde[i:i+4])*dt/2.)
+      new_position.append(quaternion_dt*self.position[i])
+      
+    self.position = new_position
+    
+
     
 
     
