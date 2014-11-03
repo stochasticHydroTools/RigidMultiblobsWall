@@ -8,6 +8,9 @@ class Quaternion(object):
   def __init__(self, entries):
     ''' Constructor, takes 4 entries = s, p1, p2, p3 as a numpy array. '''
     self.entries = entries
+    self.s = entries[0]
+    self.p = entries[1:4]
+
 
   @classmethod
   def FromRotation(cls, phi):
@@ -25,13 +28,27 @@ class Quaternion(object):
     Quaternion multiplication.  In this case, other is the 
     right quaternion. 
     '''
-    s = (self.GetS()*other.GetS() - 
-         np.dot(self.GetP(), other.GetP()))
-    p = (self.GetS()*other.GetP() + other.GetS()*self.GetP()
-         - np.cross(self.GetP(), other.GetP()))
-    
+    s = (self.s*other.s - 
+         np.dot(self.p, other.p))
+    p = (self.s*other.p + other.s*self.p
+         - np.cross(self.p, other.p))
     return Quaternion(np.concatenate(([s], p)))
-  
+
+
+  def RotationMatrix(self):
+    ''' 
+    Return the rotation matrix representing rotation
+    by this quaternion.
+    '''
+    # Cross product matrix for p
+    P = np.array([[0., -1.*self.p[2], self.p[1]], 
+                 [self.p[2], 0., -1.*self.p[0]],
+                 [-1.*self.p[1], self.p[0], 0.]])
+    # Put pieces together to get rotation matrix.
+    R = 2.*(np.outer(self.p, self.p) + 
+            (self.s**2 - 0.5)*np.identity(3)
+            - self.s*P)
+    return R
   
   def GetP(self):
     ''' Get the p vector, last 3 entries. '''
