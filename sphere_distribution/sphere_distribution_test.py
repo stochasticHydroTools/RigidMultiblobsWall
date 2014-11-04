@@ -53,7 +53,7 @@ class TestSphereDistribution(unittest.TestCase):
                        [p1*p2 - s*p3, p2**2 + s**2 - 0.5, p3*p2 + s*p1],
                        [p1*p3 + s*p2, p2*p3 - s*p1, p3**2 + s**2 - 0.5]])
     # Get the Quaternion from the matrix.
-    quaternion = sphere_distribution.MatrixToQuaternion(R)
+    quaternion = sphere_distribution.matrix_to_quaternion(R)
     # The + and - of a quaternion indicate the same rotation. We choose the sign 
     # with 50% probability each.
     if (quaternion[0]/s) > 0:

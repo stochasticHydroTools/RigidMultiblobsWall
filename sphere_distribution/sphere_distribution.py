@@ -41,7 +41,7 @@ def generate_random_rotation_matrix_manual():
   return np.matrix([x, y, z])
 
   
-def MatrixToQuaternion(R):
+def matrix_to_quaternion(R):
   ''' 
   Convert rotation matrix to a quaternion. 
   The matrix R looks like (in terms of quaternion entries)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
   samples = []
   uniform_samples = []
   for k in range(int(sys.argv[1])):
-    samples.append(MatrixToQuaternion(generate_random_rotation_matrix_manual()))
+    samples.append(matrix_to_quaternion(generate_random_rotation_matrix_manual()))
     x = np.random.normal(0., 1., 4)
     x = x/np.linalg.norm(x)
     uniform_samples.append(x)

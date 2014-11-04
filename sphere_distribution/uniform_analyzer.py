@@ -4,6 +4,7 @@ distribution.
 '''
 import numpy as np
 from matplotlib import pyplot
+from quaternion import Quaternion
 
 class UniformAnalyzer(object):
   ''' 
@@ -16,8 +17,17 @@ class UniformAnalyzer(object):
     Each sample should be of the same length, and represent
     a point on the sphere.
     '''
-    self.samples = samples
-    self.dim = len(self.samples[0])
+    self.dim = len(samples[0])
+    if isinstance(samples[0][0], Quaternion):
+      if self.dim == 1:
+        self.samples = [q[0].entries for q in samples]
+        self.dim = 4
+      else:
+        raise NotImplementedError('Cannot handle distribution of '
+                                  'multiple quaternions')
+    else:
+      self.samples = samples
+
     # Name used for plotting, etc.
     self.name = name
 
