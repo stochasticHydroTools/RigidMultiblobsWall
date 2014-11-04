@@ -88,6 +88,10 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(torque[0], 2*np.sqrt(6.))
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)
+
+  def test_mobility_spd(self):
+    ''' Test that for random configurations, the mobility is SPD. '''
+    
       
 if __name__ == '__main__':
   unittest.main()

@@ -11,7 +11,7 @@ class TestSphereDistribution(unittest.TestCase):
   def test_generate_random_matrix(self):
     ''' Test that the matrix generated is a rotation. '''
 
-    A = sphere_distribution.GenerateRandomRotationMatrix()
+    A = sphere_distribution.generate_random_rotation_matrix()
 
     # Check for unit norm.
     self.assertAlmostEqual(np.linalg.norm(A[0]), 1.0)
@@ -26,7 +26,7 @@ class TestSphereDistribution(unittest.TestCase):
   def test_generate_random_matrix_manual(self):
     ''' Test that the matrix generated is a rotation. '''
 
-    A = sphere_distribution.GenerateRandomRotationMatrixManual()
+    A = sphere_distribution.generate_random_rotation_matrix_manual()
 
     # Check for unit norm.
     self.assertAlmostEqual(np.linalg.norm(A[0]), 1.0)

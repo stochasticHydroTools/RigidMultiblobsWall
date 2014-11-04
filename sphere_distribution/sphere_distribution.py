@@ -10,7 +10,7 @@ import cProfile, pstats, StringIO
 
 PROFILE = 0
 
-def GenerateRandomRotationMatrix():
+def generate_random_rotation_matrix():
   ''' 
   Generate a rotation matrix that represents a uniformly
   random distributed rotation.  This uses polar decomposition.
@@ -20,7 +20,7 @@ def GenerateRandomRotationMatrix():
   R = U*V.T
   return R
 
-def GenerateRandomRotationMatrixManual():
+def generate_random_rotation_matrix_manual():
   ''' 
   Generate a random rotation matrix uniformly by choosing
   one axis at a time. 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
   samples = []
   uniform_samples = []
   for k in range(int(sys.argv[1])):
-    samples.append(MatrixToQuaternion(GenerateRandomRotationMatrixManual()))
+    samples.append(MatrixToQuaternion(generate_random_rotation_matrix_manual()))
     x = np.random.normal(0., 1., 4)
     x = x/np.linalg.norm(x)
     uniform_samples.append(x)
@@ -94,7 +94,7 @@ if __name__ == "__main__":
   # Analyze distribution on 3-sphere
   rotation_analyzer = ua.UniformAnalyzer(samples, 'Rotations')
   uniform_analyzer = ua.UniformAnalyzer(uniform_samples, 'Uniform')
-  ua.CompareDistributions([rotation_analyzer, uniform_analyzer])
+  ua.compare_distributions([rotation_analyzer, uniform_analyzer])
       
   if PROFILE:
     pr.disable()

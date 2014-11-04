@@ -28,6 +28,7 @@ class QuaternionIntegrator(object):
     self.dim = len(initial_position)
     self.torque_calculator = torque_calculator
     self.position = initial_position
+    self.path = [self.position]
 
     #TODO: Make this dynamic
     self.kT = 1.0
@@ -59,8 +60,8 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position
+    self.path.append(new_position)
     
-
     
 
     

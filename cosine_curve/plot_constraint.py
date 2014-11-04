@@ -24,10 +24,10 @@ if __name__ == '__main__':
   run_analyzer = RunAnalyzer(100)
 
   for filename in sys.argv[2:]:
-    run_analyzer.LoadHistogram(filename)
+    run_analyzer.load_histogram(filename)
 
   plot_name = sys.argv[1]
-  run_analyzer.PlotThetaHistogram(plot_name)
+  run_analyzer.plot_theta_histogram(plot_name)
     
 
   

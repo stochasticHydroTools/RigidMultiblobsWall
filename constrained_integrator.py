@@ -66,14 +66,14 @@ class ConstrainedIntegrator(object):
     self.path = [self.position]
 
 
-  def MockRandomGenerator(self):
+  def mock_random_generator(self):
     ''' For testing, replace random generator with something that just returns 1. '''
-    def OnlyOnesRandomGenerator(a, b, n):
+    def only_ones_random_generator(a, b, n):
       return np.ones(n)
-    self.random_generator = OnlyOnesRandomGenerator
+    self.random_generator = only_ones_random_generator
 
     
-  def TimeStep(self, dt):
+  def time_step(self, dt):
     ''' Step from current time to next time with timestep of size dt.
      args
        dt: float - time step size.
@@ -81,18 +81,18 @@ class ConstrainedIntegrator(object):
     if self.scheme == 'RFD':
       self.RFDTimeStep(dt)
     elif self.scheme == 'FIXMAN':
-      self.FixmanTimeStep(dt)
+      self.fixman_time_step(dt)
     elif self.scheme == 'OTTINGER':
-      self.OttingerTimeStep(dt)
+      self.ottinger_time_step(dt)
     else:
-      print 'Should not get here in TimeStep.'
+      print 'Should not get here in time_step.'
       sys.exit()
     
     self.ProjectToConstraint()
     self.SavePath(self.position)
 
         
-  def OttingerTimeStep(self, dt):
+  def ottinger_time_step(self, dt):
     ''' Take a step of the Ottinger scheme '''
     raise NotImplementedError('Ottinger Scheme not yet Implemented.')
 
@@ -119,7 +119,7 @@ class ConstrainedIntegrator(object):
     self.position = corrector_position
 
 
-  def FixmanTimeStep(self, dt):
+  def fixman_time_step(self, dt):
     ''' Take a step of the Fixman scheme '''
     # Note, this currently assumes no potential.
     noise = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])

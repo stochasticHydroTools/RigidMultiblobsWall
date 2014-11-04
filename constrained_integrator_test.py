@@ -94,9 +94,9 @@ class TestConstrainedIntegrator(unittest.TestCase):
 
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
-    test_integrator.MockRandomGenerator()
+    test_integrator.mock_random_generator()
     
-    test_integrator.TimeStep(0.01)
+    test_integrator.time_step(0.01)
     # TODO Figure out a better way to test this:
     # self.assertAlmostEqual(test_integrator.position[1,0], np.sqrt(2)/10)
     # self.assertAlmostEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
@@ -110,10 +110,10 @@ class TestConstrainedIntegrator(unittest.TestCase):
 
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
-    test_integrator.MockRandomGenerator()
+    test_integrator.mock_random_generator()
     
     # Take a timestep dt = 0.01
-    test_integrator.TimeStep(0.01)
+    test_integrator.time_step(0.01)
     
 
   def test_noise_magnitude(self):

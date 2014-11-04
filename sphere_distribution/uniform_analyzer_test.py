@@ -8,13 +8,13 @@ class TestUnifSphereDist(unittest.TestCase):
   def setUp(self):
     pass
 
-  def test_GenerateXiEta(self):
+  def test_generate_xi_eta(self):
     ''' Test that the xi and eta generated are orthogonal and unit norm '''
     samples = [[0., 1., 0., 0.]]
     
     unif_sphere_dist_analyzer = ua.UniformAnalyzer(samples)
     
-    xi, eta = unif_sphere_dist_analyzer.GenerateXiEta()
+    xi, eta = unif_sphere_dist_analyzer.generate_xi_eta()
     
     self.assertAlmostEqual(np.linalg.norm(xi), 1.0)
     self.assertAlmostEqual(np.linalg.norm(eta), 1.0)

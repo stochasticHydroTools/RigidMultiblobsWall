@@ -21,13 +21,13 @@ class UniformAnalyzer(object):
     # Name used for plotting, etc.
     self.name = name
 
-  def AnalyzeSamples(self):
+  def analyze_samples(self):
     ''' Analyze samples by calculating means of spherical harmonics. '''
     # Here 10 is the number of L's we will look at.
     statistics = [[] for _ in range(10)]  
     n_xi_eta_pairs = 1
     for k in range(n_xi_eta_pairs):
-      xi, eta = self.GenerateXiEta()
+      xi, eta = self.generate_xi_eta()
       for L in range(1, len(statistics) + 1):
         harmonics = []
         for sample in self.samples:
@@ -46,7 +46,7 @@ class UniformAnalyzer(object):
 
     return L_means
 
-  def GenerateXiEta(self):
+  def generate_xi_eta(self):
     ''' Generate a random pair of orthonormal vectors. '''
     xi = np.random.normal(0., 1., self.dim)
     xi = xi/np.linalg.norm(xi)
@@ -59,13 +59,13 @@ class UniformAnalyzer(object):
     return xi, eta
     
     
-def CompareDistributions(uniform_analyzer_list):
+def compare_distributions(uniform_analyzer_list):
   ''' 
   Takes a list of UniformAnalyzer objects, and plots their average L values over
   the xi eta pairs generated for each.
   '''
   for ua in uniform_analyzer_list:
-    pyplot.plot(ua.AnalyzeSamples(), label=ua.name)
+    pyplot.plot(ua.analyze_samples(), label=ua.name)
   
     
   pyplot.legend(loc="best", prop={'size': 9})

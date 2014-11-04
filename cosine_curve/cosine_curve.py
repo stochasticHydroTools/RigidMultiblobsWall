@@ -7,12 +7,13 @@ run with:
 python cosine_curve.py dt nsteps nruns
 to run nruns trajectories of nsteps each with timestep dt.
 '''
-
+import sys
+sys.path.append("../")
 from constrained_integrator import ConstrainedIntegrator
 import matplotlib
 from matplotlib import pyplot
 import numpy as np
-import sys
+
 import cProfile, pstats, StringIO
 import cosine_curve_ext  # Functions implemented in C++ for speed.
 import cPickle
@@ -26,7 +27,7 @@ class RunAnalyzer:
     self.resolution = resolution
     self.bins = np.linspace(-np.pi/2.,3.*np.pi/2.,self.resolution)
 
-  def PlotDistribution(self, path):
+  def plot_distribution(self, path):
     ''' plot the path '''
     theta_vector = np.linspace(0, 2*np.pi, self.resolution)
     x = []
@@ -40,7 +41,7 @@ class RunAnalyzer:
     pyplot.plot([pos[0, 0] for pos in path], [pos[1, 0] for pos in path], 'b--')
     pyplot.show()
 
-  def BinTheta(self, path):
+  def bin_theta(self, path):
     ''' Bin the thetas from this particular run '''
     theta_path = []
     for pos in path:
@@ -54,7 +55,7 @@ class RunAnalyzer:
     self.theta_hists.append(hist[0])
 
   
-  def SaveHistogram(self, filename):
+  def save_histogram(self, filename):
     ''' 
     Save the histogram as a pkl object to combine with other runs and 
     plot. 
@@ -65,7 +66,7 @@ class RunAnalyzer:
       cPickle.dump(self.theta_hists, f)
 
     
-  def LoadHistogram(self, filename):
+  def load_histogram(self, filename):
     '''
     Load histograms from a given file and append to 
     self.theta_hists
@@ -76,8 +77,8 @@ class RunAnalyzer:
       self.theta_hists.append(hist)
 
       
-  def PlotThetaHistogram(self, filename):
-    ''' plot the mean and std def of all path binned with BinTheta '''
+  def plot_theta_histogram(self, filename):
+    ''' plot the mean and std def of all path binned with bin_theta '''
 
     bin_centers = (self.bins[:-1] + self.bins[1:])/2.
     n_runs = len(self.theta_hists)
@@ -106,14 +107,14 @@ if __name__ == "__main__":
   plot_name = './ThetaDistribution-dt-%s-n-%s-runs-%s.pdf' % (dt, n_steps, n_runs)
   # Set initial condition.
   initial_position = np.matrix([[1.25], [0.0]])
-  def MobilityFunction(x):
+  def mobility_function(x):
     return np.matrix([[1. + 0.25*x[0, 0]**2, 0.], 
                       [0., 1. + 0.25*x[1, 0]**2]])
 
-  def CurveConstraint(x):
-    return cosine_curve_ext.CosineConstraint(x[0, 0], x[1, 0])
+  def curve_constraint(x):
+    return cosine_curve_ext.cosine_constraint(x[0, 0], x[1, 0])
 
-  curve_integrator = ConstrainedIntegrator(CurveConstraint, MobilityFunction,
+  curve_integrator = ConstrainedIntegrator(curve_constraint, mobility_function,
                                            'FIXMAN', initial_position)
 
   # Argument is the resolution for the bins.
@@ -121,12 +122,12 @@ if __name__ == "__main__":
 
   for j in range(n_runs):
     for k in range(n_steps):
-      curve_integrator.TimeStep(dt)
-    run_analyzer.BinTheta(curve_integrator.path)
+      curve_integrator.time_step(dt)
+    run_analyzer.bin_theta(curve_integrator.path)
     curve_integrator.ResetPath()
     print "Completed run ", j
 
-  run_analyzer.SaveHistogram(data_name)
+  run_analyzer.save_histogram(data_name)
   
   if PROFILE:
     pr.disable()
