@@ -52,6 +52,14 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[2][0], 1.)
     self.assertAlmostEqual(r_vectors[2][1], 1./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[2][2], 2.*np.sqrt(2.)/np.sqrt(3.))
+
+
+  def test_r_matrix(self):
+    ''' Test that we generate the correct R matrix.'''
+
+    # Test the r_matrix for the initial configuration.
+    r_matrix = tetrahedron.get_r_vectors(Quaternion([1., 0., 0., 0.]))
+    
     
   def test_stokes_doublet_e1(self):
     ''' Test stokes doublet when r = e1. '''
@@ -67,6 +75,22 @@ class TestTetrahedron(unittest.TestCase):
     for j in range(3):
       for k in range(3):
         self.assertAlmostEqual(doublet[j, k], actual[j, k])
+
+
+  def test_stokes_dipole_e1(self):
+    ''' Test dipole when r = e1. '''
+    r = np.array([1., 0., 0.])
+    dipole = tetrahedron.potential_dipole(r)
+    actual = (1./(4*np.pi))*np.array([
+        [2., 0., 0.],
+        [0., -1., 0.],
+        [0., 0., 1.],
+        ])
+
+    for j in range(3):
+      for k in range(3):
+        self.assertAlmostEqual(dipole[j, k], actual[j, k])
+
 
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
@@ -91,6 +115,21 @@ class TestTetrahedron(unittest.TestCase):
 
   def test_mobility_spd(self):
     ''' Test that for random configurations, the mobility is SPD. '''
+    # First construct any random unit quaternion. Not uniform.
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+
+    def is_pos_def(x):
+      return np.all(np.linalg.eigvals(x) > 0)    
+    
+    mobility = tetrahedron.tetrahedron_mobility([theta])
+    self.assertEqual(len(mobility), 3)
+    self.assertEqual(len(mobility[0]), 3)
+    self.assertTrue(is_pos_def(mobility))
     
       
 if __name__ == '__main__':

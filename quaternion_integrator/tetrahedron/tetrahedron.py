@@ -11,7 +11,7 @@ ETA = 1.0   # Fluid viscosity.
 A = 0.1     # Particle Radius.
 H = 10.     # Distance to wall.
 
-def tetrahedron_mobility(self, position):
+def tetrahedron_mobility(position):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
   In this case, position is length 1, as there is just 1 quaternion.
@@ -23,18 +23,17 @@ def tetrahedron_mobility(self, position):
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''
   r_vectors = get_r_vectors(position[0])
-  moblity = image_singular_stokeslet(position[0], r_vectors)
+  mobility = image_singular_stokeslet(position[0], r_vectors)
   rotation_matrix = calculate_rot_matrix(position[0], r_vectors)
-  
-  total_mobility = np.inner(rotation_matrix,
-                            np.inner(np.inverse(mobility),
-                                     rotation_matrix.T))
+  total_mobility = np.dot(rotation_matrix.T,
+                          np.dot(np.linalg.inv(mobility),
+                                 rotation_matrix))
   return total_mobility
 
 
 def image_singular_stokeslet(quaternion, r_vectors):
   ''' Calculate the image system for the singular stokeslet (M above).'''
-  mobility = np.array([zeros(9) for _ in range(9)])
+  mobility = np.array([np.zeros(9) for _ in range(9)])
   # Loop through particle interactions
   for j in range(3):  
     for k in range(3):
@@ -48,15 +47,15 @@ def image_singular_stokeslet(quaternion, r_vectors):
         for l in range(3):
           for m in range(3):
             # Two stokeslets, one with negative force at image.
-            mobility[i*3 + l][j*3 + m] = (
+            mobility[j*3 + l][k*3 + m] = (
               (l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
               (l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3))
         # Add Doublet.
-        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] += 2.*H*stokes_doublet(r_particles)
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += 2.*H*stokes_doublet(r_reflect)
         # Add Potential Dipole.
-        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] -= H*H*potential_dipole(r_particles)
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] -= H*H*potential_dipole(r_reflect)
       else:
-        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
       
   return mobility
               
@@ -65,7 +64,7 @@ def stokes_doublet(r):
   r_norm = np.linalg.norm(r)
   e3 = np.array([0., 0., 1.])
   doublet = (np.outer(r, e3) + np.dot(r, e3)*np.identity(3) -
-             np.outer(e3, r) - 3.*np.inner(e3, r)*np.outer(r, r)/(r_norm**2))
+             np.outer(e3, r) - 3.*np.dot(e3, r)*np.outer(r, r)/(r_norm**2))
   # Negate the first two columns for the correct forcing.
   doublet[:, 0:2] = -1.*doublet[:, 0:2]
   doublet = doublet/(8*np.pi*(r_norm**3))
@@ -87,18 +86,18 @@ def calculate_rot_matrix(quaternion, r_vectors):
   # Create the 9 x 3 matrix.  Each 3x3 block is the matrix for a cross
   # product with one of the r_vectors.
   return np.array([
-      #Block 1, r_1 cross
-      [0.0, -1.*r_vectors[0][2], r_vectors[0][1]],
-      [r_vectors[0][2], 0.0, -1.*r_vectors[0][0]],
-      [-1.*r_vectors[0][1], r_vectors[0][0],0.0],
-      # Block 2, r_2 cross
-      [0.0, -1.*r_vectors[1][2], r_vectors[1][1]],
-      [r_vectors[1][2], 0.0, -1.*r_vectors[1][0]],
-      [-1.*r_vectors[1][1], r_vectors[1][0],0.0],
-      # Block 3, r_3 cross
-      [0.0, -1.*r_vectors[2][2], r_vectors[2][1]],
-      [r_vectors[2][2], 0.0, -1.*r_vectors[2][0]],
-      [-1.*r_vectors[2][1], r_vectors[2][0],0.0],
+      #Block 1, cross r_1 
+      [0.0, r_vectors[0][2], -1.*r_vectors[0][1]],
+      [-1.*r_vectors[0][2], 0.0, r_vectors[0][0]],
+      [r_vectors[0][1], -1.*r_vectors[0][0],0.0],
+      # Block 2, cross r_2
+      [0.0, r_vectors[1][2], -1.*r_vectors[1][1]],
+      [-1.*r_vectors[1][2], 0.0, r_vectors[1][0]],
+      [r_vectors[1][1], -1.*r_vectors[1][0],0.0],
+      # Block 3, cross r_3
+      [0.0, r_vectors[2][2], -1.*r_vectors[2][1]],
+      [-1.*r_vectors[2][2], 0.0, r_vectors[2][0]],
+      [r_vectors[2][1], -1.*r_vectors[2][0],0.0],
       ])
 
 
@@ -144,7 +143,7 @@ def torque_calculator(position):
   
   # Gravity
   g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])
-  return -1.*np.inner(R.T, g)
+  return np.dot(R.T, g)
   
   
   
