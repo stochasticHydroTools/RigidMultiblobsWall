@@ -16,7 +16,7 @@ class TestTetrahedron(unittest.TestCase):
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
 
-    r_vectors = tetrahedron.GetRVectors(theta)
+    r_vectors = tetrahedron.get_r_vectors(theta)
     
     #Check r1
     self.assertAlmostEqual(r_vectors[0][0], 0.)
@@ -36,7 +36,7 @@ class TestTetrahedron(unittest.TestCase):
     # Try quaternion that flips tetrahedron 180 degrees, putting it upside down.
     theta = Quaternion([0., -1., 0., 0.])
 
-    r_vectors = tetrahedron.GetRVectors(theta)
+    r_vectors = tetrahedron.get_r_vectors(theta)
     
     #Check r1
     self.assertAlmostEqual(r_vectors[0][0], 0.)
@@ -57,7 +57,7 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test stokes doublet when r = e1. '''
     r = np.array([1., 0., 0.])
     
-    doublet = tetrahedron.StokesDoublet(r)
+    doublet = tetrahedron.stokes_doublet(r)
     
     actual = (1./(8*np.pi))*np.array([
         [0., 0., 1.],
@@ -72,19 +72,19 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test torque for a couple different configurations. '''
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
-    torque = tetrahedron.TorqueCalculator([theta])
+    torque = tetrahedron.torque_calculator([theta])
     for k in range(3):
       self.assertAlmostEqual(torque[k], 0.)
       
     # Upside down.
     theta = Quaternion([0., 1., 0., 0.])
-    torque = tetrahedron.TorqueCalculator([theta])
+    torque = tetrahedron.torque_calculator([theta])
     for k in range(3):
       self.assertAlmostEqual(torque[k], 0.)
 
     # Sideways.
     theta = Quaternion([1/np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])
-    torque = tetrahedron.TorqueCalculator([theta])
+    torque = tetrahedron.torque_calculator([theta])
     self.assertAlmostEqual(torque[0], 2*np.sqrt(6.))
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)
@@ -95,6 +95,3 @@ class TestTetrahedron(unittest.TestCase):
       
 if __name__ == '__main__':
   unittest.main()
-    
-
-

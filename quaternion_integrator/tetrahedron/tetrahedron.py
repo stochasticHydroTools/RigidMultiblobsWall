@@ -1,7 +1,6 @@
 ''' 
-Script to test a tetrahedron near a wall.
-The wall is at z = -h, and the tetrahedron's "top" vertex is
-fixed at (0, 0, 0).  
+Script to test a tetrahedron near a wall.  The wall is at z = -h, and
+the tetrahedron's "top" vertex is fixed at (0, 0, 0).
 '''
 
 import numpy as np
@@ -12,7 +11,7 @@ ETA = 1.0   # Fluid viscosity.
 A = 0.1     # Particle Radius.
 H = 10.     # Distance to wall.
 
-def TetrahedronMobility(self, position):
+def tetrahedron_mobility(self, position):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
   In this case, position is length 1, as there is just 1 quaternion.
@@ -23,16 +22,17 @@ def TetrahedronMobility(self, position):
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''
-  r_vectors = GetRVectors(position[0])
-  M = ImageSingularStokeslet(position[0], r_vectors)
-  R = CalculateR(position[0], r_vectors)
+  r_vectors = get_r_vectors(position[0])
+  moblity = image_singular_stokeslet(position[0], r_vectors)
+  rotation_matrix = calculate_rot_matrix(position[0], r_vectors)
   
-  total_mobility = np.inner(R, np.inner(np.inverse(M), R.T))
-
+  total_mobility = np.inner(rotation_matrix,
+                            np.inner(np.inverse(mobility),
+                                     rotation_matrix.T))
   return total_mobility
 
 
-def ImageSingularStokeslet(quaternion, r_vectors):
+def image_singular_stokeslet(quaternion, r_vectors):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   mobility = np.array([zeros(9) for _ in range(9)])
   # Loop through particle interactions
@@ -52,15 +52,15 @@ def ImageSingularStokeslet(quaternion, r_vectors):
               (l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
               (l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3))
         # Add Doublet.
-        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] += 2.*H*StokesDoublet(r_particles)
+        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] += 2.*H*stokes_doublet(r_particles)
         # Add Potential Dipole.
-        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] -= H*H*PotentialDipole(r_particles)
+        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] -= H*H*potential_dipole(r_particles)
       else:
         mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
       
   return mobility
               
-def StokesDoublet(r):
+def stokes_doublet(r):
   ''' Calculate stokes doublet from direction, strength, and r. '''
   r_norm = np.linalg.norm(r)
   e3 = np.array([0., 0., 1.])
@@ -71,7 +71,7 @@ def StokesDoublet(r):
   doublet = doublet/(8*np.pi*(r_norm**3))
   return doublet
 
-def PotentialDipole(r):
+def potential_dipole(r):
   ''' Calculate potential dipole. '''
   r_norm = np.linalg.norm(r)
   dipole = np.identity(3) - 3.*np.outer(r, r)/(r_norm**2)
@@ -81,7 +81,7 @@ def PotentialDipole(r):
   return dipole
 
   
-def CalculateR(quaternion, r_vectors):
+def calculate_rot_matrix(quaternion, r_vectors):
   ''' Calculate R, 9 by 3 matrix of cross products for r_i. '''
   
   # Create the 9 x 3 matrix.  Each 3x3 block is the matrix for a cross
@@ -102,7 +102,7 @@ def CalculateR(quaternion, r_vectors):
       ])
 
 
-def GetRVectors(quaternion):
+def get_r_vectors(quaternion):
   ''' Calculate r_i from a given quaternion. 
   The initial configuration is hard coded here but can be changed by
   considering an initial quaternion not equal to the identity rotation.
@@ -125,7 +125,7 @@ def GetRVectors(quaternion):
   initial_r2 = np.array([-1., -1./np.sqrt(3.), -2.*np.sqrt(2.)/np.sqrt(3.)])
   initial_r3 = np.array([1., -1./np.sqrt(3.), -2.*np.sqrt(2.)/np.sqrt(3.)])
   
-  rotation_matrix = quaternion.RotationMatrix()
+  rotation_matrix = quaternion.rotation_matrix()
 
   r1 = np.dot(rotation_matrix, initial_r1)
   r2 = np.dot(rotation_matrix, initial_r2)
@@ -134,13 +134,13 @@ def GetRVectors(quaternion):
   return [r1, r2, r3]
 
   
-def TorqueCalculator(position):
+def torque_calculator(position):
   ''' 
   Calculate torque based on position, given as a length
   1 list of quaternions (1 quaternion).  
   '''
-  r_vectors = GetRVectors(position[0])
-  R = CalculateR(position[0], r_vectors)
+  r_vectors = get_r_vectors(position[0])
+  R = calculate_rot_matrix(position[0], r_vectors)
   
   # Gravity
   g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])

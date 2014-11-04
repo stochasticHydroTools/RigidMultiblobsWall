@@ -13,7 +13,7 @@ class TestQuaternion(unittest.TestCase):
     # Generate a random rotation vector
     phi = np.random.rand(3)
     phi_norm = np.linalg.norm(phi)
-    theta = Quaternion.FromRotation(phi)
+    theta = Quaternion.from_rotation(phi)
     
     self.assertAlmostEqual(theta.entries[0], np.cos(phi_norm/2.))
     self.assertAlmostEqual(theta.entries[1], np.sin(phi_norm/2.)*phi[0]/phi_norm)
@@ -57,7 +57,7 @@ class TestQuaternion(unittest.TestCase):
     p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
     theta = Quaternion(np.array([s, p1, p2, p3]))
     
-    R = theta.RotationMatrix()
+    R = theta.rotation_matrix()
 
     self.assertAlmostEqual(R[0][0], 2.*(theta.s**2 + theta.p[0]**2 - 0.5))
     self.assertAlmostEqual(R[0][1], 2.*(theta.p[0]*theta.p[1] + 

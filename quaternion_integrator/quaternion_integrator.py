@@ -34,29 +34,31 @@ class QuaternionIntegrator(object):
     self.kT = 1.0
 
     
-  def FixmanTimeStep(self, dt):
+  def fixman_time_step(self, dt):
     ''' Take a timestep of length dt using the Fixman method '''
-    mobility  = self.mobility(self._position)
+    mobility  = self.mobility(self.position)
     mobility_half = np.linalg.cholesky(mobility)
     torque = self.torque_calculator(self.position)
-    noise = np.random.normal(0.0, 1.0, self.dim*4)
-    omega = mobility*torque + np.sqrt(2.0*self.kT/dt)*mobility_half*noise
+    noise = np.random.normal(0.0, 1.0, self.dim*3)
+    omega = (np.inner(mobility, torque) + 
+             np.sqrt(2.0*self.kT/dt)*np.inner(mobility_half, noise))
 
     # Update each quaternion
     position_midpoint = []
     for i in range(self.dim):
-      quaternion_dt = Quaternion.FromRotation((omega[i:i+4])*dt/2.)
-      positon_midpoint.append(quaternion_dt*self.position[i])
+      quaternion_dt = Quaternion.from_rotation((omega[i:i+3])*dt/2.)
+      position_midpoint.append(quaternion_dt*self.position[i])
       
     mobility_tilde = self.mobility(position_midpoint)
     torque_tilde = self.torque_calculator(position_midpoint)
     mobility_half_inv = np.linalg.inv(mobility_half)
-    omega_tilde = (mobility_tilde*torque_tilde +
-                   np.sqrt(2*self.kT/dt)*mobility_tilde*mobility_half_inv*noise)
+    omega_tilde = (np.inner(mobility_tilde, torque_tilde) +
+                   np.sqrt(2*self.kT/dt)*
+                   np.inner(mobility_tilde, np.inner(mobility_half_inv, noise)))
     
     new_position = []
     for i in range(self.dim):
-      quaternion_dt = Quaternion.FromRotation((omega_tilde[i:i+4])*dt/2.)
+      quaternion_dt = Quaternion.from_rotation((omega_tilde[i:i+3])*dt/2.)
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position

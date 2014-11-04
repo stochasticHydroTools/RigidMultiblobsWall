@@ -8,12 +8,12 @@ class Quaternion(object):
   def __init__(self, entries):
     ''' Constructor, takes 4 entries = s, p1, p2, p3 as a numpy array. '''
     self.entries = entries
-    self.s = entries[0]
-    self.p = entries[1:4]
+    self.s = np.array(entries[0])
+    self.p = np.array(entries[1:4])
 
 
   @classmethod
-  def FromRotation(cls, phi):
+  def from_rotation(cls, phi):
     ''' Create a quaternion given an angle of rotation phi,
     which represents a rotation clockwise about the vector phi of magnitude 
     phi. This will be used with phi = omega*dt or similar in the integrator.'''
@@ -35,7 +35,7 @@ class Quaternion(object):
     return Quaternion(np.concatenate(([s], p)))
 
 
-  def RotationMatrix(self):
+  def rotation_matrix(self):
     ''' 
     Return the rotation matrix representing rotation
     by this quaternion.
@@ -49,16 +49,6 @@ class Quaternion(object):
             (self.s**2 - 0.5)*np.identity(3)
             - self.s*P)
     return R
-  
-  def GetP(self):
-    ''' Get the p vector, last 3 entries. '''
-    #TODO: Figure out how to use params decorator.
-    return self.entries[1:4]
 
-  
-  def GetS(self):
-    ''' Return scalar s, the first entry. '''
-    #TODO: Figure out how to use params decorator.
-    return self.entries[0]
-
-
+  def __str__(self):
+    return '[ %f, %f, %f, %f ]' % (self.s, self.p[0], self.p[1], self.p[2])
