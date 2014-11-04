@@ -1,4 +1,8 @@
-''' Script to test a tetrahedron near a wall '''
+''' 
+Script to test a tetrahedron near a wall.
+The wall is at z = -h, and the tetrahedron's "top" vertex is
+fixed at (0, 0, 0).  
+'''
 
 import numpy as np
 from quaternion import Quaternion
@@ -19,7 +23,13 @@ def TetrahedronMobility(self, position):
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''
+  r_vectors = GetRVectors(position[0])
+  M = ImageSingularStokeslet(position[0], r_vectors)
+  R = CalculateR(position[0], r_vectors)
   
+  total_mobility = np.inner(R, np.inner(np.inverse(M), R.T))
+
+  return total_mobility
 
 
 def ImageSingularStokeslet(quaternion, r_vectors):
@@ -41,13 +51,34 @@ def ImageSingularStokeslet(quaternion, r_vectors):
             mobility[i*3 + l][j*3 + m] = (
               (l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
               (l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3))
-            # Add Doublet.
-            
-            
+        # Add Doublet.
+        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] += 2.*H*StokesDoublet(r_particles)
+        # Add Potential Dipole.
+        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] -= H*H*PotentialDipole(r_particles)
+      else:
+        mobility[i*3:(i*3 + 3), j*3:(j*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
+      
+  return mobility
               
-def StokesDoublet(direction, strength, r):
+def StokesDoublet(r):
   ''' Calculate stokes doublet from direction, strength, and r. '''
-  doublet = np.dot(direction, strength)*r + np.dot(strength, r)*direction
+  r_norm = np.linalg.norm(r)
+  e3 = np.array([0., 0., 1.])
+  doublet = (np.outer(r, e3) + np.dot(r, e3)*np.identity(3) -
+             np.outer(e3, r) - 3.*np.inner(e3, r)*np.outer(r, r)/(r_norm**2))
+  # Negate the first two columns for the correct forcing.
+  doublet[:, 0:2] = -1.*doublet[:, 0:2]
+  doublet = doublet/(8*np.pi*(r_norm**3))
+  return doublet
+
+def PotentialDipole(r):
+  ''' Calculate potential dipole. '''
+  r_norm = np.linalg.norm(r)
+  dipole = np.identity(3) - 3.*np.outer(r, r)/(r_norm**2)
+  # Negate the first two columns for the correct forcing.
+  dipole[:, 0:2] = -1.*dipole[:, 0:2]
+  dipole = dipole/(4.*np.pi*(r_norm**3))
+  return dipole
 
   
 def CalculateR(quaternion, r_vectors):
@@ -59,15 +90,15 @@ def CalculateR(quaternion, r_vectors):
       #Block 1, r_1 cross
       [0.0, -1.*r_vectors[0][2], r_vectors[0][1]],
       [r_vectors[0][2], 0.0, -1.*r_vectors[0][0]],
-      [-1.*r_vectors[0][1], *r_vectors[0][0],0.0],
+      [-1.*r_vectors[0][1], r_vectors[0][0],0.0],
       # Block 2, r_2 cross
       [0.0, -1.*r_vectors[1][2], r_vectors[1][1]],
       [r_vectors[1][2], 0.0, -1.*r_vectors[1][0]],
-      [-1.*r_vectors[1][1], *r_vectors[1][0],0.0],
+      [-1.*r_vectors[1][1], r_vectors[1][0],0.0],
       # Block 3, r_3 cross
       [0.0, -1.*r_vectors[2][2], r_vectors[2][1]],
       [r_vectors[2][2], 0.0, -1.*r_vectors[2][0]],
-      [-1.*r_vectors[2][1], *r_vectors[2][0],0.0],
+      [-1.*r_vectors[2][1], r_vectors[2][0],0.0],
       ])
 
 
@@ -102,6 +133,16 @@ def GetRVectors(quaternion):
   
   return [r1, r2, r3]
 
+  
+def TorqueCalculator(position):
+  ''' 
+  Calculate torque based on position, given as a length
+  1 list of quaternions (1 quaternion).  
+  '''
+  r_vectors = GetRVectors(position[0])
+  
+  
+  
   
   
   

@@ -3,7 +3,6 @@ import numpy as np
 import random
 from quaternion import Quaternion
 
-
 class TestQuaternion(unittest.TestCase):
 
   def setUp(self):
@@ -70,11 +69,3 @@ class TestQuaternion(unittest.TestCase):
     
 if __name__ == '__main__':
   unittest.main()
-
-
-    
-    
-
-
-
-    
