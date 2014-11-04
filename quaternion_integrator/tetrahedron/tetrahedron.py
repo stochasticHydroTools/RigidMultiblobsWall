@@ -140,6 +140,13 @@ def TorqueCalculator(position):
   1 list of quaternions (1 quaternion).  
   '''
   r_vectors = GetRVectors(position[0])
+  R = CalculateR(position[0], r_vectors)
+  
+  # Gravity
+  g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])
+  return -1.*np.inner(R.T, g)
+  
+  
   
   
   
