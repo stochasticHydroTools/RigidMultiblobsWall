@@ -8,7 +8,7 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.1     # Particle Radius.
+A = 0.01     # Particle Radius.
 H = 10.     # Distance to wall.
 
 def tetrahedron_mobility(position):
@@ -144,6 +144,36 @@ def torque_calculator(position):
   # Gravity
   g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])
   return np.dot(R.T, g)
+
+
+
+def oseen_tensor_zero_diagonal(points):
+  '''
+  Calculate the oseen tensor with diagonal blocks set to zero.  This
+  is just for testing to see if the mobility without the diagonal
+  piece is PSD.  Assume points is a list of np arrays, each member is
+  an array of length 3 indicating coords.
+  '''
+  dim = len(points)
+  oseen_tensor = np.array([np.zeros(3*dim) for _ in range(3*dim)])
+  for i in range(dim):
+    for j in range(dim):
+      if i != j:
+        r = points[i] - points[j]
+        r_norm = np.linalg.norm(r)
+        for k in range(3):
+          for l in range(3):
+            oseen_tensor[i*3 + k, j*3 + l] = ((k == l)*1./r_norm + 
+                                              r[k]*r[l]/(r_norm**3))
+
+#      else:
+#        oseen_tensor[(i*3):(i*3+3), (j*3):(j*3+3)] = 1./(6.*np.pi)*np.identity(3)
+
+  # Unit viscosity, doesn't matter for SPD.
+#  oseen_tensor = oseen_tensor/(8*np.pi)   
+  return oseen_tensor
+                                           
+                                            
   
   
   

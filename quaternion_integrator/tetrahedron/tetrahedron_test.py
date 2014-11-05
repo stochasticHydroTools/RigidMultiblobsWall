@@ -1,4 +1,6 @@
 """ Test the functions used in the tetrahedron script. """
+import sys
+sys.path.append('../')
 
 import unittest
 import numpy as np
@@ -130,6 +132,40 @@ class TestTetrahedron(unittest.TestCase):
     self.assertEqual(len(mobility), 3)
     self.assertEqual(len(mobility[0]), 3)
     self.assertTrue(is_pos_def(mobility))
+
+
+  def test_image_system_spd(self):
+    ''' Test that the image system for a singular stokeslet is SPD.'''
+    # First construct any random unit quaternion. Not uniform.
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+
+    r_vectors = tetrahedron.get_r_vectors(theta)
+    stokeslet = tetrahedron.image_singular_stokeslet(theta, r_vectors)
+
+    def is_pos_def(x):
+      return np.all(np.linalg.eigvals(x) > 0)    
+    
+    self.assertEqual(len(stokeslet), 9)
+    self.assertEqual(len(stokeslet[0]), 9)
+    self.assertTrue(is_pos_def(stokeslet))
+
+
+  # def test_oseen_spd(self):
+  #   points = [np.random.normal(0., 2., 3) for _ in range(2)]
+
+  #   oseen_tensor = tetrahedron.oseen_tensor_zero_diagonal(points)
+  #   print oseen_tensor
+  #   def is_pos_def(x):
+  #     print np.linalg.eigvals(x)
+  #     return np.all(np.linalg.eigvals(x) > 0)    
+
+  #   self.assertTrue(is_pos_def(oseen_tensor))
+    
     
       
 if __name__ == '__main__':
