@@ -98,19 +98,19 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test torque for a couple different configurations. '''
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
-    torque = tetrahedron.torque_calculator([theta])
+    torque = tetrahedron.gravity_torque_calculator([theta])
     for k in range(3):
       self.assertAlmostEqual(torque[k], 0.)
       
     # Upside down.
     theta = Quaternion([0., 1., 0., 0.])
-    torque = tetrahedron.torque_calculator([theta])
+    torque = tetrahedron.gravity_torque_calculator([theta])
     for k in range(3):
       self.assertAlmostEqual(torque[k], 0.)
 
     # Sideways.
     theta = Quaternion([1/np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])
-    torque = tetrahedron.torque_calculator([theta])
+    torque = tetrahedron.gravity_torque_calculator([theta])
     self.assertAlmostEqual(torque[0], 2*np.sqrt(6.))
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)

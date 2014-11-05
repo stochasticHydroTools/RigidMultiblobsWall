@@ -2,7 +2,9 @@
 Script to test a tetrahedron near a wall.  The wall is at z = -h, and
 the tetrahedron's "top" vertex is fixed at (0, 0, 0).
 '''
-
+import sys
+sys.path.append('..')
+sys.path.append('../..')
 import numpy as np
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
@@ -133,7 +135,7 @@ def get_r_vectors(quaternion):
   return [r1, r2, r3]
 
   
-def torque_calculator(position):
+def gravity_torque_calculator(position):
   ''' 
   Calculate torque based on position, given as a length
   1 list of quaternions (1 quaternion).  
@@ -145,6 +147,11 @@ def torque_calculator(position):
   g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])
   return np.dot(R.T, g)
 
+
+def zero_torque_calculator(position):
+  ''' Return 0 torque. '''
+  # Gravity
+  return np.array([0., 0., 0.])
 
 
 # def oseen_tensor_zero_diagonal(points):
@@ -173,3 +180,26 @@ def torque_calculator(position):
 # #  oseen_tensor = oseen_tensor/(8*np.pi)   
 #   return oseen_tensor
 
+if __name__ == "__main__":
+  # Script to run the fixman integrator on the quaternion.
+  initial_position = [Quaternion([1., 0., 0., 0.])]
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+                                           initial_position, 
+                                           zero_torque_calculator)
+  # Get command line parameters
+  dt = float(sys.argv[1])
+  n_steps = int(sys.argv[2])
+
+  uniform_samples = []  
+  for k in range(n_steps):
+    fixman_integrator.fixman_time_step(dt)
+    # Add a uniform sample
+    x = np.random.normal(0., 1., 4)
+    x = x/np.linalg.norm(x)
+    uniform_samples.append(x)
+
+  rotation_analyzer = ua.UniformAnalyzer(fixman_integrator.path, "Fixman")
+  samples_analyzer = ua.UniformAnalyzer(uniform_samples, "Samples")
+
+  ua.compare_distributions([rotation_analyzer, samples_analyzer])
+  
