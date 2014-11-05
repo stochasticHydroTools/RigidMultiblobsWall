@@ -4,7 +4,7 @@ result in a uniform distribution.  Test with uniform analyzer.
 '''
 import sys
 sys.path.append("..")
-sys.path.append("../../sphere_distribution")
+sys.path.append("../..")
 import numpy as np
 from quaternion_integrator import QuaternionIntegrator
 from quaternion import Quaternion

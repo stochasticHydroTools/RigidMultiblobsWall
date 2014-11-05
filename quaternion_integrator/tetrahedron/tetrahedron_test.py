@@ -154,19 +154,6 @@ class TestTetrahedron(unittest.TestCase):
     self.assertEqual(len(stokeslet[0]), 9)
     self.assertTrue(is_pos_def(stokeslet))
 
-
-  # def test_oseen_spd(self):
-  #   points = [np.random.normal(0., 2., 3) for _ in range(2)]
-
-  #   oseen_tensor = tetrahedron.oseen_tensor_zero_diagonal(points)
-  #   print oseen_tensor
-  #   def is_pos_def(x):
-  #     print np.linalg.eigvals(x)
-  #     return np.all(np.linalg.eigvals(x) > 0)    
-
-  #   self.assertTrue(is_pos_def(oseen_tensor))
-    
-    
       
 if __name__ == '__main__':
   unittest.main()
