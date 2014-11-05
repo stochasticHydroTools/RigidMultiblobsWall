@@ -53,11 +53,11 @@ if __name__ == '__main__':
     smallest_eigs.append(min_eig(oseen_tensor))
    
   x = np.linspace(0.2, 3., 100)
-  pyplot.plot(dists, smallest_eigs, 'b*', label='Minimum O eigenvalue')
-  pyplot.plot(x,  -0.1/x, 'k--', label='-const/x')
+  pyplot.plot(dists, 1./(6.*np.pi*np.array(smallest_eigs)), 'b*', label='Minimum O eigenvalue')
+#  pyplot.plot(x,  -0.1/x, 'k--', label='-const/x')
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.title('Min Eigenvalues of Oseen Tensor with 0 diag, %d particles' % n_parts)
-  pyplot.ylabel('Minimum Eigenvalue')
+  pyplot.ylabel('1./(6 * pi * Minimum Eigenvalue)')
   pyplot.xlabel('Minimum distance between points')
   pyplot.savefig('./OseenEigs.pdf')
   

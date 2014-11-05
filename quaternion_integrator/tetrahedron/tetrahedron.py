@@ -11,7 +11,7 @@ from quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.01     # Particle Radius.
+A = 0.0443     # Particle Radius.
 H = 10.     # Distance to wall.
 
 def tetrahedron_mobility(position):
