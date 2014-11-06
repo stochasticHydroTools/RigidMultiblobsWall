@@ -96,6 +96,11 @@ class TestTetrahedron(unittest.TestCase):
 
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
+    # Overwrite Masses.
+    tetrahedron.M1 = 1.0
+    tetrahedron.M2 = 1.0
+    tetrahedron.M3 = 1.0
+    
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
     torque = tetrahedron.gravity_torque_calculator([theta])
@@ -114,6 +119,11 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(torque[0], 2*np.sqrt(6.))
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)
+
+    # Reset masses.
+    tetrahedron.M1 = 1.0
+    tetrahedron.M2 = 3.0
+    tetrahedron.M3 = 2.0
 
   def test_mobility_spd(self):
     ''' Test that for random configurations, the mobility is SPD. '''

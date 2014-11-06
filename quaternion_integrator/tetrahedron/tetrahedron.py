@@ -6,13 +6,19 @@ import sys
 sys.path.append('..')
 sys.path.append('../..')
 import numpy as np
+from matplotlib import pyplot
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
 
+#  Parameters. TODO: perhaps there's a better way to do this.  Input file?
 ETA = 1.0   # Fluid viscosity.
-A = 0.0443     # Particle Radius.
+A = 0.04     # Particle Radius.
 H = 10.     # Distance to wall.
+
+M1 = 1.0
+M2 = 1.0
+M3 = 1.0
 
 def tetrahedron_mobility(position):
   '''
@@ -139,13 +145,14 @@ def get_r_vectors(quaternion):
 def gravity_torque_calculator(position):
   ''' 
   Calculate torque based on position, given as a length
-  1 list of quaternions (1 quaternion).  
+  1 list of quaternions (1 quaternion).  This assumes the masses
+  of particles 1, 2, and 3 are M1, M2, and M3 respectively.
   '''
   r_vectors = get_r_vectors(position[0])
   R = calculate_rot_matrix(position[0], r_vectors)
   
   # Gravity
-  g = np.array([0., 0., -1., 0., 0., -1., 0., 0., -1.])
+  g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
   return np.dot(R.T, g)
 
 
@@ -155,27 +162,77 @@ def zero_torque_calculator(position):
   return np.array([0., 0., 0.])
 
 
+def generate_equalibrium_sample():
+  ''' 
+  Generate a sample according to the equilibrium distribution, exp(-\beta U(heights)).
+  Do this by generating a uniform quaternion, then accept/rejecting with probability
+  exp(-U(heights))'''
+  while True:
+    # First generate a uniform quaternion on the 4-sphere.
+    theta = np.random.normal(0., 1., 4)
+    theta = Quaternion(theta/np.linalg.norm(theta))
+  
+    r_vectors = get_r_vectors(theta)
+    U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
+    # 1800 is roughly the value of exp(-beta U) for the most likely config.
+    # 137 is roughly the value when M1 = M2 = M3 = 1
+    accept_prob = np.exp(-1.*(U))/140.
+    if np.random.uniform() < accept_prob:
+      return theta
+    
+
+def distribution_height_particle(particle, path, equilibrium_samples):
+  ''' 
+  Given the path of the quaternion, make a historgram of the 
+  height of particle <particle> and compare to equilibrium. 
+  '''
+  pyplot.figure()
+
+  hist_bins = np.linspace(-1.5, 1.5, 25)
+  heights = []
+  for pos in path:
+    # TODO: do this a faster way perhaps with a special function.
+    r_vectors = get_r_vectors(pos[0])
+    heights.append(r_vectors[particle][2])
+
+  height_hist = np.histogram(heights, density=True, bins=hist_bins)
+  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
+  pyplot.plot(buckets, height_hist[0], 'b-',  label='Fixman')
+
+
+  heights = []
+  for sample in equilibrium_samples:
+    # TODO: do this a faster way perhaps with a special function.
+    r_vectors = get_r_vectors(sample)
+    heights.append(r_vectors[particle][2])
+
+  height_hist = np.histogram(heights, density=True, bins=hist_bins)
+  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
+  pyplot.plot(buckets, height_hist[0], 'k--',  label='Gibbs-Boltzmann')
+  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.savefig('./Height%d_Distribution.pdf' % particle)
+
 
 if __name__ == "__main__":
   # Script to run the fixman integrator on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
   fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                            initial_position, 
-                                           zero_torque_calculator)
+                                           gravity_torque_calculator)
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
 
-  uniform_samples = []  
+  equilibrium_samples = []  
   for k in range(n_steps):
     fixman_integrator.fixman_time_step(dt)
-    # Add a uniform sample
-    x = np.random.normal(0., 1., 4)
-    x = x/np.linalg.norm(x)
-    uniform_samples.append(x)
+    equilibrium_samples.append(generate_equalibrium_sample())
 
-  rotation_analyzer = ua.UniformAnalyzer(fixman_integrator.path, "Fixman")
-  samples_analyzer = ua.UniformAnalyzer(uniform_samples, "Samples")
+  distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
+  distribution_height_particle(1, fixman_integrator.path, equilibrium_samples)
+  distribution_height_particle(2, fixman_integrator.path, equilibrium_samples)
+  #rotation_analyzer = ua.UniformAnalyzer(fixman_integrator.path, "Fixman")
+#  samples_analyzer = ua.UniformAnalyzer(uniform_samples, "Samples")
 
-  ua.compare_distributions([rotation_analyzer, samples_analyzer])
+#  ua.compare_distributions([rotation_analyzer, samples_analyzer])
   
