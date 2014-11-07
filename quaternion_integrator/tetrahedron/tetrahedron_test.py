@@ -98,8 +98,8 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test torque for a couple different configurations. '''
     # Overwrite Masses.
     tetrahedron.M1 = 1.0
-    tetrahedron.M2 = 1.0
-    tetrahedron.M3 = 1.0
+    tetrahedron.M2 = 2.0
+    tetrahedron.M3 = 3.0
     
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
@@ -120,28 +120,26 @@ class TestTetrahedron(unittest.TestCase):
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)
 
-    # Reset masses.
-    tetrahedron.M1 = 1.0
-    tetrahedron.M2 = 3.0
-    tetrahedron.M3 = 2.0
 
   def test_mobility_spd(self):
     ''' Test that for random configurations, the mobility is SPD. '''
-    # First construct any random unit quaternion. Not uniform.
-    s = 2*random.random() - 1.
-    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
-    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
-          (1. - np.abs(s) - np.abs(p1)))
-    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
-    theta = Quaternion(np.array([s, p1, p2, p3]))
-
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)    
-    
-    mobility = tetrahedron.tetrahedron_mobility([theta])
-    self.assertEqual(len(mobility), 3)
-    self.assertEqual(len(mobility[0]), 3)
-    self.assertTrue(is_pos_def(mobility))
+
+    # Generate 5 random configurations
+    for _ in range(5):
+      # First construct any random unit quaternion. Not uniform.
+      s = 2*random.random() - 1.
+      p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+      p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+            (1. - np.abs(s) - np.abs(p1)))
+      p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+      theta = Quaternion(np.array([s, p1, p2, p3]))
+
+      mobility = tetrahedron.tetrahedron_mobility([theta])
+      self.assertEqual(len(mobility), 3)
+      self.assertEqual(len(mobility[0]), 3)
+      self.assertTrue(is_pos_def(mobility))
 
 
   def test_image_system_spd(self):

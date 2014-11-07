@@ -16,8 +16,8 @@ import tetrahedron_ext
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.04     # Particle Radius.
-H = 10.     # Distance to wall.
+A = 0.02     # Particle Radius.
+H = 12.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -185,7 +185,7 @@ def generate_equilibrium_sample():
     U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
     # 1800 is roughly the value of exp(-beta U) for the most likely config.
     # 137 is roughly the value when M1 = M2 = M3 = 1
-    accept_prob = np.exp(-1.*(U))/140.
+    accept_prob = np.exp(-1.*(U))/1900.
     if np.random.uniform() < accept_prob:
       return theta
     
@@ -197,7 +197,7 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   '''
   pyplot.figure()
 
-  hist_bins = np.linspace(-1.5, 1.5, 25)
+  hist_bins = np.linspace(-1.7, 1.7, 30)
   heights = []
   for pos in path:
     # TODO: do this a faster way perhaps with a special function.
@@ -211,7 +211,8 @@ def distribution_height_particle(particle, path, equilibrium_samples):
 
   heights = []
   for sample in equilibrium_samples:
-    # TODO: do this a faster way perhaps with a special function.
+    # TODO: do this a faster way perhaps with a special function, since we only need
+    #  the z coordinate.
     r_vectors = get_r_vectors(sample)
     heights.append(r_vectors[particle][2])
 
@@ -219,6 +220,9 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
   pyplot.plot(buckets, height_hist[0], 'k--',  label='Gibbs-Boltzmann')
   pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.title('Location of particle %d' % particle)
+  pyplot.ylabel('Probability Density')
+  pyplot.xlabel('Height')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
@@ -229,7 +233,7 @@ if __name__ == "__main__":
 
   # Script to run the Fixman integrator on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(identity_mobility, 
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                            initial_position, 
                                            gravity_torque_calculator)
   # Get command line parameters
@@ -238,7 +242,7 @@ if __name__ == "__main__":
 
   equilibrium_samples = []  
   for k in range(n_steps):
-    fixman_integrator.additive_em_time_step(dt)
+    fixman_integrator.fixman_time_step(dt)
     equilibrium_samples.append(generate_equilibrium_sample())
 
   distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
