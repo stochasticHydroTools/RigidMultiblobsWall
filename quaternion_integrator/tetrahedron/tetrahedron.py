@@ -10,15 +10,24 @@ from matplotlib import pyplot
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
-
+import cProfile, pstats, StringIO
+import tetrahedron_ext
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
+PROFILE = False  # Do we profile this run?
+
 ETA = 1.0   # Fluid viscosity.
 A = 0.04     # Particle Radius.
 H = 10.     # Distance to wall.
 
+# Masses of particles.
 M1 = 1.0
 M2 = 1.0
 M3 = 1.0
+
+def identity_mobility(position):
+  ''' Simple identity mobility for testing. '''
+  return np.identity(3)
+
 
 def tetrahedron_mobility(position):
   '''
@@ -162,7 +171,7 @@ def zero_torque_calculator(position):
   return np.array([0., 0., 0.])
 
 
-def generate_equalibrium_sample():
+def generate_equilibrium_sample():
   ''' 
   Generate a sample according to the equilibrium distribution, exp(-\beta U(heights)).
   Do this by generating a uniform quaternion, then accept/rejecting with probability
@@ -210,13 +219,17 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
   pyplot.plot(buckets, height_hist[0], 'k--',  label='Gibbs-Boltzmann')
   pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./Height%d_Distribution.pdf' % particle)
+  pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
 if __name__ == "__main__":
-  # Script to run the fixman integrator on the quaternion.
+  if PROFILE:
+    pr = cProfile.Profile()
+    pr.enable()
+
+  # Script to run the Fixman integrator on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+  fixman_integrator = QuaternionIntegrator(identity_mobility, 
                                            initial_position, 
                                            gravity_torque_calculator)
   # Get command line parameters
@@ -225,14 +238,19 @@ if __name__ == "__main__":
 
   equilibrium_samples = []  
   for k in range(n_steps):
-    fixman_integrator.fixman_time_step(dt)
-    equilibrium_samples.append(generate_equalibrium_sample())
+    fixman_integrator.additive_em_time_step(dt)
+    equilibrium_samples.append(generate_equilibrium_sample())
 
   distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
   distribution_height_particle(1, fixman_integrator.path, equilibrium_samples)
   distribution_height_particle(2, fixman_integrator.path, equilibrium_samples)
-  #rotation_analyzer = ua.UniformAnalyzer(fixman_integrator.path, "Fixman")
-#  samples_analyzer = ua.UniformAnalyzer(uniform_samples, "Samples")
-
-#  ua.compare_distributions([rotation_analyzer, samples_analyzer])
   
+  if PROFILE:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()
+
+
