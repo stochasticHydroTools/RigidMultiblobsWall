@@ -31,7 +31,7 @@ class Quaternion(object):
     s = (self.s*other.s - 
          np.dot(self.p, other.p))
     p = (self.s*other.p + other.s*self.p
-         - np.cross(self.p, other.p))
+         + np.cross(self.p, other.p))
     return Quaternion(np.concatenate(([s], p)))
 
 
