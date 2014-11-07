@@ -21,8 +21,8 @@ H = 12.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
-M2 = 1.0
-M3 = 1.0
+M2 = 2.0
+M3 = 3.0
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -176,6 +176,7 @@ def generate_equilibrium_sample():
   Generate a sample according to the equilibrium distribution, exp(-\beta U(heights)).
   Do this by generating a uniform quaternion, then accept/rejecting with probability
   exp(-U(heights))'''
+  max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.
     theta = np.random.normal(0., 1., 4)
@@ -183,9 +184,16 @@ def generate_equilibrium_sample():
   
     r_vectors = get_r_vectors(theta)
     U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
-    # 1800 is roughly the value of exp(-beta U) for the most likely config.
-    # 137 is roughly the value when M1 = M2 = M3 = 1
-    accept_prob = np.exp(-1.*(U))/1900.
+    # 22500 is roughly the value of exp(-beta U) for the most likely config.
+    # when M1 = 1, M2 = 2, M3 = 3.
+    # 137 is roughly the value when M1 = M2 = M3 = 1.
+    gibbs_term = np.exp(-1.*(U))
+    if gibbs_term > max_gibbs_term:
+      max_gibbs_term = gibbs_term
+    accept_prob = np.exp(-1.*(U))/22500.
+    if accept_prob > 1:
+      print "Warning: acceptance probability > 1."
+      print "accept_prob = ", accept_prob
     if np.random.uniform() < accept_prob:
       return theta
     
@@ -197,7 +205,7 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   '''
   pyplot.figure()
 
-  hist_bins = np.linspace(-1.7, 1.7, 30)
+  hist_bins = np.linspace(-1.8, 1.8, 40)
   heights = []
   for pos in path:
     # TODO: do this a faster way perhaps with a special function.
@@ -233,7 +241,7 @@ if __name__ == "__main__":
 
   # Script to run the Fixman integrator on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+  fixman_integrator = QuaternionIntegrator(identity_mobility, 
                                            initial_position, 
                                            gravity_torque_calculator)
   # Get command line parameters
@@ -242,7 +250,7 @@ if __name__ == "__main__":
 
   equilibrium_samples = []  
   for k in range(n_steps):
-    fixman_integrator.fixman_time_step(dt)
+    fixman_integrator.additive_em_time_step(dt)
     equilibrium_samples.append(generate_equilibrium_sample())
 
   distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
