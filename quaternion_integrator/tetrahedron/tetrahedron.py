@@ -20,9 +20,9 @@ A = 0.03     # Particle Radius.
 H = 10.     # Distance to wall.
 
 # Masses of particles.
-M1 = 1.0
-M2 = 2.0
-M3 = 3.0
+M1 = 0.5
+M2 = 1.0
+M3 = 1.5
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -51,15 +51,16 @@ def tetrahedron_mobility(position):
 
 def image_singular_stokeslet(r_vectors):
   ''' Calculate the image system for the singular stokeslet (M above).'''
-  mobility = np.array([np.zeros(9) for _ in range(9)])
+  mobility = np.array([
+      np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
   # Loop through particle interactions
-  for j in range(3):
-    for k in range(3):
+  for j in range(len(r_vectors)):
+    for k in range(len(r_vectors)):
       if j != k:  #  do particle interaction
         r_particles = r_vectors[j] - r_vectors[k]
         r_norm = np.linalg.norm(r_particles)
-        r_reflect = r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., H])
-                                       - 2.*r_vectors[k][2])
+        wall_dist = r_vectors[k][2]
+        r_reflect = r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., wall_dist]))
         r_ref_norm = np.linalg.norm(r_reflect)
         # Loop through components.
         for l in range(3):
@@ -67,12 +68,13 @@ def image_singular_stokeslet(r_vectors):
             # Two stokeslets, one with negative force at image.
             mobility[j*3 + l][k*3 + m] = (
               (l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
-              (l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3))
+              ((l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3)))
         # Add Doublet.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += 2.*H*stokes_doublet(r_reflect)
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += 2.*wall_dist*stokes_doublet(r_reflect)
         # Add Potential Dipole.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] -= H*H*potential_dipole(r_reflect)
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] -= wall_dist*wall_dist*potential_dipole(r_reflect)
       else:
+        # j == k
         mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
       
   return mobility
@@ -144,9 +146,9 @@ def get_r_vectors(quaternion):
   
   rotation_matrix = quaternion.rotation_matrix()
 
-  r1 = np.dot(rotation_matrix, initial_r1)
-  r2 = np.dot(rotation_matrix, initial_r2)
-  r3 = np.dot(rotation_matrix, initial_r3)
+  r1 = np.dot(rotation_matrix, initial_r1) + np.array([0., 0., H])
+  r2 = np.dot(rotation_matrix, initial_r2) + np.array([0., 0., H])
+  r3 = np.dot(rotation_matrix, initial_r3) + np.array([0., 0., H])
   
   return [r1, r2, r3]
 
@@ -184,13 +186,15 @@ def generate_equilibrium_sample():
   
     r_vectors = get_r_vectors(theta)
     U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
-    # 22500 is roughly the value of exp(-beta U) for the most likely config.
-    # when M1 = 1, M2 = 2, M3 = 3.
-    # 137 is roughly the value when M1 = M2 = M3 = 1.
-    gibbs_term = np.exp(-1.*(U))
+    # Roughly the smallest height.
+    smallest_height = H - 1.8
+    normalization_constant = np.exp(-1.*smallest_height*(M1 + M2 + M3))
+    # For now, we set the normalization to 1e-2 for masses:
+    #       M1 = 0.1, M2 = 0.2, M3 = 0.3
+    gibbs_term = np.exp(-1.*U)
     if gibbs_term > max_gibbs_term:
       max_gibbs_term = gibbs_term
-    accept_prob = np.exp(-1.*(U))/22500.
+    accept_prob = np.exp(-1.*(U))/normalization_constant
     if accept_prob > 1:
       print "Warning: acceptance probability > 1."
       print "accept_prob = ", accept_prob
@@ -198,16 +202,18 @@ def generate_equilibrium_sample():
       return theta
     
 
-def distribution_height_particle(particle, path, equilibrium_samples):
+def distribution_height_particle(particle, path1, path2, equilibrium_samples):
   ''' 
   Given the path of the quaternion, make a historgram of the 
   height of particle <particle> and compare to equilibrium. 
+  This assumes path 1 is from a Fixman scheme and path2 is from an
+  RFD scheme for labeling.
   '''
-  pyplot.figure()
-
-  hist_bins = np.linspace(-1.8, 1.8, 40)
+  fig = pyplot.figure()
+#  ax = fig.add_subplot(1, 1, 1)
+  hist_bins = np.linspace(-1.8, 1.8, 40) + H
   heights = []
-  for pos in path:
+  for pos in path1:
     # TODO: do this a faster way perhaps with a special function.
     r_vectors = get_r_vectors(pos[0])
     heights.append(r_vectors[particle][2])
@@ -215,6 +221,17 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   height_hist = np.histogram(heights, density=True, bins=hist_bins)
   buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
   pyplot.plot(buckets, height_hist[0], 'b-',  label='Fixman')
+
+
+  heights = []
+  for pos in path2:
+    # TODO: do this a faster way perhaps with a special function.
+    r_vectors = get_r_vectors(pos[0])
+    heights.append(r_vectors[particle][2])
+
+  height_hist = np.histogram(heights, density=True, bins=hist_bins)
+  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
+  pyplot.plot(buckets, height_hist[0], 'g-',  label='RFD')
 
 
   heights = []
@@ -231,6 +248,7 @@ def distribution_height_particle(particle, path, equilibrium_samples):
   pyplot.title('Location of particle %d' % particle)
   pyplot.ylabel('Probability Density')
   pyplot.xlabel('Height')
+#  ax.set_yscale('log')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
@@ -244,18 +262,29 @@ if __name__ == "__main__":
   fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                            initial_position, 
                                            gravity_torque_calculator)
+
+  rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+                                        initial_position, 
+                                        gravity_torque_calculator)
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
+  print_increment = int(n_steps/10.)
 
   equilibrium_samples = []  
   for k in range(n_steps):
     fixman_integrator.fixman_time_step(dt)
+    rfd_integrator.rfd_time_step(dt)
     equilibrium_samples.append(generate_equilibrium_sample())
+    if k % print_increment == 0:
+      print "At step:", k
 
-  distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
-  distribution_height_particle(1, fixman_integrator.path, equilibrium_samples)
-  distribution_height_particle(2, fixman_integrator.path, equilibrium_samples)
+  distribution_height_particle(0, fixman_integrator.path, 
+                               rfd_integrator.path, equilibrium_samples)
+  distribution_height_particle(1, fixman_integrator.path, 
+                               rfd_integrator.path, equilibrium_samples)
+  distribution_height_particle(2, fixman_integrator.path,
+                              rfd_integrator.path, equilibrium_samples)
   
   if PROFILE:
     pr.disable()

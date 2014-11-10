@@ -23,17 +23,20 @@ class TestTetrahedron(unittest.TestCase):
     #Check r1
     self.assertAlmostEqual(r_vectors[0][0], 0.)
     self.assertAlmostEqual(r_vectors[0][1], 2./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[0][2], -2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[0][2], tetrahedron.H
+                           - 2.*np.sqrt(2.)/np.sqrt(3.))
 
     #Check r2
     self.assertAlmostEqual(r_vectors[1][0], -1.)
     self.assertAlmostEqual(r_vectors[1][1], -1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[1][2], -2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[1][2], tetrahedron.H
+                           - 2.*np.sqrt(2.)/np.sqrt(3.))
 
     #Check r3
     self.assertAlmostEqual(r_vectors[2][0], 1.)
     self.assertAlmostEqual(r_vectors[2][1], -1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[2][2], -2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[2][2], tetrahedron.H
+                           - 2.*np.sqrt(2.)/np.sqrt(3.))
 
     # Try quaternion that flips tetrahedron 180 degrees, putting it upside down.
     theta = Quaternion([0., -1., 0., 0.])
@@ -43,17 +46,20 @@ class TestTetrahedron(unittest.TestCase):
     #Check r1
     self.assertAlmostEqual(r_vectors[0][0], 0.)
     self.assertAlmostEqual(r_vectors[0][1], -2./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[0][2], 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[0][2], tetrahedron.H + 
+                           2.*np.sqrt(2.)/np.sqrt(3.))
 
     #Check r2
     self.assertAlmostEqual(r_vectors[1][0], -1.)
     self.assertAlmostEqual(r_vectors[1][1], 1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[1][2], 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[1][2], tetrahedron.H + 
+                           2.*np.sqrt(2.)/np.sqrt(3.))
 
     #Check r3
     self.assertAlmostEqual(r_vectors[2][0], 1.)
     self.assertAlmostEqual(r_vectors[2][1], 1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[2][2], 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[2][2], tetrahedron.H + 
+                           2.*np.sqrt(2.)/np.sqrt(3.))
 
 
   def test_r_matrix(self):
@@ -94,32 +100,19 @@ class TestTetrahedron(unittest.TestCase):
         self.assertAlmostEqual(dipole[j, k], actual[j, k])
 
 
-
-  def test_image_system(self):
-    ''' 
-    Test that the full image_system mobility works for a single
-    particle.  We do this by looking at the 1-2 block of the 9x9 mobility, 
-    which represents the velocity induced at point 1 by a force at point 2.
-    This should match the theoretical result.
-    '''
+  def test_image_system_zero_at_wall(self):
+    ''' Test that the image system gives the correct 0 velocity at the wall.'''
     # Identity quaternion represents initial configuration.
-    r_vectors = tetrahedron.get_r_vectors(Quaternion([1., 0., 0., 0.]))
+    r_vectors = [np.array([0., 0., 0.]),
+                 np.array([0., 0., 1.]),
+                 np.array([1., 1., 1.])]
     mobility = tetrahedron.image_singular_stokeslet(r_vectors)
-    
     block = mobility[0:3, 3:6]
-    
-    # Vector from particle 2 to particle 1.
-    r_particles_12 = np.array([1., np.sqrt(3.), 0.])
-    # Vector from reflection of particle 2 to particle 1.
-    r_reflect = np.array([1., np.sqrt(3.), 
-                          -1.*tetrahedron.H + 2.*np.sqrt(2.)/3.])
-    
-    # Put together value of mobility block.
-    # TODO: finish this test.
-    
-    
-    
+    for j in range(3):
+      for k in range(3):
+        self.assertAlmostEqual(block[j, k], 0.)
 
+    
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
     # Overwrite Masses.
