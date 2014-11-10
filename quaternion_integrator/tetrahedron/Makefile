@@ -1,12 +1,14 @@
 # location of the Python header files
  
-PYTHON_VERSION = 2.6
+PYTHON_VERSION = 2.7
 PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
  
 # location of the Boost Python include files and library
  
-BOOST_INC = /usr/include  #original version
-BOOST_LIB = /usr/lib  #original version
+#BOOST_INC = /usr/include  #original version
+BOOST_INC = /opt/local/include  #Mac version
+# BOOST_LIB = /usr/lib  #original version
+BOOST_LIB = /opt/local/lib  #Mac version
  
 # compile mesh classes
 TARGET = tetrahedron_ext

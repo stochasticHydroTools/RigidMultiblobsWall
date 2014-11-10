@@ -11,13 +11,13 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
-import tetrahedron_ext
+# import tetrahedron_ext
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.02     # Particle Radius.
-H = 12.     # Distance to wall.
+H = 35.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
   # Script to run the Fixman integrator on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(identity_mobility, 
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                            initial_position, 
                                            gravity_torque_calculator)
   # Get command line parameters
@@ -250,7 +250,7 @@ if __name__ == "__main__":
 
   equilibrium_samples = []  
   for k in range(n_steps):
-    fixman_integrator.additive_em_time_step(dt)
+    fixman_integrator.fixman_time_step(dt)
     equilibrium_samples.append(generate_equilibrium_sample())
 
   distribution_height_particle(0, fixman_integrator.path, equilibrium_samples)
