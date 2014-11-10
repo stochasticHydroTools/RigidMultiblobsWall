@@ -94,12 +94,39 @@ class TestTetrahedron(unittest.TestCase):
         self.assertAlmostEqual(dipole[j, k], actual[j, k])
 
 
+
+  def test_image_system(self):
+    ''' 
+    Test that the full image_system mobility works for a single
+    particle.  We do this by looking at the 1-2 block of the 9x9 mobility, 
+    which represents the velocity induced at point 1 by a force at point 2.
+    This should match the theoretical result.
+    '''
+    # Identity quaternion represents initial configuration.
+    r_vectors = tetrahedron.get_r_vectors(Quaternion([1., 0., 0., 0.]))
+    mobility = tetrahedron.image_singular_stokeslet(r_vectors)
+    
+    block = mobility[0:3, 3:6]
+    
+    # Vector from particle 2 to particle 1.
+    r_particles_12 = np.array([1., np.sqrt(3.), 0.])
+    # Vector from reflection of particle 2 to particle 1.
+    r_reflect = np.array([1., np.sqrt(3.), 
+                          -1.*tetrahedron.H + 2.*np.sqrt(2.)/3.])
+    
+    # Put together value of mobility block.
+    # TODO: finish this test.
+    
+    
+    
+
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
     # Overwrite Masses.
+    old_masses = [tetrahedron.M1, tetrahedron.M2, tetrahedron.M3]
     tetrahedron.M1 = 1.0
-    tetrahedron.M2 = 2.0
-    tetrahedron.M3 = 3.0
+    tetrahedron.M2 = 1.0
+    tetrahedron.M3 = 1.0
     
     # Identity quaternion.
     theta = Quaternion([1., 0., 0., 0.])
@@ -120,6 +147,9 @@ class TestTetrahedron(unittest.TestCase):
     for k in range(1, 3):
       self.assertAlmostEqual(torque[k], 0.)
 
+    tetrahedron.M1 = old_masses[0]
+    tetrahedron.M2 = old_masses[1]
+    tetrahedron.M3 = old_masses[2]
 
   def test_mobility_spd(self):
     ''' Test that for random configurations, the mobility is SPD. '''
@@ -153,7 +183,7 @@ class TestTetrahedron(unittest.TestCase):
     theta = Quaternion(np.array([s, p1, p2, p3]))
 
     r_vectors = tetrahedron.get_r_vectors(theta)
-    stokeslet = tetrahedron.image_singular_stokeslet(theta, r_vectors)
+    stokeslet = tetrahedron.image_singular_stokeslet(r_vectors)
 
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)    

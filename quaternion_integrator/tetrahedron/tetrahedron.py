@@ -16,8 +16,8 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.02     # Particle Radius.
-H = 35.     # Distance to wall.
+A = 0.03     # Particle Radius.
+H = 10.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -41,19 +41,19 @@ def tetrahedron_mobility(position):
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''
   r_vectors = get_r_vectors(position[0])
-  mobility = image_singular_stokeslet(position[0], r_vectors)
-  rotation_matrix = calculate_rot_matrix(position[0], r_vectors)
+  mobility = image_singular_stokeslet(r_vectors)
+  rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.dot(rotation_matrix.T,
                           np.dot(np.linalg.inv(mobility),
                                  rotation_matrix))
   return total_mobility
 
 
-def image_singular_stokeslet(quaternion, r_vectors):
+def image_singular_stokeslet(r_vectors):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   mobility = np.array([np.zeros(9) for _ in range(9)])
   # Loop through particle interactions
-  for j in range(3):  
+  for j in range(3):
     for k in range(3):
       if j != k:  #  do particle interaction
         r_particles = r_vectors[j] - r_vectors[k]
@@ -98,7 +98,7 @@ def potential_dipole(r):
   return dipole
 
   
-def calculate_rot_matrix(quaternion, r_vectors):
+def calculate_rot_matrix(r_vectors):
   ''' Calculate R, 9 by 3 matrix of cross products for r_i. '''
   
   # Create the 9 x 3 matrix.  Each 3x3 block is the matrix for a cross
@@ -158,7 +158,7 @@ def gravity_torque_calculator(position):
   of particles 1, 2, and 3 are M1, M2, and M3 respectively.
   '''
   r_vectors = get_r_vectors(position[0])
-  R = calculate_rot_matrix(position[0], r_vectors)
+  R = calculate_rot_matrix(r_vectors)
   
   # Gravity
   g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
