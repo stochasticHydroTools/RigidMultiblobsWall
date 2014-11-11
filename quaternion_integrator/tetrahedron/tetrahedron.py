@@ -67,16 +67,16 @@ def image_singular_stokeslet(r_vectors):
           for m in range(3):
             # Two stokeslets, one with negative force at image.
             mobility[j*3 + l][k*3 + m] = (
-              (l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
-              ((l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3)))
-        # Add Doublet.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += 2.*wall_dist*stokes_doublet(r_reflect)
-        # Add Potential Dipole.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] -= wall_dist*wall_dist*potential_dipole(r_reflect)
+              ((l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
+               ((l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3)))/
+              (8.*np.pi))
+        # Add doublet and dipole contribution.
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += (
+          doublet_and_dipole(r_reflect, wall_dist))
+        
       else:
         # j == k
         mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
-      
   return mobility
               
 def stokes_doublet(r):
@@ -98,6 +98,19 @@ def potential_dipole(r):
   dipole[:, 0:2] = -1.*dipole[:, 0:2]
   dipole = dipole/(4.*np.pi*(r_norm**3))
   return dipole
+
+
+def doublet_and_dipole(r, h):
+  ''' 
+  Just keep the pieces of the potential dipole and the doublet
+  that we need for the image system.  No point in calculating terms that will cancel.
+  This function includes the prefactors of 2H and H**2.
+  '''
+  r_norm = np.linalg.norm(r)
+  e3 = np.array([0., 0., 1.])
+  doublet_and_dipole = 2.*h*(np.outer(r, e3) - np.outer(e3, r))/(8.*np.pi*(r_norm**3))
+  doublet_and_dipole[:, 0:2] = -1.*doublet_and_dipole[:, 0:2]
+  return doublet_and_dipole
 
   
 def calculate_rot_matrix(r_vectors):

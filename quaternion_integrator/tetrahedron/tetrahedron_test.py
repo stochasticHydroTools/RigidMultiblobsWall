@@ -25,13 +25,11 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[0][1], 2./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[0][2], tetrahedron.H
                            - 2.*np.sqrt(2.)/np.sqrt(3.))
-
     #Check r2
     self.assertAlmostEqual(r_vectors[1][0], -1.)
     self.assertAlmostEqual(r_vectors[1][1], -1./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[1][2], tetrahedron.H
                            - 2.*np.sqrt(2.)/np.sqrt(3.))
-
     #Check r3
     self.assertAlmostEqual(r_vectors[2][0], 1.)
     self.assertAlmostEqual(r_vectors[2][1], -1./np.sqrt(3.))
@@ -40,7 +38,6 @@ class TestTetrahedron(unittest.TestCase):
 
     # Try quaternion that flips tetrahedron 180 degrees, putting it upside down.
     theta = Quaternion([0., -1., 0., 0.])
-
     r_vectors = tetrahedron.get_r_vectors(theta)
     
     #Check r1
@@ -48,13 +45,11 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[0][1], -2./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[0][2], tetrahedron.H + 
                            2.*np.sqrt(2.)/np.sqrt(3.))
-
     #Check r2
     self.assertAlmostEqual(r_vectors[1][0], -1.)
     self.assertAlmostEqual(r_vectors[1][1], 1./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[1][2], tetrahedron.H + 
                            2.*np.sqrt(2.)/np.sqrt(3.))
-
     #Check r3
     self.assertAlmostEqual(r_vectors[2][0], 1.)
     self.assertAlmostEqual(r_vectors[2][1], 1./np.sqrt(3.))
@@ -62,13 +57,6 @@ class TestTetrahedron(unittest.TestCase):
                            2.*np.sqrt(2.)/np.sqrt(3.))
 
 
-  def test_r_matrix(self):
-    ''' Test that we generate the correct R matrix.'''
-
-    # Test the r_matrix for the initial configuration.
-    r_matrix = tetrahedron.get_r_vectors(Quaternion([1., 0., 0., 0.]))
-    
-    
   def test_stokes_doublet_e1(self):
     ''' Test stokes doublet when r = e1. '''
     r = np.array([1., 0., 0.])
@@ -104,13 +92,29 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test that the image system gives the correct 0 velocity at the wall.'''
     # Identity quaternion represents initial configuration.
     r_vectors = [np.array([0., 0., 0.]),
-                 np.array([0., 0., 1.]),
+                 np.array([2., 2., 2.]),
                  np.array([1., 1., 1.])]
     mobility = tetrahedron.image_singular_stokeslet(r_vectors)
+    # Test particle 1 to particle 0.
     block = mobility[0:3, 3:6]
     for j in range(3):
       for k in range(3):
         self.assertAlmostEqual(block[j, k], 0.)
+    # Test particle 2 to particle 0
+    block = mobility[0:3, 6:9]
+    for j in range(3):
+      for k in range(3):
+        self.assertAlmostEqual(block[j, k], 0.)
+
+
+  def test_image_system_symmetric(self):
+    ''' Test that the stokes image system is symmetric. '''
+    r_vectors = [np.random.normal(0., 1., 3) for _ in range(3)]
+    mobility = tetrahedron.image_singular_stokeslet(r_vectors)
+    
+    for j in range(9):
+      for k in range(j+1, 9):
+        self.assertAlmostEqual(mobility[j, k], mobility[k, j])
 
     
   def test_torque_calculator(self):
