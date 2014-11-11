@@ -141,21 +141,27 @@ class TestTetrahedron(unittest.TestCase):
     mobility = tetrahedron.torque_mobility(r_vectors)
     
     # Check that the first column matches the correct result. X torque.
-    omega = ((1./2./np.pi/tetrahedron.ETA)*
-             (1./(6.*tetrahedron.A) - 1./(8.*4)))/4.
+    # r*omega = (1/(6 pi eta a) - 1/(8 pi eta 2r)) F
+    # T = 2r F  =>  F = T/2R
+    # r = 2
+    omega_x = ((1./2./np.pi/tetrahedron.ETA)*
+               (1./(6.*tetrahedron.A) - 1./(8.*4)))/4.
 
-    self.assertAlmostEqual(mobility[0, 0], omega)
+    self.assertAlmostEqual(mobility[0, 0], omega_x)
     self.assertAlmostEqual(mobility[1, 0], 0.)
     self.assertAlmostEqual(mobility[2, 0], 0.)
 
 
     # Check that the second column matches the correct result. Y torque.
-    omega = ((1./2./np.pi/tetrahedron.ETA)*
-             (1./(6.*tetrahedron.A) - 1./(8.*4)))/4.
+    # r*omega = (1/(6 pi eta a) + 2/(8*pi*eta sqrt(2)r 2) - 1/(8 pi eta 2r))F
+    # T = 4r F
+    # r = 2
+    omega_y = ((1./2./np.pi/tetrahedron.ETA)*
+             (1./(6.*tetrahedron.A) + 1./(16.*np.sqrt(2)) - 1./32.)/8.)
 
-    self.assertAlmostEqual(mobility[0, 0], omega)
-    self.assertAlmostEqual(mobility[1, 0], 0.)
-    self.assertAlmostEqual(mobility[2, 0], 0.)
+    self.assertAlmostEqual(mobility[0, 1], 0.)
+    self.assertAlmostEqual(mobility[1, 1], omega_y)
+    self.assertAlmostEqual(mobility[2, 1], 0.)
 
     tetrahedron.H = old_height
 
