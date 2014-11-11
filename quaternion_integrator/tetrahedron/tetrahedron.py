@@ -16,8 +16,8 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.03     # Particle Radius.
-H = 10.     # Distance to wall.
+A = 0.25     # Particle Radius.
+H = 6.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -30,6 +30,15 @@ def identity_mobility(position):
 
 
 def tetrahedron_mobility(position):
+  ''' 
+  Wrapper for torque mobility that takes a quaternion for
+  use with quaternion_integrator. 
+  '''
+  r_vectors = get_r_vectors(position[0])
+  return torque_mobility(r_vectors)
+
+
+def torque_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
   In this case, position is length 1, as there is just 1 quaternion.
@@ -39,13 +48,12 @@ def tetrahedron_mobility(position):
   each other vertex (a length 3N vector).
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
-  '''
-  r_vectors = get_r_vectors(position[0])
+  '''  
   mobility = image_singular_stokeslet(r_vectors)
   rotation_matrix = calculate_rot_matrix(r_vectors)
-  total_mobility = np.dot(rotation_matrix.T,
-                          np.dot(np.linalg.inv(mobility),
-                                 rotation_matrix))
+  total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
+                                        np.dot(np.linalg.inv(mobility),
+                                               rotation_matrix)))
   return total_mobility
 
 
@@ -114,29 +122,42 @@ def doublet_and_dipole(r, h):
 
   
 def calculate_rot_matrix(r_vectors):
-  ''' Calculate R, 9 by 3 matrix of cross products for r_i. '''
+  ''' Calculate R, 3N by 3 matrix of cross products for r_i. '''
   
-  # Create the 9 x 3 matrix.  Each 3x3 block is the matrix for a cross
+  # Create the 3N x 3 matrix.  Each 3x3 block is the matrix for a cross
   # product with one of the r_vectors.  Cross is relative to (0, 0, H) the location
   # of the fixed vertex.
-  r_vectors[0] = r_vectors[0] - np.array([0., 0., H])
-  r_vectors[1] = r_vectors[1] - np.array([0., 0., H])
-  r_vectors[2] = r_vectors[2] - np.array([0., 0., H])
+  
+  # Adjust so we take the cross relative to (0, 0, H)
+  rot_matrix = None
+  for k in range(len(r_vectors)):
+    r_vectors[k] = r_vectors[k] - np.array([0., 0., H])
 
-  return np.array([
-      #Block 1, cross r_1 
-      [0.0, r_vectors[0][2], -1.*r_vectors[0][1]],
-      [-1.*r_vectors[0][2], 0.0, r_vectors[0][0]],
-      [r_vectors[0][1], -1.*r_vectors[0][0],0.0],
-      # Block 2, cross r_2
-      [0.0, r_vectors[1][2], -1.*r_vectors[1][1]],
-      [-1.*r_vectors[1][2], 0.0, r_vectors[1][0]],
-      [r_vectors[1][1], -1.*r_vectors[1][0],0.0],
-      # Block 3, cross r_3
-      [0.0, r_vectors[2][2], -1.*r_vectors[2][1]],
-      [-1.*r_vectors[2][2], 0.0, r_vectors[2][0]],
-      [r_vectors[2][1], -1.*r_vectors[2][0],0.0],
-      ])
+    # Current r cross x matrix block.
+    block = np.array(
+        [[0.0, r_vectors[k][2], -1.*r_vectors[k][1]],
+        [-1.*r_vectors[k][2], 0.0, r_vectors[k][0]],
+        [r_vectors[k][1], -1.*r_vectors[k][0], 0.0]])
+
+    if rot_matrix is None:
+      rot_matrix = block
+    else:
+      rot_matrix = np.concatenate([rot_matrix, block], axis=0)
+
+  return rot_matrix
+      # #Block 1, cross r_1 
+      # [0.0, r_vectors[0][2], -1.*r_vectors[0][1]],
+      # [-1.*r_vectors[0][2], 0.0, r_vectors[0][0]],
+      # [r_vectors[0][1], -1.*r_vectors[0][0],0.0],
+      # # Block 2, cross r_2
+      # [0.0, r_vectors[1][2], -1.*r_vectors[1][1]],
+      # [-1.*r_vectors[1][2], 0.0, r_vectors[1][0]],
+      # [r_vectors[1][1], -1.*r_vectors[1][0],0.0],
+      # # Block 3, cross r_3
+      # [0.0, r_vectors[2][2], -1.*r_vectors[2][1]],
+      # [-1.*r_vectors[2][2], 0.0, r_vectors[2][0]],
+      # [r_vectors[2][1], -1.*r_vectors[2][0],0.0],
+      # ])
 
 
 def get_r_vectors(quaternion):

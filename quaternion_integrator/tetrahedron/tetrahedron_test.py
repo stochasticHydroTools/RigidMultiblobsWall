@@ -116,6 +116,49 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(j+1, 9):
         self.assertAlmostEqual(mobility[j, k], mobility[k, j])
 
+
+  def test_torque_rotor_x(self):
+    ''' 
+    Test that we get the correct angular velocity from a torque
+    applied to a rotor in the x  and y direction.  Rotor looks like:
+                                       z y  
+                         0             |/          
+                         |              ---> x   
+                     0-------0
+                         |
+                         0
+    '''
+    # Overwrite height for this test, want to ignore the wall.
+    old_height = tetrahedron.H
+    tetrahedron.H = 1e8
+    # Set up a rod to spin with positive x torque.
+    r_vectors = [np.array([0., 0., 1e8 + 2.]),
+                 np.array([2., 0., 1e8]),
+                 np.array([-2., 0., 1e8]),
+                 np.array([0., 0., 1e8 - 2.])]
+    
+    # Calculate \Tau -> Omega mobility
+    mobility = tetrahedron.torque_mobility(r_vectors)
+    
+    # Check that the first column matches the correct result. X torque.
+    omega = ((1./2./np.pi/tetrahedron.ETA)*
+             (1./(6.*tetrahedron.A) - 1./(8.*4)))/4.
+
+    self.assertAlmostEqual(mobility[0, 0], omega)
+    self.assertAlmostEqual(mobility[1, 0], 0.)
+    self.assertAlmostEqual(mobility[2, 0], 0.)
+
+
+    # Check that the second column matches the correct result. Y torque.
+    omega = ((1./2./np.pi/tetrahedron.ETA)*
+             (1./(6.*tetrahedron.A) - 1./(8.*4)))/4.
+
+    self.assertAlmostEqual(mobility[0, 0], omega)
+    self.assertAlmostEqual(mobility[1, 0], 0.)
+    self.assertAlmostEqual(mobility[2, 0], 0.)
+
+    tetrahedron.H = old_height
+
     
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
