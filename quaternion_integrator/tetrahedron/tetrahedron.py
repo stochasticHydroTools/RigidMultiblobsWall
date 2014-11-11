@@ -20,9 +20,9 @@ A = 0.03     # Particle Radius.
 H = 10.     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.5
-M2 = 1.0
-M3 = 1.5
+M1 = 1.0
+M2 = 2.0
+M3 = 3.0
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -117,7 +117,12 @@ def calculate_rot_matrix(r_vectors):
   ''' Calculate R, 9 by 3 matrix of cross products for r_i. '''
   
   # Create the 9 x 3 matrix.  Each 3x3 block is the matrix for a cross
-  # product with one of the r_vectors.
+  # product with one of the r_vectors.  Cross is relative to (0, 0, H) the location
+  # of the fixed vertex.
+  r_vectors[0] = r_vectors[0] - np.array([0., 0., H])
+  r_vectors[1] = r_vectors[1] - np.array([0., 0., H])
+  r_vectors[2] = r_vectors[2] - np.array([0., 0., H])
+
   return np.array([
       #Block 1, cross r_1 
       [0.0, r_vectors[0][2], -1.*r_vectors[0][1]],
