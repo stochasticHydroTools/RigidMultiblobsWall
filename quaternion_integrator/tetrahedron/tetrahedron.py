@@ -1,4 +1,4 @@
-''' 
+'''
 Script to test a tetrahedron near a wall.  The wall is at z = -h, and
 the tetrahedron's "top" vertex is fixed at (0, 0, 0).
 '''
@@ -16,8 +16,8 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.25     # Particle Radius.
-H = 6.     # Distance to wall.
+A = 1.0     # Particle Radius.
+H = 3.0     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -29,6 +29,17 @@ def identity_mobility(position):
   return np.identity(3)
 
 
+def test_mobility(position):
+  ''' Simple mobility that's not divergence free. '''
+  r_vectors = get_r_vectors(position[0])
+  mobility = test_image_singular_stokeslet(r_vectors)
+  rotation_matrix = calculate_rot_matrix(r_vectors)
+  total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
+                                        np.dot(np.linalg.inv(mobility),
+                                               rotation_matrix)))
+  return total_mobility
+
+
 def tetrahedron_mobility(position):
   ''' 
   Wrapper for torque mobility that takes a quaternion for
@@ -36,7 +47,6 @@ def tetrahedron_mobility(position):
   '''
   r_vectors = get_r_vectors(position[0])
   return torque_mobility(r_vectors)
-
 
 def torque_mobility(r_vectors):
   '''
@@ -86,7 +96,7 @@ def image_singular_stokeslet(r_vectors):
         # j == k
         mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
   return mobility
-              
+
 def stokes_doublet(r):
   ''' Calculate stokes doublet from direction, strength, and r. '''
   r_norm = np.linalg.norm(r)
@@ -119,6 +129,15 @@ def doublet_and_dipole(r, h):
   doublet_and_dipole = 2.*h*(np.outer(r, e3) - np.outer(e3, r))/(8.*np.pi*(r_norm**3))
   doublet_and_dipole[:, 0:2] = -1.*doublet_and_dipole[:, 0:2]
   return doublet_and_dipole
+
+
+def test_image_singular_stokeslet(r_vectors):
+  ''' A test non-divergence free stokeslet to use with test mobility. '''
+  mobility = np.array([np.zeros(9) for _ in range(9)])
+  for j in range(3):
+    for k in range(3):
+      mobility[j*3 + k, j*3 + k] = 1.0 + 100.*r_vectors[j][k]**2
+  return mobility
 
   
 def calculate_rot_matrix(r_vectors):
@@ -228,53 +247,36 @@ def generate_equilibrium_sample():
       return theta
     
 
-def distribution_height_particle(particle, path1, path2, equilibrium_samples):
+def distribution_height_particle(particle, paths, names):
   ''' 
-  Given the path of the quaternion, make a historgram of the 
+  Given paths of a quaternion, make a historgram of the 
   height of particle <particle> and compare to equilibrium. 
-  This assumes path 1 is from a Fixman scheme and path2 is from an
-  RFD scheme for labeling.
+  names are used for labeling the plot, and should have the same 
+  length as paths. 
   '''
+  if len(names) != len(paths):
+    raise Exception('Paths and names must have the same length.')
+    
   fig = pyplot.figure()
-  ax = fig.add_subplot(1, 1, 1)
-  hist_bins = np.linspace(-1.8, 1.8, 40) + H
-  heights = []
-  for pos in path1:
-    # TODO: do this a faster way perhaps with a special function.
-    r_vectors = get_r_vectors(pos[0])
-    heights.append(r_vectors[particle][2])
+#  ax = fig.add_subplot(1, 1, 1)
+  hist_bins = np.linspace(-1.8, 1.8, 60) + H
+  for k in range(len(paths)):
+    path = paths[k]
+    heights = []
+    for pos in path:
+      # TODO: do this a faster way perhaps with a special function.
+      r_vectors = get_r_vectors(pos[0])
+      heights.append(r_vectors[particle][2])
 
-  height_hist = np.histogram(heights, density=True, bins=hist_bins)
-  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
-  pyplot.plot(buckets, height_hist[0], 'b-',  label='Fixman')
+    height_hist = np.histogram(heights, density=True, bins=hist_bins)
+    buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
+    pyplot.plot(buckets, height_hist[0],  label=names[k])
 
-
-  heights = []
-  for pos in path2:
-    # TODO: do this a faster way perhaps with a special function.
-    r_vectors = get_r_vectors(pos[0])
-    heights.append(r_vectors[particle][2])
-
-  height_hist = np.histogram(heights, density=True, bins=hist_bins)
-  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
-  pyplot.plot(buckets, height_hist[0], 'g-',  label='RFD')
-
-
-  heights = []
-  for sample in equilibrium_samples:
-    # TODO: do this a faster way perhaps with a special function, since we only need
-    #  the z coordinate.
-    r_vectors = get_r_vectors(sample)
-    heights.append(r_vectors[particle][2])
-
-  height_hist = np.histogram(heights, density=True, bins=hist_bins)
-  buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
-  pyplot.plot(buckets, height_hist[0], 'k--',  label='Gibbs-Boltzmann')
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.title('Location of particle %d' % particle)
   pyplot.ylabel('Probability Density')
   pyplot.xlabel('Height')
-  ax.set_yscale('log')
+#  ax.set_yscale('log')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
@@ -283,13 +285,13 @@ if __name__ == "__main__":
     pr = cProfile.Profile()
     pr.enable()
 
-  # Script to run the Fixman integrator on the quaternion.
+  # Script to run the various integrators on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility,
                                            initial_position, 
                                            gravity_torque_calculator)
 
-  rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+  rfd_integrator = QuaternionIntegrator(identity_mobility, 
                                         initial_position, 
                                         gravity_torque_calculator)
 
@@ -305,16 +307,18 @@ if __name__ == "__main__":
   for k in range(n_steps):
     fixman_integrator.fixman_time_step(dt)
     rfd_integrator.rfd_time_step(dt)
-    equilibrium_samples.append(generate_equilibrium_sample())
+    em_integrator.additive_em_time_step(dt)
+    equilibrium_samples.append([generate_equilibrium_sample()])
     if k % print_increment == 0:
       print "At step:", k
 
-  distribution_height_particle(0, fixman_integrator.path, 
-                               rfd_integrator.path, equilibrium_samples)
-  distribution_height_particle(1, fixman_integrator.path, 
-                               rfd_integrator.path, equilibrium_samples)
-  distribution_height_particle(2, fixman_integrator.path,
-                              rfd_integrator.path, equilibrium_samples)
+  paths = [fixman_integrator.path, rfd_integrator.path, 
+           em_integrator.path, equilibrium_samples]
+  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
+
+  distribution_height_particle(0, paths, names)
+  distribution_height_particle(1, paths, names)
+  distribution_height_particle(2, paths, names)
   
   if PROFILE:
     pr.disable()
