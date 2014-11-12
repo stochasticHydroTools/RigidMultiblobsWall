@@ -145,19 +145,6 @@ def calculate_rot_matrix(r_vectors):
       rot_matrix = np.concatenate([rot_matrix, block], axis=0)
 
   return rot_matrix
-      # #Block 1, cross r_1 
-      # [0.0, r_vectors[0][2], -1.*r_vectors[0][1]],
-      # [-1.*r_vectors[0][2], 0.0, r_vectors[0][0]],
-      # [r_vectors[0][1], -1.*r_vectors[0][0],0.0],
-      # # Block 2, cross r_2
-      # [0.0, r_vectors[1][2], -1.*r_vectors[1][1]],
-      # [-1.*r_vectors[1][2], 0.0, r_vectors[1][0]],
-      # [r_vectors[1][1], -1.*r_vectors[1][0],0.0],
-      # # Block 3, cross r_3
-      # [0.0, r_vectors[2][2], -1.*r_vectors[2][1]],
-      # [-1.*r_vectors[2][2], 0.0, r_vectors[2][0]],
-      # [r_vectors[2][1], -1.*r_vectors[2][0],0.0],
-      # ])
 
 
 def get_r_vectors(quaternion):
@@ -249,7 +236,7 @@ def distribution_height_particle(particle, path1, path2, equilibrium_samples):
   RFD scheme for labeling.
   '''
   fig = pyplot.figure()
-#  ax = fig.add_subplot(1, 1, 1)
+  ax = fig.add_subplot(1, 1, 1)
   hist_bins = np.linspace(-1.8, 1.8, 40) + H
   heights = []
   for pos in path1:
@@ -287,7 +274,7 @@ def distribution_height_particle(particle, path1, path2, equilibrium_samples):
   pyplot.title('Location of particle %d' % particle)
   pyplot.ylabel('Probability Density')
   pyplot.xlabel('Height')
-#  ax.set_yscale('log')
+  ax.set_yscale('log')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
@@ -305,6 +292,10 @@ if __name__ == "__main__":
   rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                         initial_position, 
                                         gravity_torque_calculator)
+
+  em_integrator = QuaternionIntegrator(tetrahedron_mobility, 
+                                       initial_position, 
+                                       gravity_torque_calculator)
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
