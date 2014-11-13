@@ -274,7 +274,6 @@ class TestTetrahedron(unittest.TestCase):
 
     r_vectors = [np.dot(theta.rotation_matrix(), vec) for vec in r_vectors]
     mobility = tetrahedron.rpy_torque_mobility(r_vectors)
-    print mobility
     
     for j in range(3):
       for k in range(j+1, 3):
