@@ -85,7 +85,6 @@ class QuaternionIntegrator(object):
     divergence_term = self.kT*np.dot(
       self.mobility(rfd_position) - mobility,
       rfd_noise/self.rf_delta)
-    print "divergence term is ", divergence_term
     omega = (np.dot(mobility, torque) + 
              np.sqrt(2.*self.kT/dt)*
              np.dot(mobility_half, noise) +
