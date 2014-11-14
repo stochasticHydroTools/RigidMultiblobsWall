@@ -20,7 +20,7 @@ PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 1.0     # Particle Radius.
-H = 3.0     # Distance to wall.
+H = 2.2     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -37,7 +37,7 @@ def test_mobility(position):
   r_vectors = get_r_vectors(position[0])
   total_mobility = np.array([np.zeros(3) for _ in range(3)])
   for k in range(3):
-    total_mobility[k, k] = r_vectors[k][2]**2 + 1.
+    total_mobility[k, k] = 1000.*r_vectors[k][2]**2 + 1.
   return total_mobility
 
 

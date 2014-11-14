@@ -30,7 +30,7 @@ class QuaternionIntegrator(object):
     self.position = initial_position
     self.path = [self.position]   # Save the trajectory.
 
-    self.rf_delta = 1e-6  # delta for RFD term in RFD step
+    self.rf_delta = 1e-9  # delta for RFD term in RFD step
 
     #TODO: Make this dynamic
     self.kT = 1.0
