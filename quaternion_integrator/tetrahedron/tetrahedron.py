@@ -20,12 +20,12 @@ PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 1.0     # Particle Radius.
-H = 2.2     # Distance to wall.
+H = 0.0     # Distance to wall.
 
 # Masses of particles.
-M1 = 1.0
-M2 = 2.0
-M3 = 3.0
+M1 = 0.0
+M2 = 0.0
+M3 = 0.0
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
