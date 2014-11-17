@@ -30,7 +30,7 @@ class QuaternionIntegrator(object):
     self.position = initial_position
     self.path = [self.position]   # Save the trajectory.
 
-    self.rf_delta = 1e-7  # delta for RFD term in RFD step
+    self.rf_delta = 1e-4  # delta for RFD term in RFD step
 
     #TODO: Make this dynamic
     self.kT = 1.0
@@ -57,7 +57,6 @@ class QuaternionIntegrator(object):
     omega_tilde = (np.dot(mobility_tilde, torque_tilde) +
                    np.sqrt(2*self.kT/dt)*
                    np.dot(mobility_tilde, np.dot(mobility_half_inv, noise)))
-    
     new_position = []
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
@@ -69,7 +68,7 @@ class QuaternionIntegrator(object):
 
   def rfd_time_step(self, dt):
     ''' Take a timestep of length dt using the RFD method '''
-    rfd_noise = self.rf_delta*np.random.normal(0.0, 1.0, self.dim*3)
+    rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
     mobility  = self.mobility(self.position)
     mobility_half = np.linalg.cholesky(mobility)
     torque = self.torque_calculator(self.position)
@@ -78,24 +77,24 @@ class QuaternionIntegrator(object):
     # Update each quaternion at a time for rfd position.
     rfd_position = []
     for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((rfd_noise[(i*3):(i*3+3)]))
+      quaternion_dt = Quaternion.from_rotation((self.rf_delta*
+                                                rfd_noise[(i*3):(i*3+3)]))
       rfd_position.append(quaternion_dt*self.position[i])
 
     # divergence term d_x(M) : \Psi^T 
     divergence_term = self.kT*np.dot(
       self.mobility(rfd_position) - mobility,
       rfd_noise/self.rf_delta)
-   
     omega = (np.dot(mobility, torque) + 
              np.sqrt(2.*self.kT/dt)*
              np.dot(mobility_half, noise) +
              divergence_term)
-                        
+
     new_position = []
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
       new_position.append(quaternion_dt*self.position[i])
-    
+
     self.position = new_position
     self.path.append(new_position)
 

@@ -17,7 +17,7 @@ PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.25     # Particle Radius.
-H = 6.     # Distance to wall.
+H = 3.     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -187,7 +187,6 @@ def gravity_torque_calculator(position):
   '''
   r_vectors = get_r_vectors(position[0])
   R = calculate_rot_matrix(r_vectors)
-  
   # Gravity
   g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
   return np.dot(R.T, g)
