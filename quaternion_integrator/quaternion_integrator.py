@@ -30,7 +30,7 @@ class QuaternionIntegrator(object):
     self.position = initial_position
     self.path = [self.position]   # Save the trajectory.
 
-    self.rf_delta = 1e-4  # delta for RFD term in RFD step
+    self.rf_delta = 1e-6  # delta for RFD term in RFD step
 
     #TODO: Make this dynamic
     self.kT = 1.0
@@ -83,7 +83,7 @@ class QuaternionIntegrator(object):
 
     # divergence term d_x(M) : \Psi^T 
     divergence_term = self.kT*np.dot(
-      self.mobility(rfd_position) - mobility,
+      (self.mobility(rfd_position) - mobility),
       rfd_noise/self.rf_delta)
     omega = (np.dot(mobility, torque) + 
              np.sqrt(2.*self.kT/dt)*
@@ -102,7 +102,8 @@ class QuaternionIntegrator(object):
   def additive_em_time_step(self, dt):
     ''' 
     Take a simple Euler Maruyama step assuming that the mobility is
-    constant.  This is just for testing and debugging. 
+    constant.  This for testing and debugging.  We also use it to make sure
+    that we need the drift for the correct distribution, etc.
     '''
     mobility = self.mobility(self.position)
     mobility_half = np.linalg.cholesky(mobility)
