@@ -66,50 +66,50 @@ class ConstrainedIntegrator(object):
     self.path = [self.position]
 
 
-  def MockRandomGenerator(self):
+  def mock_random_generator(self):
     ''' For testing, replace random generator with something that just returns 1. '''
-    def OnlyOnesRandomGenerator(a, b, n):
+    def only_ones_random_generator(a, b, n):
       return np.ones(n)
-    self.random_generator = OnlyOnesRandomGenerator
+    self.random_generator = only_ones_random_generator
 
     
-  def TimeStep(self, dt):
+  def time_step(self, dt):
     ''' Step from current time to next time with timestep of size dt.
      args
        dt: float - time step size.
      '''
     if self.scheme == 'RFD':
-      self.RFDTimeStep(dt)
+      self.rfd_time_step(dt)
     elif self.scheme == 'FIXMAN':
-      self.FixmanTimeStep(dt)
+      self.fixman_time_step(dt)
     elif self.scheme == 'OTTINGER':
-      self.OttingerTimeStep(dt)
+      self.ottinger_time_step(dt)
     else:
-      print 'Should not get here in TimeStep.'
+      print 'Should not get here in time_step.'
       sys.exit()
     
-    self.ProjectToConstraint()
-    self.SavePath(self.position)
+    self.project_to_constraint()
+    self.save_path(self.position)
 
         
-  def OttingerTimeStep(self, dt):
+  def ottinger_time_step(self, dt):
     ''' Take a step of the Ottinger scheme '''
     raise NotImplementedError('Ottinger Scheme not yet Implemented.')
 
 
-  def RFDTimeStep(self, dt):
+  def rfd_time_step(self, dt):
     ''' Take a step of the RFD scheme '''
     w_tilde = np.matrix(
       [[a] for a in self.random_generator(0.0, 1.0, self.dim)])
     w = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
-    p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
+    p_l2 = self.projection_matrix(self.position, np.matrix(np.eye(2,2)))
     predictor_position = self.position + self.rfdelta*p_l2*w_tilde
     # For now we have no potential.
     # force = np.matrix([[0.] for _ in range(self.dim)])
-    p = self.ProjectionMatrix(self.position)
-    p_tilde = self.ProjectionMatrix(predictor_position)
+    p = self.projection_matrix(self.position)
+    p_tilde = self.projection_matrix(predictor_position)
     mobility = self.mobility(self.position)
-    noise_magnitude = self.NoiseMagnitude(self.position)
+    noise_magnitude = self.noise_magnitude(self.position)
     mobility_tilde = self.mobility(predictor_position)
     # (self.position + dt*p*mobility*force +
     corrector_position = self.position + ((dt*self.kT/self.rfdelta)*(p_tilde*mobility_tilde
@@ -119,13 +119,13 @@ class ConstrainedIntegrator(object):
     self.position = corrector_position
 
 
-  def FixmanTimeStep(self, dt):
+  def fixman_time_step(self, dt):
     ''' Take a step of the Fixman scheme '''
     # Note, this currently assumes no potential.
     noise = np.matrix([[a] for a in self.random_generator(0.0, 1.0, self.dim)])
-    p = self.ProjectionMatrix(self.position)
-    p_l2 = self.ProjectionMatrix(self.position, np.matrix(np.eye(2,2)))
-    noise_magnitude = self.NoiseMagnitude(self.position)
+    p = self.projection_matrix(self.position)
+    p_l2 = self.projection_matrix(self.position, np.matrix(np.eye(2,2)))
+    noise_magnitude = self.noise_magnitude(self.position)
     predictor_position = (self.position + 
                           np.sqrt(0.5*self.kT*dt)*noise_magnitude*noise)
 
@@ -139,10 +139,10 @@ class ConstrainedIntegrator(object):
     self.position = corrector_position
 
 
-  def SavePath(self, position):
+  def save_path(self, position):
     self.path.append(position)
 
-  def ResetPath(self):
+  def reset_path(self):
     ''' 
     Clear the path variable for a new run, and set 
     position to initial_position 
@@ -150,7 +150,7 @@ class ConstrainedIntegrator(object):
     self.position = self.initial_position
     self.path = [self.position]
 
-  def NormalVector(self, position):
+  def normal_vector(self, position):
     ''' At the given position, calculate normalized gradient
     of the surface_function numerically. 
     
@@ -177,7 +177,7 @@ class ConstrainedIntegrator(object):
     return normal_vector
 
       
-  def ProjectionMatrix(self, position, D_matrix = None):
+  def projection_matrix(self, position, D_matrix = None):
     ''' Calculate projection matrix at given position,
     P_m = I - (Dn X n) /(n^tDn) 
       args
@@ -188,7 +188,7 @@ class ConstrainedIntegrator(object):
     '''
     if D_matrix is None:
       D_matrix = self.mobility(position)
-    normal_vector = self.NormalVector(position)
+    normal_vector = self.normal_vector(position)
 
     # First calcualate n^t M n for denominator.
     nMn = normal_vector.T*D_matrix*normal_vector
@@ -205,7 +205,7 @@ class ConstrainedIntegrator(object):
     return projection
 
 
-  def NoiseMagnitude(self, position):
+  def noise_magnitude(self, position):
     ''' 
     Calculate cholesky decomposition of mobility for noise term.  For
     now this just works on diagonal matrices.  
@@ -221,7 +221,7 @@ class ConstrainedIntegrator(object):
     noise_magnitude = np.linalg.cholesky(mobility_matrix)
     return noise_magnitude
 
-  def ProjectToConstraint(self):
+  def project_to_constraint(self):
     ''' Project the current position to the nearest point on
     the constraint with a newtons method line search.  We search
     along the gradient of the constraint function, so we have:

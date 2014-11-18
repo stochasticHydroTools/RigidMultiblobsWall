@@ -16,5 +16,5 @@ double CosineConstraint(double x, double y) {
 BOOST_PYTHON_MODULE(cosine_curve_ext)
 {
     using namespace boost::python;
-    def("CosineConstraint", CosineConstraint);
+    def("cosine_constraint", CosineConstraint);
 }

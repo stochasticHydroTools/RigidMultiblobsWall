@@ -57,13 +57,13 @@ class TestConstrainedIntegrator(unittest.TestCase):
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
     
-    normal_vector = test_integrator.NormalVector(initial_position)
+    normal_vector = test_integrator.normal_vector(initial_position)
     self.assertAlmostEqual(normal_vector[0, 0], 1.0)
     self.assertAlmostEqual(normal_vector[1, 0], 0.0)
     self.assertEqual(normal_vector.shape, (2, 1))
 
     # Test a different position for the normal vector.
-    normal_vector = test_integrator.NormalVector(
+    normal_vector = test_integrator.normal_vector(
       np.matrix([[1.2/np.sqrt(2.)], [1.2/np.sqrt(2.)]]))
     self.assertAlmostEqual(normal_vector[0, 0], 1./np.sqrt(2))
     self.assertAlmostEqual(normal_vector[1, 0], 1./np.sqrt(2))
@@ -79,7 +79,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
 
-    projection_vector = test_integrator.ProjectionMatrix(initial_position)
+    projection_vector = test_integrator.projection_matrix(initial_position)
     self.assertAlmostEqual(projection_vector[0, 0], 0.0)
     self.assertAlmostEqual(projection_vector[0, 1], 0.0)
     self.assertAlmostEqual(projection_vector[1, 0], 0.0)
@@ -94,9 +94,9 @@ class TestConstrainedIntegrator(unittest.TestCase):
 
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
-    test_integrator.MockRandomGenerator()
+    test_integrator.mock_random_generator()
     
-    test_integrator.TimeStep(0.01)
+    test_integrator.time_step(0.01)
     # TODO Figure out a better way to test this:
     # self.assertAlmostEqual(test_integrator.position[1,0], np.sqrt(2)/10)
     # self.assertAlmostEqual(test_integrator.position[0,0], 1.2 - 0.03/1.2)
@@ -110,10 +110,10 @@ class TestConstrainedIntegrator(unittest.TestCase):
 
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.IdentityMobility, scheme, initial_position)
-    test_integrator.MockRandomGenerator()
+    test_integrator.mock_random_generator()
     
     # Take a timestep dt = 0.01
-    test_integrator.TimeStep(0.01)
+    test_integrator.time_step(0.01)
     
 
   def test_noise_magnitude(self):
@@ -129,13 +129,13 @@ class TestConstrainedIntegrator(unittest.TestCase):
     test_integrator = ConstrainedIntegrator(
       SphereConstraint, self.QuadraticMobility, scheme, initial_position)
     
-    noise_magnitude = test_integrator.NoiseMagnitude(initial_position)
-    self.assertAlmostEqual(noise_magnitude[0, 0], sqrt(1.2**2 + 1.))
+    noise_magnitude = test_integrator.noise_magnitude(initial_position)
+    self.assertAlmostEqual(noise_magnitude[0, 0], np.sqrt(1.2**2 + 1.))
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
     self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
     self.assertAlmostEqual(noise_magnitude[1, 1], 0.0)
 
-    noise_magnitude = test_integrator.NoiseMagnitude(np.matrix([[0.84852813742385691],
+    noise_magnitude = test_integrator.noise_magnitude(np.matrix([[0.84852813742385691],
                                                                 [0.84852813742385691]]))
     self.assertAlmostEqual(noise_magnitude[0, 0], 0.84852813742385691)
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
