@@ -279,6 +279,7 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(j+1, 3):
         self.assertAlmostEqual(mobility[j, k], 0.)
         self.assertAlmostEqual(mobility[k, j], 0.)
-      
+
+
 if __name__ == '__main__':
   unittest.main()
