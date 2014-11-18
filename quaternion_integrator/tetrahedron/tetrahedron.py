@@ -19,13 +19,13 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.25     # Particle Radius.
-H = 3.     # Distance to wall.
+A = 0.5     # Particle Radius.
+H = 2.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.0
-M2 = 0.0
-M3 = 0.0
+M1 = 1.0
+M2 = 2.0
+M3 = 3.0
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
