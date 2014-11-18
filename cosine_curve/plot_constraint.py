@@ -20,7 +20,6 @@ def PlotCurve():
 
 if __name__ == '__main__':
 
-
   run_analyzer = RunAnalyzer(100)
 
   for filename in sys.argv[2:]:
