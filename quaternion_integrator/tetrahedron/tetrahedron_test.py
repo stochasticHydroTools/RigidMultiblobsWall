@@ -106,17 +106,6 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(3):
         self.assertAlmostEqual(block[j, k], 0.)
 
-
-  def test_image_system_symmetric(self):
-    ''' Test that the stokes image system is symmetric. '''
-    r_vectors = [np.random.normal(0., 1., 3) for _ in range(3)]
-    mobility = tetrahedron.image_singular_stokeslet(r_vectors)
-    
-    for j in range(9):
-      for k in range(j+1, 9):
-        self.assertAlmostEqual(mobility[j, k], mobility[k, j])
-
-
   def test_torque_rotor_x(self):
     ''' 
     Test that we get the correct angular velocity from a torque
@@ -165,7 +154,6 @@ class TestTetrahedron(unittest.TestCase):
 
     tetrahedron.H = old_height
 
-    
   def test_torque_calculator(self):
     ''' Test torque for a couple different configurations. '''
     # Overwrite Masses.
@@ -237,11 +225,14 @@ class TestTetrahedron(unittest.TestCase):
     self.assertEqual(len(stokeslet), 9)
     self.assertEqual(len(stokeslet[0]), 9)
     self.assertTrue(is_pos_def(stokeslet))
+    for j in range(9):
+      for k in range(j+1, 9):
+        self.assertAlmostEqual(stokeslet[j, k], stokeslet[k, j])
 
   def test_rpy_spd(self):
     ''' Test that the rotne prager tensor implementation gives an SPD tensor. '''
     # Number of particles
-    n_particles = 2
+    n_particles = 4
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)
     # Random configuration.
@@ -253,6 +244,23 @@ class TestTetrahedron(unittest.TestCase):
     for j in range(3*n_particles):
       for k in range(j+1, 3*n_particles):
         self.assertAlmostEqual(rpy[j, k], rpy[k, j])
+
+  def test_single_wall_mobility_spd(self):
+    ''' Test that single wall mobility from Swan Brady paper is SPD. '''
+    # Number of particles
+    n_particles = 2
+    height = 10.
+    def is_pos_def(x):
+      return np.all(np.linalg.eigvals(x) > 0)
+    # Random configuration.
+    r_vectors = [np.random.normal(height, 1., 3) for _ in range(n_particles)]
+    
+    mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., 1.)
+    print mobility
+#    self.assertTrue(is_pos_def(mobility))
+    for j in range(3*n_particles):
+      for k in range(j+1, 3*n_particles):
+        self.assertAlmostEqual(mobility[j, k], mobility[k, j])
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''

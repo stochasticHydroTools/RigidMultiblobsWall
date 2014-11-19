@@ -152,6 +152,55 @@ def doublet_and_dipole(r, h):
   return doublet_and_dipole
 
 
+def single_wall_fluid_mobility(r_vectors, eta, a):
+  ''' Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. '''
+  num_particles = len(r_vectors)
+  mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
+  # We add the corrections from the appendix of the paper to the unbounded mobility.
+#  mobility = rotne_prager_tensor(r_vectors, eta, a)
+  for j in range(len(r_vectors)):
+    for k in range(len(r_vectors)):
+      if j != k:  #  do particle interaction
+        # Here notation is based on appendix C of the Swan and Brady paper:
+        #  'Simulation of hydrodynamically interacting particles near a no-slip
+        #   boundary.'
+        h = r_vectors[k][2]
+        R = (r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., h])))/a
+        R_norm = np.linalg.norm(R)
+        e = R/R_norm
+        h_hat = h/(a*R[2])
+        # Loop through components.
+        for l in range(3):
+          for m in range(3):
+            # Taken from Appendix C expression for M_UF
+            # with l = i, m = j
+            mobility[j*3 + l][k*3 + m] += (1./(6.*np.pi*eta*a))*(
+              -0.25*(3*(1. - 6.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+                     - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+                     + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*e[l]*e[m]
+               - (l == m)*(0.25*(3.*(2. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+                                  + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
+                                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))
+               + (m == 3)*0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
+                               - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+                               + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*e[l]*e[2]
+               + (l == 3)*0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*e[2]*e[m]
+               - (l == 3)*(m == 3)*(3.*(h_hat**3)*(e[2]**2)/R_norm 
+                                    + 3.*(e[2]**2)/(R_norm**3)
+                                    + (2. - 15.*e[2]**2)/(R_norm**5)))
+      else:
+        # j == k, same particle.  Self mobility from Appendix B of paper.
+        h = r_vectors[k][2]/a
+        for l in range(3):
+          for m in range(3):
+            mobility[j*3 + l][k*3 + m] += (1./(6.*np.pi*eta*a))*(
+              (l == m)*(l != 3)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+              + (l == m)*(l == 3)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+
+  return mobility
+
 def rotne_prager_tensor(r_vectors, eta, a):
   ''' Calculate free rotne prager tensor for particles at locations given by
   r_vectors (list of 3 dimensional locationis) of radius a.'''
@@ -318,8 +367,8 @@ def distribution_height_particle(particle, paths, names):
     raise Exception('Paths and names must have the same length.')
     
   fig = pyplot.figure()
-#  ax = fig.add_subplot(1, 1, 1)
-  hist_bins = np.linspace(-1.8, 1.8, 60) + H
+  ax = fig.add_subplot(1, 1, 1)
+  hist_bins = np.linspace(-1.9, 1.9, 60) + H
   for k in range(len(paths)):
     path = paths[k]
     heights = []
@@ -336,7 +385,7 @@ def distribution_height_particle(particle, paths, names):
   pyplot.title('Location of particle %d' % particle)
   pyplot.ylabel('Probability Density')
   pyplot.xlabel('Height')
-#  ax.set_yscale('log')
+  ax.set_yscale('log')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
@@ -347,15 +396,15 @@ if __name__ == "__main__":
 
   # Script to run the various integrators on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(test_mobility,
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility,
                                            initial_position, 
                                            gravity_torque_calculator)
 
-  rfd_integrator = QuaternionIntegrator(test_mobility, 
+  rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                         initial_position, 
                                         gravity_torque_calculator)
 
-  em_integrator = QuaternionIntegrator(test_mobility, 
+  em_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                        initial_position, 
                                        gravity_torque_calculator)
   # Get command line parameters
