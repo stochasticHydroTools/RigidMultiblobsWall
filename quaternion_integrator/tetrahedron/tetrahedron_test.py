@@ -239,7 +239,6 @@ class TestTetrahedron(unittest.TestCase):
     r_vectors = [np.random.normal(0., 1., 3) for _ in range(n_particles)]
     
     rpy = tetrahedron.rotne_prager_tensor(r_vectors, 1., 1.)
-    
     self.assertTrue(is_pos_def(rpy))
     for j in range(3*n_particles):
       for k in range(j+1, 3*n_particles):
@@ -254,8 +253,8 @@ class TestTetrahedron(unittest.TestCase):
       return np.all(np.linalg.eigvals(x) > 0)
     # Random configuration.
     r_vectors = [np.random.normal(height, 1., 3) for _ in range(n_particles)]
-    
     mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., 1.)
+
     self.assertTrue(is_pos_def(mobility))
     for j in range(3*n_particles):
       for k in range(j+1, 3*n_particles):
@@ -266,13 +265,12 @@ class TestTetrahedron(unittest.TestCase):
     Test that single wall mobility from Swan Brady paper is zero for particles.
     at the wall.
     '''
-    r_vectors = [np.array([0., 0., 0.]),
-                 np.array([2., 2., 2.])]
-#                 np.array([1., 1., 1.])]
+    r_vectors = [np.array([0., 0., 1.]),
+                 np.array([0., 0., 5.])]
     mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., 1.)
     for j in range(3):
       for k in range(3):
-        self.assertAlmostEqual(mobility[3 + j, k], 0.0)
+        self.assertAlmostEqual(mobility[j, 3 + k], 0.0)
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''

@@ -157,9 +157,8 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
   the Swan and Brady paper for a finite size particle, as opposed to the 
   Blake paper point particle result. '''
   num_particles = len(r_vectors)
-  mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
   # We add the corrections from the appendix of the paper to the unbounded mobility.
-#  mobility = rotne_prager_tensor(r_vectors, eta, a)
+  mobility = rotne_prager_tensor(r_vectors, eta, a)
   for j in range(len(r_vectors)):
     for k in range(len(r_vectors)):
       if j != k:  #  do particle interaction
@@ -183,11 +182,11 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
                - (l == m)*(0.25*(3.*(2. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
                                   + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
                                   - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))
-               + (m == 3)*0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
+               + (m == 2)*0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
                                - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
                                + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*e[l]*e[2]
-               + (l == 3)*0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*e[2]*e[m]
-               - (l == 3)*(m == 3)*(3.*(h_hat**3)*(e[2]**2)/R_norm 
+               + (l == 2)*0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*e[2]*e[m]
+               - (l == 2)*(m == 2)*(3.*(h_hat**2)*(e[2]**2)/R_norm 
                                     + 3.*(e[2]**2)/(R_norm**3)
                                     + (2. - 15.*e[2]**2)/(R_norm**5)))
       else:
@@ -196,8 +195,8 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
         for l in range(3):
           for m in range(3):
             mobility[j*3 + l][k*3 + m] += (1./(6.*np.pi*eta*a))*(
-              (l == m)*(l != 3)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
-              + (l == m)*(l == 3)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+              (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+              + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
 
   return mobility
 
