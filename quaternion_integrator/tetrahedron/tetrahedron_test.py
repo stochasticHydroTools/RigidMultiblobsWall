@@ -273,6 +273,21 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(3):
         self.assertAlmostEqual(mobility[j, 3 + k], 0.0, places=6)
 
+  def test_finite_size_limit(self):
+    ''' Test that the finite size mobility goes to the oseen for small a.'''
+    n_particles = 4
+    a = 0.000001
+    tetrahedron.A = a
+    # Random configuration, all above wall.
+    r_vectors = [np.random.normal(5., 1., 3) for _ in range(n_particles)]
+
+    mobility_finite = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., a)
+    mobility_point = tetrahedron.image_singular_stokeslet(r_vectors)
+    for j in range(3*n_particles):
+      for k in range(3*n_particles):
+        self.assertAlmostEqual(mobility_finite[j,k], mobility_point[j,k], places=1)
+    
+
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
     n_particles = 3
