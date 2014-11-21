@@ -29,10 +29,13 @@ class QuaternionIntegrator(object):
     self.torque_calculator = torque_calculator
     self.position = initial_position
 
-    self.rf_delta = 1e-6  # delta for RFD term in RFD step
+    self.rf_delta = 1e-8  # delta for RFD term in RFD step
 
     #TODO: Make this dynamic
     self.kT = 1.0
+
+    #HACK, test divergence term.
+    self.divergence_average = np.zeros(3)
 
     
   def fixman_time_step(self, dt):
@@ -115,8 +118,20 @@ class QuaternionIntegrator(object):
       
     self.position = new_position
 
+  def estimate_divergence(self):
+    ''' Estimate the divergence term with an RFD appraoch. '''
+    rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
+    mobility  = self.mobility(self.position)    
 
+    # Update each quaternion at a time for rfd position.
+    rfd_position = []
+    for i in range(self.dim):
+      quaternion_dt = Quaternion.from_rotation((self.rf_delta*
+                                                rfd_noise[(i*3):(i*3+3)]))
+      rfd_position.append(quaternion_dt*self.position[i])
     
-
-    
-    
+    # divergence term d_x(M) : \Psi^T 
+    divergence_term = self.kT*np.dot(
+      (self.mobility(rfd_position) - mobility),
+      rfd_noise/self.rf_delta)
+    self.divergence_average += divergence_term    

@@ -6,6 +6,7 @@ import unittest
 import numpy as np
 import random
 from quaternion import Quaternion
+from quaternion_integrator import QuaternionIntegrator
 import tetrahedron
 
 class TestTetrahedron(unittest.TestCase):
@@ -277,6 +278,7 @@ class TestTetrahedron(unittest.TestCase):
     ''' Test that the finite size mobility goes to the oseen for small a.'''
     n_particles = 4
     a = 0.000001
+    old_a = tetrahedron.A
     tetrahedron.A = a
     # Random configuration, all above wall.
     r_vectors = [np.random.normal(5., 1., 3) for _ in range(n_particles)]
@@ -286,7 +288,31 @@ class TestTetrahedron(unittest.TestCase):
     for j in range(3*n_particles):
       for k in range(3*n_particles):
         self.assertAlmostEqual(mobility_finite[j,k], mobility_point[j,k], places=1)
+        
+    tetrahedron.A = old_a
+
+  def test_print_divergence_term(self):
+    ''' Just print the avg divergence term for certain orientations. '''
+    # Construct any random unit quaternion to rotate. Not uniform.
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+    theta = Quaternion([1., 0., 0., 0.])
+    integrator = QuaternionIntegrator(tetrahedron.tetrahedron_mobility,
+                                      [theta],
+                                      tetrahedron.gravity_torque_calculator)
+    n_steps = 100000
+    div_avg = np.zeros(3)
+    for k in range(n_steps):
+      integrator.estimate_divergence()
+      if ((k + 1) % 1000) == 0:
+        div_avg += (integrator.divergence_average/1000.)
+        integrator.divergence_average = np.zeros(3)
     
+    print "divergence average is: ", div_avg/(n_steps/1000.)
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
