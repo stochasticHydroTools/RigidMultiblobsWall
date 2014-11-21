@@ -380,8 +380,8 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
   '''
   r_vectors = get_r_vectors(orientation)
   for k in range(3):
-    # Bin each particle height
-    idx = int((r_vectors[k][2] - H)/bin_width)
+    # Bin each particle height.
+    idx = int((r_vectors[k][2] - H)/bin_width) + len(height_histogram[k])/2
     height_histogram[k][idx] += 1
 
 
