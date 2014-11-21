@@ -127,7 +127,7 @@ class TestTetrahedron(unittest.TestCase):
                  np.array([0., 0., 1e8 - 2.])]
     
     # Calculate \Tau -> Omega mobility
-    mobility = tetrahedron.torque_mobility(r_vectors)
+    mobility = tetrahedron.torque_oseen_mobility(r_vectors)
     
     # Check that the first column matches the correct result. X torque.
     # r*omega = (1/(6 pi eta a) - 1/(8 pi eta 2r)) F
@@ -262,15 +262,17 @@ class TestTetrahedron(unittest.TestCase):
 
   def test_single_wall_mobility_zero_at_wall(self):
     ''' 
-    Test that single wall mobility from Swan Brady paper is zero for particles.
-    at the wall.
+    Test that single wall mobility from Swan Brady paper is zero for very small
+    particles at the wall.
     '''
-    r_vectors = [np.array([0., 0., 1.]),
-                 np.array([0., 0., 5.])]
-    mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., 1.)
+    a = 0.0001
+    r_vectors = [np.array([0., 0., a]),
+                 np.array([1., 1., 8.])]
+    mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., a)
     for j in range(3):
       for k in range(3):
-        self.assertAlmostEqual(mobility[j, 3 + k], 0.0)
+        #TODO: Check this a bit more closely.
+        self.assertAlmostEqual(mobility[j, 3 + k], 0.0, places=6)
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''

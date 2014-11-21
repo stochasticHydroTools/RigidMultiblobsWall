@@ -49,7 +49,7 @@ def tetrahedron_mobility(position):
   r_vectors = get_r_vectors(position[0])
   return torque_mobility(r_vectors)
 
-def torque_mobility(r_vectors):
+def torque_oseen_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
   In this case, position is length 1, as there is just 1 quaternion.
@@ -68,6 +68,27 @@ def torque_mobility(r_vectors):
   return total_mobility
 
 
+def torque_mobility(r_vectors):
+  '''
+  Calculate the mobility, torque -> angular velocity, at position 
+  In this case, position is length 1, as there is just 1 quaternion.
+  The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
+  Rx = r cross x
+  r is the distance from the fixed vertex of the tetrahedron to
+  each other vertex (a length 3N vector).
+  M (3N x 3N) is the finite size single wall mobility taken from the
+  Swan and Brady paper:
+   "Simulation of hydrodynamically interacting particles near a no-slip
+    boundary."
+  '''  
+  mobility = single_wall_fluid_mobility(r_vectors, ETA, A)
+  rotation_matrix = calculate_rot_matrix(r_vectors)
+  total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
+                                        np.dot(np.linalg.inv(mobility),
+                                               rotation_matrix)))
+  return total_mobility
+
+
 def rpy_torque_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
@@ -76,8 +97,7 @@ def rpy_torque_mobility(r_vectors):
   Rx = r cross x
   r is the distance from the fixed vertex of the tetrahedron to
   each other vertex (a length 3N vector).
-  M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
-  we've replaced the diagonal piece by 1/(6 pi eta a).
+  M (3N x 3N) is the RPY tensor.
   '''  
   mobility = rotne_prager_tensor(r_vectors, ETA, A)
   rotation_matrix = calculate_rot_matrix_cm(r_vectors)
@@ -159,45 +179,44 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
   num_particles = len(r_vectors)
   # We add the corrections from the appendix of the paper to the unbounded mobility.
   mobility = rotne_prager_tensor(r_vectors, eta, a)
-  for j in range(len(r_vectors)):
-    for k in range(len(r_vectors)):
-      if j != k:  #  do particle interaction
-        # Here notation is based on appendix C of the Swan and Brady paper:
-        #  'Simulation of hydrodynamically interacting particles near a no-slip
-        #   boundary.'
-        h = r_vectors[k][2]
-        R = (r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., h])))/a
-        R_norm = np.linalg.norm(R)
-        e = R/R_norm
-        h_hat = h/(a*R[2])
-        # Loop through components.
-        for l in range(3):
-          for m in range(3):
-            # Taken from Appendix C expression for M_UF
-            # with l = i, m = j
-            mobility[j*3 + l][k*3 + m] += (1./(6.*np.pi*eta*a))*(
-              -0.25*(3*(1. - 6.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
-                     - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
-                     + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*e[l]*e[m]
-               - (l == m)*(0.25*(3.*(2. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
-                                  + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
-                                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))
-               + (m == 2)*0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
-                               - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
-                               + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*e[l]*e[2]
-               + (l == 2)*0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*e[2]*e[m]
-               - (l == 2)*(m == 2)*(3.*(h_hat**2)*(e[2]**2)/R_norm 
-                                    + 3.*(e[2]**2)/(R_norm**3)
-                                    + (2. - 15.*e[2]**2)/(R_norm**5)))
-      else:
-        # j == k, same particle.  Self mobility from Appendix B of paper.
-        h = r_vectors[k][2]/a
-        for l in range(3):
-          for m in range(3):
-            mobility[j*3 + l][k*3 + m] += (1./(6.*np.pi*eta*a))*(
-              (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
-              + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+  for j in range(num_particles):
+    for k in range(j+1, num_particles):
+      # Here notation is based on appendix C of the Swan and Brady paper:
+      #  'Simulation of hydrodynamically interacting particles near a no-slip
+      #   boundary.'
+      h = r_vectors[k][2]
+      R = (r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., h])))/a
+      R_norm = np.linalg.norm(R)
+      e = R/R_norm
+      e_3 = np.array([0., 0., e[2]])
+      h_hat = h/(a*R[2])
+      # Taken from Appendix C expression for M_UF
+      mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += (1./(6.*np.pi*eta*a))*(
+        -0.25*(3.*(1. - 6.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+               - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+               + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e)
+         - (0.25*(3.*(1. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+                  + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
+                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))*np.identity(3)
+         + 0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
+                - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+                + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e_3)
+         + 0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*np.outer(e_3, e)
+         - (3.*(h_hat**2)*(e[2]**2)/R_norm 
+            + 3.*(e[2]**2)/(R_norm**3)
+            + (2. - 15.*e[2]**2)/(R_norm**5))*np.outer(e_3, e_3)/(e[2]**2))
+      
+      mobility[(k*3):(k*3 + 3), (j*3):(j*3 + 3)] = (
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)].T)
 
+  for j in range(len(r_vectors)):
+    # Diagonal blocks, self mobility.
+    h = r_vectors[j][2]/a
+    for l in range(3):
+      for m in range(3):
+        mobility[j*3 + l][j*3 + m] += (1./(6.*np.pi*eta*a))*(
+          (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+          + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
   return mobility
 
 def rotne_prager_tensor(r_vectors, eta, a):
