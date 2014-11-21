@@ -119,19 +119,22 @@ class QuaternionIntegrator(object):
     self.position = new_position
 
   def estimate_divergence(self):
-    ''' Estimate the divergence term with an RFD appraoch. '''
-    rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
-    mobility  = self.mobility(self.position)    
+    ''' 
+    Estimate the divergence term with a deterministic
+    finite difference approach. This is for a single quaternion.
+    '''
+    delta = 1e-6
+    div_term = np.zeros(3)
+    for k in range(3):
+      omega = np.zeros(3)
+      omega[k] = 1.
+      quaternion_dt = Quaternion.from_rotation(omega*delta/2.)
+      quaternion_tilde_1 = quaternion_dt*self.position[0]
+      quaternion_dt = Quaternion.from_rotation(-1.*omega*delta/2.)
+      quaternion_tilde_2 = quaternion_dt*self.position[0]
+      div_term += np.inner((self.mobility([quaternion_tilde_1]) -
+                            self.mobility([quaternion_tilde_2])),
+                           omega/delta)
+      
+    return div_term
 
-    # Update each quaternion at a time for rfd position.
-    rfd_position = []
-    for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((self.rf_delta*
-                                                rfd_noise[(i*3):(i*3+3)]))
-      rfd_position.append(quaternion_dt*self.position[i])
-    
-    # divergence term d_x(M) : \Psi^T 
-    divergence_term = self.kT*np.dot(
-      (self.mobility(rfd_position) - mobility),
-      rfd_noise/self.rf_delta)
-    self.divergence_average += divergence_term    

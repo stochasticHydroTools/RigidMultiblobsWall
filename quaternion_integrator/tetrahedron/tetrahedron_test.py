@@ -300,19 +300,13 @@ class TestTetrahedron(unittest.TestCase):
           (1. - np.abs(s) - np.abs(p1)))
     p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
     theta = Quaternion(np.array([s, p1, p2, p3]))
-    theta = Quaternion([1., 0., 0., 0.])
+    theta = Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])
     integrator = QuaternionIntegrator(tetrahedron.tetrahedron_mobility,
                                       [theta],
                                       tetrahedron.gravity_torque_calculator)
-    n_steps = 100000
-    div_avg = np.zeros(3)
-    for k in range(n_steps):
-      integrator.estimate_divergence()
-      if ((k + 1) % 1000) == 0:
-        div_avg += (integrator.divergence_average/1000.)
-        integrator.divergence_average = np.zeros(3)
-    
-    print "divergence average is: ", div_avg/(n_steps/1000.)
+    div_term = integrator.estimate_divergence()
+    print "\n"
+    print "divergence term is ", div_term
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
