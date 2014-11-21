@@ -271,7 +271,6 @@ class TestTetrahedron(unittest.TestCase):
     mobility = tetrahedron.single_wall_fluid_mobility(r_vectors, 1., a)
     for j in range(3):
       for k in range(3):
-        #TODO: Check this a bit more closely.
         self.assertAlmostEqual(mobility[j, 3 + k], 0.0, places=6)
 
   def test_rpy_tensor_value_diagonal(self):

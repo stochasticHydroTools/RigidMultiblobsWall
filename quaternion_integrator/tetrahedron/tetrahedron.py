@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
+import cPickle
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
 # import tetrahedron_ext
@@ -372,40 +373,6 @@ def generate_equilibrium_sample():
       print "accept_prob = ", accept_prob
     if np.random.uniform() < accept_prob:
       return theta
-    
-
-def distribution_height_particle(particle, paths, names):
-  ''' 
-  Given paths of a quaternion, make a historgram of the 
-  height of particle <particle> and compare to equilibrium. 
-  names are used for labeling the plot, and should have the same 
-  length as paths. 
-  '''
-  if len(names) != len(paths):
-    raise Exception('Paths and names must have the same length.')
-    
-  fig = pyplot.figure()
-  ax = fig.add_subplot(1, 1, 1)
-  hist_bins = np.linspace(-1.9, 1.9, 60) + H
-  for k in range(len(paths)):
-    path = paths[k]
-    heights = []
-    for pos in path:
-      # TODO: do this a faster way perhaps with a special function.
-      r_vectors = get_r_vectors(pos[0])
-      heights.append(r_vectors[particle][2])
-
-    height_hist = np.histogram(heights, density=True, bins=hist_bins)
-    buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
-    pyplot.plot(buckets, height_hist[0],  label=names[k])
-
-  pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.title('Location of particle %d' % particle)
-  pyplot.ylabel('Probability Density')
-  pyplot.xlabel('Height')
-  ax.set_yscale('log')
-  pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
-
 
 if __name__ == "__main__":
   if PROFILE:
@@ -441,11 +408,15 @@ if __name__ == "__main__":
 
   paths = [fixman_integrator.path, rfd_integrator.path, 
            em_integrator.path, equilibrium_samples]
-  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
+      
+  # Optional name for data provided
+  if len(sys.argv) > 3:
+    data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
+  else:
+    data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
-  distribution_height_particle(0, paths, names)
-  distribution_height_particle(1, paths, names)
-  distribution_height_particle(2, paths, names)
+  with open(data_name, 'wb') as f:
+    cPickle.dump(paths, f)
   
   if PROFILE:
     pr.disable()
