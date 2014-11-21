@@ -28,7 +28,6 @@ class QuaternionIntegrator(object):
     self.dim = len(initial_position)
     self.torque_calculator = torque_calculator
     self.position = initial_position
-    self.path = [self.position]   # Save the trajectory.
 
     self.rf_delta = 1e-6  # delta for RFD term in RFD step
 
@@ -63,7 +62,6 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position
-    self.path.append(new_position)
 
 
   def rfd_time_step(self, dt):
@@ -96,7 +94,6 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
 
     self.position = new_position
-    self.path.append(new_position)
 
     
   def additive_em_time_step(self, dt):
@@ -117,7 +114,6 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position
-    self.path.append(new_position)
 
 
     

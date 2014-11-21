@@ -374,6 +374,17 @@ def generate_equilibrium_sample():
     if np.random.uniform() < accept_prob:
       return theta
 
+def bin_particle_heights(orientation, bin_width, height_histogram):
+  ''' 
+  Given a quaternion orientation, bin the heights of the three particles.
+  '''
+  r_vectors = get_r_vectors(orientation)
+  for k in range(3):
+    # Bin each particle height
+    idx = int((r_vectors[k][2] - H)/bin_width)
+    height_histogram[k][idx] += 1
+
+
 if __name__ == "__main__":
   if PROFILE:
     pr = cProfile.Profile()
@@ -395,20 +406,43 @@ if __name__ == "__main__":
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
-  print_increment = int(n_steps/10.)
+  print_increment = max(int(n_steps/10.), 1)
 
-  equilibrium_samples = []  
+  # For now hard code bin width.  Number of bins is equal to
+  # 4 over bin_width, since the particle can be in a -2, +2 range around
+  # the fixed vertex.
+  bin_width = 1./15.
+  fixman_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  rfd_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  em_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  equilibrium_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+
   for k in range(n_steps):
+    # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
+    bin_particle_heights(fixman_integrator.position[0], 
+                         bin_width, 
+                         fixman_heights)    
+    # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
+    bin_particle_heights(rfd_integrator.position[0],
+                         bin_width, 
+                         rfd_heights)    
+    # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
-    equilibrium_samples.append([generate_equilibrium_sample()])
+    bin_particle_heights(em_integrator.position[0],
+                         bin_width, 
+                         em_heights)
+    # Bin equilibrium sample.
+    bin_particle_heights(generate_equilibrium_sample(), 
+                         bin_width, 
+                         equilibrium_heights)
+    
     if k % print_increment == 0:
       print "At step:", k
 
-  paths = [fixman_integrator.path, rfd_integrator.path, 
-           em_integrator.path, equilibrium_samples]
-      
+  heights = [fixman_heights, rfd_heights,
+             em_heights, equilibrium_heights]
   # Optional name for data provided
   if len(sys.argv) > 3:
     data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
@@ -416,7 +450,7 @@ if __name__ == "__main__":
     data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
   with open(data_name, 'wb') as f:
-    cPickle.dump(paths, f)
+    cPickle.dump(heights, f)
   
   if PROFILE:
     pr.disable()

@@ -35,7 +35,7 @@ def distribution_height_particle(particle, paths, names):
   pyplot.title('Location of particle %d' % particle)
   pyplot.ylabel('Probability Density')
   pyplot.xlabel('Height')
-  ax.set_yscale('log')
+#  ax.set_yscale('log')
   pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
