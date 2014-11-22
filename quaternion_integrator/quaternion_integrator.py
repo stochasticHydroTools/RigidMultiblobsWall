@@ -28,12 +28,14 @@ class QuaternionIntegrator(object):
     self.dim = len(initial_position)
     self.torque_calculator = torque_calculator
     self.position = initial_position
-    self.path = [self.position]   # Save the trajectory.
 
-    self.rf_delta = 1e-6  # delta for RFD term in RFD step
+    self.rf_delta = 1e-8  # delta for RFD term in RFD step
 
     #TODO: Make this dynamic
     self.kT = 1.0
+
+    #HACK, test divergence term.
+    self.divergence_average = np.zeros(3)
 
     
   def fixman_time_step(self, dt):
@@ -63,7 +65,6 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position
-    self.path.append(new_position)
 
 
   def rfd_time_step(self, dt):
@@ -96,7 +97,6 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
 
     self.position = new_position
-    self.path.append(new_position)
 
     
   def additive_em_time_step(self, dt):
@@ -117,10 +117,24 @@ class QuaternionIntegrator(object):
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position
-    self.path.append(new_position)
 
+  def estimate_divergence(self):
+    ''' 
+    Estimate the divergence term with a deterministic
+    finite difference approach. This is for a single quaternion.
+    '''
+    delta = 1e-6
+    div_term = np.zeros(3)
+    for k in range(3):
+      omega = np.zeros(3)
+      omega[k] = 1.
+      quaternion_dt = Quaternion.from_rotation(omega*delta/2.)
+      quaternion_tilde_1 = quaternion_dt*self.position[0]
+      quaternion_dt = Quaternion.from_rotation(-1.*omega*delta/2.)
+      quaternion_tilde_2 = quaternion_dt*self.position[0]
+      div_term += np.inner((self.mobility([quaternion_tilde_1]) -
+                            self.mobility([quaternion_tilde_2])),
+                           omega/delta)
+      
+    return div_term
 
-    
-
-    
-    

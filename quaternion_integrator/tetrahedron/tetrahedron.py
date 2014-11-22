@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
+import cPickle
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
 # import tetrahedron_ext
@@ -49,7 +50,7 @@ def tetrahedron_mobility(position):
   r_vectors = get_r_vectors(position[0])
   return torque_mobility(r_vectors)
 
-def torque_mobility(r_vectors):
+def torque_oseen_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
   In this case, position is length 1, as there is just 1 quaternion.
@@ -68,6 +69,27 @@ def torque_mobility(r_vectors):
   return total_mobility
 
 
+def torque_mobility(r_vectors):
+  '''
+  Calculate the mobility, torque -> angular velocity, at position 
+  In this case, position is length 1, as there is just 1 quaternion.
+  The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
+  Rx = r cross x
+  r is the distance from the fixed vertex of the tetrahedron to
+  each other vertex (a length 3N vector).
+  M (3N x 3N) is the finite size single wall mobility taken from the
+  Swan and Brady paper:
+   "Simulation of hydrodynamically interacting particles near a no-slip
+    boundary."
+  '''  
+  mobility = single_wall_fluid_mobility(r_vectors, ETA, A)
+  rotation_matrix = calculate_rot_matrix(r_vectors)
+  total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
+                                        np.dot(np.linalg.inv(mobility),
+                                               rotation_matrix)))
+  return total_mobility
+
+
 def rpy_torque_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
@@ -76,8 +98,7 @@ def rpy_torque_mobility(r_vectors):
   Rx = r cross x
   r is the distance from the fixed vertex of the tetrahedron to
   each other vertex (a length 3N vector).
-  M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
-  we've replaced the diagonal piece by 1/(6 pi eta a).
+  M (3N x 3N) is the RPY tensor.
   '''  
   mobility = rotne_prager_tensor(r_vectors, ETA, A)
   rotation_matrix = calculate_rot_matrix_cm(r_vectors)
@@ -151,6 +172,53 @@ def doublet_and_dipole(r, h):
   doublet_and_dipole[:, 0:2] = -1.*doublet_and_dipole[:, 0:2]
   return doublet_and_dipole
 
+
+def single_wall_fluid_mobility(r_vectors, eta, a):
+  ''' Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. '''
+  num_particles = len(r_vectors)
+  # We add the corrections from the appendix of the paper to the unbounded mobility.
+  mobility = rotne_prager_tensor(r_vectors, eta, a)
+  for j in range(num_particles):
+    for k in range(j+1, num_particles):
+      # Here notation is based on appendix C of the Swan and Brady paper:
+      #  'Simulation of hydrodynamically interacting particles near a no-slip
+      #   boundary.'
+      h = r_vectors[k][2]
+      R = (r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., h])))/a
+      R_norm = np.linalg.norm(R)
+      e = R/R_norm
+      e_3 = np.array([0., 0., e[2]])
+      h_hat = h/(a*R[2])
+      # Taken from Appendix C expression for M_UF
+      mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += (1./(6.*np.pi*eta*a))*(
+        -0.25*(3.*(1. - 6.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+               - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+               + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e)
+         - (0.25*(3.*(1. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
+                  + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
+                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))*np.identity(3)
+         + 0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
+                - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
+                + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e_3)
+         + 0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*np.outer(e_3, e)
+         - (3.*(h_hat**2)*(e[2]**2)/R_norm 
+            + 3.*(e[2]**2)/(R_norm**3)
+            + (2. - 15.*e[2]**2)/(R_norm**5))*np.outer(e_3, e_3)/(e[2]**2))
+      
+      mobility[(k*3):(k*3 + 3), (j*3):(j*3 + 3)] = (
+        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)].T)
+
+  for j in range(len(r_vectors)):
+    # Diagonal blocks, self mobility.
+    h = r_vectors[j][2]/a
+    for l in range(3):
+      for m in range(3):
+        mobility[j*3 + l][j*3 + m] += (1./(6.*np.pi*eta*a))*(
+          (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+          + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+  return mobility
 
 def rotne_prager_tensor(r_vectors, eta, a):
   ''' Calculate free rotne prager tensor for particles at locations given by
@@ -305,39 +373,16 @@ def generate_equilibrium_sample():
       print "accept_prob = ", accept_prob
     if np.random.uniform() < accept_prob:
       return theta
-    
 
-def distribution_height_particle(particle, paths, names):
+def bin_particle_heights(orientation, bin_width, height_histogram):
   ''' 
-  Given paths of a quaternion, make a historgram of the 
-  height of particle <particle> and compare to equilibrium. 
-  names are used for labeling the plot, and should have the same 
-  length as paths. 
+  Given a quaternion orientation, bin the heights of the three particles.
   '''
-  if len(names) != len(paths):
-    raise Exception('Paths and names must have the same length.')
-    
-  fig = pyplot.figure()
-#  ax = fig.add_subplot(1, 1, 1)
-  hist_bins = np.linspace(-1.8, 1.8, 60) + H
-  for k in range(len(paths)):
-    path = paths[k]
-    heights = []
-    for pos in path:
-      # TODO: do this a faster way perhaps with a special function.
-      r_vectors = get_r_vectors(pos[0])
-      heights.append(r_vectors[particle][2])
-
-    height_hist = np.histogram(heights, density=True, bins=hist_bins)
-    buckets = (height_hist[1][:-1] + height_hist[1][1:])/2.
-    pyplot.plot(buckets, height_hist[0],  label=names[k])
-
-  pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.title('Location of particle %d' % particle)
-  pyplot.ylabel('Probability Density')
-  pyplot.xlabel('Height')
-#  ax.set_yscale('log')
-  pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
+  r_vectors = get_r_vectors(orientation)
+  for k in range(3):
+    # Bin each particle height.
+    idx = int((r_vectors[k][2] - H)/bin_width) + len(height_histogram[k])/2
+    height_histogram[k][idx] += 1
 
 
 if __name__ == "__main__":
@@ -361,24 +406,51 @@ if __name__ == "__main__":
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
-  print_increment = int(n_steps/10.)
+  print_increment = max(int(n_steps/10.), 1)
 
-  equilibrium_samples = []  
+  # For now hard code bin width.  Number of bins is equal to
+  # 4 over bin_width, since the particle can be in a -2, +2 range around
+  # the fixed vertex.
+  bin_width = 1./20.
+  fixman_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  rfd_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  em_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  equilibrium_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+
   for k in range(n_steps):
+    # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
+    bin_particle_heights(fixman_integrator.position[0], 
+                         bin_width, 
+                         fixman_heights)    
+    # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
+    bin_particle_heights(rfd_integrator.position[0],
+                         bin_width, 
+                         rfd_heights)    
+    # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
-    equilibrium_samples.append([generate_equilibrium_sample()])
+    bin_particle_heights(em_integrator.position[0],
+                         bin_width, 
+                         em_heights)
+    # Bin equilibrium sample.
+    bin_particle_heights(generate_equilibrium_sample(), 
+                         bin_width, 
+                         equilibrium_heights)
+    
     if k % print_increment == 0:
       print "At step:", k
 
-  paths = [fixman_integrator.path, rfd_integrator.path, 
-           em_integrator.path, equilibrium_samples]
-  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
+  heights = [fixman_heights, rfd_heights,
+             em_heights, equilibrium_heights]
+  # Optional name for data provided
+  if len(sys.argv) > 3:
+    data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
+  else:
+    data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
-  distribution_height_particle(0, paths, names)
-  distribution_height_particle(1, paths, names)
-  distribution_height_particle(2, paths, names)
+  with open(data_name, 'wb') as f:
+    cPickle.dump(heights, f)
   
   if PROFILE:
     pr.disable()
