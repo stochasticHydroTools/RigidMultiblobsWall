@@ -19,8 +19,8 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 0.5     # Particle Radius.
-H = 2.5     # Distance to wall.
+A = 1.25     # Particle Radius.
+H = 2.3     # Distance to wall.
 
 # Masses of particles.
 M1 = 1.0
@@ -347,15 +347,15 @@ if __name__ == "__main__":
 
   # Script to run the various integrators on the quaternion.
   initial_position = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(test_mobility,
+  fixman_integrator = QuaternionIntegrator(tetrahedron_mobility,
                                            initial_position, 
                                            gravity_torque_calculator)
 
-  rfd_integrator = QuaternionIntegrator(test_mobility, 
+  rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                         initial_position, 
                                         gravity_torque_calculator)
 
-  em_integrator = QuaternionIntegrator(test_mobility, 
+  em_integrator = QuaternionIntegrator(tetrahedron_mobility, 
                                        initial_position, 
                                        gravity_torque_calculator)
   # Get command line parameters

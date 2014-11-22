@@ -230,7 +230,8 @@ class TestTetrahedron(unittest.TestCase):
 
     r_vectors = tetrahedron.get_r_vectors(theta)
     stokeslet = tetrahedron.image_singular_stokeslet(r_vectors)
-
+    print "stokeslet is "
+    print stokeslet
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)    
     

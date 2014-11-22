@@ -37,20 +37,22 @@ def calc_rotational_msd(integrator, dt, n_steps):
 if __name__ == "__main__":
   # Set masses.
   tdn.M1 = 1.0
-  tdn.M2 = 1.0
-  tdn.M3 = 1.0
+  tdn.M2 = 2.0
+  tdn.M3 = 3.0
   initial_position = [Quaternion([1./np.sqrt(2), 0, 1./np.sqrt(2), 0])]
   # Create Fixman Integrator.
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
-                                           initial_position, 
-                                           tdn.gravity_torque_calculator)
+                                    initial_position, 
+                                    tdn.gravity_torque_calculator)
 
   msd_calculated = calc_rotational_msd(integrator, 
                                        float(sys.argv[1]), 
                                        int(sys.argv[2]))
   
-  print "Calculated MSD is ", msd_calculated
+  print "Calculated MSD is:"
+  print msd_calculated
   msd_theory = 2.*integrator.kT*tdn.tetrahedron_mobility(initial_position)
-  print "Theoretical MSD is ", msd_theory
+  print "Theoretical MSD is:"
+  print msd_theory
   rel_error = np.linalg.norm(msd_calculated - msd_theory)/np.linalg.norm(msd_theory)
   print "Relative Error is ", rel_error
