@@ -14,7 +14,7 @@ def distribution_height_particle(heights, bin_width, names):
   if len(names) != len(heights):
     raise Exception('Heights and names must have the same length.')
 
-  buckets = tdn.H + bin_width*np.linspace(-2., 2., len(heights[0][0]))  
+  buckets = tdn.H + bin_width*np.linspace(-2./bin_width, 2./bin_width, len(heights[0][0]))  
   for particle in range(3):
     fig = pyplot.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -32,7 +32,7 @@ def distribution_height_particle(heights, bin_width, names):
 if __name__ == '__main__':
   names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
   data_name = './data/%s' % sys.argv[1]
-  bin_width = 1./15.  # This should match the bin_width in tetrahedron.py
+  bin_width = 1./10.  # This should match the bin_width in tetrahedron.py
   with open(data_name, 'rb') as data:
     heights = cPickle.load(data)
 

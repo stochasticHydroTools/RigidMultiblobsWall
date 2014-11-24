@@ -25,9 +25,9 @@ A = 0.5     # Particle Radius.
 H = 2.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.05
-M2 = 0.1
-M3 = 0.15
+M1 = 0.1
+M2 = 0.2
+M3 = 0.3
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -413,10 +413,10 @@ if __name__ == "__main__":
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
   bin_width = 1./10.
-  fixman_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  rfd_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  em_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  equilibrium_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  em_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
 
   for k in range(n_steps):
     # Fixman step and bin result.
