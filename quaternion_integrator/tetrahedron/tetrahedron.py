@@ -12,6 +12,7 @@ from quaternion_integrator import QuaternionIntegrator
 import cPickle
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
+import math
 # import tetrahedron_ext
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
 
@@ -24,9 +25,9 @@ A = 0.5     # Particle Radius.
 H = 2.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 1.0
-M2 = 2.0
-M3 = 3.0
+M1 = 0.05
+M2 = 0.1
+M3 = 0.15
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -381,7 +382,7 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
   r_vectors = get_r_vectors(orientation)
   for k in range(3):
     # Bin each particle height.
-    idx = int((r_vectors[k][2] - H)/bin_width) + len(height_histogram[k])/2
+    idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
     height_histogram[k][idx] += 1
 
 
@@ -411,7 +412,7 @@ if __name__ == "__main__":
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
-  bin_width = 1./20.
+  bin_width = 1./10.
   fixman_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
   rfd_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
   em_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
@@ -422,7 +423,7 @@ if __name__ == "__main__":
     fixman_integrator.fixman_time_step(dt)
     bin_particle_heights(fixman_integrator.position[0], 
                          bin_width, 
-                         fixman_heights)    
+                         fixman_heights)
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_particle_heights(rfd_integrator.position[0],
@@ -441,8 +442,10 @@ if __name__ == "__main__":
     if k % print_increment == 0:
       print "At step:", k
 
-  heights = [fixman_heights, rfd_heights,
-             em_heights, equilibrium_heights]
+  heights = [fixman_heights/(n_steps*bin_width),
+             rfd_heights/(n_steps*bin_width),
+             em_heights/(n_steps*bin_width),
+             equilibrium_heights/(n_steps*bin_width)]
   # Optional name for data provided
   if len(sys.argv) > 3:
     data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
