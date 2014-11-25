@@ -385,6 +385,25 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
     idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
     height_histogram[k][idx] += 1
 
+def calc_rotational_msd(integrator, dt, n_steps):
+  ''' 
+  Calculate rotational MSD at identity configuration given an
+  integrator and number of steps.
+  '''
+  msd = np.array([np.zeros(3) for _ in range(3)])
+  for k in range(n_steps):
+    integrator.position = [Quaternion([1, 0, 0, 0])]
+    integrator.additive_em_time_step(dt)
+    u_hat = np.zeros(3)
+    rot_matrix = integrator.position[0].rotation_matrix()
+    for i in range(3):
+      e = np.zeros(3)
+      e[i] = 1.
+      u_hat += 0.5*np.cross(e, np.inner(rot_matrix, e))
+    msd += np.outer(u_hat, u_hat)
+  msd = msd/float(n_steps)/dt
+  return msd
+
 
 if __name__ == "__main__":
   if PROFILE:

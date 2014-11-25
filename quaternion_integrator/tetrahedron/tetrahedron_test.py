@@ -9,6 +9,24 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import tetrahedron
 
+# Some tests just print quantities, and
+# this disables the prints if False.
+PRINTOUT = False  
+
+
+class MockEMIntegrator(object):
+  ''' Mock Fixman Integrator for Rotational MSD test. '''
+  def __init__(self):
+    self.position = [Quaternion([1., 0., 0., 0.])]
+    
+  def additive_em_time_step(self, dt):
+    '''
+    Mock EM timestep.  Just set position to 
+    (1/sqrt(2), 1/sqrt(2), 0, 0.).
+    '''
+    self.position = [Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])]
+
+
 class TestTetrahedron(unittest.TestCase):
 
   def setUp(self):
@@ -305,8 +323,9 @@ class TestTetrahedron(unittest.TestCase):
                                       [theta],
                                       tetrahedron.gravity_torque_calculator)
     div_term = integrator.estimate_divergence()
-    print "\n"
-    print "divergence term is ", div_term
+    if PRINTOUT:
+      print "\n"
+      print "divergence term is ", div_term
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
@@ -333,6 +352,20 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(j+1, 3):
         self.assertAlmostEqual(mobility[j, k], 0.)
         self.assertAlmostEqual(mobility[k, j], 0.)
+
+
+  def test_calc_rotational_msd(self):
+    ''' Test that calc_rotational_msd does the right thing. '''
+    integrator = MockEMIntegrator()
+    
+    msd = tetrahedron.calc_rotational_msd(integrator, 1.0, 10)
+    
+    for j in range(3):
+      for k in range(3):
+        if j == 0 and k == 0:
+          self.assertAlmostEqual(msd[j, k], 1.)
+        else:
+          self.assertAlmostEqual(msd[j, k], 0.)
 
 
 if __name__ == '__main__':
