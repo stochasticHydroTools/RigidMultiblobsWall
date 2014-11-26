@@ -13,6 +13,7 @@ def plot_refinement(dts, fixman_errs, rfd_errs):
   pass
 
 def calculate_error(integrator_path, equilibrium_samples):
+  pass 
   
 
 dts = [2.0, 1.0, 0.5]
