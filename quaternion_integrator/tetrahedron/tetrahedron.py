@@ -12,6 +12,7 @@ from quaternion_integrator import QuaternionIntegrator
 import cPickle
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
+import math
 # import tetrahedron_ext
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
 
@@ -20,13 +21,13 @@ import cProfile, pstats, StringIO
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
-A = 1.25     # Particle Radius.
-H = 2.3     # Distance to wall.
+A = 0.5     # Particle Radius.
+H = 2.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 1.0
-M2 = 2.0
-M3 = 3.0
+M1 = 0.1
+M2 = 0.2
+M3 = 0.3
 
 def identity_mobility(position):
   ''' Simple identity mobility for testing. '''
@@ -381,8 +382,41 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
   r_vectors = get_r_vectors(orientation)
   for k in range(3):
     # Bin each particle height.
-    idx = int((r_vectors[k][2] - H)/bin_width) + len(height_histogram[k])/2
+    idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
     height_histogram[k][idx] += 1
+
+def calc_rotational_msd(integrator, scheme, dt, n_steps):
+  ''' 
+  Calculate rotational MSD at identity configuration given an
+  integrator and number of steps, return the error between this MSD and
+  the theoretical msd as the 2 Norm of the matrix difference.
+  '''
+  # TODO: Change this to accept an initial orientation.
+  msd = np.array([np.zeros(3) for _ in range(3)])
+  for k in range(n_steps):
+    integrator.position = [Quaternion([1, 0, 0, 0])]
+    if scheme == 'EM':
+      integrator.additive_em_time_step(dt)
+    elif scheme == 'RFD':
+      integrator.rfd_time_step(dt)
+    elif scheme == 'FIXMAN':
+      integrator.fixman_time_step(dt)
+    else:
+      raise Exception('Scheme must be FIXMAN, RFD, or EM')
+
+    u_hat = np.zeros(3)
+    rot_matrix = integrator.position[0].rotation_matrix()
+    for i in range(3):
+      e = np.zeros(3)
+      e[i] = 1.
+      u_hat += 0.5*np.cross(e, np.inner(rot_matrix, e))
+    msd += np.outer(u_hat, u_hat)
+  msd = msd/float(n_steps)/dt
+
+  msd_theory = 2.*integrator.kT*tetrahedron_mobility(
+    [Quaternion([1., 0., 0., 0.])])
+
+  return np.linalg.norm(msd_theory - msd)
 
 
 if __name__ == "__main__":
@@ -411,18 +445,18 @@ if __name__ == "__main__":
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
-  bin_width = 1./20.
-  fixman_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  rfd_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  em_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
-  equilibrium_heights = [np.zeros(int(4./bin_width)) for _ in range(3)]
+  bin_width = 1./10.
+  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  em_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
 
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
     bin_particle_heights(fixman_integrator.position[0], 
                          bin_width, 
-                         fixman_heights)    
+                         fixman_heights)
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_particle_heights(rfd_integrator.position[0],
@@ -441,8 +475,10 @@ if __name__ == "__main__":
     if k % print_increment == 0:
       print "At step:", k
 
-  heights = [fixman_heights, rfd_heights,
-             em_heights, equilibrium_heights]
+  heights = [fixman_heights/(n_steps*bin_width),
+             rfd_heights/(n_steps*bin_width),
+             em_heights/(n_steps*bin_width),
+             equilibrium_heights/(n_steps*bin_width)]
   # Optional name for data provided
   if len(sys.argv) > 3:
     data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])

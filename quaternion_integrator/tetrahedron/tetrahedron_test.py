@@ -9,6 +9,38 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import tetrahedron
 
+# Some tests just print quantities, and
+# this disables the prints if False.
+PRINTOUT = False  
+
+
+class MockIntegrator(object):
+  ''' Mock Quaternion Integrator for Rotational MSD test. '''
+  def __init__(self):
+    self.position = [Quaternion([1., 0., 0., 0.])]
+    
+  def additive_em_time_step(self, dt):
+    '''
+    Mock EM timestep.  Just set position to 
+    (1/sqrt(2), 1/sqrt(2), 0, 0.).
+    '''
+    self.position = [Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])]
+
+  def rfd_time_step(self, dt):
+    '''
+    Mock RFD timestep.  Just set position to 
+    (1/sqrt(2), 1/sqrt(2), 0, 0.).
+    '''
+    self.position = [Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])]
+
+  def fixman_time_step(self, dt):
+    '''
+    Mock Fixman timestep.  Just set position to 
+    (1/sqrt(2), 1/sqrt(2), 0, 0.).
+    '''
+    self.position = [Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])]
+
+
 class TestTetrahedron(unittest.TestCase):
 
   def setUp(self):
@@ -153,6 +185,7 @@ class TestTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(mobility[1, 1], omega_y)
     self.assertAlmostEqual(mobility[2, 1], 0.)
 
+    # Replace height with the tetrahedron module height.
     tetrahedron.H = old_height
 
   def test_torque_calculator(self):
@@ -249,7 +282,7 @@ class TestTetrahedron(unittest.TestCase):
   def test_single_wall_mobility_spd(self):
     ''' Test that single wall mobility from Swan Brady paper is SPD. '''
     # Number of particles
-    n_particles = 2
+    n_particles = 5
     height = 10.
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)
@@ -288,7 +321,8 @@ class TestTetrahedron(unittest.TestCase):
     mobility_point = tetrahedron.image_singular_stokeslet(r_vectors)
     for j in range(3*n_particles):
       for k in range(3*n_particles):
-        self.assertAlmostEqual(mobility_finite[j,k], mobility_point[j,k], places=1)
+        # We multiply by a to get reasonable numbers for mobility.
+        self.assertAlmostEqual(a*mobility_finite[j,k], a*mobility_point[j,k])
         
     tetrahedron.A = old_a
 
@@ -306,8 +340,9 @@ class TestTetrahedron(unittest.TestCase):
                                       [theta],
                                       tetrahedron.gravity_torque_calculator)
     div_term = integrator.estimate_divergence()
-    print "\n"
-    print "divergence term is ", div_term
+    if PRINTOUT:
+      print "\n"
+      print "divergence term is ", div_term
 
   def test_rpy_tensor_value_diagonal(self):
     ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
@@ -334,6 +369,21 @@ class TestTetrahedron(unittest.TestCase):
       for k in range(j+1, 3):
         self.assertAlmostEqual(mobility[j, k], 0.)
         self.assertAlmostEqual(mobility[k, j], 0.)
+
+
+  def test_calc_rotational_msd(self):
+    ''' 
+    Test that calc_rotational_msd does the right thing for a simple mock.
+    integrator.
+    '''
+    integrator = MockIntegrator()
+    msd = tetrahedron.calc_rotational_msd(integrator, 1.0, 10)
+    for j in range(3):
+      for k in range(3):
+        if j == 0 and k == 0:
+          self.assertAlmostEqual(msd[j, k], 1.)
+        else:
+          self.assertAlmostEqual(msd[j, k], 0.)
 
 
 if __name__ == '__main__':

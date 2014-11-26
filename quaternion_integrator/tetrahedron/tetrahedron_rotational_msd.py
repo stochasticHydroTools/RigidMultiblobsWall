@@ -11,48 +11,72 @@ when the particles have identical mass.
 '''
 import sys
 sys.path.append('..')
+from matplotlib import pyplot
 import tetrahedron as tdn
 import numpy as np
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 
-def calc_rotational_msd(integrator, dt, n_steps):
-  for k in range(n_steps):
-    integrator.position = [Quaternion([1, 0, 0, 0])]
-    integrator.additive_em_time_step(dt)
 
-  msd = np.array([np.zeros(3) for _ in range(3)])
-  for pos in integrator.path:
-    u_hat = np.zeros(3)
-    rot_matrix = pos[0].rotation_matrix()
-    for i in range(3):
-      e = np.zeros(3)
-      e[i] = 1.
-      u_hat += 0.5*np.cross(e, np.inner(rot_matrix, e))
-    msd += np.outer(u_hat, u_hat)
-  msd = msd/float(len(integrator.path))/dt
-  return msd
+def plot_msd_convergence(dts, msd_list, names):
+  ''' Log-log plot of error in MSD v. dt '''
+  fig = pyplot.figure()
+  ax = fig.add_subplot(1, 1, 1)
+  for k in range(len(msd_list)):
+    pyplot.plot(dts, msd_list[k], label=names[k])
 
-      
+    
+  second_order = msd_list[0][0]*((np.array(dts)))/(dts[0])
+  pyplot.plot(dts, second_order, 'k--', label='1st Order')
+  pyplot.ylabel('Error')
+  pyplot.xlabel('dt')
+  pyplot.legend(loc='best', prop={'size': 9})
+  ax.set_yscale('log')
+  ax.set_xscale('log')
+  pyplot.savefig('./plots/RotationalMSD.pdf')
+    
 if __name__ == "__main__":
-  # Set masses.
-  tdn.M1 = 1.0
-  tdn.M2 = 2.0
-  tdn.M3 = 3.0
+  # Set masses and initial position.
+  tdn.M1 = 0.1
+  tdn.M2 = 0.2
+  tdn.M3 = 0.3
   initial_position = [Quaternion([1./np.sqrt(2), 0, 1./np.sqrt(2), 0])]
-  # Create Fixman Integrator.
+  dts = [16., 4., 1, 0.25]
+
+  # Create Quaternion Integrator.
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_position, 
                                     tdn.gravity_torque_calculator)
 
-  msd_calculated = calc_rotational_msd(integrator, 
-                                       float(sys.argv[1]), 
-                                       int(sys.argv[2]))
+  msd_fixman = []
+  msd_rfd = []
+  msd_em = []
+
+  for dt in dts:
+
+    msd_fixman.append(tdn.calc_rotational_msd(integrator, 
+                                              "FIXMAN",
+                                              dt, 
+                                              int(sys.argv[1])))
+
+    msd_rfd.append(tdn.calc_rotational_msd(integrator, 
+                                           "RFD",
+                                           dt, 
+                                           int(sys.argv[1])))
+
+
+    msd_em.append(tdn.calc_rotational_msd(integrator, 
+                                          "EM",
+                                          dt, 
+                                          int(sys.argv[1])))
+
+    
+  plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],
+                       ['Fixman', 'RFD', 'EM'])
   
-  print "Calculated MSD is:"
-  print msd_calculated
-  msd_theory = 2.*integrator.kT*tdn.tetrahedron_mobility(initial_position)
-  print "Theoretical MSD is:"
-  print msd_theory
-  rel_error = np.linalg.norm(msd_calculated - msd_theory)/np.linalg.norm(msd_theory)
-  print "Relative Error is ", rel_error
+  # print "Calculated MSD is ", msd_calculated
+  # msd_theory = 2.*integrator.kT*tdn.tetrahedron_mobility(initial_position)
+  # print "Theoretical MSD is ", msd_theory
+  # rel_error = np.linalg.norm(msd_calculated - msd_theory)/np.linalg.norm(msd_theory)
+  # print "Relative Error is ", rel_error
+
