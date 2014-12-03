@@ -41,8 +41,9 @@ if __name__ == "__main__":
   tdn.M1 = 0.1
   tdn.M2 = 0.2
   tdn.M3 = 0.3
-  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0])]
-  dts = [16., 4., 1., 0.25]
+#  initial_position = [Quaternion([1., 0., 0., 0.])]
+  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
+  dts = [16., 8., 4., 2.]
 
   # Create Quaternion Integrator.
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
