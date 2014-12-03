@@ -62,7 +62,6 @@ class QuaternionIntegrator(object):
     new_position = []
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
-#      print "Rotation angle is ", np.linalg.norm((omega_tilde[(i*3):(i*3+3)])*dt)
       new_position.append(quaternion_dt*self.position[i])
       
     self.position = new_position

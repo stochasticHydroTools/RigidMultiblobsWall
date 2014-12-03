@@ -385,16 +385,16 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
     idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
     height_histogram[k][idx] += 1
 
-def calc_rotational_msd(integrator, scheme, dt, n_steps):
+def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
   ''' 
-  Calculate rotational MSD at identity configuration given an
-  integrator and number of steps, return the error between this MSD and
+  Calculate Error in rotational MSD at identity configuration given an
+  integrator and number of steps. Return the error between this MSD and
   the theoretical msd as the 2 Norm of the matrix difference.
   '''
   # TODO: Change this to accept an initial orientation.
   msd = np.array([np.zeros(3) for _ in range(3)])
   for k in range(n_steps):
-    integrator.position = [Quaternion([1, 0, 0, 0])]
+    integrator.position = initial_orientation
     if scheme == 'EM':
       integrator.additive_em_time_step(dt)
     elif scheme == 'RFD':
@@ -406,15 +406,17 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps):
 
     u_hat = np.zeros(3)
     rot_matrix = integrator.position[0].rotation_matrix()
+    original_rot_matrix = initial_orientation[0].rotation_matrix()
     for i in range(3):
       e = np.zeros(3)
       e[i] = 1.
-      u_hat += 0.5*np.cross(e, np.inner(rot_matrix, e))
+      u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                            np.inner(rot_matrix, e))
     msd += np.outer(u_hat, u_hat)
   msd = msd/float(n_steps)/dt
 
   msd_theory = 2.*integrator.kT*tetrahedron_mobility(
-    [Quaternion([1., 0., 0., 0.])])
+    initial_orientation)
 
   return np.linalg.norm(msd_theory - msd)
 

@@ -26,11 +26,12 @@ def plot_msd_convergence(dts, msd_list, names):
     pyplot.plot(dts, msd_list[k], label=names[k])
 
     
-  second_order = msd_list[0][0]*((np.array(dts)))/(dts[0])
-  pyplot.plot(dts, second_order, 'k--', label='1st Order')
+  first_order = msd_list[0][0]*((np.array(dts)))/(dts[0])
+  pyplot.plot(dts, first_order, 'k--', label='1st Order')
   pyplot.ylabel('Error')
   pyplot.xlabel('dt')
   pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.title('Error in Rotational MSD')
   ax.set_yscale('log')
   ax.set_xscale('log')
   pyplot.savefig('./plots/RotationalMSD.pdf')
@@ -40,8 +41,8 @@ if __name__ == "__main__":
   tdn.M1 = 0.1
   tdn.M2 = 0.2
   tdn.M3 = 0.3
-  initial_position = [Quaternion([1./np.sqrt(2), 0, 1./np.sqrt(2), 0])]
-  dts = [16., 4., 1, 0.25]
+  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0])]
+  dts = [16., 4., 1., 0.25]
 
   # Create Quaternion Integrator.
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
@@ -53,24 +54,24 @@ if __name__ == "__main__":
   msd_em = []
 
   for dt in dts:
-
     msd_fixman.append(tdn.calc_rotational_msd(integrator, 
                                               "FIXMAN",
                                               dt, 
-                                              int(sys.argv[1])))
+                                              int(sys.argv[1]),
+                                              initial_position))
 
     msd_rfd.append(tdn.calc_rotational_msd(integrator, 
                                            "RFD",
                                            dt, 
-                                           int(sys.argv[1])))
-
+                                           int(sys.argv[1]),
+                                           initial_position))
 
     msd_em.append(tdn.calc_rotational_msd(integrator, 
                                           "EM",
                                           dt, 
-                                          int(sys.argv[1])))
+                                          int(sys.argv[1]),
+                                          initial_position))
 
-    
   plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],
                        ['Fixman', 'RFD', 'EM'])
   
