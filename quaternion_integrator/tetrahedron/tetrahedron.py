@@ -221,6 +221,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
           + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
   return mobility
 
+
 def rotne_prager_tensor(r_vectors, eta, a):
   ''' Calculate free rotne prager tensor for particles at locations given by
   r_vectors (list of 3 dimensional locationis) of radius a.'''

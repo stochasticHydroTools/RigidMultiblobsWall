@@ -8,6 +8,18 @@ repelling from the wall.
 import numpy as np
 import tetrahedron as tdn
 
+PROFILE = False  # Do we profile this run?
+
+ETA = 1.0   # Fluid viscosity.
+A = 0.5     # Particle Radius.
+H = 10.     # Distance to wall.
+
+# Masses of particles.
+M1 = 0.1
+M2 = 0.2
+M3 = 0.3
+
+
 def free_tetrahedron_mobility(location, orientation):
   ''' 
   Wrapper for torque mobility that takes a quaternion and location for
@@ -98,3 +110,75 @@ def calc_free_rot_matrix(r_vectors, location):
       rot_matrix = np.concatenate([rot_matrix, block], axis=0)
 
   return rot_matrix
+
+
+def free_gravity_torque_calculator(location, orientation):
+  ''' 
+  Calculate torque based on location, given as a length 1 list of 
+  a 3-vector, and orientation, given as a length
+  1 list of quaternions (1 quaternion).  This assumes the masses
+  of particles 1, 2, and 3 are M1, M2, and M3 respectively.
+  '''
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  R = calc_free_rot_matrix(r_vectors)
+  # Gravity
+  g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
+  return np.dot(R.T, g)
+
+
+def free_gravity_force_calculator(location, orientation):
+  '''
+  Calculate force on tetrahedron given it's location and
+  orientation.  
+  args: 
+  location:   list of length 1, only entry is a list of
+              length 3 with coordinates of tetrahedon "top" vertex.
+  orientation: list of length 1, only entry is a quaternion with the 
+               tetrahedron orientation
+  '''
+  # TODO: Tune repulsion from the wall to keep tetrahedron away.
+  potential_force = np.array([0., 0., (2./(location[0][2]**2))])
+  gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
+  return potential_force + gravity_force
+
+
+if __name__ == '__main__':
+  if PROFILE:
+    pr = cProfile.Profile()
+    pr.enable()
+    
+  # Script to run the various integrators on the quaternion.
+  initial_location = [[0., 0., H]]
+  initial_orienation = [Quaternion([1., 0., 0., 0.])]
+  fixman_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+                                           initial_orientation, 
+                                           free_gravity_torque_calculator, 
+                                           has_location = True,
+                                           initial_location = initial_location,
+                                           force_calculator = free_gravity_force_calculator)
+  
+
+  # Get command line parameters
+  dt = float(sys.argv[1])
+  n_steps = int(sys.argv[2])
+  print_increment = max(int(n_steps/10.), 1)
+
+  # For now hard code bin width.  Number of bins is equal to
+  # 4 over bin_width, since the particle can be in a -2, +2 range around
+  # the fixed vertex.
+  bin_width = 1./10.
+  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+
+  for k in range(n_steps):
+    # Fixman step and bin result.
+    fixman_integrator.fixman_time_step(dt)
+    bin_free_particle_heights(fixman_integrator.location[0],
+                              fixman_integrator.orientation[0], 
+                              bin_width, 
+                              fixman_heights)
+    # Bin equilibrium sample.
+    bin_free_particle_heights(generate_free_equilibrium_sample(), 
+                              bin_width, 
+                              equilibrium_heights)
+
