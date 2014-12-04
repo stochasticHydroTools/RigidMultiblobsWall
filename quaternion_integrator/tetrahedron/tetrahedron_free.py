@@ -9,7 +9,7 @@ import numpy as np
 import tetrahedron as tdn
 
 def free_tetrahedron_mobility(location, orientation):
-    ''' 
+  ''' 
   Wrapper for torque mobility that takes a quaternion and location for
   use with quaternion_integrator. 
   '''
@@ -34,7 +34,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = tdn.single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calculate_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -76,3 +76,25 @@ def get_free_r_vectors(location, quaternion):
   r3 = np.dot(rotation_matrix, initial_r3) + np.array(location)
   
   return [r1, r2, r3]
+
+
+def calc_free_rot_matrix(r_vectors, location):
+  ''' 
+  Calculate rotation matrix (r cross) based on the free tetrahedron.
+  In this case, the R vectors point from the "top" vertex to the others.
+  '''
+  rot_matrix = None
+  for k in range(len(r_vectors)):
+    # Current r cross x matrix block.
+    adjusted_r_vector = r_vectors[k] - location
+    block = np.array(
+        [[0.0, adjusted_r_vector[2], -1.*adjusted_r_vector[1]],
+        [-1.*adjusted_r_vector[2], 0.0, adjusted_r_vector[0]],
+        [adjusted_r_vector[1], -1.*adjusted_r_vector[0], 0.0]])
+
+    if rot_matrix is None:
+      rot_matrix = block
+    else:
+      rot_matrix = np.concatenate([rot_matrix, block], axis=0)
+
+  return rot_matrix
