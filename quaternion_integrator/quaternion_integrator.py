@@ -78,7 +78,7 @@ class QuaternionIntegrator(object):
     
     if self.has_location:
       mobility_tilde = self.mobility(location_midpoint, orientation_midpoint)
-      force_tilde = self.torque_calculator(location_midpoint, orientation_midpoint)
+      force_tilde = self.force_calculator(location_midpoint, orientation_midpoint)
       torque_tilde = self.torque_calculator(location_midpoint, orientation_midpoint)
       mobility_half_inv = np.linalg.inv(mobility_half)
       velocity_and_omega_tilde = (
