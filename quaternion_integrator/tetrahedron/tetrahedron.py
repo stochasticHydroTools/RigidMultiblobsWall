@@ -91,32 +91,6 @@ def torque_mobility(r_vectors):
   return total_mobility
 
 
-def force_and_torque_mobility(r_vectors):
-  '''
-  Calculate the mobility: (torque, force) -> (angular velocity, velocity) at position 
-  In this case, position has orientation and location data, each of length 1.
-  The mobility is equal to the inverse of: 
-    [ J^T M^-1 J,   J^T M^-1 R ]
-    [ R^T M^-1 J,   R^T M^-1 R ]
-  where R is 3N x 3 (9 x 3) Rx = r cross x and J is a 3N x 3 matrix with 
-  each 3x3 block being the identity.
-  r is the distance from the fixed vertex of the tetrahedron to
-  each other vertex (a length 3N vector).
-  M (3N x 3N) is the finite size single wall mobility taken from the
-  Swan and Brady paper:
-   "Simulation of hydrodynamically interacting particles near a no-slip
-    boundary."
-  '''  
-  mobility = single_wall_fluid_mobility(r_vectors, ETA, A)
-  rotation_matrix = calculate_rot_matrix(r_vectors)
-  J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
-  J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
-  total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
-                                        np.dot(np.linalg.inv(mobility),
-                                               J_rot_combined)))
-  return total_mobility
-
-
 def rpy_torque_mobility(r_vectors):
   '''
   Calculate the mobility, torque -> angular velocity, at position 
@@ -332,7 +306,7 @@ def get_r_vectors(quaternion):
                         / \
                        /   \
                       /     \
-                     /   O(0, 0, 0)
+                     /   O(0, 0, H)
                     /          \
                    /            \
                -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
