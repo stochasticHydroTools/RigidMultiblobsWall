@@ -137,9 +137,44 @@ def free_gravity_force_calculator(location, orientation):
                tetrahedron orientation
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
+  # TODO: add a mass at the top vertex.
   potential_force = np.array([0., 0., (2./(location[0][2]**2))])
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
   return potential_force + gravity_force
+
+
+def bin_free_particle_heights(location, orientation, bin_width, heights):
+  '''Bin heights of the free particle based on a location and an orientaiton.'''
+  r_vectors = get_free_r_vectors(location, orientation)
+  for k in range(3):
+    # Bin each particle height.
+    idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
+    if idx < len(height_histogramk[k]):
+      height_histogram[k][idx] += 1
+    else:
+      print 'Index exceeds histogram length.'
+  
+  
+def generate_Free_equilibrum_sample():
+  '''
+  Generate an equilibrium sample of location and orientation, according
+  to the distribution exp(-\beta U(heights)).
+  Do this by generating a uniform quaternion and location, 
+  then accept/rejecting with probability
+  exp(-U(heights))
+  '''
+  max_gibbs_term = 0.
+  while True:
+    # First generate a uniform quaternion on the 4-sphere.
+    theta = np.random.normal(0., 1., 4)
+    theta = Quaternion(theta/np.linalg.norm(theta))
+    # For location, set x and y to 0, since these are not affected
+    # by the potential.
+    location = [0., 0., np.random.uniform(2.5, 12.5)]
+    r_vectors = get_free_r_vectors(location, theta)
+    #TODO: add potential from wall to this.
+    U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
+  
 
 
 if __name__ == '__main__':
@@ -166,9 +201,9 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
-  bin_width = 1./10.
-  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  bin_width = 1./2.
+  fixman_heights = np.array([np.zeros(int(10./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(10./bin_width)) for _ in range(3)])
 
   for k in range(n_steps):
     # Fixman step and bin result.
@@ -178,7 +213,28 @@ if __name__ == '__main__':
                               bin_width, 
                               fixman_heights)
     # Bin equilibrium sample.
-    bin_free_particle_heights(generate_free_equilibrium_sample(), 
+    sample = generate_free_equilibrum_sample()
+    bin_free_particle_heights(sample[0], 
+                              sample[1],
                               bin_width, 
                               equilibrium_heights)
+
+  heights = [fixman_heigths, equilibrium_heights]
+
+    # Optional name for data provided
+  if len(sys.argv) > 3:
+    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
+  else:
+    data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+
+  with open(data_name, 'wb') as f:
+    cPickle.dump(heights, f)
+  
+  if PROFILE:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()
 
