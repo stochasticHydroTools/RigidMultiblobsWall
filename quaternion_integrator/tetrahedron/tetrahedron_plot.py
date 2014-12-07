@@ -30,9 +30,11 @@ def distribution_height_particle(heights, bin_width, names):
 
 
 if __name__ == '__main__':
-  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
+  # TODO: keep more data in the pkl file, so that nothing here needs to be specified.
+#  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
+  names = ['Fixman', 'Gibbs-Boltzmann']
   data_name = './data/%s' % sys.argv[1]
-  bin_width = 1./10.  # This should match the bin_width in tetrahedron.py
+  bin_width = float(sys.argv[2])  # This should match the bin_width in tetrahedron.py
   with open(data_name, 'rb') as data:
     heights = cPickle.load(data)
 

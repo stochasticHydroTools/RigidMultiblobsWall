@@ -4,15 +4,19 @@ A free tetrahedron is allowed to diffuse in a domain with a single
 wall (below the tetrahedron) in the presence of gravity and a quadratic potential
 repelling from the wall.
 '''
-
+import sys
 import numpy as np
 import tetrahedron as tdn
+from quaternion import Quaternion
+from quaternion_integrator import QuaternionIntegrator
+import math
+import cPickle
 
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
-H = 10.     # Distance to wall.
+H = 2.5     # Distance to wall.
 
 # Masses of particles.
 M1 = 0.1
@@ -47,7 +51,7 @@ def force_and_torque_mobility(r_vectors, location):
   Here location is the dereferenced list with 3 entries.
   '''  
   mobility = tdn.single_wall_fluid_mobility(r_vectors, ETA, A)
-  rotation_matrix = calculate_free_rot_matrix(r_vectors, location)
+  rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
@@ -120,7 +124,7 @@ def free_gravity_torque_calculator(location, orientation):
   of particles 1, 2, and 3 are M1, M2, and M3 respectively.
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  R = calc_free_rot_matrix(r_vectors)
+  R = calc_free_rot_matrix(r_vectors, location[0])
   # Gravity
   g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
   return np.dot(R.T, g)
@@ -138,24 +142,27 @@ def free_gravity_force_calculator(location, orientation):
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
   # TODO: add a mass at the top vertex.
-  potential_force = np.array([0., 0., (2./(location[0][2]**2))])
+  potential_force = np.array([0., 0., (3.5/(location[0][2]**2))])
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
   return potential_force + gravity_force
 
 
-def bin_free_particle_heights(location, orientation, bin_width, heights):
+def bin_free_particle_heights(location, orientation, bin_width, 
+                              height_histogram):
   '''Bin heights of the free particle based on a location and an orientaiton.'''
   r_vectors = get_free_r_vectors(location, orientation)
   for k in range(3):
     # Bin each particle height.
-    idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
-    if idx < len(height_histogramk[k]):
+    idx = (int(math.floor((r_vectors[k][2])/bin_width)))
+    if idx < len(height_histogram[k]):
       height_histogram[k][idx] += 1
     else:
+      print 'index is: ', idx
+      print 'r_vectors are: ', r_vectors
       print 'Index exceeds histogram length.'
   
   
-def generate_Free_equilibrum_sample():
+def generate_free_equilibrum_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
@@ -173,8 +180,23 @@ def generate_Free_equilibrum_sample():
     location = [0., 0., np.random.uniform(2.5, 12.5)]
     r_vectors = get_free_r_vectors(location, theta)
     #TODO: add potential from wall to this.
-    U = M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2]
-  
+    U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
+         2./(r_vectors[0][2]) + 2./(r_vectors[1][2]) + 2./(r_vectors[2][2]))
+    # Roughly the smallest height.
+    smallest_height = 1.0
+    normalization_constant = np.exp(-1.*smallest_height*(M1 + M2 + M3) - 
+                                    2./(3*smallest_height))
+    # For now, we set the normalization to 1e-2 for masses:
+    #       M1 = 0.1, M2 = 0.2, M3 = 0.3
+    gibbs_term = np.exp(-1.*U)
+    if gibbs_term > max_gibbs_term:
+      max_gibbs_term = gibbs_term
+    accept_prob = np.exp(-1.*(U))/normalization_constant
+    if accept_prob > 1:
+      print "Warning: acceptance probability > 1."
+      print "accept_prob = ", accept_prob
+    if np.random.uniform() < accept_prob:
+      return [location, theta]
 
 
 if __name__ == '__main__':
@@ -184,7 +206,7 @@ if __name__ == '__main__':
     
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., H]]
-  initial_orienation = [Quaternion([1., 0., 0., 0.])]
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
   fixman_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                            initial_orientation, 
                                            free_gravity_torque_calculator, 
@@ -202,8 +224,8 @@ if __name__ == '__main__':
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
   bin_width = 1./2.
-  fixman_heights = np.array([np.zeros(int(10./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(10./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(18./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(18./bin_width)) for _ in range(3)])
 
   for k in range(n_steps):
     # Fixman step and bin result.
@@ -219,7 +241,10 @@ if __name__ == '__main__':
                               bin_width, 
                               equilibrium_heights)
 
-  heights = [fixman_heigths, equilibrium_heights]
+    if k % print_increment == 0:
+      print "At step:", k
+
+  heights = [fixman_heights, equilibrium_heights]
 
     # Optional name for data provided
   if len(sys.argv) > 3:

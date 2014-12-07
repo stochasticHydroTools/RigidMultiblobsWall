@@ -23,10 +23,11 @@ class QuaternionIntegrator(object):
                          a numpy array where the first three components are the 
                          torque on the first quaternion, etc.
 
-      initial_orientation: vector of quaternions representing the initial configuration
-                        of the system.
+      initial_orientation: vector of quaternions representing the initial 
+                           configuration of the system.
     
-      has_location: boolean indicating whether we keep location as well as orientation.
+      has_location: boolean indicating whether we keep location
+                    as well as orientation.
     '''
     self.mobility = mobility
     self.dim = len(initial_orientation)
