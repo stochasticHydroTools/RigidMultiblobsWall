@@ -392,6 +392,7 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
   integrator and number of steps. Return the error between this MSD and
   the theoretical msd as the 2 Norm of the matrix difference.
   '''
+  #TODO: Remove this, it is no longer used.
   # TODO: Change this to accept an initial orientation.
   msd = np.array([np.zeros(3) for _ in range(3)])
   for k in range(n_steps):
@@ -488,8 +489,13 @@ if __name__ == "__main__":
   else:
     data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
+  height_data = dict()
+  height_data['heights'] = heights
+  height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
+  height_data['bin_width'] = bin_width
+
   with open(data_name, 'wb') as f:
-    cPickle.dump(heights, f)
+    cPickle.dump(height_data, f)
   
   if PROFILE:
     pr.disable()

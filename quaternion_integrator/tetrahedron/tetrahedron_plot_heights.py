@@ -27,15 +27,17 @@ def distribution_height_particle(heights, bin_width, names):
     pyplot.xlabel('Height')
     # ax.set_yscale('log')
     pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
-
+  
+  
 
 if __name__ == '__main__':
   # TODO: keep more data in the pkl file, so that nothing here needs to be specified.
-#  names = ['Fixman', 'RFD', 'E-M', 'Gibbs-Boltzmannn']
-  names = ['Fixman', 'Gibbs-Boltzmann']
+#  names = ['Fixman', 'Gibbs-Boltzmann']
   data_name = './data/%s' % sys.argv[1]
-  bin_width = float(sys.argv[2])  # This should match the bin_width in tetrahedron.py
+#  bin_width = float(sys.argv[2])  # This should match the bin_width in tetrahedron.py
   with open(data_name, 'rb') as data:
-    heights = cPickle.load(data)
+    height_data = cPickle.load(data)
 
-  distribution_height_particle(heights, bin_width, names)
+  distribution_height_particle(height_data['heights'],
+                               height_data['bin_width'],
+                               height_data['names'])
