@@ -16,12 +16,12 @@ PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
-H = 2.5     # Distance to wall.
+H = 3.0     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.1
-M2 = 0.2
-M3 = 0.3
+M1 = 0.2
+M2 = 0.4
+M3 = 0.6
 
 
 def free_tetrahedron_mobility(location, orientation):
@@ -141,8 +141,8 @@ def free_gravity_force_calculator(location, orientation):
                tetrahedron orientation
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
-  # TODO: add a mass at the top vertex.
-  potential_force = np.array([0., 0., (3.5/(location[0][2]**2))])
+  # TODO: add a mass at the top vertex, make all vertices repel
+  potential_force = np.array([0., 0., (8./(location[0][2]**2))])
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
   return potential_force + gravity_force
 
@@ -181,11 +181,11 @@ def generate_free_equilibrum_sample():
     r_vectors = get_free_r_vectors(location, theta)
     #TODO: add potential from wall to this.
     U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
-         2./(r_vectors[0][2]) + 2./(r_vectors[1][2]) + 2./(r_vectors[2][2]))
+         8./location[2])
     # Roughly the smallest height.
-    smallest_height = 1.0
+    smallest_height = 2.0
     normalization_constant = np.exp(-1.*smallest_height*(M1 + M2 + M3) - 
-                                    2./(3*smallest_height))
+                                    8./(3*smallest_height))
     # For now, we set the normalization to 1e-2 for masses:
     #       M1 = 0.1, M2 = 0.2, M3 = 0.3
     gibbs_term = np.exp(-1.*U)
@@ -224,8 +224,8 @@ if __name__ == '__main__':
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
   bin_width = 1./2.
-  fixman_heights = np.array([np.zeros(int(18./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(18./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(25./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(25./bin_width)) for _ in range(3)])
 
   for k in range(n_steps):
     # Fixman step and bin result.
