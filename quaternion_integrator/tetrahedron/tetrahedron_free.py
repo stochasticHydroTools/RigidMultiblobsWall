@@ -177,7 +177,7 @@ def generate_free_equilibrum_sample():
     theta = Quaternion(theta/np.linalg.norm(theta))
     # For location, set x and y to 0, since these are not affected
     # by the potential.
-    location = [0., 0., np.random.uniform(2.5, 12.5)]
+    location = [0., 0., np.random.uniform(2.5, 20.0)]
     r_vectors = get_free_r_vectors(location, theta)
     #TODO: add potential from wall to this.
     U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 

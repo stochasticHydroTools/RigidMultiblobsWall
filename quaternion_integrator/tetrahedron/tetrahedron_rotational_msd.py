@@ -18,8 +18,31 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 
 
+class MSDStatistics(object):
+  ''' 
+  Class to hold the means and std deviations of the time 
+  dependent MSD for multiple schemes and timesteps.
+  '''
+  def __init__(self, schemes, dts):
+    self.data = {}
+
+  def add_run(scheme_name, dt, run_data):
+    ''' 
+    Add a run.  Create the entry if need be. 
+    run is organized as a list of 3 arrays: [time, mean, std]
+    In that order.
+    '''
+    if scheme_name not in self.data:
+      self.data[scheme_name] = dict()
+
+    self.data[scheme_name][dt] = run_data
+    
+
 def plot_msd_convergence(dts, msd_list, names):
-  ''' Log-log plot of error in MSD v. dt '''
+  ''' 
+  Log-log plot of error in MSD v. dt.  This is for single
+  step MSD compared to theoretical MSD slope (mobility).
+  '''
   fig = pyplot.figure()
   ax = fig.add_subplot(1, 1, 1)
   for k in range(len(msd_list)):
@@ -35,6 +58,13 @@ def plot_msd_convergence(dts, msd_list, names):
   ax.set_yscale('log')
   ax.set_xscale('log')
   pyplot.savefig('./plots/RotationalMSD.pdf')
+
+
+def plot_time_dependent_msd(dts, msd_list, names):
+  '''
+  Plot the curve of MSD(t) v. t for multiple schemes and times.
+  '''
+  
     
 if __name__ == "__main__":
   # Set masses and initial position.
@@ -44,6 +74,7 @@ if __name__ == "__main__":
 #  initial_position = [Quaternion([1., 0., 0., 0.])]
   initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   dts = [16., 8., 4., 2.]
+  n_runs = 16
 
   # Create Quaternion Integrator.
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
@@ -55,23 +86,24 @@ if __name__ == "__main__":
   msd_em = []
 
   for dt in dts:
-    msd_fixman.append(tdn.calc_rotational_msd(integrator, 
-                                              "FIXMAN",
-                                              dt, 
-                                              int(sys.argv[1]),
-                                              initial_position))
+    for run in n_runs:
+      msd_fixman.append(tdn.calc_rotational_msd(integrator, 
+                                                "FIXMAN",
+                                                dt, 
+                                                int(sys.argv[1]),
+                                                initial_position))
 
-    msd_rfd.append(tdn.calc_rotational_msd(integrator, 
-                                           "RFD",
-                                           dt, 
-                                           int(sys.argv[1]),
-                                           initial_position))
+      msd_rfd.append(tdn.calc_rotational_msd(integrator, 
+                                             "RFD",
+                                             dt, 
+                                             int(sys.argv[1]),
+                                             initial_position))
 
-    msd_em.append(tdn.calc_rotational_msd(integrator, 
-                                          "EM",
-                                          dt, 
-                                          int(sys.argv[1]),
-                                          initial_position))
+      msd_em.append(tdn.calc_rotational_msd(integrator, 
+                                            "EM",
+                                            dt, 
+                                            int(sys.argv[1]),
+                                            initial_position))
 
   plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],
                        ['Fixman', 'RFD', 'EM'])
