@@ -1,6 +1,11 @@
 '''
 Script to test a tetrahedron near a wall.  The wall is at z = -h, and
 the tetrahedron's "top" vertex is fixed at (0, 0, 0).
+
+This file has the mobility and torque calculator used for any tetrahedron
+test.  Running this script will run a trajectory and bin the heights of each
+of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
+for the equilibrium distribution.  
 '''
 import sys
 sys.path.append('..')
@@ -13,11 +18,12 @@ import cPickle
 import uniform_analyzer as ua
 import cProfile, pstats, StringIO
 import math
-# import tetrahedron_ext
+
+
+# TODO: Move the fluid dynamics (not tetrahedron specific)
+# stuff (mobilities,etc) to a diff file.
+
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
-
-# TODO: Move the fluid dynamics specific stuff (mobilities,etc) to a diff file.
-
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
@@ -493,6 +499,7 @@ if __name__ == "__main__":
   height_data['heights'] = heights
   height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
   height_data['bin_width'] = bin_width
+  height_data['buckets'] = H + np.linspace(-2., 2., len(heights[0][0]))
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)

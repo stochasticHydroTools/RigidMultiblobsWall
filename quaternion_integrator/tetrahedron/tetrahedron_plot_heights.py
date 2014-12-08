@@ -8,12 +8,13 @@ import cPickle
 
 def distribution_height_particle(heights, bin_width, names):
   ''' 
-  Given histograms of heights for Fixman, RFD, EM, and equilibrium (in that
-  order), plot the distributions for each height.
+  Given histograms of heights for schemes, plot the distributions 
+  of height for each particle.
   '''
   if len(names) != len(heights):
     raise Exception('Heights and names must have the same length.')
 
+  #TODO: Buckets should be variable.
   buckets = tdn.H + bin_width*np.linspace(-2./bin_width, 2./bin_width, len(heights[0][0]))  
   for particle in range(3):
     fig = pyplot.figure()
@@ -27,7 +28,19 @@ def distribution_height_particle(heights, bin_width, names):
     pyplot.xlabel('Height')
     # ax.set_yscale('log')
     pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
-  
+
+
+def check_first_order_height_distribution(heights, bin_width, buckets, names):
+  ''' 
+  Plot just the discrepency between each scheme and the equilibrium, which is
+  assumed to be the last entry in heights.
+  '''
+  # TODO: Buckets shouldl be determined in the script, not at plot time.
+  for particle in range(3):
+    fig = pyplot.figure()
+    for k in range(len(heights) - 1):
+      pyplot.plot(buckets, heights[k][particle] - heights[-1][particle], 
+                  label = names[k])
   
 
 if __name__ == '__main__':
@@ -40,4 +53,5 @@ if __name__ == '__main__':
 
   distribution_height_particle(height_data['heights'],
                                height_data['bin_width'],
+                               height_data['buckets'],
                                height_data['names'])
