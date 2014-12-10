@@ -457,7 +457,7 @@ if __name__ == "__main__":
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
-  bin_width = 1./10.
+  bin_width = 1./5.
   fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
   rfd_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
   em_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])

@@ -14,8 +14,12 @@ from quaternion import Quaternion
 
 def bin_phi(orientation, bin_width, phi_hist):
   ''' Bin the angle phi given an orientation. '''
-  phi = np.arcsin(orientation.p[2])
-  idx = int(math.floor((phi + np.pi)/bin_width))
+  R = orientation.rotation_matrix()
+  # Rotated vector just in the X plane for calculating phi.
+  rotated_x = np.array([R[0, 0], R[1, 0]])/np.sqrt(R[0, 0]**2 + R[1, 0]**2)
+  phi= (np.arcsin(rotated_x[1]) + 
+        (np.pi - 2.*np.arcsin(rotated_x[1]))*(rotated_x[0] < 0.))
+  idx = int(math.floor((phi + np.pi/2.)/bin_width))
   phi_hist[idx] += 1
 
 def plot_phis(phi_list, names, buckets):
@@ -26,14 +30,11 @@ def plot_phis(phi_list, names, buckets):
   each scheme in the plot.
   '''
   for k in range(len(phi_list)):
-    pyplot.plot(buckets, phi_list[k], label = names[k])
+    pyplot.plot(buckets, phi_list[k]/float(sum(phi_list[k])), label = names[k])
 
+  pyplot.ylim(0., 0.2)
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.savefig('./plots/PhiDistribution.pdf')
-    
-    
-  
-
 
   
 if __name__ == "__main__":
@@ -53,10 +54,11 @@ if __name__ == "__main__":
   n_steps = int(sys.argv[2])
   print_increment = max(int(n_steps/10.), 1)
 
-  bin_width = 1./5.
-  fixman_phi = np.zeros(int(2.*np.pi/bin_width))
-  rfd_phi = np.zeros(int(2.*np.pi/bin_width))
-  em_phi = np.zeros(int(2.*np.pi/bin_width))
+  n_buckets = 20
+  fixman_phi = np.zeros(n_buckets)
+  rfd_phi = np.zeros(n_buckets)
+  em_phi =  np.zeros(n_buckets)
+  bin_width = 2*np.pi/n_buckets
 
   for k in range(n_steps):
     # Fixman step and bin result.
@@ -79,5 +81,6 @@ if __name__ == "__main__":
       print "At step:", k
 
   names = ['Fixman', 'RFD', 'EM']
-  buckets  = np.linspace(-1.*np.pi, np.pi, len(fixman_phi))
+  bucket_boundaries = np.linspace(-0.5*np.pi, 1.5*np.pi, n_buckets + 1)
+  buckets  = (bucket_boundaries[:-1] + bucket_boundaries[1:])/2.
   plot_phis([fixman_phi, rfd_phi, em_phi], names, buckets)
