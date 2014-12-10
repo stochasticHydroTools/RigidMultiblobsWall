@@ -5,6 +5,7 @@ wall (below the tetrahedron) in the presence of gravity and a quadratic potentia
 repelling from the wall.
 '''
 import sys
+import os
 import numpy as np
 import tetrahedron as tdn
 from quaternion import Quaternion
@@ -251,7 +252,11 @@ if __name__ == '__main__':
   height_data['buckets'] = np.linspace(0., 25., len(heights[0][0]))
   height_data['names'] = ['Fixman', 'Gibbs-Boltzmann']
 
-    # Optional name for data provided
+  # Make directory for data if it doesn't exist.
+  if not os.path.isdir(os.path.join(getcwd(), 'data')):
+    os.mkdir(os.path.join(getcwd(), 'data'))
+
+  # Optional name for data provided
   if len(sys.argv) > 3:
     data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
   else:

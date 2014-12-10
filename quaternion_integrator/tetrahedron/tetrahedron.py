@@ -10,14 +10,16 @@ for the equilibrium distribution.
 import sys
 sys.path.append('..')
 sys.path.append('../..')
+import os
 import numpy as np
 from matplotlib import pyplot
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
 import cPickle
-import uniform_analyzer as ua
 import cProfile, pstats, StringIO
 import math
+
+from quaternion import Quaternion
+from quaternion_integrator import QuaternionIntegrator
+import uniform_analyzer as ua
 
 
 # TODO: Move the fluid dynamics (not tetrahedron specific)
@@ -489,7 +491,12 @@ if __name__ == "__main__":
              rfd_heights/(n_steps*bin_width),
              em_heights/(n_steps*bin_width),
              equilibrium_heights/(n_steps*bin_width)]
-  # Optional name for data provided
+
+  # Make directory for data if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
+    os.mkdir(os.path.join(os.getcwd(), 'data'))
+
+  # Optional name for data provided    
   if len(sys.argv) > 3:
     data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
   else:
