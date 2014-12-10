@@ -20,19 +20,20 @@ def check_height_order(heights_list, buckets, names, dts, order):
       scale_factor = (dts[0]/dts[k])**order
       pyplot.plot(buckets, scale_factor*(heights_list[k][j][particle] -
                                          heights_list[k][-1][particle]), 
-                  label = names[j] + '%s' % dts[k])
-      pyplot.title('%s scheme, order %s test' % (names[j], order))
-      pyplot.xlabel('height')
-      pyplot.ylabel('Error in height distribution')
-      pyplot.legend(loc = 'best', prop={'size': 9})
-      pyplot.savefig('./plots/HeightError-Scheme-%s-Particle-%s' %
-                     (names[j], particle))
+                  label = names[j] + ', dt=%s' % dts[k])
+    pyplot.title('%s scheme, order %s test' % (names[j], order))
+    pyplot.xlabel('Height')
+    pyplot.ylabel('Error in height distribution')
+    pyplot.legend(loc = 'best', prop={'size': 9})
+    pyplot.savefig('./plots/HeightError-Scheme-%s-Particle-%s.pdf' %
+                   (names[j], particle))
 
 
 if __name__  == '__main__':
   #  Grab the data from a few runs with different dts, and
   #  Check their order.
-  data_files = ['tetrahedron-dt-4-N-10000.pkl', 'tetrahedron-dt-2-N-10000.pkl']
+  data_files = ['tetrahedron-dt-4-N-80000.pkl', 'tetrahedron-dt-2-N-80000.pkl',
+                'tetrahedron-dt-1-N-80000.pkl']
   dts = [4., 2., 1.]
 
   heights_list = []
@@ -43,7 +44,7 @@ if __name__  == '__main__':
       
   buckets = heights_data['buckets']
   names = heights_data['names']
-
+  print 'length of heights list is ', len(heights_list)
   check_height_order(heights_list, buckets, names, dts, 1.)
       
   
