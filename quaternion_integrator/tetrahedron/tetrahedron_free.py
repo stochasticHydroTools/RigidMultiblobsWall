@@ -245,6 +245,11 @@ if __name__ == '__main__':
       print "At step:", k
 
   heights = [fixman_heights, equilibrium_heights]
+  
+  height_data = dict()
+  height_data['heights'] = heights
+  height_data['buckets'] = np.linspace(0., 25., len(heights[0][0]))
+  height_data['names'] = ['Fixman', 'Gibbs-Boltzmann']
 
     # Optional name for data provided
   if len(sys.argv) > 3:
@@ -253,7 +258,7 @@ if __name__ == '__main__':
     data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
   with open(data_name, 'wb') as f:
-    cPickle.dump(heights, f)
+    cPickle.dump(height_data, f)
   
   if PROFILE:
     pr.disable()

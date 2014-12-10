@@ -35,32 +35,32 @@ M1 = 0.1
 M2 = 0.2
 M3 = 0.3
 
-def identity_mobility(position):
+def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''
   return np.identity(3)
 
 
-def test_mobility(position):
+def test_mobility(orientation):
   ''' Simple mobility that's not divergence free. '''
-  r_vectors = get_r_vectors(position[0])
+  r_vectors = get_r_vectors(orientation[0])
   total_mobility = np.array([np.zeros(3) for _ in range(3)])
   for k in range(3):
     total_mobility[k, k] = r_vectors[k][2]**2 + 1.
   return total_mobility
 
 
-def tetrahedron_mobility(position):
+def tetrahedron_mobility(orientation):
   ''' 
   Wrapper for torque mobility that takes a quaternion for
   use with quaternion_integrator. 
   '''
-  r_vectors = get_r_vectors(position[0])
+  r_vectors = get_r_vectors(orientation[0])
   return torque_mobility(r_vectors)
 
 def torque_oseen_mobility(r_vectors):
   '''
-  Calculate the mobility, torque -> angular velocity, at position 
-  In this case, position is length 1, as there is just 1 quaternion.
+  Calculate the mobility, torque -> angular velocity, at orientation 
+  In this case, orientation is length 1, as there is just 1 quaternion.
   The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
   Rx = r cross x
   r is the distance from the fixed vertex of the tetrahedron to
@@ -78,8 +78,8 @@ def torque_oseen_mobility(r_vectors):
 
 def torque_mobility(r_vectors):
   '''
-  Calculate the mobility, torque -> angular velocity, at position 
-  In this case, position is length 1, as there is just 1 quaternion.
+  Calculate the mobility, torque -> angular velocity, at orientation 
+  In this case, orientation is length 1, as there is just 1 quaternion.
   The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
   Rx = r cross x
   r is the distance from the fixed vertex of the tetrahedron to
@@ -99,8 +99,8 @@ def torque_mobility(r_vectors):
 
 def rpy_torque_mobility(r_vectors):
   '''
-  Calculate the mobility, torque -> angular velocity, at position 
-  In this case, position is length 1, as there is just 1 quaternion.
+  Calculate the mobility, torque -> angular velocity, at orientation 
+  In this case, orientation is length 1, as there is just 1 quaternion.
   The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
   Rx = r cross x
   r is the distance from the fixed vertex of the tetrahedron to
@@ -335,20 +335,20 @@ def get_r_vectors(quaternion):
   return [r1, r2, r3]
 
   
-def gravity_torque_calculator(position):
+def gravity_torque_calculator(orientation):
   ''' 
-  Calculate torque based on position, given as a length
+  Calculate torque based on orientation, given as a length
   1 list of quaternions (1 quaternion).  This assumes the masses
   of particles 1, 2, and 3 are M1, M2, and M3 respectively.
   '''
-  r_vectors = get_r_vectors(position[0])
+  r_vectors = get_r_vectors(orientation[0])
   R = calculate_rot_matrix(r_vectors)
   # Gravity
   g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
   return np.dot(R.T, g)
 
 
-def zero_torque_calculator(position):
+def zero_torque_calculator(orientation):
   ''' Return 0 torque. '''
   # Gravity
   return np.array([0., 0., 0.])
@@ -402,7 +402,7 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
   # TODO: Change this to accept an initial orientation.
   msd = np.array([np.zeros(3) for _ in range(3)])
   for k in range(n_steps):
-    integrator.position = initial_orientation
+    integrator.orientation = initial_orientation
     if scheme == 'EM':
       integrator.additive_em_time_step(dt)
     elif scheme == 'RFD':
@@ -413,7 +413,7 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
       raise Exception('Scheme must be FIXMAN, RFD, or EM')
 
     u_hat = np.zeros(3)
-    rot_matrix = integrator.position[0].rotation_matrix()
+    rot_matrix = integrator.orientation[0].rotation_matrix()
     original_rot_matrix = initial_orientation[0].rotation_matrix()
     for i in range(3):
       e = np.zeros(3)
@@ -435,17 +435,17 @@ if __name__ == "__main__":
     pr.enable()
 
   # Script to run the various integrators on the quaternion.
-  initial_position = [Quaternion([1., 0., 0., 0.])]
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
   fixman_integrator = QuaternionIntegrator(tetrahedron_mobility,
-                                           initial_position, 
+                                           initial_orientation, 
                                            gravity_torque_calculator)
 
   rfd_integrator = QuaternionIntegrator(tetrahedron_mobility, 
-                                        initial_position, 
+                                        initial_orientation, 
                                         gravity_torque_calculator)
 
   em_integrator = QuaternionIntegrator(tetrahedron_mobility, 
-                                       initial_position, 
+                                       initial_orientation, 
                                        gravity_torque_calculator)
   # Get command line parameters
   dt = float(sys.argv[1])
@@ -464,17 +464,17 @@ if __name__ == "__main__":
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
-    bin_particle_heights(fixman_integrator.position[0], 
+    bin_particle_heights(fixman_integrator.orientation[0], 
                          bin_width, 
                          fixman_heights)
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
-    bin_particle_heights(rfd_integrator.position[0],
+    bin_particle_heights(rfd_integrator.orientation[0],
                          bin_width, 
                          rfd_heights)    
     # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
-    bin_particle_heights(em_integrator.position[0],
+    bin_particle_heights(em_integrator.orientation[0],
                          bin_width, 
                          em_heights)
     # Bin equilibrium sample.
@@ -498,7 +498,6 @@ if __name__ == "__main__":
   height_data = dict()
   height_data['heights'] = heights
   height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
-  height_data['bin_width'] = bin_width
   height_data['buckets'] = H + np.linspace(-2., 2., len(heights[0][0]))
 
   with open(data_name, 'wb') as f:

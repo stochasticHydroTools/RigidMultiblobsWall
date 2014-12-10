@@ -6,7 +6,7 @@ from matplotlib import pyplot
 from quaternion import Quaternion
 import cPickle
 
-def distribution_height_particle(heights, bin_width, names):
+def distribution_height_particle(heights, buckets, names):
   ''' 
   Given histograms of heights for schemes, plot the distributions 
   of height for each particle.
@@ -14,8 +14,6 @@ def distribution_height_particle(heights, bin_width, names):
   if len(names) != len(heights):
     raise Exception('Heights and names must have the same length.')
 
-  #TODO: Buckets should be variable.
-  buckets = tdn.H + bin_width*np.linspace(-2./bin_width, 2./bin_width, len(heights[0][0]))  
   for particle in range(3):
     fig = pyplot.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -30,7 +28,7 @@ def distribution_height_particle(heights, bin_width, names):
     pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
 
 
-def check_first_order_height_distribution(heights, bin_width, buckets, names):
+def check_first_order_height_distribution(heights, buckets, names):
   ''' 
   Plot just the discrepency between each scheme and the equilibrium, which is
   assumed to be the last entry in heights.
@@ -45,13 +43,10 @@ def check_first_order_height_distribution(heights, bin_width, buckets, names):
 
 if __name__ == '__main__':
   # TODO: keep more data in the pkl file, so that nothing here needs to be specified.
-#  names = ['Fixman', 'Gibbs-Boltzmann']
   data_name = './data/%s' % sys.argv[1]
-#  bin_width = float(sys.argv[2])  # This should match the bin_width in tetrahedron.py
   with open(data_name, 'rb') as data:
     height_data = cPickle.load(data)
 
   distribution_height_particle(height_data['heights'],
-                               height_data['bin_width'],
                                height_data['buckets'],
                                height_data['names'])
