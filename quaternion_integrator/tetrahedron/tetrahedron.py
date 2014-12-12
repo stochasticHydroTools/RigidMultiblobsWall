@@ -489,13 +489,13 @@ if __name__ == "__main__":
     if k % print_increment == 0:
       elapsed_time = time.time() - start_time
       if elapsed_time < 60.:
-        print 'At step:', k, ' Time Taken: %.2f Seconds' % elapsed_time
+        print 'At step:', k, ' Time Taken: %.2f Seconds' % float(elapsed_time)
         if k > 0:
           print 'Estimated Total time required: %.2f Seconds.' % (elapsed_time*float(n_steps)/float(k))
       else:
-        print 'At step:', k, ' Time Taken: %.2f Minutes.' % elapsed_time/60.
+        print 'At step:', k, ' Time Taken: %.2f Minutes.' % (float(elapsed_time)/60.)
         if k > 0:
-          print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k))/60.
+          print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k)/60.)
 
 
   heights = [fixman_heights/(n_steps*bin_width),
