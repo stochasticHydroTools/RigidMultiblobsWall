@@ -19,9 +19,11 @@ from quaternion_integrator import QuaternionIntegrator
 
 
 class MSDStatistics(object):
-  ''' 
-  Class to hold the means and std deviations of the time 
-  dependent MSD for multiple schemes and timesteps.
+  '''
+  Class to hold the means and std deviations of the time dependent
+  MSD for multiple schemes and timesteps.  data is a dictionary of
+  dictionaries, holding runs indexed by scheme and timestep in that 
+  order.
   '''
   def __init__(self, schemes, dts):
     self.data = {}
@@ -54,18 +56,24 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   n_steps = int(end_time/dt)
   trajectories = []
   for run in range(n_runs):
+    integrator.orientation = initial_orientation
     trajectories.append([])
+    #HACK: For now we just take the 2,2 entry of the rotational MSD matrix.
+    trajectories[run].append(
+      calc_rotational_msd(initial_orientation[0],
+                          integrator.orientation[0])[1, 1])
     for step in range(n_steps):
+
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':
         integrator.rfd_time_step(dt)
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
-        
       trajectories[run].append(
         calc_rotational_msd(initial_orientation[0],
                             integrator.orientation[0])[1, 1])
+
 
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
@@ -148,9 +156,9 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [0.0025]
-  end_time = 1.
-  n_runs = 2000
+  dts = [1.0]
+  end_time = 45.
+  n_runs = 1024
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:

@@ -1,6 +1,6 @@
 ''' 
 Script to check that phi, the angle of rotation around the vertical axis, 
-is uniformly distributed as it should be.
+is uniformly distributed as it should be for a Fixed tetrahedron.
 '''
 
 import sys

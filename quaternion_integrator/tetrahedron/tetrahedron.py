@@ -16,6 +16,7 @@ from matplotlib import pyplot
 import cPickle
 import cProfile, pstats, StringIO
 import math
+import time
 
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
@@ -452,7 +453,7 @@ if __name__ == "__main__":
   # Get command line parameters
   dt = float(sys.argv[1])
   n_steps = int(sys.argv[2])
-  print_increment = max(int(n_steps/10.), 1)
+  print_increment = max(int(n_steps/20.), 1)
 
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
@@ -463,6 +464,7 @@ if __name__ == "__main__":
   em_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
   equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
 
+  start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
@@ -485,7 +487,16 @@ if __name__ == "__main__":
                          equilibrium_heights)
     
     if k % print_increment == 0:
-      print "At step:", k
+      elapsed_time = time.time() - start_time
+      if elapsed_time < 60.:
+        print 'At step:', k, ' Time Taken: %.2f Seconds' % elapsed_time
+        if k > 0:
+          print 'Estimated Total time required: %.2f Seconds.' % (elapsed_time*float(n_steps)/float(k))
+      else:
+        print 'At step:', k, ' Time Taken: %.2f Minutes.' % elapsed_time/60.
+        if k > 0:
+          print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k))/60.
+
 
   heights = [fixman_heights/(n_steps*bin_width),
              rfd_heights/(n_steps*bin_width),
