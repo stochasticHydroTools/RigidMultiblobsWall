@@ -12,6 +12,8 @@ sys.path.append('..')
 sys.path.append('../..')
 import os
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 import cPickle
 import cProfile, pstats, StringIO
