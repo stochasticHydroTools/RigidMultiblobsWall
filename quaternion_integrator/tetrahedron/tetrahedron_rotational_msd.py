@@ -157,8 +157,8 @@ if __name__ == "__main__":
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
   dts = [1.0]
-  end_time = 45.
-  n_runs = 1024
+  end_time = 40.
+  n_runs = 2048
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:

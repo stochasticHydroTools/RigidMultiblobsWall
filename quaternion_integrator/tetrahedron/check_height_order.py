@@ -32,7 +32,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
 if __name__  == '__main__':
   #  Grab the data from a few runs with different dts, and
   #  Check their order.
-  data_files = ['tetrahedron-dt-32-N-80000.pkl', 'tetrahedron-dt-16-N-500000.pkl']
+  data_files = ['tetrahedron-dt-32-N-100000.pkl', 'tetrahedron-dt-16-N-500000.pkl']
   dts = [32., 16.]
 
   heights_list = []
