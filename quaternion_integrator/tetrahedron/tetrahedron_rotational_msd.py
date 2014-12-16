@@ -11,6 +11,8 @@ get a curve of MSD(t).
 '''
 import sys
 sys.path.append('..')
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 import tetrahedron as tdn
 import numpy as np
@@ -38,7 +40,6 @@ class MSDStatistics(object):
       self.data[scheme_name] = dict()
 
     self.data[scheme_name][dt] = run_data
-
 
 def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                                scheme,
@@ -111,10 +112,7 @@ def calc_rotational_msd_from_long_run(initial_orientation,
                                     tdn.gravity_torque_calculator)
   lagged_trajectory = []
   for step in range(n_steps):
-    
-    
-  
-
+    pass    
 
   
 def calc_rotational_msd(initial_orientation, orientation):
@@ -186,9 +184,9 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [1.0]
-  end_time = 40.
-  n_runs = 2048
+  dts = [16., 8., 4.]
+  end_time = 45.
+  n_runs = 1024
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:

@@ -50,5 +50,3 @@ if __name__ == '__main__':
   distribution_height_particle(height_data['heights'],
                                height_data['buckets'],
                                height_data['names'])
-
-
