@@ -29,8 +29,11 @@ def plot_phis(phi_list, names, buckets):
   should correspond to the order of names, a list of strings to label
   each scheme in the plot.
   '''
+  # For now assume uniform buckets
+  bin_width = buckets[1] - buckets[0]
   for k in range(len(phi_list)):
-    pyplot.plot(buckets, phi_list[k]/float(sum(phi_list[k])), label = names[k])
+    pyplot.plot(buckets, phi_list[k]/float(sum(phi_list[k]))/bin_width,
+                label = names[k])
 
   pyplot.ylim(0., 0.2)
   pyplot.legend(loc='best', prop={'size': 9})

@@ -48,7 +48,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   ''' 
   Calculate MSD by starting at an initial condition, and doing short runs
   to time = end_time.
-  Average over these trajectories to get the curve of MSD[0, 0] v. time.
+  Average over these trajectories to get the curve of MSD[1, 1] v. time.
+
   '''
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_orientation, 
@@ -58,7 +59,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   for run in range(n_runs):
     integrator.orientation = initial_orientation
     trajectories.append([])
-    #HACK: For now we just take the 2,2 entry of the rotational MSD matrix.
+    #HACK: For now we just take the [1, 1] entry of the rotational MSD matrix.
     trajectories[run].append(
       calc_rotational_msd(initial_orientation[0],
                           integrator.orientation[0])[1, 1])
@@ -87,6 +88,34 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
 
   return results
 
+
+def calc_rotational_msd_from_long_run(initial_orientation,
+                                      scheme,
+                                      dt,
+                                      end_time,
+                                      n_steps):
+  ''' 
+  Do one long run, and along the way gather statsitics
+  about the average rotational Mean Square Displacement 
+  by calculating it from time lagged data. 
+  args:
+    initial_orientation: list of length 1 quaternion where 
+                 the run starts.  This shouldn't effect restuls.
+    scheme: FIXMAN, RFD, or EM, scheme for the integrator to use.
+    dt:  float, timestep used by the integrator.
+    end_time: float, how much time to track the evolution of the MSD.
+    n_steps:  How many total steps to take.
+  '''
+  integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
+                                    initial_orientation, 
+                                    tdn.gravity_torque_calculator)
+  lagged_trajectory = []
+  for step in range(n_steps):
+    
+    
+  
+
+
   
 def calc_rotational_msd(initial_orientation, orientation):
   ''' 
@@ -102,6 +131,7 @@ def calc_rotational_msd(initial_orientation, orientation):
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
   return np.outer(u_hat, u_hat)
+
 
     
 def plot_time_dependent_msd(msd_statistics):
