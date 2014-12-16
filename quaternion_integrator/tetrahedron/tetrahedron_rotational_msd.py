@@ -184,9 +184,9 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [16., 8., 4.]
-  end_time = 45.
-  n_runs = 1024
+  dts = [32., 16., 8.]
+  end_time = 128.
+  n_runs = 1028
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
