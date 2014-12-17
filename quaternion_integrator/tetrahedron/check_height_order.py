@@ -47,6 +47,8 @@ def check_height_order(heights_list, buckets, names, dts, order):
                       yerr = scale_factor*2.*error_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
 
+
+  for scheme_idx in range(len(heights_list[0][0]) - 1):
     pyplot.figure(scheme_idx*2)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
     pyplot.xlabel('Height')
@@ -69,12 +71,16 @@ if __name__  == '__main__':
   #  Check their order.
   # List of lists. Each entry should be a list of names of data files for multiple runs
   # with the same timestep and number of steps.
-  data_files = [['tetrahedron-dt-64-N-10000000.pkl'], 
-                ['tetrahedron-dt-32-N-10000000.pkl'],
-                ['tetrahedron-dt-16-N-8000000.pkl'], 
-                ['tetrahedron-dt-8-N-16000000.pkl']]
-  dts = [64., 32., 16., 8.]
-
+  data_files = [['tetrahedron-dt-64-N-4000000-run-1.pkl',
+                 'tetrahedron-dt-64-N-4000000-run-2.pkl',
+                 'tetrahedron-dt-64-N-4000000-run-3.pkl',
+                 'tetrahedron-dt-64-N-4000000-run-4.pkl',],
+                ['tetrahedron-dt-32-N-4000000-run-1.pkl',
+                 'tetrahedron-dt-32-N-4000000-run-2.pkl',
+                 'tetrahedron-dt-32-N-4000000-run-3.pkl',
+                 'tetrahedron-dt-32-N-4000000-run-4.pkl'],
+                ['tetrahedron-dt-16-N-8000000.pkl']]
+  dts = [64., 32., 16.]
 
   heights_list = []
   for parameter_set in data_files:

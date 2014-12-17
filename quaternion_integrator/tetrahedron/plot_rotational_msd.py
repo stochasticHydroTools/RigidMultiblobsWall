@@ -2,12 +2,11 @@
 Plot rotational msd data from a pickle file. 
 '''
 import os
+import sys
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
-import tetrahedron_rotational_msd as trm
-import tetrahedron as tdn
-import numpy as np
+from tetrahedron_rotational_msd import MSDStatistics
 import cPickle
 
 
@@ -23,7 +22,7 @@ def plot_time_dependent_msd(msd_statistics):
     for dt in msd_statistics.data[scheme].keys():
       pyplot.errorbar(msd_statistics.data[scheme][dt][0], 
                       msd_statistics.data[scheme][dt][1],
-                      yerr = msd_statistics.data[scheme][dt][2],
+                      yerr = 2.*msd_statistics.data[scheme][dt][2],
                       fmt = scheme_colors[scheme_num] + dt_styles[dt_num],
                       label = '%s, dt=%s' % (scheme, dt))
       dt_num += 1

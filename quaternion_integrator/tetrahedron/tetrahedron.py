@@ -498,6 +498,8 @@ if __name__ == "__main__":
         print 'At step:', k, ' Time Taken: %.2f Minutes.' % (float(elapsed_time)/60.)
         if k > 0:
           print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k)/60.)
+      sys.stdout.flush()
+    
 
 
   heights = [fixman_heights/(n_steps*bin_width),

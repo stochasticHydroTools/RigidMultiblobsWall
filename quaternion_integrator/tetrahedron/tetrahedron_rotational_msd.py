@@ -52,7 +52,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   Calculate MSD by starting at an initial condition, and doing short runs
   to time = end_time.
   Average over these trajectories to get the curve of MSD[1, 1] v. time.
-
   '''
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_orientation, 
@@ -77,8 +76,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
       trajectories[run].append(
         calc_rotational_msd(initial_orientation[0],
                             integrator.orientation[0])[1, 1])
-
-
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
   for step in range(n_steps):
@@ -191,8 +188,8 @@ if __name__ == "__main__":
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
   dts = [32., 16., 8.]
-  end_time = 96.
-  n_runs = 1000
+  end_time = 128.
+  n_runs = 15000
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
@@ -208,6 +205,8 @@ if __name__ == "__main__":
       #                                                   end_time,
       #                                                   n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
+      print 'finished timestep ', dt, 'for scheme ', scheme
+      os.stdout.flush()
       
 
   # Make directory for data if it doesn't exist.
@@ -218,7 +217,7 @@ if __name__ == "__main__":
   if len(sys.argv) > 3:
     data_name = './data/rot-msd-dt-%s-N-%d-%s.pkl' % (dts, n_runs, sys.argv[3])
   else:
-    data_name = './data/rot-msd-dt-%s-N-%d.pkl' % (dt, n_runs)
+    data_name = './data/rot-msd-dt-%s-N-%d.pkl' % (dts, n_runs)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
