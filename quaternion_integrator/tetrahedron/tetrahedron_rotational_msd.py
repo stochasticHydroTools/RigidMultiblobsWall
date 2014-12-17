@@ -110,9 +110,37 @@ def calc_rotational_msd_from_long_run(initial_orientation,
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_orientation, 
                                     tdn.gravity_torque_calculator)
+  trajectory_length = int(end_time/dt)
   lagged_trajectory = []
+  average_rotational_msd = np.zeros(trajectory_length)
   for step in range(n_steps):
-    pass    
+    if scheme == 'FIXMAN':
+      integrator.fixman_time_step(dt)
+    elif scheme == 'RFD':
+      integrator.rfd_time_step(dt)
+    elif scheme == 'EM':
+      integrator.additive_em_time_step(dt)
+
+
+    lagged_trajectory.append(integrator.orientation[0])
+
+    if len(lagged_trajectory) > trajectory_length:
+      lagged_trajectory = lagged_trajectory[1:]
+      for k in range(trajectory_length):
+        # For now just choose the 1, 1 entry
+        average_rotational_msd[k] += calc_rotational_msd(
+          lagged_trajectory[0],
+          lagged_trajectory[k])[1, 1]
+    
+  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+  # Average results to get time, mean, and std of rotational MSD.
+  # For now, std = 0.  Will figure out a good way to calculate this later.
+  results = [[], [], []]
+  results[0] = np.arange(0, trajectory_length)*dt
+  results[1] = average_rotational_msd
+  results[2] = np.zeros(trajectory_length)
+      
+  return results
 
   
 def calc_rotational_msd(initial_orientation, orientation):
@@ -140,6 +168,7 @@ def plot_time_dependent_msd(msd_statistics):
   scheme_num = 0
   for scheme in msd_statistics.data.keys():
     dt_num = 0
+    pyplot.figure(scheme_num)
     for dt in msd_statistics.data[scheme].keys():
       pyplot.errorbar(msd_statistics.data[scheme][dt][0], 
                       msd_statistics.data[scheme][dt][1],
@@ -148,11 +177,12 @@ def plot_time_dependent_msd(msd_statistics):
                       label = '%s, dt=%s' % (scheme, dt))
       dt_num += 1
     scheme_num += 1
-  pyplot.title('MSD(t)')
-  pyplot.ylabel('MSD')
-  pyplot.xlabel('time')
-  pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./plots/TimeDependentRotationalMSD.pdf')
+    pyplot.title('MSD(t) for Scheme %s' % scheme)
+    pyplot.ylabel('MSD')
+    pyplot.xlabel('time')
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.savefig('./plots/TimeDependentRotationalMSD-%s.pdf' % scheme)
+
   
 def plot_msd_convergence(dts, msd_list, names):
   ''' 
@@ -178,24 +208,29 @@ def plot_msd_convergence(dts, msd_list, names):
 
 if __name__ == "__main__":
   # Set masses and initial position.
-  tdn.M1 = 0.0
-  tdn.M2 = 0.0
-  tdn.M3 = 0.0
+  tdn.M1 = 0.1
+  tdn.M2 = 0.1
+  tdn.M3 = 0.1
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [32., 16., 8.]
-  end_time = 128.
-  n_runs = 1028
+  dts = [16., 8.]
+  end_time = 64.
+  n_runs = 8000
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
     for dt in dts:
-      run_data = calculate_msd_from_fixed_initial_condition(initial_orientation,
-                                                            scheme,
-                                                            dt,
-                                                            end_time,
-                                                            n_runs)
+      # run_data = calculate_msd_from_fixed_initial_condition(initial_orientation,
+      #                                                       scheme,
+      #                                                       dt,
+      #                                                       end_time,
+      #                                                       n_runs)
+      run_data = calc_rotational_msd_from_long_run(initial_orientation,
+                                                        scheme,
+                                                        dt,
+                                                        end_time,
+                                                        n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
       
   plot_time_dependent_msd(msd_statistics)
