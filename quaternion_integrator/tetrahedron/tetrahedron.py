@@ -12,6 +12,8 @@ sys.path.append('..')
 sys.path.append('../..')
 import os
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 import cPickle
 import cProfile, pstats, StringIO
@@ -27,7 +29,7 @@ import uniform_analyzer as ua
 # stuff (mobilities,etc) to a diff file.
 
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
-PROFILE = False  # Do we profile this run?
+PROFILE = True  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
