@@ -29,7 +29,7 @@ import uniform_analyzer as ua
 # stuff (mobilities,etc) to a diff file.
 
 #  Parameters. TODO: perhaps there's a better way to do this.  Input file?
-PROFILE = True  # Do we profile this run?
+PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
