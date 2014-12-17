@@ -7,17 +7,19 @@ repelling from the wall.
 import sys
 import os
 import numpy as np
+import math
+import cPickle
+import time
 import tetrahedron as tdn
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
-import math
-import cPickle
+
 
 PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
-H = 3.0     # Distance to wall.
+H = 3.5     # Distance to wall.
 
 # Masses of particles.
 M1 = 0.2
@@ -127,7 +129,9 @@ def free_gravity_torque_calculator(location, orientation):
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
   # Gravity
-  g = np.array([0., 0., -1.*M1, 0., 0., -1.*M2, 0., 0., -1.*M3])
+  g = np.array([0., 0., 1.0/(r_vectors[0][2]**2) - M1, 
+                0., 0., 1.0/(r_vectors[1][2]**2) - M2,
+                0., 0., 1.0/(r_vectors[2][2]**2) - M3])
   return np.dot(R.T, g)
 
 
@@ -143,7 +147,11 @@ def free_gravity_force_calculator(location, orientation):
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
   # TODO: add a mass at the top vertex, make all vertices repel
-  potential_force = np.array([0., 0., (8./(location[0][2]**2))])
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  potential_force = np.array([0., 0., (1.0/(r_vectors[0][2]**2) + 
+                                       1.0/(r_vectors[1][2]**2) + 
+                                       1.0/(r_vectors[2][2]**2) + 
+                                       1.0/(location[0][2]**2))])
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
   return potential_force + gravity_force
 
@@ -225,9 +233,9 @@ if __name__ == '__main__':
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
   bin_width = 1./2.
-  fixman_heights = np.array([np.zeros(int(25./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(25./bin_width)) for _ in range(3)])
-
+  fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
@@ -243,7 +251,15 @@ if __name__ == '__main__':
                               equilibrium_heights)
 
     if k % print_increment == 0:
-      print "At step:", k
+      elapsed_time = time.time() - start_time
+      if elapsed_time < 60.:
+        print 'At step:', k, ' Time Taken: %.2f Seconds' % float(elapsed_time)
+        if k > 0:
+          print 'Estimated Total time required: %.2f Seconds.' % (elapsed_time*float(n_steps)/float(k))
+      else:
+        print 'At step:', k, ' Time Taken: %.2f Minutes.' % (float(elapsed_time)/60.)
+        if k > 0:
+          print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k)/60.)
 
   heights = [fixman_heights, equilibrium_heights]
   
