@@ -189,7 +189,7 @@ if __name__ == "__main__":
   schemes = ['FIXMAN', 'RFD', 'EM']
   dts = [32., 16., 8.]
   end_time = 128.
-  n_runs = 15000
+  n_runs = 25000
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:

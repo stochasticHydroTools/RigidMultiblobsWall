@@ -30,6 +30,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
       error_std = np.std([heights_list[dt_idx][l][scheme_idx][particle] - 
                              heights_list[dt_idx][l][-1][particle] 
                              for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
+
       # Mean and Std of height over runs.
       height_means = np.mean([heights_list[dt_idx][l][scheme_idx][particle]
                              for l in range(n_runs)], axis=0)
@@ -47,7 +48,20 @@ def check_height_order(heights_list, buckets, names, dts, order):
                       yerr = scale_factor*2.*error_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
 
+    # Now plot the equilibrium for the distribution plots.
+    eq_idx = len(heights_list[0][0]) - 1
+    # Mean and Std of height over runs.
+    height_means = np.mean([heights_list[dt_idx][l][eq_idx][particle]
+                             for l in range(n_runs)], axis=0)
+    height_std = np.std([heights_list[dt_idx][l][eq_idx][particle]
+                            for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
+    # Figure 1 is just height distribution.
+    pyplot.figure(scheme_idx*2)
+    pyplot.errorbar(buckets, height_means,
+                    yerr = 2.*height_std,
+                    label = 'Equilibrium')
 
+  # Title and 
   for scheme_idx in range(len(heights_list[0][0]) - 1):
     pyplot.figure(scheme_idx*2)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
@@ -79,7 +93,15 @@ if __name__  == '__main__':
                  'tetrahedron-dt-32-N-4000000-run-2.pkl',
                  'tetrahedron-dt-32-N-4000000-run-3.pkl',
                  'tetrahedron-dt-32-N-4000000-run-4.pkl'],
-                ['tetrahedron-dt-16-N-8000000.pkl']]
+                ['tetrahedron-dt-16-N-6000000-run-1.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-2.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-3.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-4.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-5.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-6.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-7.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-8.pkl']]
+
   dts = [64., 32., 16.]
 
   heights_list = []

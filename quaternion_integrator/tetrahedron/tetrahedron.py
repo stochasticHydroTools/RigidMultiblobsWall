@@ -518,6 +518,8 @@ if __name__ == "__main__":
     data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
   height_data = dict()
+  height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
+                           'M3': M3}
   height_data['heights'] = heights
   height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
   height_data['buckets'] = H + np.linspace(-2., 2., len(heights[0][0]))
