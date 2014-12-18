@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
+import argparse
 import cPickle
 import cProfile, pstats, StringIO
 import math
@@ -24,12 +25,8 @@ from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
 
-
 # TODO: Move the fluid dynamics (not tetrahedron specific)
 # stuff (mobilities,etc) to a diff file.
-
-#  Parameters. TODO: perhaps there's a better way to do this.  Input file?
-PROFILE = False  # Do we profile this run?
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
@@ -435,7 +432,26 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
 
 
 if __name__ == "__main__":
-  if PROFILE:
+
+  parser = argparse.ArgumentParser(description='Run Simulation of fixed '
+                                   'tetrahedron with Fixman, EM, and RFD '
+                                   'schemes, and bin the resulting '
+                                   'height distribution.')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Do we profile this run or not.')
+  
+
+  args = parser.parse_args()
+  if args.profile:
     pr = cProfile.Profile()
     pr.enable()
 
@@ -453,8 +469,8 @@ if __name__ == "__main__":
                                        initial_orientation, 
                                        gravity_torque_calculator)
   # Get command line parameters
-  dt = float(sys.argv[1])
-  n_steps = int(sys.argv[2])
+  dt = args.dt #float(sys.argv[1])
+  n_steps = args.n_steps #int(sys.argv[2])
   print_increment = max(int(n_steps/20.), 1)
 
   # For now hard code bin width.  Number of bins is equal to
@@ -512,8 +528,8 @@ if __name__ == "__main__":
     os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   # Optional name for data provided    
-  if len(sys.argv) > 3:
-    data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
+  if len(args.data_name) > 0:
+    data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
   else:
     data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
@@ -527,7 +543,7 @@ if __name__ == "__main__":
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
   
-  if PROFILE:
+  if args.profile:
     pr.disable()
     s = StringIO.StringIO()
     sortby = 'cumulative'

@@ -14,7 +14,19 @@ def check_height_order(heights_list, buckets, names, dts, order):
   heights_list[dt][run][scheme][particle] is a histogram of
   the distribution of the height of a particle (0 - 2)
   given by running scheme with timestep dt.  Run indicates
-  which run this is, and is used for generating error bars.
+  which run this is, and the multiple runs are used for generating error bars.
+
+  buckets gives a list of the midpionts of buckets, which is used for 
+  plotting the histogram.
+  
+  names gives the names of the schemes (FIXMAN, etc) in the same order as they
+  are ordered in heights_list[dt][run] for any dt and run.
+
+  dts gives the timesteps used in the simulations, in the same order as the 
+  first index of heights_list.
+
+  order is used to scale errors at smaller timesteps for checking the order
+  of accuracy of the schemes.
   '''
   # Just look at the heaviest particle for now.
   particle = 2

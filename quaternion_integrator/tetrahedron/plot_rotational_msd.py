@@ -6,9 +6,9 @@ import sys
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
-from tetrahedron_rotational_msd import MSDStatistics
+import numpy as np
 import cPickle
-
+from tetrahedron_rotational_msd import MSDStatistics
 
 def plot_time_dependent_msd(msd_statistics):
   ''' Plot the rotational MSD as a function of time.'''
@@ -22,7 +22,7 @@ def plot_time_dependent_msd(msd_statistics):
     for dt in msd_statistics.data[scheme].keys():
       pyplot.errorbar(msd_statistics.data[scheme][dt][0], 
                       msd_statistics.data[scheme][dt][1],
-                      yerr = 2.*msd_statistics.data[scheme][dt][2],
+                      yerr = 2.*np.array(msd_statistics.data[scheme][dt][2]),
                       fmt = scheme_colors[scheme_num] + dt_styles[dt_num],
                       label = '%s, dt=%s' % (scheme, dt))
       dt_num += 1

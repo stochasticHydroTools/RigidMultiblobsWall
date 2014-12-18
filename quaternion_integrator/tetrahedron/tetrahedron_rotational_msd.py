@@ -28,6 +28,7 @@ class MSDStatistics(object):
   MSD for multiple schemes and timesteps.  data is a dictionary of
   dictionaries, holding runs indexed by scheme and timestep in that 
   order.
+  Each run is organized as a list of 3 arrays: [time, mean, std]
   '''
   def __init__(self, schemes, dts):
     self.data = {}
