@@ -166,6 +166,7 @@ class QuaternionIntegrator(object):
                divergence_term)
 
     # For with location and without location, we update orientation the same way.
+
     new_orientation = []
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)

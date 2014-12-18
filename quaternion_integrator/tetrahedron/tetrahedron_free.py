@@ -16,9 +16,6 @@ import tetrahedron as tdn
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
 
-
-PROFILE = False  # Do we profile this run?
-
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Distance to wall.
