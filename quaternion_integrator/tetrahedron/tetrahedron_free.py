@@ -10,6 +10,8 @@ import numpy as np
 import math
 import cPickle
 import time
+import argparse
+import cProfile, StringIO, pstats
 import tetrahedron as tdn
 from quaternion import Quaternion
 from quaternion_integrator import QuaternionIntegrator
@@ -209,7 +211,26 @@ def generate_free_equilibrum_sample():
 
 
 if __name__ == '__main__':
-  if PROFILE:
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulation of free '
+                                   'tetrahedron with Fixman, EM, and RFD '
+                                   'schemes, and bin the resulting '
+                                   'height distribution.  Tetrahedron is '
+                                   'affected by gravity, and repulsed from '
+                                   'the wall gently.')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Do we profile this run or not.')
+  args=parser.parse_args()
+  if args.profile:
     pr = cProfile.Profile()
     pr.enable()
     
@@ -225,13 +246,12 @@ if __name__ == '__main__':
   
 
   # Get command line parameters
-  dt = float(sys.argv[1])
-  n_steps = int(sys.argv[2])
-  print_increment = max(int(n_steps/10.), 1)
-
-  # For now hard code bin width.  Number of bins is equal to
-  # 4 over bin_width, since the particle can be in a -2, +2 range around
-  # the fixed vertex.
+  dt = args.dt
+  n_steps = args.n_steps
+  print_increment = max(int(n_steps/20.), 1)
+  # For now hard code bin width.  Number of bins is equal to 30./bin_width.
+  # Here we allow for a large range because the tetrahedron is free to drift away 
+  # from the wall a bit.
   bin_width = 1./2.
   fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
   equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
@@ -268,24 +288,27 @@ if __name__ == '__main__':
   heights = [fixman_heights, equilibrium_heights]
   
   height_data = dict()
+  # Save parameters just in case they're useful in the future.
+  height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
+                           'M3': M3}
   height_data['heights'] = heights
   height_data['buckets'] = np.linspace(0., 25., len(heights[0][0]))
   height_data['names'] = ['Fixman', 'Gibbs-Boltzmann']
 
   # Make directory for data if it doesn't exist.
-  if not os.path.isdir(os.path.join(getcwd(), 'data')):
-    os.mkdir(os.path.join(getcwd(), 'data'))
+  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
+    os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   # Optional name for data provided
-  if len(sys.argv) > 3:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, sys.argv[3])
+  if len(args.data_name) > 0:
+    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
   else:
     data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
   
-  if PROFILE:
+  if args.profile:
     pr.disable()
     s = StringIO.StringIO()
     sortby = 'cumulative'

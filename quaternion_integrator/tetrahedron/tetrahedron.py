@@ -432,7 +432,7 @@ def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
 
 
 if __name__ == "__main__":
-
+  # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of fixed '
                                    'tetrahedron with Fixman, EM, and RFD '
                                    'schemes, and bin the resulting '

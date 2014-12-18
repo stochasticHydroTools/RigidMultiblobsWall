@@ -108,7 +108,6 @@ class QuaternionIntegrator(object):
     self.orientation = new_orientation
 
 
-
   def rfd_time_step(self, dt):
     ''' Take a timestep of length dt using the RFD method '''
     if self.has_location:
