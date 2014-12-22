@@ -5,6 +5,8 @@ at the error in height distribution.  Use data produced by tetrahedron.py.
 '''
 import cPickle
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 
 def check_height_order(heights_list, buckets, names, dts, order):
@@ -97,22 +99,23 @@ if __name__  == '__main__':
   #  Check their order.
   # List of lists. Each entry should be a list of names of data files for multiple runs
   # with the same timestep and number of steps.
-  data_files = [['tetrahedron-dt-64-N-4000000-run-1.pkl',
-                 'tetrahedron-dt-64-N-4000000-run-2.pkl',
-                 'tetrahedron-dt-64-N-4000000-run-3.pkl',
-                 'tetrahedron-dt-64-N-4000000-run-4.pkl',],
-                ['tetrahedron-dt-32-N-4000000-run-1.pkl',
-                 'tetrahedron-dt-32-N-4000000-run-2.pkl',
-                 'tetrahedron-dt-32-N-4000000-run-3.pkl',
-                 'tetrahedron-dt-32-N-4000000-run-4.pkl'],
-                ['tetrahedron-dt-16-N-6000000-run-1.pkl',
+  data_files = [['tetrahedron-dt-16-N-6000000-run-1.pkl',
                  'tetrahedron-dt-16-N-6000000-run-2.pkl',
                  'tetrahedron-dt-16-N-6000000-run-3.pkl',
                  'tetrahedron-dt-16-N-6000000-run-4.pkl',
                  'tetrahedron-dt-16-N-6000000-run-5.pkl',
                  'tetrahedron-dt-16-N-6000000-run-6.pkl',
                  'tetrahedron-dt-16-N-6000000-run-7.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-8.pkl']]
+                 'tetrahedron-dt-16-N-6000000-run-8.pkl',],
+                ['tetrahedron-dt-8-N-1000000-run-1.pkl',
+                 'tetrahedron-dt-8-N-1000000-run-2.pkl',
+                 'tetrahedron-dt-8-N-1000000-run-3.pkl',
+                 'tetrahedron-dt-8-N-1000000-run-4.pkl'],
+                ['tetrahedron-dt-4-N-400000-run-1.pkl',
+                 'tetrahedron-dt-4-N-400000-run-2.pkl',
+                 'tetrahedron-dt-4-N-400000-run-3.pkl',
+                 'tetrahedron-dt-4-N-400000-run-4.pkl',]]
+
 
   dts = [64., 32., 16.]
 
