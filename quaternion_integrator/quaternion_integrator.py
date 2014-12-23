@@ -55,7 +55,7 @@ class QuaternionIntegrator(object):
       force = self.force_calculator(self.location, self.orientation)
       torque = self.torque_calculator(self.location, self.orientation)
       velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
-                            np.sqrt(2.0*self.kT/dt)*
+                            np.sqrt(4.0*self.kT/dt)*
                             np.dot(mobility_half, noise))
       velocity = velocity_and_omega[0:(3*self.dim)]
       omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
@@ -66,7 +66,7 @@ class QuaternionIntegrator(object):
       noise = np.random.normal(0.0, 1.0, self.dim*3)
       torque = self.torque_calculator(self.orientation)
       omega = (np.dot(mobility, torque) + 
-               np.sqrt(2.0*self.kT/dt)*np.dot(mobility_half, noise))
+               np.sqrt(4.0*self.kT/dt)*np.dot(mobility_half, noise))
 
     # Update each quaternion at a time.
     orientation_midpoint = []
@@ -79,21 +79,23 @@ class QuaternionIntegrator(object):
     
     if self.has_location:
       mobility_tilde = self.mobility(location_midpoint, orientation_midpoint)
+      noise = noise + np.random.normal(0.0, 1.0, self.dim*6)
       force_tilde = self.force_calculator(location_midpoint, orientation_midpoint)
       torque_tilde = self.torque_calculator(location_midpoint, orientation_midpoint)
       mobility_half_inv = np.linalg.inv(mobility_half)
       velocity_and_omega_tilde = (
         np.dot(mobility_tilde, 
-               np.concatenate([force_tilde, torque_tilde])) + np.sqrt(2*self.kT/dt)*
+               np.concatenate([force_tilde, torque_tilde])) + np.sqrt(self.kT/dt)*
         np.dot(mobility_tilde, np.dot(mobility_half_inv, noise)))
       velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
       omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
     else:
       mobility_tilde = self.mobility(orientation_midpoint)
+      noise = noise + np.random.normal(0.0, 1.0, self.dim*3)
       torque_tilde = self.torque_calculator(orientation_midpoint)
       mobility_half_inv = np.linalg.inv(mobility_half)
       omega_tilde = (
-        np.dot(mobility_tilde, torque_tilde) + np.sqrt(2*self.kT/dt)*
+        np.dot(mobility_tilde, torque_tilde) + np.sqrt(self.kT/dt)*
         np.dot(mobility_tilde, np.dot(mobility_half_inv, noise)))
     
     new_orientation = []
