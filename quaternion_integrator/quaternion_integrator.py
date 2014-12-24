@@ -59,7 +59,6 @@ class QuaternionIntegrator(object):
                             np.dot(mobility_half, noise))
       velocity = velocity_and_omega[0:(3*self.dim)]
       omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
-      
     else:
       mobility  = self.mobility(self.orientation)
       mobility_half = np.linalg.cholesky(mobility)
@@ -216,3 +215,45 @@ class QuaternionIntegrator(object):
       
     return div_term
 
+    
+  def estimate_drift(self, dt, n_steps, scheme):
+    ''' Emperically estimate the drift term in the absence of torque. 
+    For now this is just without location.  TODO: add location.'''
+    old_torque = self.torque_calculator
+    if self.has_location:
+      def zero_torque(orientation, location):
+        return np.zeros(3*len(orientation))
+      def zero_force(orientation, location):
+        return np.zeros(3*len(orientation))
+      old_force = self.force_calculator
+      self.force_calculator = zero_force
+      initial_location = self.location
+    else:
+      def zero_torque(orientation):
+        return np.zeros(3*len(orientation))
+    self.torque_calculator = zero_torque
+    initial_orientation = self.orientation
+
+    drift_samples = []
+    for k in range(n_steps):
+      if scheme == 'FIXMAN':
+        self.fixman_time_step(dt)
+      elif scheme == 'RFD':
+        self.rfd_time_step(dt)
+      else:
+        raise Exception('scheme must be FIXMAN or RFD for drift estimation.')
+      # For now, hard code to 1 dimensional integrator.
+      for k in range(self.orientation):
+        orientation_increment = self.orientation[k]*initial_orientation[k].inverse()
+        drift_angle = orientation_increment.rotation_angle()
+      drift_samples.append(drift_angle)
+      self.orientation = initial_orientation
+
+    avg_drift = np.mean(drift_samples)/dt
+    std_dev = np.std(drift_samples)/np.sqrt(n_steps)/dt
+    
+    return [avg_drift, std_drift]
+      
+      
+      
+    

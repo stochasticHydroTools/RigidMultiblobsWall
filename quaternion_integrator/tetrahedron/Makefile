@@ -7,14 +7,14 @@ PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
  
 #BOOST_INC = /usr/include  #original version
 BOOST_INC = /opt/local/include  #Mac version
-# BOOST_LIB = /usr/lib  #original version
+#BOOST_LIB = /usr/lib  #original version
 BOOST_LIB = /opt/local/lib  #Mac version
  
 # compile mesh classes
 TARGET = tetrahedron_ext
  
 $(TARGET).so: $(TARGET).o
-	g++ -shared  -rdynamic $(TARGET).o -L$(BOOST_LIB)  -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) -o $(TARGET).so
+	clang -shared  -Wl,--export-dynamic $(TARGET).o -L$(BOOST_LIB)  -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) -o $(TARGET).so
 # -Wl,--export-dynamic
  
 $(TARGET).o: $(TARGET).cc

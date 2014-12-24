@@ -52,3 +52,15 @@ class Quaternion(object):
 
   def __str__(self):
     return '[ %f, %f, %f, %f ]' % (self.s, self.p[0], self.p[1], self.p[2])
+
+
+  def inverse(self):
+    ''' Return the inverse quaternion.'''
+    return Quaternion([self.s, -1.*self.p[0], -1.*self.p[1],
+                       -1.*self.p[2]])
+
+  
+  def rotation_angle(self):
+    ''' Return 3 dimensional rotation angle that the quaternion represents. '''
+    phi_norm = 2.*np.arccos(self.s)
+    return phi_norm*self.p/(np.linalg.norm(self.p))

@@ -66,6 +66,45 @@ class TestQuaternion(unittest.TestCase):
                                         theta.s*theta.p[2]))
     self.assertAlmostEqual(R[1][1], 2.*(theta.s**2 + theta.p[1]**2 - 0.5))
     self.assertAlmostEqual(R[2][2], 2.*(theta.s**2 + theta.p[2]**2 - 0.5))
+
+  def test_quaternion_inverse(self):
+    '''Test that the quaternion inverse works.'''
+    # First construct any random unit quaternion. Not uniform.
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+
+    theta_inv = theta.inverse()
+    
+    identity = theta*theta_inv
+    self.assertAlmostEqual(identity.s, 1.0)
+    self.assertAlmostEqual(identity.p[0], 0.0)
+    self.assertAlmostEqual(identity.p[1], 0.0)
+    self.assertAlmostEqual(identity.p[2], 0.0)
+
+    
+  def test_quaternion_rotation_angle(self):
+    ''' Test generating rotation angle from quaternion. '''
+    # First construct any random unit quaternion. Not uniform.
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+
+    rotation_angle = theta.rotation_angle()
+    phi = Quaternion.from_rotation(rotation_angle)
+
+    self.assertAlmostEqual(phi.s, theta.s)
+    self.assertAlmostEqual(phi.p[0], theta.p[0])
+    self.assertAlmostEqual(phi.p[1], theta.p[1])
+    self.assertAlmostEqual(phi.p[2], theta.p[2])
+
+
     
 if __name__ == '__main__':
   unittest.main()

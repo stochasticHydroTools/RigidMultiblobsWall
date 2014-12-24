@@ -129,6 +129,28 @@ class TestQuaternionIntegrator(unittest.TestCase):
     self.assertAlmostEqual(quaternion_integrator.orientation[0].p[2], 
                            new_orientation.p[2])
 
+
+  def test_fixman_drift(self):
+    ''' Test that the drift from the fixman scheme is correct. '''
+    initial_orientation = Quaternion([1., 0., 0., 0.])
+
+    def test_mobility(orientation):
+      return np.array([
+        [1. + orientation[0][0]**2, 0., 0.],
+        [0., 1. + orientation[0][1]**2, 0.],
+        [0., 0., 1. + orientation[0][2]**2],])
+
+    def zero_torque_calculator(orientation):
+      return np.zeros(3)
+    
+
+    test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
+                                           zero_torque_calculator)
+
+    [avg_drift, std_drift] = test_integrator.estimate_drift(1.0, 100, 'FIXMAN')
+    
+    self.assertEqual(avg_drift[0], 2.0)
+
     
 if __name__ == "__main__":
   unittest.main()      
