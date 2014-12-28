@@ -119,7 +119,7 @@ class TestConstrainedIntegrator(unittest.TestCase):
   def test_noise_magnitude(self):
     ''' 
     Test that we can do the correct cholesky decomposition for
-    diagonal matrices
+    noise magnitude.
     '''
     scheme = 'RFD'
     initial_position = np.matrix([[1.2], [0.0]])
@@ -133,14 +133,14 @@ class TestConstrainedIntegrator(unittest.TestCase):
     self.assertAlmostEqual(noise_magnitude[0, 0], np.sqrt(1.2**2 + 1.))
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
     self.assertAlmostEqual(noise_magnitude[1, 0], 0.)
-    self.assertAlmostEqual(noise_magnitude[1, 1], 0.0)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 1.0)
 
     noise_magnitude = test_integrator.noise_magnitude(np.matrix([[0.84852813742385691],
                                                                 [0.84852813742385691]]))
-    self.assertAlmostEqual(noise_magnitude[0, 0], 0.84852813742385691)
+    self.assertAlmostEqual(noise_magnitude[0, 0], 1.3114877048604001)
     self.assertAlmostEqual(noise_magnitude[0, 1], 0.)
-    self.assertAlmostEqual(noise_magnitude[1, 0], 0.84852813742385691)
-    self.assertAlmostEqual(noise_magnitude[1, 1], 0.)
+    self.assertAlmostEqual(noise_magnitude[1, 0], 0.54899485319737662)
+    self.assertAlmostEqual(noise_magnitude[1, 1], 1.1910519095164536)
 
 if __name__ == "__main__":
   unittest.main()

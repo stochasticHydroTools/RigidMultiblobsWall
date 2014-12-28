@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./quaternion_integrator')
 import unittest
 import numpy as np
 import uniform_analyzer as ua
