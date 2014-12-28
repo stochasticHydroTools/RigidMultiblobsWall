@@ -243,15 +243,18 @@ class QuaternionIntegrator(object):
       else:
         raise Exception('scheme must be FIXMAN or RFD for drift estimation.')
       # For now, hard code to 1 dimensional integrator.
-      for k in range(self.orientation):
+      for k in range(self.dim):
         orientation_increment = self.orientation[k]*initial_orientation[k].inverse()
         drift_angle = orientation_increment.rotation_angle()
       drift_samples.append(drift_angle)
       self.orientation = initial_orientation
 
-    avg_drift = np.mean(drift_samples)/dt
-    std_dev = np.std(drift_samples)/np.sqrt(n_steps)/dt
-    
+    avg_drift = np.mean(drift_samples, axis=0)/dt
+    std_drift = np.std(drift_samples)/np.sqrt(n_steps)/dt
+
+    # Reset torque calculator
+    self.torque_calculator
+
     return [avg_drift, std_drift]
       
       

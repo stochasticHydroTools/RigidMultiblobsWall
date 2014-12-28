@@ -132,13 +132,14 @@ class TestQuaternionIntegrator(unittest.TestCase):
 
   def test_fixman_drift(self):
     ''' Test that the drift from the fixman scheme is correct. '''
-    initial_orientation = Quaternion([1., 0., 0., 0.])
+    TOL = 5e-2
+    initial_orientation = [Quaternion([1., 0., 0., 0.])]
 
     def test_mobility(orientation):
       return np.array([
-        [1. + orientation[0][0]**2, 0., 0.],
-        [0., 1. + orientation[0][1]**2, 0.],
-        [0., 0., 1. + orientation[0][2]**2],])
+        [1., orientation[0].s*orientation[0].p[0], 0.],
+        [orientation[0].s*orientation[0].p[0], 1., 0.],
+        [0., 0., 1.],])
 
     def zero_torque_calculator(orientation):
       return np.zeros(3)
@@ -147,9 +148,40 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, std_drift] = test_integrator.estimate_drift(1.0, 100, 'FIXMAN')
+    [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'FIXMAN')
+    print 'fixman avg drift is ', avg_drift
+    print 'fixman std_drift is ', std_drift
     
-    self.assertEqual(avg_drift[0], 2.0)
+    self.assertLess(abs(avg_drift[0]), TOL)
+    self.assertLess(abs(avg_drift[1] - 0.5), TOL)
+    self.assertLess(abs(avg_drift[2]), TOL)
+
+
+
+  def test_rfd_drift(self):
+    ''' Test that the drift from the RFD scheme is correct. '''
+    TOL = 5e-2
+    initial_orientation = [Quaternion([1., 0., 0., 0.])]
+
+    def test_mobility(orientation):
+      return np.array([
+        [1., orientation[0].s*orientation[0].p[0], 0.],
+        [orientation[0].s*orientation[0].p[0], 1., 0.],
+        [0., 0., 1.],])
+
+    def zero_torque_calculator(orientation):
+      return np.zeros(3)
+    
+    test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
+                                           zero_torque_calculator)
+
+    [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'RFD')
+    print 'rfd avg drift is ', avg_drift
+    print 'rfd std_drift is ', std_drift
+    
+    self.assertLess(abs(avg_drift[0]), TOL)
+    self.assertLess(abs(avg_drift[1] - 0.5), TOL)
+    self.assertLess(abs(avg_drift[2]), TOL)
 
     
 if __name__ == "__main__":
