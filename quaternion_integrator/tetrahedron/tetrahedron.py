@@ -1,6 +1,6 @@
 '''
-Script to test a tetrahedron near a wall.  The wall is at z = -h, and
-the tetrahedron's "top" vertex is fixed at (0, 0, 0).
+Script to test a tetrahedron near a wall.  The wall is at z = 0, and
+the tetrahedron's "top" vertex is fixed at (0, 0, H).
 
 This file has the mobility and torque calculator used for any tetrahedron
 test.  Running this script will run a trajectory and bin the heights of each
@@ -8,8 +8,6 @@ of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
 '''
 import sys
-sys.path.append('..')
-sys.path.append('../..')
 import os
 import numpy as np
 import matplotlib
@@ -21,8 +19,8 @@ import cProfile, pstats, StringIO
 import math
 import time
 
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
 
 # TODO: Move the fluid dynamics (not tetrahedron specific)
@@ -396,7 +394,7 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
 
 def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
   ''' 
-  Calculate Error in rotational MSD at identity configuration given an
+  Calculate Error in rotational MSD at initial_orientation given an
   integrator and number of steps. Return the error between this MSD and
   the theoretical msd as the 2 Norm of the matrix difference.
   '''

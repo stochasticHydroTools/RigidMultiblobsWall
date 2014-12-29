@@ -149,9 +149,6 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                            zero_torque_calculator)
 
     [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'FIXMAN')
-    print 'fixman avg drift is ', avg_drift
-    print 'fixman std_drift is ', std_drift
-    
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
@@ -176,9 +173,6 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                            zero_torque_calculator)
 
     [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'RFD')
-    print 'rfd avg drift is ', avg_drift
-    print 'rfd std_drift is ', std_drift
-    
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)

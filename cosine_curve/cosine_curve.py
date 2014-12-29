@@ -8,7 +8,6 @@ python cosine_curve.py dt nsteps nruns
 to run nruns trajectories of nsteps each with timestep dt.
 '''
 import sys
-sys.path.append("../")
 from constrained_integrator import ConstrainedIntegrator
 import matplotlib
 from matplotlib import pyplot

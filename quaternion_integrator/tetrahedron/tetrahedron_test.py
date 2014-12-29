@@ -1,12 +1,10 @@
 """ Test the functions used in the tetrahedron script. """
 import sys
-sys.path.append('../')
-
 import unittest
 import numpy as np
 import random
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import tetrahedron
 
 # Some tests just print quantities, and
@@ -18,6 +16,7 @@ class MockIntegrator(object):
   ''' Mock Quaternion Integrator for Rotational MSD test. '''
   def __init__(self):
     self.position = [Quaternion([1., 0., 0., 0.])]
+    self.kT = 1.0
     
   def additive_em_time_step(self, dt):
     '''
@@ -376,15 +375,11 @@ class TestTetrahedron(unittest.TestCase):
     Test that calc_rotational_msd does the right thing for a simple mock.
     integrator.
     '''
+    TOL = 5e-2
+    initial_orientation = [Quaternion([1., 0., 0., 0.])]
     integrator = MockIntegrator()
-    msd = tetrahedron.calc_rotational_msd(integrator, 1.0, 10)
-    for j in range(3):
-      for k in range(3):
-        if j == 0 and k == 0:
-          self.assertAlmostEqual(msd[j, k], 1.)
-        else:
-          self.assertAlmostEqual(msd[j, k], 0.)
-
+    msd = tetrahedron.calc_rotational_msd(integrator, 'RFD', 1.0, 1000, initial_orientation)
+    self.assertLess(abs(msd), TOL)
 
 if __name__ == '__main__':
   unittest.main()

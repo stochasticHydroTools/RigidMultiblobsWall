@@ -13,8 +13,8 @@ import time
 import argparse
 import cProfile, StringIO, pstats
 import tetrahedron as tdn
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.

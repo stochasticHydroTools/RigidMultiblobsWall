@@ -1,7 +1,10 @@
+import sys
+sys.path.append('../quaternion_integrator')
 import unittest
 import numpy as np
 import random
 import sphere_distribution
+import quaternion_integrator.quaternion
 
 class TestSphereDistribution(unittest.TestCase):
 
@@ -53,19 +56,19 @@ class TestSphereDistribution(unittest.TestCase):
                        [p1*p2 - s*p3, p2**2 + s**2 - 0.5, p3*p2 + s*p1],
                        [p1*p3 + s*p2, p2*p3 - s*p1, p3**2 + s**2 - 0.5]])
     # Get the Quaternion from the matrix.
-    quaternion = sphere_distribution.matrix_to_quaternion(R)
+    theta = sphere_distribution.matrix_to_quaternion(R)
     # The + and - of a quaternion indicate the same rotation. We choose the sign 
     # with 50% probability each.
-    if (quaternion[0]/s) > 0:
-      self.assertAlmostEqual(quaternion[0], s)
-      self.assertAlmostEqual(quaternion[1], p1)
-      self.assertAlmostEqual(quaternion[2], p2)
-      self.assertAlmostEqual(quaternion[3], p3)
+    if (theta[0]/s) > 0:
+      self.assertAlmostEqual(theta[0], s)
+      self.assertAlmostEqual(theta[1], p1)
+      self.assertAlmostEqual(theta[2], p2)
+      self.assertAlmostEqual(theta[3], p3)
     else:
-      self.assertAlmostEqual(quaternion[0], -1.*s)
-      self.assertAlmostEqual(quaternion[1], -1.*p1)
-      self.assertAlmostEqual(quaternion[2], -1.*p2)
-      self.assertAlmostEqual(quaternion[3], -1.*p3)
+      self.assertAlmostEqual(theta[0], -1.*s)
+      self.assertAlmostEqual(theta[1], -1.*p1)
+      self.assertAlmostEqual(theta[2], -1.*p2)
+      self.assertAlmostEqual(theta[3], -1.*p3)
 
 
 if __name__ == "__main__":

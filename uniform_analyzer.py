@@ -2,9 +2,10 @@
 Class to look at samples on a sphere and verify that they are a uniform
 distribution.
 '''
+import sys
 import numpy as np
 from matplotlib import pyplot
-from quaternion import Quaternion
+from quaternion_integrator.quaternion import Quaternion
 
 class UniformAnalyzer(object):
   ''' 

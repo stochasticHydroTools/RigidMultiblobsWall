@@ -1,9 +1,8 @@
 import sys
-sys.path.append('./quaternion_integrator')
 import unittest
 import numpy as np
 import uniform_analyzer as ua
-from quaternion import Quaternion
+from quaternion_integrator.quaternion import Quaternion
 
 class TestUnifSphereDist(unittest.TestCase):
   ''' Test the Uniform Sphere Distribution analyzer functions '''
