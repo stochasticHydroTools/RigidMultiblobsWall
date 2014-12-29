@@ -378,7 +378,7 @@ class TestTetrahedron(unittest.TestCase):
     TOL = 5e-2
     initial_orientation = [Quaternion([1., 0., 0., 0.])]
     integrator = MockIntegrator()
-    msd = tetrahedron.calc_rotational_msd(integrator, 'RFD', 1.0, 1000, initial_orientation)
+    msd = tetrahedron.calc_rotational_msd(integrator, 'RFD', 1.0, 2000, initial_orientation)
     self.assertLess(abs(msd), TOL)
 
 if __name__ == '__main__':

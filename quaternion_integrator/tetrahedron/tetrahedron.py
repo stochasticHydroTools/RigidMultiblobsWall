@@ -8,6 +8,8 @@ of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
 '''
 import sys
+# TODO, maybe check that the working directory is what we think it is here.
+sys.path.append('../..')
 import os
 import numpy as np
 import matplotlib
