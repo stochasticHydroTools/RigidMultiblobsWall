@@ -85,7 +85,7 @@ class QuaternionIntegrator(object):
       velocity_and_omega_tilde = (
         np.dot(mobility_tilde, 
                np.concatenate([force_tilde, torque_tilde])) + np.sqrt(self.kT/dt)*
-        np.dot(mobility_tilde, np.dot(mobility_half_inv, noise)))
+        np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
       velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
       omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
     else:
