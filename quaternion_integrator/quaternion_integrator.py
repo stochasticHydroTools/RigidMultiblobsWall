@@ -95,7 +95,7 @@ class QuaternionIntegrator(object):
       mobility_half_inv = np.linalg.inv(mobility_half)
       omega_tilde = (
         np.dot(mobility_tilde, torque_tilde) + np.sqrt(self.kT/dt)*
-        np.dot(mobility_tilde, np.dot(mobility_half_inv, noise)))
+        np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
     
     new_orientation = []
     for i in range(self.dim):

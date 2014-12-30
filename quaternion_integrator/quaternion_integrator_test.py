@@ -148,16 +148,16 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 200000, 'FIXMAN')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 80000, 'FIXMAN')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
 
-    covariance = test_mobility(initial_orientation)
+    true_covariance = test_mobility(initial_orientation)
     
     for j in range(3):
       for k in range(3):
-        self.assertLess(abs(avg_cov[j, k] - covariance[j, k]), TOL)
+        self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
 
 
 
@@ -178,16 +178,16 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 200000, 'RFD')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 80000, 'RFD')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
 
-    covariance = test_mobility(initial_orientation)
+    true_covariance = test_mobility(initial_orientation)
     
     for j in range(3):
       for k in range(3):
-        self.assertLess(abs(avg_cov[j, k] - covariance[j, k]), TOL)
+        self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
 
 
     

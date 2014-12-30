@@ -107,10 +107,14 @@ if __name__  == '__main__':
                #   'tetrahedron-dt-32-N-4000000-run-2.pkl',
                #   'tetrahedron-dt-32-N-4000000-run-3.pkl',
                #   'tetrahedron-dt-32-N-4000000-run-4.pkl'],
+                ['tetrahedron-dt-32-N-6000000-run-1.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-2.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-3.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-4.pkl'],
                 ['tetrahedron-dt-16-N-6000000-run-1.pkl',
                  'tetrahedron-dt-16-N-6000000-run-2.pkl',
                  'tetrahedron-dt-16-N-6000000-run-3.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-4.pkl',],
+                 'tetrahedron-dt-16-N-6000000-run-4.pkl'],
                  # 'tetrahedron-dt-16-N-6000000-run-5.pkl',
                  # 'tetrahedron-dt-16-N-6000000-run-6.pkl',
                  # 'tetrahedron-dt-16-N-6000000-run-7.pkl',
@@ -122,10 +126,14 @@ if __name__  == '__main__':
                 ['tetrahedron-dt-4-N-6000000-run-1.pkl',
                  'tetrahedron-dt-4-N-6000000-run-2.pkl',
                  'tetrahedron-dt-4-N-6000000-run-3.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-4.pkl',]]
+                 'tetrahedron-dt-4-N-6000000-run-4.pkl'],
+                ['tetrahedron-dt-2-N-6000000-run-1.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-2.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-3.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-4.pkl'],]
 
 
-  dts = [16., 8., 4.]
+  dts = [32., 16., 8., 4., 2.]
 
   heights_list = []
   for parameter_set in data_files:
@@ -138,6 +146,6 @@ if __name__  == '__main__':
   # For now assume all runs have the same scheme order and buckets.
   buckets = heights_data['buckets']
   names = heights_data['names']
-  check_height_order(heights_list, buckets, names, dts, 1.)
+  check_height_order(heights_list, buckets, names, dts, 1.0)
       
   
