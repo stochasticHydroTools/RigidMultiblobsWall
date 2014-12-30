@@ -216,9 +216,15 @@ class QuaternionIntegrator(object):
     return div_term
 
     
-  def estimate_drift(self, dt, n_steps, scheme):
-    ''' Emperically estimate the drift term in the absence of torque. 
+  def estimate_drift_and_covariance(self, dt, n_steps, scheme):
+    ''' Emperically estimate the drift and covariance term in the absence of torque. 
     For now this is just without location.  TODO: add location.'''
+
+    if self.dim > 1:
+      # For now, hard code to 1 dimensional integrator.
+      raise NotImplementedError('Drift and Covariance estimation only implemented for '
+                                '1-d integrators.')
+
     old_torque = self.torque_calculator
     if self.has_location:
       def zero_torque(orientation, location):
@@ -235,6 +241,7 @@ class QuaternionIntegrator(object):
     initial_orientation = self.orientation
 
     drift_samples = []
+    covariance_samples = []
     for k in range(n_steps):
       if scheme == 'FIXMAN':
         self.fixman_time_step(dt)
@@ -242,20 +249,23 @@ class QuaternionIntegrator(object):
         self.rfd_time_step(dt)
       else:
         raise Exception('scheme must be FIXMAN or RFD for drift estimation.')
-      # For now, hard code to 1 dimensional integrator.
+
       for k in range(self.dim):
         orientation_increment = self.orientation[k]*initial_orientation[k].inverse()
         drift_angle = orientation_increment.rotation_angle()
+
+
       drift_samples.append(drift_angle)
+      covariance_samples.append(np.outer(drift_angle, drift_angle))
       self.orientation = initial_orientation
 
     avg_drift = np.mean(drift_samples, axis=0)/dt
-    std_drift = np.std(drift_samples)/np.sqrt(n_steps)/dt
+    avg_covariance = np.mean(covariance_samples, axis=0)/(2.*dt)
 
     # Reset torque calculator
     self.torque_calculator
 
-    return [avg_drift, std_drift]
+    return [avg_drift, avg_covariance]
       
       
       

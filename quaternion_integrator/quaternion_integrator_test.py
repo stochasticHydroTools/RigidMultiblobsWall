@@ -130,8 +130,8 @@ class TestQuaternionIntegrator(unittest.TestCase):
                            new_orientation.p[2])
 
 
-  def test_fixman_drift(self):
-    ''' Test that the drift from the fixman scheme is correct. '''
+  def test_fixman_drift_and_cov(self):
+    ''' Test that the drift and covariance from the fixman scheme is correct. '''
     TOL = 5e-2
     initial_orientation = [Quaternion([1., 0., 0., 0.])]
 
@@ -148,15 +148,21 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'FIXMAN')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 200000, 'FIXMAN')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
 
+    covariance = test_mobility(initial_orientation)
+    
+    for j in range(3):
+      for k in range(3):
+        self.assertLess(abs(avg_cov[j, k] - covariance[j, k]), TOL)
 
 
-  def test_rfd_drift(self):
-    ''' Test that the drift from the RFD scheme is correct. '''
+
+  def test_rfd_drift_and_cov(self):
+    ''' Test that the drift and covariance from the RFD scheme is correct. '''
     TOL = 5e-2
     initial_orientation = [Quaternion([1., 0., 0., 0.])]
 
@@ -172,10 +178,17 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, std_drift] = test_integrator.estimate_drift(0.05, 50000, 'RFD')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 200000, 'RFD')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
+
+    covariance = test_mobility(initial_orientation)
+    
+    for j in range(3):
+      for k in range(3):
+        self.assertLess(abs(avg_cov[j, k] - covariance[j, k]), TOL)
+
 
     
 if __name__ == "__main__":
