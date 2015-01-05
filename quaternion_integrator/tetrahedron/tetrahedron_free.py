@@ -196,27 +196,33 @@ def generate_free_equilibrum_sample():
     z_coord = -1.*np.log(phi)/(M1 + M2 + M3 + M4)
     location = [0., 0., z_coord]
     r_vectors = get_free_r_vectors(location, theta)
-    # Porential minus (M1 + M2 + M3 + M4)**z_coord because that part of the
-    # distribution is handled by the exponential variable.
-    U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
-         repulsion_strength/location[2] 
-         + repulsion_strength/(r_vectors[0][2] + z_coord)
-         + repulsion_strength/(r_vectors[1][2] + z_coord)
-         + repulsion_strength/(r_vectors[2][2] + z_coord))
-    # roughly minimize the potential for the acceptance normalization.
-    minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
-    normalization_constant = np.exp(-1.*(minimizing_height)*(M1 + M2 + M3) -
-                                    3.*repulsion_strength/
-                                    (minimizing_height + z_coord))
-    gibbs_term = np.exp(-1.*U)
-    if gibbs_term > max_gibbs_term:
-      max_gibbs_term = gibbs_term
-    accept_prob = np.exp(-1.*(U))/normalization_constant
-    if accept_prob > 1:
-      print "Warning: acceptance probability > 1."
-      print "accept_prob = ", accept_prob
-    if np.random.uniform() < accept_prob:
-      return [location, theta]
+    if ((r_vectors[0][2] + z_coord > 0) and
+        (r_vectors[1][2] + z_coord > 0) and
+        (r_vectors[2][2] + z_coord > 0)):
+      
+    
+      # Porential minus (M1 + M2 + M3 + M4)**z_coord because that part of the
+      # distribution is handled by the exponential variable.
+      U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
+           repulsion_strength/location[2] 
+           + repulsion_strength/(r_vectors[0][2] + z_coord)
+           + repulsion_strength/(r_vectors[1][2] + z_coord)
+           + repulsion_strength/(r_vectors[2][2] + z_coord))
+      # roughly minimize the potential for the acceptance normalization.
+      minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
+      normalization_constant = np.exp(-1.*(minimizing_height - z_coord)*
+                                      (M1 + M2 + M3) -
+                                      3.*repulsion_strength/minimizing_height)
+      gibbs_term = np.exp(-1.*U)
+      if gibbs_term > max_gibbs_term:
+        max_gibbs_term = gibbs_term
+      accept_prob = np.exp(-1.*(U))/normalization_constant
+      if accept_prob > 1:
+        print "Warning: acceptance probability > 1."
+        print "accept_prob = ", accept_prob
+        print 'z_coord is', z_coord
+      if np.random.uniform() < accept_prob:
+        return [location, theta]
 
 
 if __name__ == '__main__':
