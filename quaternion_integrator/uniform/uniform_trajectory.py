@@ -3,11 +3,9 @@ Use the quaternion integrator on a simple problem that should
 result in a uniform distribution.  Test with uniform analyzer.
 '''
 import sys
-sys.path.append("..")
-sys.path.append("../..")
 import numpy as np
-from quaternion_integrator import QuaternionIntegrator
-from quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
 import uniform_analyzer as ua
 
 def diagonal_mobility(position):

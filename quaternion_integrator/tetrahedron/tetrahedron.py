@@ -8,9 +8,10 @@ of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
 '''
 import sys
-# TODO, maybe check that the working directory is what we think it is here.
-sys.path.append('../..')
 import os
+# TODO, maybe check that the working directory is what we think it is here.
+#sys.path.append('..')
+#sys.path.append('../..')
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -20,7 +21,6 @@ import cPickle
 import cProfile, pstats, StringIO
 import math
 import time
-
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua

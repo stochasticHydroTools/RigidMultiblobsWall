@@ -18,8 +18,8 @@ from matplotlib import pyplot
 import tetrahedron as tdn
 import numpy as np
 import cPickle
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
 
 class MSDStatistics(object):

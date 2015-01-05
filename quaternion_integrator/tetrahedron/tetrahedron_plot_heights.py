@@ -3,7 +3,7 @@ sys.path.append('..')
 import numpy as np
 import tetrahedron as tdn
 from matplotlib import pyplot
-from quaternion import Quaternion
+from quaternion_integrator.quaternion import Quaternion
 import cPickle
 
 def distribution_height_particle(heights, buckets, names):

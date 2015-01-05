@@ -110,10 +110,18 @@ if __name__  == '__main__':
                 ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
                  'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
                  'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl']]
+                 'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl']]
 
 
-  dts = [32., 16., 8.]
+  dts = [32., 16., 8., 4., 2.]
 
   heights_list = []
   for parameter_set in data_files:

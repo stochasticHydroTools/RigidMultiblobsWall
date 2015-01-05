@@ -8,7 +8,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import cPickle
-from tetrahedron_rotational_msd import MSDStatistics
+from quaternion_integrator.tetrahedron.tetrahedron_rotational_msd import MSDStatistics
 
 def plot_time_dependent_msd(msd_statistics):
   ''' Plot the rotational MSD as a function of time.'''

@@ -1,13 +1,11 @@
 ''' Script to do timestep refinement on the tetrahedron problem. '''
-
+''' This is no longer needed.'''
 import sys
-sys.path.append('..')
-sys.path.append('../..')
 import numpy as np
 import tetrahedron as tdn
 from matplotlib import pyplot
-from quaternion import Quaternion
-from quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
 def plot_refinement(dts, fixman_errs, rfd_errs):
   pass

@@ -8,9 +8,9 @@ import numpy as np
 import math
 from matplotlib import pyplot
 
-import tetrahedron as tdn
-from quaternion_integrator import QuaternionIntegrator
-from quaternion import Quaternion
+import quaternion_integrator.tetrahedron.tetrahedron as tdn
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from quaternion_integrator.quaternion import Quaternion
 
 def bin_phi(orientation, bin_width, phi_hist):
   ''' Bin the angle phi given an orientation. '''
