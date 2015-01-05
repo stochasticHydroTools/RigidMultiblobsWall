@@ -24,6 +24,7 @@ H = 3.5     # Distance to wall.
 M1 = 0.2
 M2 = 0.4
 M3 = 0.6
+M4 = 0.4
 
 
 def free_tetrahedron_mobility(location, orientation):
@@ -123,14 +124,15 @@ def free_gravity_torque_calculator(location, orientation):
   Calculate torque based on location, given as a length 1 list of 
   a 3-vector, and orientation, given as a length
   1 list of quaternions (1 quaternion).  This assumes the masses
-  of particles 1, 2, and 3 are M1, M2, and M3 respectively.
+  of particles 1, 2, and 3 are M1, M2, M3, and M4 respectively.
   '''
+  repulsion_strength = 2.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
-  # Gravity
-  g = np.array([0., 0., 1.0/(r_vectors[0][2]**2) - M1, 
-                0., 0., 1.0/(r_vectors[1][2]**2) - M2,
-                0., 0., 1.0/(r_vectors[2][2]**2) - M3])
+  # Gravity and repulsion.
+  g = np.array([0., 0., repulsion_strength/(r_vectors[0][2]**2) - M1, 
+                0., 0., repulsion_strength/(r_vectors[1][2]**2) - M2,
+                0., 0., repulsion_strength/(r_vectors[2][2]**2) - M3])
   return np.dot(R.T, g)
 
 
@@ -146,12 +148,15 @@ def free_gravity_force_calculator(location, orientation):
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
   # TODO: add a mass at the top vertex, make all vertices repel
+  repulsion_strength = 2.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  potential_force = np.array([0., 0., (1.0/(r_vectors[0][2]**2) + 
-                                       1.0/(r_vectors[1][2]**2) + 
-                                       1.0/(r_vectors[2][2]**2) + 
-                                       1.0/(location[0][2]**2))])
-  gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3)])
+  for k in range(len(r_vectors)):
+    r_vectors[k] = r_vectors[k] + location[0]
+  potential_force = np.array([0., 0., (repulsion_strength/(r_vectors[0][2]**2) + 
+                                       repulsion_strength/(r_vectors[1][2]**2) + 
+                                       repulsion_strength/(r_vectors[2][2]**2) + 
+                                       repulsion_strength/(location[0][2]**2))])
+  gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3 + M4)])
   return potential_force + gravity_force
 
 
@@ -178,24 +183,31 @@ def generate_free_equilibrum_sample():
   then accept/rejecting with probability
   exp(-U(heights))
   '''
+  repulsion_strength = 2.0
   max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.
     theta = np.random.normal(0., 1., 4)
     theta = Quaternion(theta/np.linalg.norm(theta))
     # For location, set x and y to 0, since these are not affected
-    # by the potential.
-    location = [0., 0., np.random.uniform(2.5, 20.0)]
+    # by the potential at all. Generate z coordinate as an exponential 
+    # random variable.
+    phi = np.random.uniform(0.0, 1.0)
+    z_coord = -1.*np.log(phi)/(M1 + M2 + M3 + M4)
+    location = [0., 0., z_coord]
     r_vectors = get_free_r_vectors(location, theta)
-    #TODO: add potential from wall to this.
+    # Porential minus (M1 + M2 + M3 + M4)**z_coord because that part of the
+    # distribution is handled by the exponential variable.
     U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
-         8./location[2])
-    # Roughly the smallest height.
-    smallest_height = 2.0
-    normalization_constant = np.exp(-1.*smallest_height*(M1 + M2 + M3) - 
-                                    8./(3*smallest_height))
-    # For now, we set the normalization to 1e-2 for masses:
-    #       M1 = 0.1, M2 = 0.2, M3 = 0.3
+         repulsion_strength/location[2] 
+         + repulsion_strength/(r_vectors[0][2] + z_coord)
+         + repulsion_strength/(r_vectors[1][2] + z_coord)
+         + repulsion_strength/(r_vectors[2][2] + z_coord))
+    # roughly minimize the potential for the acceptance normalization.
+    minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
+    normalization_constant = np.exp(-1.*(minimizing_height)*(M1 + M2 + M3) -
+                                    3.*repulsion_strength/
+                                    (minimizing_height + z_coord))
     gibbs_term = np.exp(-1.*U)
     if gibbs_term > max_gibbs_term:
       max_gibbs_term = gibbs_term

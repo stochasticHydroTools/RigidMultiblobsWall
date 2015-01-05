@@ -80,6 +80,7 @@ class TestFreeTetrahedron(unittest.TestCase):
         for l in range(3):
           self.assertAlmostEqual(block[k][l], rot_matrix[3*j + k, l])
 
+
     
 
 if __name__ == '__main__':

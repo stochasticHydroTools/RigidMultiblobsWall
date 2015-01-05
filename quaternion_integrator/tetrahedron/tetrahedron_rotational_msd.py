@@ -101,7 +101,7 @@ def calc_rotational_msd_from_long_run(initial_orientation,
   by calculating it from time lagged data. 
   args:
     initial_orientation: list of length 1 quaternion where 
-                 the run starts.  This shouldn't effect restuls.
+                 the run starts.  This shouldn't effect results.
     scheme: FIXMAN, RFD, or EM, scheme for the integrator to use.
     dt:  float, timestep used by the integrator.
     end_time: float, how much time to track the evolution of the MSD.
@@ -190,7 +190,7 @@ if __name__ == "__main__":
   schemes = ['FIXMAN', 'RFD', 'EM']
   dts = [32., 16., 8.]
   end_time = 128.
-  n_runs = 25000
+  n_runs = 2500
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
@@ -207,7 +207,7 @@ if __name__ == "__main__":
       #                                                   n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
       print 'finished timestep ', dt, 'for scheme ', scheme
-      os.stdout.flush()
+      sys.stdout.flush()
       
 
   # Make directory for data if it doesn't exist.
