@@ -126,7 +126,7 @@ def free_gravity_torque_calculator(location, orientation):
   1 list of quaternions (1 quaternion).  This assumes the masses
   of particles 1, 2, and 3 are M1, M2, M3, and M4 respectively.
   '''
-  repulsion_strength = 2.0
+  repulsion_strength = 3.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
   # Gravity and repulsion.
@@ -148,7 +148,7 @@ def free_gravity_force_calculator(location, orientation):
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
   # TODO: add a mass at the top vertex, make all vertices repel
-  repulsion_strength = 2.0
+  repulsion_strength = 3.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   for k in range(len(r_vectors)):
     r_vectors[k] = r_vectors[k] + location[0]
@@ -183,7 +183,7 @@ def generate_free_equilibrum_sample():
   then accept/rejecting with probability
   exp(-U(heights))
   '''
-  repulsion_strength = 2.0
+  repulsion_strength = 3.0
   max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.

@@ -118,7 +118,11 @@ if __name__  == '__main__':
                 ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
                  'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
                  'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl']]
+                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl']]
 
 
   dts = [32., 16., 8., 4., 2.]
