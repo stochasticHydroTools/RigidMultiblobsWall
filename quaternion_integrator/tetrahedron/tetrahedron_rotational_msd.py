@@ -11,7 +11,6 @@ get a curve of MSD(t).
 '''
 import os
 import sys
-sys.path.append('..')
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
@@ -96,7 +95,7 @@ def calc_rotational_msd_from_long_run(initial_orientation,
                                       end_time,
                                       n_steps):
   ''' 
-  Do one long run, and along the way gather statsitics
+  Do one long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
   by calculating it from time lagged data. 
   args:
@@ -188,9 +187,9 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [32., 16., 8.]
-  end_time = 128.
-  n_runs = 2500
+  dts = [8., 4., 2.]
+  end_time = 84.
+  n_runs = 25000
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
