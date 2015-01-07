@@ -255,9 +255,15 @@ if __name__ == '__main__':
   fixman_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                            initial_orientation, 
                                            free_gravity_torque_calculator, 
-                                           has_location = True,
-                                           initial_location = initial_location,
-                                           force_calculator = free_gravity_force_calculator)
+                                           has_location=True,
+                                           initial_location=initial_location,
+                                           force_calculator=free_gravity_force_calculator)
+  rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+                                        initial_orientation, 
+                                        free_gravity_torque_calculator, 
+                                        has_location=True,
+                                        initial_location=initial_location,
+                                        force_calculator=free_gravity_force_calculator)
   
 
   # Get command line parameters
@@ -269,6 +275,7 @@ if __name__ == '__main__':
   # from the wall a bit.
   bin_width = 1./2.
   fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
   equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
   start_time = time.time()
   for k in range(n_steps):
@@ -278,6 +285,14 @@ if __name__ == '__main__':
                               fixman_integrator.orientation[0], 
                               bin_width, 
                               fixman_heights)
+
+    # RFD step and bin result.
+    rfd_integrator.rfd_time_step(dt)
+    bin_free_particle_heights(rfd_integrator.location[0],
+                              rfd_integrator.orientation[0], 
+                              bin_width, 
+                              rfd_heights)
+
     # Bin equilibrium sample.
     sample = generate_free_equilibrum_sample()
     bin_free_particle_heights(sample[0], 
@@ -300,7 +315,7 @@ if __name__ == '__main__':
             elapsed_time*float(n_steps)/float(k)/60.)
       sys.stdout.flush()
 
-  heights = [fixman_heights, equilibrium_heights]
+  heights = [fixman_heights, rfd_heights, equilibrium_heights]
   
   height_data = dict()
   # Save parameters just in case they're useful in the future.
@@ -308,7 +323,7 @@ if __name__ == '__main__':
                            'M3': M3}
   height_data['heights'] = heights
   height_data['buckets'] = np.linspace(0., 25., len(heights[0][0]))
-  height_data['names'] = ['Fixman', 'Gibbs-Boltzmann']
+  height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
 
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):

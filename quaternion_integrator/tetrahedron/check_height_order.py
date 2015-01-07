@@ -99,33 +99,38 @@ if __name__  == '__main__':
   #  Check their order.
   # List of lists. Each entry should be a list of names of data files for multiple runs
   # with the same timestep and number of steps.
-  data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl']]
+  # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl']]
 
 
-  dts = [32., 16., 8., 4., 2.]
+  # Free tetrahedron
+  data_files = [['free-tetrahedron-dt-0.00625-N-60000.pkl'],
+                ['free-tetrahedron-dt-0.003125-N-60000.pkl']]
+ 
+
+  dts = [0.00625, 0.003125]
 
   heights_list = []
   for parameter_set in data_files:
