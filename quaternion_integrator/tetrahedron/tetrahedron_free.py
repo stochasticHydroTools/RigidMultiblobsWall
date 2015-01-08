@@ -12,6 +12,8 @@ import cPickle
 import time
 import argparse
 import cProfile, StringIO, pstats
+import logging
+
 import tetrahedron as tdn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -248,6 +250,25 @@ if __name__ == '__main__':
   if args.profile:
     pr = cProfile.Profile()
     pr.enable()
+
+  # Get command line parameters
+  dt = args.dt
+  n_steps = args.n_steps
+  print_increment = max(int(n_steps/20.), 1)
+
+  # Set up logging.
+  # Make directory for logs if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+    os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
+  log_filename = './logs/free-tetrahedron-dt-%d-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('progress_logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
     
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., H]]
@@ -266,10 +287,6 @@ if __name__ == '__main__':
                                         force_calculator=free_gravity_force_calculator)
   
 
-  # Get command line parameters
-  dt = args.dt
-  n_steps = args.n_steps
-  print_increment = max(int(n_steps/20.), 1)
   # For now hard code bin width.  Number of bins is equal to 30./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
@@ -303,20 +320,29 @@ if __name__ == '__main__':
     if k % print_increment == 0:
       elapsed_time = time.time() - start_time
       if elapsed_time < 60.:
-        print 'At step:', k, ' Time Taken: %.2f Seconds' % float(elapsed_time)
+        progress_logger.info('At step: %d. Time Taken: %.2f Seconds' % 
+                             (k, float(elapsed_time)))
         if k > 0:
-          print 'Estimated Total time required: %.2f Seconds.' % (
-            elapsed_time*float(n_steps)/float(k))
+          progress_logger.info('Estimated Total time required: %.2f Seconds.' %
+                               (elapsed_time*float(n_steps)/float(k)))
       else:
-        print 'At step:', k, ' Time Taken: %.2f Minutes.' % (
-          float(elapsed_time)/60.)
+        progress_logger.info('At step: %d. Time Taken: %.2f Minutes.' %
+                             (k, (float(elapsed_time)/60.)))
         if k > 0:
-          print 'Estimated Total time required: %.2f Minutes.' % (
-            elapsed_time*float(n_steps)/float(k)/60.)
+          progress_logger.info('Estimated Total time required: %.2f Minutes.' %
+                               (elapsed_time*float(n_steps)/float(k)/60.))
       sys.stdout.flush()
 
+  elapsed_time = time.time() - start_time
+  if elapsed_time > 60:
+    progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
+                         float(elapsed_time)/60.)
+  else:
+    progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
+                         float(elapsed_time))
+
+  # Gather data to save.
   heights = [fixman_heights, rfd_heights, equilibrium_heights]
-  
   height_data = dict()
   # Save parameters just in case they're useful in the future.
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
@@ -331,7 +357,8 @@ if __name__ == '__main__':
 
   # Optional name for data provided
   if len(args.data_name) > 0:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (
+      dt, n_steps, args.data_name)
   else:
     data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 

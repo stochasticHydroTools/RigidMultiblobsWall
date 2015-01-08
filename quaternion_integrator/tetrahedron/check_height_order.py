@@ -126,11 +126,12 @@ if __name__  == '__main__':
 
 
   # Free tetrahedron
-  data_files = [['free-tetrahedron-dt-0.00625-N-60000.pkl'],
-                ['free-tetrahedron-dt-0.003125-N-60000.pkl']]
- 
+  data_files = [['free-tetrahedron-dt-0.002-N-2000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.002-N-2000000-run-2.pkl'],
+                ['free-tetrahedron-dt-0.001-N-2000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.001-N-2000000-run-2.pkl']]
 
-  dts = [0.00625, 0.003125]
+  dts = [0.002, 0.001]
 
   heights_list = []
   for parameter_set in data_files:

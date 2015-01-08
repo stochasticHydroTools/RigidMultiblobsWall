@@ -13,10 +13,13 @@ import os
 import sys
 import matplotlib
 matplotlib.use('Agg')
+import argparse
 from matplotlib import pyplot
 import tetrahedron as tdn
 import numpy as np
 import cPickle
+import logging
+
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
@@ -180,6 +183,29 @@ def plot_msd_convergence(dts, msd_list, names):
 
 
 if __name__ == "__main__":
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulations to calculate '
+                                   'fixed tetrahedron rotational MSD using the '
+                                   'Fixman, Random Finite Difference, and '
+                                   'Euler-Maruyama schemes at multiple timesteps.')
+  parser.add_argument('-dts', dest='dts', type=float, nargs='+',
+                      help='Timesteps to use for runs. specify as a list, e.g. '
+                      '[4.0, 2.0]')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs or number of runs '
+                      'to perform in the case of fixed initial condition.')
+  parser.add_argument('-fixed', dest='fixed', type=bool,
+                      help='Indicate whether to do multiple runs starting at '
+                      'a fixed initial condition.  If false, will do one long '
+                      'run and calculate the average time dependent MSD at '
+                      'equilibrium.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  args = parser.parse_args()
+
   # Set masses and initial position.
   tdn.M1 = 0.1
   tdn.M2 = 0.1
@@ -187,40 +213,63 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [32., 16., 8., 4.]
-  end_time = 128.
-  n_runs = 25000
+
+  dts = args.dts # [8., 4., 2.]
+  end_time = 84.  # TODO: Maybe make this an argument.
+  n_runs = args.n_steps #25000
+
+  # Setup logging.
+  # Make directory for logs if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+    os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
+  log_filename = './logs/rotational-msd-fixed-%s-dts-%s-N-%d-%s.log' % (
+    args.fixed, dts, n_runs, args.data_name)
+  progress_logger = logging.getLogger('progress_logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
     for dt in dts:
-      run_data = calculate_msd_from_fixed_initial_condition(initial_orientation,
-                                                            scheme,
-                                                            dt,
-                                                            end_time,
-                                                            n_runs)
-      # run_data = calc_rotational_msd_from_long_run(initial_orientation,
-      #                                              scheme,
-      #                                              dt,
-      #                                              end_time,
-      #                                              n_runs)
+      if args.fixed:
+        run_data = calculate_msd_from_fixed_initial_condition(
+          initial_orientation,
+          scheme,
+          dt,
+          end_time,
+          n_runs)
+      else:
+        run_data = calc_rotational_msd_from_long_run(initial_orientation,
+                                                     scheme,
+                                                     dt,
+                                                     end_time,
+                                                     n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
-      print 'finished timestep ', dt, 'for scheme ', scheme
+      progress_logger.info('finished timestepping dt= %f for scheme %s' % (
+        dt, scheme))
       sys.stdout.flush()
-      
 
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
     os.mkdir(os.path.join(os.getcwd(), 'data'))
 
-  # Optional name for data provided    
-  if len(sys.argv) > 3:
-    data_name = './data/rot-msd-dt-%s-N-%d-%s.pkl' % (dts, n_runs, sys.argv[3])
+  # Optional name for data provided
+  data_name = args.data_name
+  if len(data_name) > 3:
+    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d-%s.pkl' % (
+      args.fixed, dts, n_runs, data_name)
   else:
-    data_name = './data/rot-msd-dt-%s-N-%d.pkl' % (dts, n_runs)
+    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d.pkl' % (
+      args.fixed, dts, n_runs)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
+
+
 
 #  plot_time_dependent_msd(msd_statistics)
 #  plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],

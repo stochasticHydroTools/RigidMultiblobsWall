@@ -9,9 +9,6 @@ for the equilibrium distribution.
 '''
 import sys
 import os
-# TODO, maybe check that the working directory is what we think it is here.
-#sys.path.append('..')
-#sys.path.append('../..')
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -21,6 +18,8 @@ import cPickle
 import cProfile, pstats, StringIO
 import math
 import time
+import logging
+
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
@@ -473,6 +472,20 @@ if __name__ == "__main__":
   n_steps = args.n_steps #int(sys.argv[2])
   print_increment = max(int(n_steps/20.), 1)
 
+  # Set up logging.
+  # Make directory for logs if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+    os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
+  log_filename = './logs/tetrahedron-dt-%d-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('progress_logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.
@@ -507,16 +520,26 @@ if __name__ == "__main__":
     if k % print_increment == 0:
       elapsed_time = time.time() - start_time
       if elapsed_time < 60.:
-        print 'At step:', k, ' Time Taken: %.2f Seconds' % float(elapsed_time)
+        progress_logger.info('At step: %d. Time Taken: %.2f Seconds' % 
+                             (k, float(elapsed_time)))
         if k > 0:
-          print 'Estimated Total time required: %.2f Seconds.' % (elapsed_time*float(n_steps)/float(k))
+          progress_logger.info('Estimated Total time required: %.2f Seconds.' %
+                               (elapsed_time*float(n_steps)/float(k)))
       else:
-        print 'At step:', k, ' Time Taken: %.2f Minutes.' % (float(elapsed_time)/60.)
+        progress_logger.info('At step: %d. Time Taken: %.2f Minutes.' %
+                             (k, (float(elapsed_time)/60.)))
         if k > 0:
-          print 'Estimated Total time required: %.2f Minutes.' % (elapsed_time*float(n_steps)/float(k)/60.)
+          progress_logger.info('Estimated Total time required: %.2f Minutes.' %
+                               (elapsed_time*float(n_steps)/float(k)/60.))
       sys.stdout.flush()
-    
 
+  elapsed_time = time.time() - start_time
+  if elapsed_time > 60:
+    progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
+                         float(elapsed_time)/60.)
+  else:
+    progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
+                         float(elapsed_time))
 
   heights = [fixman_heights/(n_steps*bin_width),
              rfd_heights/(n_steps*bin_width),
