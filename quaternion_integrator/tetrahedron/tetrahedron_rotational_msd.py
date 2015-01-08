@@ -18,6 +18,7 @@ from matplotlib import pyplot
 import tetrahedron as tdn
 import numpy as np
 import cPickle
+import logging
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -187,7 +188,7 @@ if __name__ == "__main__":
                                    'fixed tetrahedron rotational MSD using the '
                                    'Fixman, Random Finite Difference, and '
                                    'Euler-Maruyama schemes at multiple timesteps.')
-  parser.add_argument('-dt', dest='dts', type=list,
+  parser.add_argument('-dts', dest='dts', type=float, nargs='+',
                       help='Timesteps to use for runs. specify as a list, e.g. '
                       '[4.0, 2.0]')
   parser.add_argument('-N', dest='n_steps', type=int,
@@ -216,6 +217,20 @@ if __name__ == "__main__":
   end_time = 84.  # TODO: Maybe make this an argument.
   n_runs = args.n_steps #25000
 
+  # Setup logging.
+  # Make directory for logs if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+    os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
+  log_filename = './logs/rotational-msd-fixed-%s-dts-%s-N-%d-%s.log' % (
+    args.fixed, dts, n_runs, args.data_name)
+  progress_logger = logging.getLogger('progress_logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
     for dt in dts:
@@ -233,9 +248,9 @@ if __name__ == "__main__":
                                                      end_time,
                                                      n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
-      print 'finished timestep ', dt, 'for scheme ', scheme
+      progress_logger.info('finished timestepping dt= %f for scheme %s' % (
+        dt, scheme))
       sys.stdout.flush()
-      
 
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
@@ -244,9 +259,11 @@ if __name__ == "__main__":
   # Optional name for data provided
   data_name = args.data_name
   if len(data_name) > 3:
-    data_name = './data/rot-msd-dt-%s-N-%d-%s.pkl' % (dts, n_runs, data_name)
+    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d-%s.pkl' % (
+      args.fixed, dts, n_runs, data_name)
   else:
-    data_name = './data/rot-msd-dt-%s-N-%d.pkl' % (dts, n_runs)
+    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d.pkl' % (
+      args.fixed, dts, n_runs)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
