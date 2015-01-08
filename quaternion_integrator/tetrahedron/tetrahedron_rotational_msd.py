@@ -187,8 +187,8 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
-  dts = [8., 4., 2.]
-  end_time = 84.
+  dts = [32., 16., 8., 4.]
+  end_time = 128.
   n_runs = 25000
 
   msd_statistics = MSDStatistics(schemes, dts)
@@ -200,10 +200,10 @@ if __name__ == "__main__":
                                                             end_time,
                                                             n_runs)
       # run_data = calc_rotational_msd_from_long_run(initial_orientation,
-      #                                                   scheme,
-      #                                                   dt,
-      #                                                   end_time,
-      #                                                   n_runs)
+      #                                              scheme,
+      #                                              dt,
+      #                                              end_time,
+      #                                              n_runs)
       msd_statistics.add_run(scheme, dt, run_data)
       print 'finished timestep ', dt, 'for scheme ', scheme
       sys.stdout.flush()
