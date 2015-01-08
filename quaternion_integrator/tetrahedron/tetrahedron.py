@@ -19,7 +19,6 @@ import cProfile, pstats, StringIO
 import math
 import time
 import logging
-import logging.handlers
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
