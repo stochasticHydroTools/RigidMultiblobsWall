@@ -194,7 +194,7 @@ if __name__ == "__main__":
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
-  parser.add_argument('-fixed', dest='fixed', type=bool,
+  parser.add_argument('-fixed', dest='fixed', type=bool, default=False,
                       help='Indicate whether to do multiple runs starting at '
                       'a fixed initial condition.  If false, will do one long '
                       'run and calculate the average time dependent MSD at '
