@@ -59,7 +59,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_orientation, 
                                     tdn.gravity_torque_calculator)
-  n_steps = int(end_time/dt)
+  n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
     integrator.orientation = initial_orientation
@@ -112,7 +112,7 @@ def calc_rotational_msd_from_long_run(initial_orientation,
   integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
                                     initial_orientation, 
                                     tdn.gravity_torque_calculator)
-  trajectory_length = int(end_time/dt)
+  trajectory_length = int(end_time/dt) + 1
   lagged_trajectory = []
   average_rotational_msd = np.zeros(trajectory_length)
   for step in range(n_steps):
@@ -215,7 +215,7 @@ if __name__ == "__main__":
   schemes = ['FIXMAN', 'RFD', 'EM']
 
   dts = args.dts # [8., 4., 2.]
-  end_time = 84.  # TODO: Maybe make this an argument.
+  end_time = 128.  # TODO: Maybe make this an argument.
   n_runs = args.n_steps #25000
 
   # Setup logging.
