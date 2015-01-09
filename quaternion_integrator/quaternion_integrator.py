@@ -149,6 +149,7 @@ class QuaternionIntegrator(object):
       mobility  = self.mobility(self.orientation)
       mobility_half = np.linalg.cholesky(mobility)
       torque = self.torque_calculator(self.orientation)
+
       noise = np.random.normal(0.0, 1.0, self.dim*3)
       # Update each quaternion at a time for rfd orientation.
       rfd_orientation = []

@@ -128,9 +128,11 @@ def free_gravity_torque_calculator(location, orientation):
   1 list of quaternions (1 quaternion).  This assumes the masses
   of particles 1, 2, and 3 are M1, M2, M3, and M4 respectively.
   '''
-  repulsion_strength = 4.0
+  repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
+  for k in range(len(r_vectors)):
+    r_vectors[k] = r_vectors[k] + location[0]
   # Gravity and repulsion.
   g = np.array([0., 0., repulsion_strength/(r_vectors[0][2]**2) - M1, 
                 0., 0., repulsion_strength/(r_vectors[1][2]**2) - M2,
@@ -150,7 +152,7 @@ def free_gravity_force_calculator(location, orientation):
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
   # TODO: add a mass at the top vertex, make all vertices repel
-  repulsion_strength = 4.0
+  repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   for k in range(len(r_vectors)):
     r_vectors[k] = r_vectors[k] + location[0]
@@ -185,7 +187,7 @@ def generate_free_equilibrum_sample():
   then accept/rejecting with probability
   exp(-U(heights))
   '''
-  repulsion_strength = 4.0
+  repulsion_strength = 5.0
   max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.
@@ -206,13 +208,14 @@ def generate_free_equilibrum_sample():
       # Porential minus (M1 + M2 + M3 + M4)**z_coord because that part of the
       # distribution is handled by the exponential variable.
       U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
-           repulsion_strength/location[2] 
+           M4*location[2] + repulsion_strength/location[2] 
            + repulsion_strength/(r_vectors[0][2] + z_coord)
            + repulsion_strength/(r_vectors[1][2] + z_coord)
            + repulsion_strength/(r_vectors[2][2] + z_coord))
       # roughly minimize the potential for the acceptance normalization.
       minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
-      normalization_constant = np.exp(-1.*(minimizing_height - z_coord)*
+      # Here 1.8 is just determined experimentally.
+      normalization_constant = np.exp(-1.*(minimizing_height - 1.8)*
                                       (M1 + M2 + M3) -
                                       3.*repulsion_strength/minimizing_height)
       gibbs_term = np.exp(-1.*U)
@@ -336,7 +339,7 @@ if __name__ == '__main__':
   elapsed_time = time.time() - start_time
   if elapsed_time > 60:
     progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
-                         float(elapsed_time)/60.)
+                         (float(elapsed_time)/60.))
   else:
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
