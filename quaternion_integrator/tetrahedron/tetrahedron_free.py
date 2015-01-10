@@ -131,8 +131,6 @@ def free_gravity_torque_calculator(location, orientation):
   repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
-  for k in range(len(r_vectors)):
-    r_vectors[k] = r_vectors[k] + location[0]
   # Gravity and repulsion.
   g = np.array([0., 0., repulsion_strength/(r_vectors[0][2]**2) - M1, 
                 0., 0., repulsion_strength/(r_vectors[1][2]**2) - M2,
@@ -154,8 +152,6 @@ def free_gravity_force_calculator(location, orientation):
   # TODO: add a mass at the top vertex, make all vertices repel
   repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  for k in range(len(r_vectors)):
-    r_vectors[k] = r_vectors[k] + location[0]
   potential_force = np.array([0., 0., (repulsion_strength/(r_vectors[0][2]**2) + 
                                        repulsion_strength/(r_vectors[1][2]**2) + 
                                        repulsion_strength/(r_vectors[2][2]**2) + 
@@ -183,9 +179,8 @@ def generate_free_equilibrum_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
-  Do this by generating a uniform quaternion and location, 
-  then accept/rejecting with probability
-  exp(-U(heights))
+  Do this by generating a uniform quaternion and exponential location, 
+  then accept/rejecting with the appropriate probability.
   '''
   repulsion_strength = 5.0
   max_gibbs_term = 0.
@@ -200,28 +195,28 @@ def generate_free_equilibrum_sample():
     z_coord = -1.*np.log(phi)/(M1 + M2 + M3 + M4)
     location = [0., 0., z_coord]
     r_vectors = get_free_r_vectors(location, theta)
-    if ((r_vectors[0][2] + z_coord > 0) and
-        (r_vectors[1][2] + z_coord > 0) and
-        (r_vectors[2][2] + z_coord > 0)):
+    if ((r_vectors[0][2] > 0) and
+        (r_vectors[1][2] > 0) and
+        (r_vectors[2][2] > 0)):
       
     
-      # Porential minus (M1 + M2 + M3 + M4)**z_coord because that part of the
+      # Potential minus (M1 + M2 + M3 + M4)*z_coord because that part of the
       # distribution is handled by the exponential variable.
-      U = (M1*r_vectors[0][2] + M2*r_vectors[1][2] + M3*r_vectors[2][2] + 
-           M4*location[2] + repulsion_strength/location[2] 
-           + repulsion_strength/(r_vectors[0][2] + z_coord)
-           + repulsion_strength/(r_vectors[1][2] + z_coord)
-           + repulsion_strength/(r_vectors[2][2] + z_coord))
+      U = (M1*(r_vectors[0][2] - z_coord) + M2*(r_vectors[1][2] - z_coord) +
+           M3*(r_vectors[2][2] - z_coord) + repulsion_strength/location[2] 
+           + repulsion_strength/(r_vectors[0][2])
+           + repulsion_strength/(r_vectors[1][2])
+           + repulsion_strength/(r_vectors[2][2]))
       # roughly minimize the potential for the acceptance normalization.
       minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
-      # Here 1.8 is just determined experimentally.
-      normalization_constant = np.exp(-1.*(minimizing_height - 1.8)*
+      # Here 6.0 is just determined experimentally.
+      normalization_constant = np.exp(-1.*(minimizing_height - 6.0)*
                                       (M1 + M2 + M3) -
                                       3.*repulsion_strength/minimizing_height)
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
-      accept_prob = np.exp(-1.*(U))/normalization_constant
+      accept_prob = gibbs_term/normalization_constant
       if accept_prob > 1:
         print "Warning: acceptance probability > 1."
         print "accept_prob = ", accept_prob
