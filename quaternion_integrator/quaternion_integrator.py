@@ -140,7 +140,6 @@ class QuaternionIntegrator(object):
                             divergence_term)
       velocity = velocity_and_omega[0:(3*self.dim)]
       omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
-      
       new_location = self.location + dt*velocity
       self.location = new_location
 
