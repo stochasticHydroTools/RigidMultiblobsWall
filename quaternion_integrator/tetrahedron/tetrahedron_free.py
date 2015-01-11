@@ -198,8 +198,6 @@ def generate_free_equilibrum_sample():
     if ((r_vectors[0][2] > 0) and
         (r_vectors[1][2] > 0) and
         (r_vectors[2][2] > 0)):
-      
-    
       # Potential minus (M1 + M2 + M3 + M4)*z_coord because that part of the
       # distribution is handled by the exponential variable.
       U = (M1*(r_vectors[0][2] - z_coord) + M2*(r_vectors[1][2] - z_coord) +
