@@ -28,6 +28,9 @@ M2 = 0.4
 M3 = 0.6
 M4 = 0.4
 
+# Repulsion strength and cutoff
+REPULSION_STRENGTH = 2.0
+REPULSION_CUTOFF = 4.0
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -128,13 +131,17 @@ def free_gravity_torque_calculator(location, orientation):
   1 list of quaternions (1 quaternion).  This assumes the masses
   of particles 1, 2, and 3 are M1, M2, M3, and M4 respectively.
   '''
-  repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   R = calc_free_rot_matrix(r_vectors, location[0])
-  # Gravity and repulsion.
-  g = np.array([0., 0., repulsion_strength/(r_vectors[0][2]**2) - M1, 
-                0., 0., repulsion_strength/(r_vectors[1][2]**2) - M2,
-                0., 0., repulsion_strength/(r_vectors[2][2]**2) - M3])
+  # Gravity.
+  g = np.array([0., 0., -1.*M1, 
+                0., 0., -1.*M2,
+                0., 0., -1.*M3])
+  # Add repulsion from wall.
+  for k in range(3):
+    if r_vectors[k][2] < REPULSION_CUTOFF:
+      g[3*k + 2] += REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])
+
   return np.dot(R.T, g)
 
 
@@ -149,13 +156,16 @@ def free_gravity_force_calculator(location, orientation):
                tetrahedron orientation
   '''
   # TODO: Tune repulsion from the wall to keep tetrahedron away.
-  # TODO: add a mass at the top vertex, make all vertices repel
-  repulsion_strength = 5.0
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  potential_force = np.array([0., 0., (repulsion_strength/(r_vectors[0][2]**2) + 
-                                       repulsion_strength/(r_vectors[1][2]**2) + 
-                                       repulsion_strength/(r_vectors[2][2]**2) + 
-                                       repulsion_strength/(location[0][2]**2))])
+  potential_force = np.zeros(3)
+  # Add repulsion of 'top' vertex, at location.
+  if location[0][2] < REPULSION_CUTOFF:
+    potential_force[2] += REPULSION_STRENGTH*(REPULSION_CUTOFF - location[0][2])
+  # Add repulsion of other particles:
+  for k in range(3):
+    if r_vectors[k][2] < REPULSION_CUTOFF:
+      potential_force[2] += (
+        REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2]))
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3 + M4)])
   return potential_force + gravity_force
 
@@ -182,7 +192,7 @@ def generate_free_equilibrum_sample():
   Do this by generating a uniform quaternion and exponential location, 
   then accept/rejecting with the appropriate probability.
   '''
-  repulsion_strength = 5.0
+  progress_logger = logging.getLogger('progress_logger')
   max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.
@@ -192,7 +202,8 @@ def generate_free_equilibrum_sample():
     # by the potential at all. Generate z coordinate as an exponential 
     # random variable.
     phi = np.random.uniform(0.0, 1.0)
-    z_coord = -1.*np.log(phi)/(M1 + M2 + M3 + M4)
+    M = M1 + M2 + M3 + M4
+    z_coord = -1.*np.log(phi)/M
     location = [0., 0., z_coord]
     r_vectors = get_free_r_vectors(location, theta)
     if ((r_vectors[0][2] > 0) and
@@ -201,24 +212,25 @@ def generate_free_equilibrum_sample():
       # Potential minus (M1 + M2 + M3 + M4)*z_coord because that part of the
       # distribution is handled by the exponential variable.
       U = (M1*(r_vectors[0][2] - z_coord) + M2*(r_vectors[1][2] - z_coord) +
-           M3*(r_vectors[2][2] - z_coord) + repulsion_strength/location[2] 
-           + repulsion_strength/(r_vectors[0][2])
-           + repulsion_strength/(r_vectors[1][2])
-           + repulsion_strength/(r_vectors[2][2]))
-      # roughly minimize the potential for the acceptance normalization.
-      minimizing_height = np.sqrt(3*repulsion_strength/(M1 + M2 + M3))
-      # Here 6.0 is just determined experimentally.
-      normalization_constant = np.exp(-1.*(minimizing_height - 6.0)*
-                                      (M1 + M2 + M3) -
-                                      3.*repulsion_strength/minimizing_height)
+           M3*(r_vectors[2][2] - z_coord))
+      if z_coord < REPULSION_CUTOFF:
+        U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - z_coord)**2
+      for k in range(3):
+        if r_vectors[k][2] < REPULSION_CUTOFF:
+          U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
+      # Normalize so acceptance probability < 1.  The un-normalized probability
+      # is definitely below exp(2M), but in fact it can never reach this because not
+      # all particles can be 2 above location. Here is 1.25 determined 
+      # experimentally to give more accepts without giving a probability above 1.
+      normalization_constant = np.exp(1.25*M)
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
       accept_prob = gibbs_term/normalization_constant
       if accept_prob > 1:
-        print "Warning: acceptance probability > 1."
-        print "accept_prob = ", accept_prob
-        print 'z_coord is', z_coord
+        progress_logger.warning('Acceptance probability > 1.')
+        progress_logger.warning('accept_prob = %f' % accept_prob)
+        progress_logger.warning('z_coord is %f' % z_coord)
       if np.random.uniform() < accept_prob:
         return [location, theta]
 
@@ -257,7 +269,7 @@ if __name__ == '__main__':
   if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
     os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
-  log_filename = './logs/free-tetrahedron-dt-%d-N-%d-%s.log' % (
+  log_filename = './logs/free-tetrahedron-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
   progress_logger.setLevel(logging.INFO)
