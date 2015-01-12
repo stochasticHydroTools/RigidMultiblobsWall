@@ -4,8 +4,11 @@ is uniformly distributed as it should be for a Fixed tetrahedron.
 '''
 
 import sys
+sys.path.append('../..')
 import numpy as np
 import math
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 
 import quaternion_integrator.tetrahedron.tetrahedron as tdn
