@@ -192,7 +192,7 @@ def generate_free_equilibrum_sample():
   Do this by generating a uniform quaternion and exponential location, 
   then accept/rejecting with the appropriate probability.
   '''
-  progress_logger = logging.getLogger('progress_logger')
+  progress_logger = logging.getLogger('Progress Logger')
   max_gibbs_term = 0.
   while True:
     # First generate a uniform quaternion on the 4-sphere.
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 
   log_filename = './logs/free-tetrahedron-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
-  progress_logger = logging.getLogger('progress_logger')
+  progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
   logging.basicConfig(filename=log_filename,

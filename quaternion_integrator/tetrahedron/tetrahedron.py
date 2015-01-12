@@ -27,6 +27,7 @@ import logging
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import uniform_analyzer as ua
+import tetrahedron_ext as te
 
 # TODO: Move the fluid dynamics (not tetrahedron specific)
 # stuff (mobilities,etc) to a diff file.
@@ -94,7 +95,7 @@ def torque_mobility(r_vectors):
    "Simulation of hydrodynamically interacting particles near a no-slip
     boundary."
   '''  
-  mobility = single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -185,6 +186,18 @@ def doublet_and_dipole(r, h):
   return doublet_and_dipole
 
 
+def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
+  ''' 
+  Same as single wall fluid mobility, but boosted into C++ for 
+  a speedup. Must compile tetrahedron_ext.cc before this will work 
+  (use Makefile).
+  '''
+  mobility = rotne_prager_tensor(r_vectors, eta, a)
+  num_particles = len(r_vectors)
+  te.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, mobility)
+  return mobility
+
+
 def single_wall_fluid_mobility(r_vectors, eta, a):
   ''' Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
@@ -260,7 +273,7 @@ def rotne_prager_tensor(r_vectors, eta, a):
         mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = ((1./(6.*np.pi*eta*a))*
                                                       np.identity(3))
   return mobility
-  
+
 
 def calculate_rot_matrix(r_vectors):
   ''' Calculate R, 3N by 3 matrix of cross products for r_i. '''
@@ -339,7 +352,6 @@ def get_r_vectors(quaternion):
   
   return [r1, r2, r3]
 
-  
 def gravity_torque_calculator(orientation):
   ''' 
   Calculate torque based on orientation, given as a length
