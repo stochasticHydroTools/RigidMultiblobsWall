@@ -220,9 +220,9 @@ def generate_free_equilibrum_sample():
           U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
       # Normalize so acceptance probability < 1.  The un-normalized probability
       # is definitely below exp(2M), but in fact it can never reach this because not
-      # all particles can be 2 above location. Here is 1.25 determined 
+      # all particles can be 2 above location. Here is 1.235 determined 
       # experimentally to give more accepts without giving a probability above 1.
-      normalization_constant = np.exp(1.25*M)
+      normalization_constant = np.exp(1.245*M)
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
