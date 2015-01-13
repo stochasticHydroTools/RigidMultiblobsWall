@@ -23,14 +23,16 @@ A = 0.5     # Particle Radius.
 H = 3.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.2
-M2 = 0.4
-M3 = 0.6
-M4 = 0.4
+M1 = 0.05
+M2 = 0.1
+M3 = 0.15
+M4 = 0.1
 
-# Repulsion strength and cutoff
-REPULSION_STRENGTH = 2.0
-REPULSION_CUTOFF = 4.0
+# Repulsion strength and cutoff.  
+# These parameters are tuned to allow fast sampling of
+# equilibrium without allowing particles through the wall.
+REPULSION_STRENGTH = 1.0
+REPULSION_CUTOFF = 3.5
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -58,7 +60,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = tdn.single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = tdn.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -220,8 +222,9 @@ def generate_free_equilibrum_sample():
           U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
       # Normalize so acceptance probability < 1.  The un-normalized probability
       # is definitely below exp(2M), but in fact it can never reach this because not
-      # all particles can be 2 above location. Here is 1.25 determined 
-      # experimentally to give more accepts without giving a probability above 1.
+      # all particles can be 2 above location. Here 1.25 is determined 
+      # experimentally to give more accepts without giving an acceptance 'probability' 
+      # above 1 (at least not often).
       normalization_constant = np.exp(1.25*M)
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
