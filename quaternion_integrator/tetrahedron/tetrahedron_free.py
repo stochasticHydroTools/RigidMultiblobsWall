@@ -195,7 +195,7 @@ def bin_free_particle_heights(location, orientation, bin_width,
   
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
-def generate_free_equilibrum_sample():
+def generate_free_equilibrium_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
@@ -206,7 +206,7 @@ def generate_free_equilibrum_sample():
   progress_logger = logging.getLogger('Progress Logger')
   max_gibbs_term = 0.
   while True:
-    generate_free_equilibrum_sample.samples += 1
+    generate_free_equilibrium_sample.samples += 1
     # First generate a uniform quaternion on the 4-sphere.
     theta = np.random.normal(0., 1., 4)
     theta = Quaternion(theta/np.linalg.norm(theta))
@@ -245,8 +245,58 @@ def generate_free_equilibrum_sample():
         progress_logger.warning('accept_prob = %f' % accept_prob)
         progress_logger.warning('z_coord is %f' % z_coord)
       if np.random.uniform() < accept_prob:
-        generate_free_equilibrum_sample.accepts += 1
+        generate_free_equilibrium_sample.accepts += 1
         return [location, theta]
+
+@static_var('samples', 0)  
+@static_var('accepts', 0)  
+def generate_free_equilibrium_sample_mcmc(current_sample):
+  '''
+  Generate an equilibrium sample of location and orientation, according
+  to the distribution exp(-\beta U(heights)) by using MCMC.
+  '''
+  generate_free_equilibrium_sample_mcmc.samples += 1
+  location = current_sample[0]
+  orientation = current_sample[1]
+  # Tune this dt parameter to try to achieve acceptance rate of ~50%.
+  dt = 1.0
+  # Take a step using Metropolis.
+  omega = np.random.normal(0., 1., 3)
+  velocity = np.random.normal(0., 1., 3)
+  orientation_increment = Quaternion.from_rotation(omega*dt)
+  new_orientation = orientation_increment*orientation
+  new_location = location + velocity*dt
+  accept_probability = (gibbs_boltzmann_distribution(new_location,
+                                                     new_orientation)/
+                        gibbs_boltzmann_distribution(location,
+                                                     orientation))
+  if np.random.uniform() < accept_probability:
+    generate_free_equilibrium_sample_mcmc.accepts += 1
+    return [new_location, new_orientation]
+  else:
+    return [location, orientation]
+                          
+
+def gibbs_boltzmann_distribution(location, orientation):
+  '''
+  Evaluate the equilibrium distribution at a given location 
+  and orientation.
+  '''
+  r_vectors = get_free_r_vectors(location, orientation)
+  if ((r_vectors[0][2] < 0) or
+      (r_vectors[1][2] < 0) or
+      (r_vectors[2][2] < 0)):
+    return 0.0
+  # Calculate potential.
+  U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
+       M3*(r_vectors[2][2]) + M4*(location[2]))
+  if location[2] < REPULSION_CUTOFF:
+    U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - location[2])**2
+  for k in range(3):
+    if r_vectors[k][2] < REPULSION_CUTOFF:
+      U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
+
+  return np.exp(-1.*U)
 
 
 if __name__ == '__main__':
@@ -308,7 +358,7 @@ if __name__ == '__main__':
                                         initial_location=initial_location,
                                         force_calculator=free_gravity_force_calculator)
   
-
+  sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 30./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
@@ -333,7 +383,7 @@ if __name__ == '__main__':
                               rfd_heights)
 
     # Bin equilibrium sample.
-    sample = generate_free_equilibrum_sample()
+    sample = generate_free_equilibrium_sample_mcmc(sample)
     bin_free_particle_heights(sample[0], 
                               sample[1],
                               bin_width, 
@@ -364,8 +414,8 @@ if __name__ == '__main__':
                          float(elapsed_time))
 
   progress_logger.info('Acceptance Rate: %s' % 
-                       (float(generate_free_equilibrum_sample.accepts)/
-                       float(generate_free_equilibrum_sample.samples)))
+                       (float(generate_free_equilibrium_sample_mcmc.accepts)/
+                       float(generate_free_equilibrium_sample_mcmc.samples)))
 
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
