@@ -552,7 +552,7 @@ if __name__ == "__main__":
   elapsed_time = time.time() - start_time
   if elapsed_time > 60:
     progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
-                         float(elapsed_time)/60.)
+                         (float(elapsed_time)/60.))
   else:
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))

@@ -23,16 +23,24 @@ A = 0.5     # Particle Radius.
 H = 3.5     # Distance to wall.
 
 # Masses of particles.
-M1 = 0.05
-M2 = 0.1
-M3 = 0.15
-M4 = 0.1
+M1 = 0.2
+M2 = 0.15
+M3 = 0.1
+M4 = 0.4
 
 # Repulsion strength and cutoff.  
 # These parameters are tuned to allow fast sampling of
 # equilibrium without allowing particles through the wall.
-REPULSION_STRENGTH = 1.0
-REPULSION_CUTOFF = 3.5
+REPULSION_STRENGTH = 1.2
+REPULSION_CUTOFF = 4.5
+
+
+# Static Variable decorator for calculating acceptance rate.
+def static_var(varname, value):
+    def decorate(func):
+        setattr(func, varname, value)
+        return func
+    return decorate
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -183,10 +191,10 @@ def bin_free_particle_heights(location, orientation, bin_width,
       height_histogram[k][idx] += 1
     else:
       print 'index is: ', idx
-      print 'r_vectors are: ', r_vectors
       print 'Index exceeds histogram length.'
   
-  
+@static_var('samples', 0)  
+@static_var('accepts', 0)  
 def generate_free_equilibrum_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
@@ -194,9 +202,11 @@ def generate_free_equilibrum_sample():
   Do this by generating a uniform quaternion and exponential location, 
   then accept/rejecting with the appropriate probability.
   '''
+  
   progress_logger = logging.getLogger('Progress Logger')
   max_gibbs_term = 0.
   while True:
+    generate_free_equilibrum_sample.samples += 1
     # First generate a uniform quaternion on the 4-sphere.
     theta = np.random.normal(0., 1., 4)
     theta = Quaternion(theta/np.linalg.norm(theta))
@@ -222,10 +232,10 @@ def generate_free_equilibrum_sample():
           U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
       # Normalize so acceptance probability < 1.  The un-normalized probability
       # is definitely below exp(2M), but in fact it can never reach this because not
-      # all particles can be 2 above location. Here 1.25 is determined 
+      # all particles can be 2 above location. Here 1.8 is determined 
       # experimentally to give more accepts without giving an acceptance 'probability' 
       # above 1 (at least not often).
-      normalization_constant = np.exp(1.25*M)
+      normalization_constant = np.exp(1.8*(M1 + M2 + M3))
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
@@ -235,6 +245,7 @@ def generate_free_equilibrum_sample():
         progress_logger.warning('accept_prob = %f' % accept_prob)
         progress_logger.warning('z_coord is %f' % z_coord)
       if np.random.uniform() < accept_prob:
+        generate_free_equilibrum_sample.accepts += 1
         return [location, theta]
 
 
@@ -352,8 +363,15 @@ if __name__ == '__main__':
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
 
+  progress_logger.info('Acceptance Rate: %s' % 
+                       (float(generate_free_equilibrum_sample.accepts)/
+                       float(generate_free_equilibrum_sample.samples)))
+
   # Gather data to save.
-  heights = [fixman_heights, rfd_heights, equilibrium_heights]
+  heights = [fixman_heights/(n_steps*bin_width),
+             rfd_heights/(n_steps*bin_width),
+             equilibrium_heights/(n_steps*bin_width)]
+
   height_data = dict()
   # Save parameters just in case they're useful in the future.
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
