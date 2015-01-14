@@ -520,7 +520,6 @@ if __name__ == "__main__":
   sys.stdout = sl
   sl = StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
-
   
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around

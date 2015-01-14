@@ -231,6 +231,10 @@ if __name__ == "__main__":
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
+  sl = tdn.StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
