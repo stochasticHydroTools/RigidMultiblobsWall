@@ -3,6 +3,7 @@ Script to check order of accuracy of a scheme by looking
 at the error in height distribution.  Use data produced by tetrahedron.py.
 
 '''
+import os
 import cPickle
 import numpy as np
 import matplotlib
@@ -100,7 +101,6 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.legend(loc = 'best', prop={'size': 9})
     pyplot.savefig('./figures/HeightError-Scheme-%s-Particle-%s.pdf' %
                    (names[scheme_idx], particle))
-
     pyplot.figure(scheme_idx*3 + 2)
     pyplot.title('LogLog plot dt v. Error, %s' % (names[scheme_idx]))
     pyplot.xlabel('Log(dt)')
@@ -163,7 +163,6 @@ if __name__  == '__main__':
   #                'tetrahedron-dt-2-N-6000000-run-32.pkl']]
 
   # dts = [32., 16., 8., 4., 2.]
-
   # Free tetrahedron
   data_files = [['free-tetrahedron-dt-1-N-1000000-run-1.pkl',
                  'free-tetrahedron-dt-1-N-1000000-run-2.pkl',
@@ -189,9 +188,9 @@ if __name__  == '__main__':
                  'free-tetrahedron-dt-0.25-N-3000000-run-6.pkl',
                  'free-tetrahedron-dt-0.25-N-3000000-run-7.pkl',
                  'free-tetrahedron-dt-0.25-N-3000000-run-8.pkl']]
-
+  
   dts = [1.0, 0.5, 0.25]
-
+  
   heights_list = []
   for parameter_set in data_files:
     heights_list.append([])
@@ -202,6 +201,7 @@ if __name__  == '__main__':
 
   # For now assume all runs have the same scheme order and buckets.
   buckets = heights_data['buckets']
+  print 'buckets is ', buckets
   names = heights_data['names']
   check_height_order(heights_list, buckets, names, dts, 1.0)
       
