@@ -34,6 +34,8 @@ def check_height_order(heights_list, buckets, names, dts, order):
   particle = 2
   for scheme_idx in range(len(heights_list[0][0]) - 1):
     # Loop through schemes, indexed by scheme_idx
+    error_sums = []
+    std_sums = []
     for dt_idx in range(len(heights_list)):
       # Loop through dts, indexed by dt_idx
       n_runs = len(heights_list[dt_idx])
@@ -45,22 +47,29 @@ def check_height_order(heights_list, buckets, names, dts, order):
                              heights_list[dt_idx][l][-1][particle] 
                              for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
 
+      error_sums.append(sum(abs(error_means))*(buckets[1] - buckets[0]))
+      std_sums.append(sum(error_std)*(buckets[1] - buckets[0]))
       # Mean and Std of height over runs.
       height_means = np.mean([heights_list[dt_idx][l][scheme_idx][particle]
                              for l in range(n_runs)], axis=0)
       height_std = np.std([heights_list[dt_idx][l][scheme_idx][particle]
                             for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
       # Figure 1 is just height distribution.
-      pyplot.figure(scheme_idx*2)
+      pyplot.figure(scheme_idx*3)
       pyplot.errorbar(buckets, height_means,
                       yerr = 2.*height_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
       # Figure 2 is the errors, scaled to check order.
-      pyplot.figure(scheme_idx*2 + 1)
+      pyplot.figure(scheme_idx*3 + 1)
       scale_factor = (dts[0]/dts[dt_idx])**order
       pyplot.errorbar(buckets, scale_factor*(error_means),
                       yerr = scale_factor*2.*error_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
+
+    # Figure 3 is a log-log plot of error v. dt.
+    pyplot.figure(scheme_idx*3 + 2)
+    pyplot.loglog(dts, error_sums, label='%s' % names[scheme_idx])
+    pyplot.loglog(dts, error_sums[0]*np.array(dts)/dts[0], 'k--', label='First Order')
 
     # Now plot the equilibrium for the distribution plots.
     eq_idx = len(heights_list[0][0]) - 1
@@ -70,21 +79,21 @@ def check_height_order(heights_list, buckets, names, dts, order):
     height_std = np.std([heights_list[dt_idx][l][eq_idx][particle]
                             for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
     # Figure 1 is just height distribution.
-    pyplot.figure(scheme_idx*2)
+    pyplot.figure(scheme_idx*3)
     pyplot.errorbar(buckets, height_means,
                     yerr = 2.*height_std,
                     label = 'Equilibrium')
 
-  # Title and 
+  # Title and labels.
   for scheme_idx in range(len(heights_list[0][0]) - 1):
-    pyplot.figure(scheme_idx*2)
+    pyplot.figure(scheme_idx*3)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
     pyplot.xlabel('Height')
     pyplot.ylabel('PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
     pyplot.savefig('./plots/HeightRefinement-Scheme-%s-Particle-%s.pdf' %
                    (names[scheme_idx], particle))
-    pyplot.figure(scheme_idx*2 + 1)
+    pyplot.figure(scheme_idx*3 + 1)
     pyplot.title('%s scheme, order %s test' % (names[scheme_idx], order))
     pyplot.xlabel('Height')
     pyplot.ylabel('Error in height distribution')
@@ -92,11 +101,18 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.savefig('./plots/HeightError-Scheme-%s-Particle-%s.pdf' %
                    (names[scheme_idx], particle))
 
+    pyplot.figure(scheme_idx*3 + 2)
+    pyplot.title('LogLog plot dt v. Error, %s' % (names[scheme_idx]))
+    pyplot.xlabel('Log(dt)')
+    pyplot.ylabel('Log(Error)')
+    pyplot.legend(loc = 'best', prop={'size': 9})
+    pyplot.savefig('./plots/LogLogError-Scheme-%s-Particle-%s.pdf' %
+                   (names[scheme_idx], particle))
 
 
 if __name__  == '__main__':
-  #  Grab the data from a few runs with different dts, and
-  #  Check their order.
+  # Grab the data from a few runs with different dts, and
+  # Check their order.
   # List of lists. Each entry should be a list of names of data
   # files for multiple runs with the same timestep and number of steps.
   data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
@@ -143,7 +159,6 @@ if __name__  == '__main__':
                  'tetrahedron-dt-2-N-6000000-run-32.pkl']]
 
   dts = [32., 16., 8., 4., 2.]
-
 
   # Free tetrahedron
   # data_files = [['free-tetrahedron-dt-1-N-1000000-run-1.pkl',

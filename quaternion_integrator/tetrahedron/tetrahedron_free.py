@@ -34,6 +34,19 @@ M4 = 0.4
 REPULSION_STRENGTH = 1.2
 REPULSION_CUTOFF = 4.5
 
+# Fake log-like class to redirect stdout to log file.
+class StreamToLogger(object):
+   """
+   Fake file-like stream object that redirects writes to a logger instance.
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+ 
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -341,7 +354,11 @@ if __name__ == '__main__':
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
-    
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., H]]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
@@ -403,7 +420,7 @@ if __name__ == '__main__':
         if k > 0:
           progress_logger.info('Estimated Total time required: %.2f Minutes.' %
                                (elapsed_time*float(n_steps)/float(k)/60.))
-      sys.stdout.flush()
+#      sys.stdout.flush()
 
   elapsed_time = time.time() - start_time
   if elapsed_time > 60:
