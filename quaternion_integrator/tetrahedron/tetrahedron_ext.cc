@@ -4,7 +4,6 @@
 #include <boost/python.hpp>
 #include <iostream>
 #include <math.h>
-#include <numpy/ndarrayobject.h>
 #include <stdio.h>
 #include <vector>
 

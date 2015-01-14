@@ -3,6 +3,7 @@ Plot rotational msd data from a pickle file.
 '''
 import os
 import sys
+sys.path.append('../..')
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot

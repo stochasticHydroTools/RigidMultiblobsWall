@@ -24,13 +24,23 @@ H = 3.5     # Distance to wall.
 
 # Masses of particles.
 M1 = 0.2
-M2 = 0.4
-M3 = 0.6
+M2 = 0.15
+M3 = 0.1
 M4 = 0.4
 
-# Repulsion strength and cutoff
-REPULSION_STRENGTH = 2.0
-REPULSION_CUTOFF = 4.0
+# Repulsion strength and cutoff.  
+# These parameters are tuned to allow fast sampling of
+# equilibrium without allowing particles through the wall.
+REPULSION_STRENGTH = 1.2
+REPULSION_CUTOFF = 4.5
+
+
+# Static Variable decorator for calculating acceptance rate.
+def static_var(varname, value):
+    def decorate(func):
+        setattr(func, varname, value)
+        return func
+    return decorate
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -58,7 +68,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = tdn.single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = tdn.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -181,20 +191,22 @@ def bin_free_particle_heights(location, orientation, bin_width,
       height_histogram[k][idx] += 1
     else:
       print 'index is: ', idx
-      print 'r_vectors are: ', r_vectors
       print 'Index exceeds histogram length.'
   
-  
-def generate_free_equilibrum_sample():
+@static_var('samples', 0)  
+@static_var('accepts', 0)  
+def generate_free_equilibrium_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
   Do this by generating a uniform quaternion and exponential location, 
   then accept/rejecting with the appropriate probability.
   '''
+  
   progress_logger = logging.getLogger('Progress Logger')
   max_gibbs_term = 0.
   while True:
+    generate_free_equilibrium_sample.samples += 1
     # First generate a uniform quaternion on the 4-sphere.
     theta = np.random.normal(0., 1., 4)
     theta = Quaternion(theta/np.linalg.norm(theta))
@@ -220,9 +232,10 @@ def generate_free_equilibrum_sample():
           U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
       # Normalize so acceptance probability < 1.  The un-normalized probability
       # is definitely below exp(2M), but in fact it can never reach this because not
-      # all particles can be 2 above location. Here is 1.25 determined 
-      # experimentally to give more accepts without giving a probability above 1.
-      normalization_constant = np.exp(1.25*M)
+      # all particles can be 2 above location. Here 1.8 is determined 
+      # experimentally to give more accepts without giving an acceptance 'probability' 
+      # above 1 (at least not often).
+      normalization_constant = np.exp(1.8*(M1 + M2 + M3))
       gibbs_term = np.exp(-1.*U)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
@@ -232,7 +245,58 @@ def generate_free_equilibrum_sample():
         progress_logger.warning('accept_prob = %f' % accept_prob)
         progress_logger.warning('z_coord is %f' % z_coord)
       if np.random.uniform() < accept_prob:
+        generate_free_equilibrium_sample.accepts += 1
         return [location, theta]
+
+@static_var('samples', 0)  
+@static_var('accepts', 0)  
+def generate_free_equilibrium_sample_mcmc(current_sample):
+  '''
+  Generate an equilibrium sample of location and orientation, according
+  to the distribution exp(-\beta U(heights)) by using MCMC.
+  '''
+  generate_free_equilibrium_sample_mcmc.samples += 1
+  location = current_sample[0]
+  orientation = current_sample[1]
+  # Tune this dt parameter to try to achieve acceptance rate of ~50%.
+  dt = 1.0
+  # Take a step using Metropolis.
+  omega = np.random.normal(0., 1., 3)
+  velocity = np.random.normal(0., 1., 3)
+  orientation_increment = Quaternion.from_rotation(omega*dt)
+  new_orientation = orientation_increment*orientation
+  new_location = location + velocity*dt
+  accept_probability = (gibbs_boltzmann_distribution(new_location,
+                                                     new_orientation)/
+                        gibbs_boltzmann_distribution(location,
+                                                     orientation))
+  if np.random.uniform() < accept_probability:
+    generate_free_equilibrium_sample_mcmc.accepts += 1
+    return [new_location, new_orientation]
+  else:
+    return [location, orientation]
+                          
+
+def gibbs_boltzmann_distribution(location, orientation):
+  '''
+  Evaluate the equilibrium distribution at a given location 
+  and orientation.
+  '''
+  r_vectors = get_free_r_vectors(location, orientation)
+  if ((r_vectors[0][2] < 0) or
+      (r_vectors[1][2] < 0) or
+      (r_vectors[2][2] < 0)):
+    return 0.0
+  # Calculate potential.
+  U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
+       M3*(r_vectors[2][2]) + M4*(location[2]))
+  if location[2] < REPULSION_CUTOFF:
+    U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - location[2])**2
+  for k in range(3):
+    if r_vectors[k][2] < REPULSION_CUTOFF:
+      U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
+
+  return np.exp(-1.*U)
 
 
 if __name__ == '__main__':
@@ -294,7 +358,7 @@ if __name__ == '__main__':
                                         initial_location=initial_location,
                                         force_calculator=free_gravity_force_calculator)
   
-
+  sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 30./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
@@ -319,7 +383,7 @@ if __name__ == '__main__':
                               rfd_heights)
 
     # Bin equilibrium sample.
-    sample = generate_free_equilibrum_sample()
+    sample = generate_free_equilibrium_sample_mcmc(sample)
     bin_free_particle_heights(sample[0], 
                               sample[1],
                               bin_width, 
@@ -349,8 +413,15 @@ if __name__ == '__main__':
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
 
+  progress_logger.info('Acceptance Rate: %s' % 
+                       (float(generate_free_equilibrium_sample_mcmc.accepts)/
+                       float(generate_free_equilibrium_sample_mcmc.samples)))
+
   # Gather data to save.
-  heights = [fixman_heights, rfd_heights, equilibrium_heights]
+  heights = [fixman_heights/(n_steps*bin_width),
+             rfd_heights/(n_steps*bin_width),
+             equilibrium_heights/(n_steps*bin_width)]
+
   height_data = dict()
   # Save parameters just in case they're useful in the future.
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 

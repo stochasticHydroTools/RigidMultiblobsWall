@@ -1,6 +1,6 @@
 # location of the Python header files
  
-PYTHON_VERSION = 2.6
+PYTHON_VERSION = 2.6   #2.6 at Courant, 2.7 at Home.
 PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
  
 # location of the Boost Python include files and library
