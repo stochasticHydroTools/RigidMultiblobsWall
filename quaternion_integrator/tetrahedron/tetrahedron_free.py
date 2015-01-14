@@ -302,9 +302,9 @@ if __name__ == '__main__':
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
   bin_width = 1./2.
-  fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
   start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
