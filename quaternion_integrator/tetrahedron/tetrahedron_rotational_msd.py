@@ -31,6 +31,7 @@ class MSDStatistics(object):
   dictionaries, holding runs indexed by scheme and timestep in that 
   order.
   Each run is organized as a list of 3 arrays: [time, mean, std]
+  mean and std are matrices (the rotational MSD).
   '''
   def __init__(self, schemes, dts):
     self.data = {}
@@ -67,7 +68,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     #HACK: For now we just take the [1, 1] entry of the rotational MSD matrix.
     trajectories[run].append(
       calc_rotational_msd(initial_orientation[0],
-                          integrator.orientation[0])[1, 1])
+                          integrator.orientation[0]))
     for step in range(n_steps):
 
       if scheme == 'FIXMAN':
@@ -78,13 +79,13 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
         integrator.additive_em_time_step(dt)
       trajectories[run].append(
         calc_rotational_msd(initial_orientation[0],
-                            integrator.orientation[0])[1, 1])
+                            integrator.orientation[0]))
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
   for step in range(n_steps):
     time = dt*step
-    mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)])
-    std_msd = np.std([trajectories[run][step] for run in range(n_runs)])
+    mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)], axis=0)
+    std_msd = np.std([trajectories[run][step] for run in range(n_runs)], axis=0)
     results[0].append(time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
@@ -190,7 +191,7 @@ if __name__ == "__main__":
                                    'Euler-Maruyama schemes at multiple timesteps.')
   parser.add_argument('-dts', dest='dts', type=float, nargs='+',
                       help='Timesteps to use for runs. specify as a list, e.g. '
-                      '[4.0, 2.0]')
+                      '-dts 4.0 2.0')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
@@ -214,9 +215,9 @@ if __name__ == "__main__":
 #  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
   schemes = ['FIXMAN', 'RFD', 'EM']
 
-  dts = args.dts # [8., 4., 2.]
+  dts = args.dts
   end_time = 128.  # TODO: Maybe make this an argument.
-  n_runs = args.n_steps #25000
+  n_runs = args.n_steps
 
   # Setup logging.
   # Make directory for logs if it doesn't exist.
@@ -231,6 +232,10 @@ if __name__ == "__main__":
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
+  sl = tdn.StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
@@ -251,7 +256,8 @@ if __name__ == "__main__":
       msd_statistics.add_run(scheme, dt, run_data)
       progress_logger.info('finished timestepping dt= %f for scheme %s' % (
         dt, scheme))
-      sys.stdout.flush()
+
+  progress_logger.info('Runs complete.')
 
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
@@ -268,16 +274,4 @@ if __name__ == "__main__":
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
-
-
-
-#  plot_time_dependent_msd(msd_statistics)
-#  plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],
-#                       ['Fixman', 'RFD', 'EM'])
-  
-  # print "Calculated MSD is ", msd_calculated
-  # msd_theory = 2.*integrator.kT*tdn.tetrahedron_mobility(initial_position)
-  # print "Theoretical MSD is ", msd_theory
-  # rel_error = np.linalg.norm(msd_calculated - msd_theory)/np.linalg.norm(msd_theory)
-  # print "Relative Error is ", rel_error
 

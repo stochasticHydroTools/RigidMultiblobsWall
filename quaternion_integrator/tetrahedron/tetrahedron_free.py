@@ -34,7 +34,6 @@ M4 = 0.4
 REPULSION_STRENGTH = 1.2
 REPULSION_CUTOFF = 4.5
 
-
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
     def decorate(func):
@@ -341,7 +340,11 @@ if __name__ == '__main__':
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
-    
+  sl = tdn.StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., H]]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
@@ -403,7 +406,7 @@ if __name__ == '__main__':
         if k > 0:
           progress_logger.info('Estimated Total time required: %.2f Minutes.' %
                                (elapsed_time*float(n_steps)/float(k)/60.))
-      sys.stdout.flush()
+#      sys.stdout.flush()
 
   elapsed_time = time.time() - start_time
   if elapsed_time > 60:

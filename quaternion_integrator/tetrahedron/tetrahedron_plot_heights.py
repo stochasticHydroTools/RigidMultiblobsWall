@@ -25,7 +25,7 @@ def distribution_height_particle(heights, buckets, names):
     pyplot.ylabel('Probability Density')
     pyplot.xlabel('Height')
     # ax.set_yscale('log')
-    pyplot.savefig('./plots/Height%d_Distribution.pdf' % particle)
+    pyplot.savefig('./figures/Height%d_Distribution.pdf' % particle)
 
 
 def check_first_order_height_distribution(heights, buckets, names):
@@ -42,7 +42,10 @@ def check_first_order_height_distribution(heights, buckets, names):
   
 
 if __name__ == '__main__':
-  # TODO: keep more data in the pkl file, so that nothing here needs to be specified.
+  # Make sure figures folder exists
+  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+    os.mkdir(os.path.join(os.getcwd(), 'figures'))
+  # Load data and plot.
   data_name = './data/%s' % sys.argv[1]
   with open(data_name, 'rb') as data:
     height_data = cPickle.load(data)
