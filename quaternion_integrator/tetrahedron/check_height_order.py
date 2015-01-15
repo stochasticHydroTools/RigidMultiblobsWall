@@ -147,6 +147,11 @@ if __name__  == '__main__':
   #                'tetrahedron-dt-2-N-6000000-run-10-fixed.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-11-fixed.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-12-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-13.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-14.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-15.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-16.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-17.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-18.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-19.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-20.pkl',
@@ -154,6 +159,7 @@ if __name__  == '__main__':
   #                'tetrahedron-dt-2-N-6000000-run-22.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-23.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-24.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-25.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-26.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-27.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-28.pkl',
@@ -164,39 +170,25 @@ if __name__  == '__main__':
 
   # dts = [32., 16., 8., 4., 2.]
   # Free tetrahedron
-  data_files = [['free-tetrahedron-dt-1-N-1000000-run-1.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-2.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-3.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-4.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-5.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-6.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-7.pkl',
-                 'free-tetrahedron-dt-1-N-1000000-run-8.pkl'],
-                ['free-tetrahedron-dt-0.5-N-3000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.5-N-3000000-run-8.pkl'],
-                ['free-tetrahedron-dt-0.25-N-3000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.25-N-3000000-run-8.pkl']]
+  data_files = [['free-tetrahedron-dt-0.002-N-4000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.002-N-4000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.002-N-4000000-run-4.pkl'],
+                ['free-tetrahedron-dt-0.001-N-4000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.001-N-4000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.001-N-4000000-run-3.pkl'],
+                ['free-tetrahedron-dt-0.0005-N-5000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.0005-N-5000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.0005-N-5000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.0005-N-5000000-run-4.pkl']]
   
-  dts = [1.0, 0.5, 0.25]
+  dts = [0.002, 0.001, 0.0005]
   
   heights_list = []
   for parameter_set in data_files:
     heights_list.append([])
     for data_file in parameter_set:
       with open('./data/' + data_file, 'rb') as f:
-        heights_data = cPickle.load(f)uc
+        heights_data = cPickle.load(f)
         heights_list[-1].append(heights_data['heights'])
 
   # For now assume all runs have the same scheme order and buckets.

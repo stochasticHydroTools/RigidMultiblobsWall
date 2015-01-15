@@ -21,18 +21,19 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Distance to wall.
+KT = 0.1    # Temperature
 
 # Masses of particles.
 M1 = 0.2
-M2 = 0.15
+M2 = 0.1
 M3 = 0.1
-M4 = 0.4
+M4 = 0.3
 
 # Repulsion strength and cutoff.  
-# These parameters are tuned to allow fast sampling of
-# equilibrium without allowing particles through the wall.
-REPULSION_STRENGTH = 1.2
-REPULSION_CUTOFF = 4.5
+# Must be strong enough to prevent particles from passing 
+# through the wall
+REPULSION_STRENGTH = 14.0
+REPULSION_CUTOFF = 1.5
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -234,8 +235,8 @@ def generate_free_equilibrium_sample():
       # all particles can be 2 above location. Here 1.8 is determined 
       # experimentally to give more accepts without giving an acceptance 'probability' 
       # above 1 (at least not often).
-      normalization_constant = np.exp(1.8*(M1 + M2 + M3))
-      gibbs_term = np.exp(-1.*U)
+      normalization_constant = np.exp(1.8*(M1 + M2 + M3)/KT)
+      gibbs_term = np.exp(-1.*U/KT)
       if gibbs_term > max_gibbs_term:
         max_gibbs_term = gibbs_term
       accept_prob = gibbs_term/normalization_constant
@@ -258,7 +259,7 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
   location = current_sample[0]
   orientation = current_sample[1]
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 1.0
+  dt = 0.1
   # Take a step using Metropolis.
   omega = np.random.normal(0., 1., 3)
   velocity = np.random.normal(0., 1., 3)
@@ -295,7 +296,7 @@ def gibbs_boltzmann_distribution(location, orientation):
     if r_vectors[k][2] < REPULSION_CUTOFF:
       U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
 
-  return np.exp(-1.*U)
+  return np.exp(-1.*U/KT)
 
 
 if __name__ == '__main__':
@@ -353,13 +354,17 @@ if __name__ == '__main__':
                                            free_gravity_torque_calculator, 
                                            has_location=True,
                                            initial_location=initial_location,
-                                           force_calculator=free_gravity_force_calculator)
+                                           force_calculator=
+                                           free_gravity_force_calculator)
+  fixman_integrator.kT = KT
   rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                         initial_orientation, 
                                         free_gravity_torque_calculator, 
                                         has_location=True,
                                         initial_location=initial_location,
-                                        force_calculator=free_gravity_force_calculator)
+                                        force_calculator=
+                                        free_gravity_force_calculator)
+  rfd_integrator.kT = KT
   
   sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 30./bin_width.
