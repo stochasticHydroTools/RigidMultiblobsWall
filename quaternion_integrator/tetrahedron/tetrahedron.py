@@ -6,9 +6,6 @@ This file has the mobility and torque calculator used for any tetrahedron
 test.  Running this script will run a trajectory and bin the heights of each
 of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
-
-To run this script, the python path must include the constrained_diffusion 
-directory (the grandparent of this directory).
 '''
 import sys
 sys.path.append('../..')
