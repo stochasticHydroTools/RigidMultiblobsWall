@@ -74,7 +74,7 @@ def doublet_and_dipole(r, h):
 def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
   ''' 
   Same as single wall fluid mobility, but boosted into C++ for 
-  a speedup. Must compile tetrahedron_ext.cc before this will work 
+  a speedup. Must compile mobility_ext.cc before this will work 
   (use Makefile).
   '''
   fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
@@ -133,7 +133,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
 
 def rotne_prager_tensor(r_vectors, eta, a):
   ''' Calculate free rotne prager tensor for particles at locations given by
-  r_vectors (list of 3 dimensional locationis) of radius a.'''
+  r_vectors (list of 3 dimensional locations) of radius a.'''
   num_particles = len(r_vectors)
   fluid_mobility = np.array([np.zeros(3*num_particles) 
                              for _ in range(3*num_particles)])

@@ -5,7 +5,7 @@ import os
 import sys
 sys.path.append('../..')
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import cPickle
@@ -31,9 +31,9 @@ def plot_time_dependent_msd(msd_statistics, ind):
     for dt in msd_statistics.data[scheme].keys():
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
-      msd_entries = [msd_statistics.data[scheme][dt][1][_][ind[0]][ind[1]] 
+      msd_entries = [msd_statistics.data[scheme][dt][1][_][ind[0]][ind[1]]
                      for _ in range(num_steps)]
-      msd_entries_std = [msd_statistics.data[scheme][dt][2][_][ind[0]][ind[1]] 
+      msd_entries_std = [msd_statistics.data[scheme][dt][2][_][ind[0]][ind[1]]
                          for _ in range(num_steps)]
       pyplot.errorbar(msd_statistics.data[scheme][dt][0],
                       msd_entries,

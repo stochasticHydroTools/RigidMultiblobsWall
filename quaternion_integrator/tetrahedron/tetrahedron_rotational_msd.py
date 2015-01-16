@@ -2,24 +2,28 @@
 Estimate the rotational MSD based on:
 
 u_hat(dt) = \sum_i u_i(0) cross u_i(dt)
-  
+
+For what it's worth, the derivative,  
+
 msd slope = <u_hat_i u_hat_j>/dt
-  
-This should go to 2kBT * Mobility as dt -> 0.
+
+should go to 2kBT * Mobility as dt -> 0.
 Evaluate mobility at point with no torque, and take several steps to
-get a curve of MSD(t).
+get a curve of MSD(t).  Alternatively calculate the time dependent MSD 
+at equilibrium by doing a long run and calculating MSD from the time 
+lagged trajectory, then average.
 '''
+import argparse
+import cPickle
+import logging
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot
 import os
 import sys
 sys.path.append('../..')
-import matplotlib
-matplotlib.use('Agg')
-import argparse
-from matplotlib import pyplot
-import numpy as np
-import cPickle
-import logging
-
+import time
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -118,7 +122,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     time = dt*step
     mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)], axis=0)
     std_msd = np.std([trajectories[run][step] for run in range(n_runs)], axis=0)
-
     results[0].append(time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
@@ -276,7 +279,7 @@ if __name__ == "__main__":
     schemes.append('EM')
 
   dts = args.dts
-  end_time = 128.0  # TODO: Consider making this an argument.
+  end_time = 10.0  # TODO: Consider making this an argument.
   n_runs = args.n_steps
 
   # Setup logging.
@@ -298,6 +301,7 @@ if __name__ == "__main__":
   sys.stderr = sl
 
   msd_statistics = MSDStatistics(schemes, dts)
+  start_time = time.time()
   for scheme in schemes:
     for dt in dts:
       if args.fixed:
@@ -318,6 +322,11 @@ if __name__ == "__main__":
       msd_statistics.add_run(scheme, dt, run_data)
       progress_logger.info('finished timestepping dt= %f for scheme %s' % (
         dt, scheme))
+      elapsed_time = time.time() - start_time
+      if elapsed_time > 60.0:
+        progress_logger.info('Elapsed Time: %.2f Minutes.' % (float(elapsed_time/60.)))
+      else:
+        progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
 
   progress_logger.info('Runs complete.')
 
