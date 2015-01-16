@@ -16,6 +16,9 @@ def plot_time_dependent_msd(msd_statistics, ind):
   Plot the <ind> entry of the rotational MSD as 
   a function of time.  This uses the msd_statistics object
   that is saved by tetrahedron_rotational_msd.py.
+  
+  ind contains the indices of the entry of the MSD matrix to be plotted.
+  ind = [row index, column index].
   '''
   # Types of lines for different dts.
   dt_styles = ['', ':', '--']
@@ -55,4 +58,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [2, 2])
+  plot_time_dependent_msd(msd_statistics, [5, 5])

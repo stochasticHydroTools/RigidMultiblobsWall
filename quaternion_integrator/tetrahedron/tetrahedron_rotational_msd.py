@@ -11,6 +11,7 @@ get a curve of MSD(t).
 '''
 import os
 import sys
+sys.path.append('../..')
 import matplotlib
 matplotlib.use('Agg')
 import argparse
@@ -63,9 +64,11 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
+    KT = tf.KT
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
+    KT = 1.0
 
   integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
@@ -74,11 +77,13 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                     initial_location=location,
                                     force_calculator=
                                     tf.free_gravity_force_calculator)
+  integrator.kT = KT
 
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
     integrator.orientation = initial_orientation
+    integrator.location = initial_location
     trajectories.append([])
     # Calculate rotational MSD and add to trajectory.
     if has_location:
@@ -107,10 +112,13 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                               integrator.orientation[0]))
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
+  #HACK
+  step = 0
   for step in range(n_steps):
     time = dt*step
     mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)], axis=0)
     std_msd = np.std([trajectories[run][step] for run in range(n_runs)], axis=0)
+
     results[0].append(time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
@@ -253,8 +261,6 @@ if __name__ == "__main__":
                       help='Optional name added to the end of the '
                       'data file.  Useful for multiple runs '
                       '(--data_name=run-1).')
-
-
   args = parser.parse_args()
 
   # Set masses and initial position.  
@@ -263,14 +269,14 @@ if __name__ == "__main__":
   tdn.M2 = 0.1
   tdn.M3 = 0.1
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  initial_location = [[0., 0., 3.5]]
-  
+  initial_location = [[0., 0., 4.0]]
+
   schemes = ['FIXMAN', 'RFD']
   if not args.has_location:
     schemes.append('EM')
 
   dts = args.dts
-  end_time = 2.0  # TODO: Consider making this an argument.
+  end_time = 128.0  # TODO: Consider making this an argument.
   n_runs = args.n_steps
 
   # Setup logging.
