@@ -6,9 +6,6 @@ This file has the mobility and torque calculator used for any tetrahedron
 test.  Running this script will run a trajectory and bin the heights of each
 of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
-
-To run this script, the python path must include the constrained_diffusion 
-directory (the grandparent of this directory).
 '''
 import sys
 sys.path.append('../..')
@@ -40,6 +37,21 @@ H = 2.5     # Distance to wall.
 M1 = 0.1
 M2 = 0.2
 M3 = 0.3
+
+# Fake log-like class to redirect stdout to log file.
+class StreamToLogger(object):
+   """
+   Fake file-like stream object that redirects writes to a logger instance.
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+ 
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
+
 
 def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''
@@ -501,7 +513,11 @@ if __name__ == "__main__":
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
-
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+  
   # For now hard code bin width.  Number of bins is equal to
   # 4 over bin_width, since the particle can be in a -2, +2 range around
   # the fixed vertex.

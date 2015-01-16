@@ -15,14 +15,15 @@ import matplotlib
 matplotlib.use('Agg')
 import argparse
 from matplotlib import pyplot
-import tetrahedron as tdn
 import numpy as np
 import cPickle
 import logging
 
+
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-
+import tetrahedron as tdn
+import tetrahedron_free as tf
 
 class MSDStatistics(object):
   '''
@@ -31,6 +32,7 @@ class MSDStatistics(object):
   dictionaries, holding runs indexed by scheme and timestep in that 
   order.
   Each run is organized as a list of 3 arrays: [time, mean, std]
+  mean and std are matrices (the rotational MSD).
   '''
   def __init__(self, schemes, dts):
     self.data = {}
@@ -50,41 +52,65 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                                scheme,
                                                dt,
                                                end_time,
-                                               n_runs):
+                                               n_runs,
+                                               has_location=False,
+                                               location=None):
   ''' 
   Calculate MSD by starting at an initial condition, and doing short runs
   to time = end_time.
-  Average over these trajectories to get the curve of MSD[1, 1] v. time.
+  Average over these trajectories to get the curve of MSD v. time.
   '''
-  integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
+  if has_location:
+    mobility = tf.free_tetrahedron_mobility
+    torque_calculator = tf.free_gravity_torque_calculator
+  else:
+    mobility = tdn.tetrahedron_mobility
+    torque_calculator = tdn.gravity_torque_calculator
+
+  integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
-                                    tdn.gravity_torque_calculator)
+                                    torque_calculator,
+                                    has_location=has_location,
+                                    initial_location=location,
+                                    force_calculator=
+                                    tf.free_gravity_force_calculator)
+
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
     integrator.orientation = initial_orientation
     trajectories.append([])
-    #HACK: For now we just take the [1, 1] entry of the rotational MSD matrix.
-    trajectories[run].append(
-      calc_rotational_msd(initial_orientation[0],
-                          integrator.orientation[0])[1, 1])
+    # Calculate rotational MSD and add to trajectory.
+    if has_location:
+      trajectories[run].append(
+        calc_total_msd(initial_location[0], initial_orientation[0],
+                       integrator.location[0], integrator.orientation[0]))
+    else:
+      trajectories[run].append(
+        calc_rotational_msd(initial_orientation[0],
+                            integrator.orientation[0]))
     for step in range(n_steps):
-
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':
         integrator.rfd_time_step(dt)
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
-      trajectories[run].append(
-        calc_rotational_msd(initial_orientation[0],
-                            integrator.orientation[0])[1, 1])
+
+      if has_location:
+        trajectories[run].append(
+          calc_total_msd(initial_location[0], initial_orientation[0],
+                         integrator.location[0], integrator.orientation[0]))
+      else:
+        trajectories[run].append(
+          calc_rotational_msd(initial_orientation[0],
+                              integrator.orientation[0]))
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
   for step in range(n_steps):
     time = dt*step
-    mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)])
-    std_msd = np.std([trajectories[run][step] for run in range(n_runs)])
+    mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)], axis=0)
+    std_msd = np.std([trajectories[run][step] for run in range(n_runs)], axis=0)
     results[0].append(time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
@@ -160,6 +186,22 @@ def calc_rotational_msd(initial_orientation, orientation):
                           np.inner(rot_matrix, e))
   return np.outer(u_hat, u_hat)
 
+
+def calc_total_msd(initial_location, initial_orientation, 
+                   location, orientation):
+  ''' Calculate 6x6 MSD including orientation and location. '''
+  u_hat = np.zeros(3)
+  rot_matrix = orientation.rotation_matrix()
+  original_rot_matrix = initial_orientation.rotation_matrix()
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                          np.inner(rot_matrix, e))
+  dx = np.array(location) - np.array(initial_location)
+  displacement = np.concatenate([dx, u_hat])
+  return np.outer(displacement, displacement)
+
   
 def plot_msd_convergence(dts, msd_list, names):
   ''' 
@@ -187,36 +229,49 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Run Simulations to calculate '
                                    'fixed tetrahedron rotational MSD using the '
                                    'Fixman, Random Finite Difference, and '
-                                   'Euler-Maruyama schemes at multiple timesteps.')
+                                   'Euler-Maruyama schemes at multiple '
+                                   'timesteps.')
   parser.add_argument('-dts', dest='dts', type=float, nargs='+',
                       help='Timesteps to use for runs. specify as a list, e.g. '
-                      '[4.0, 2.0]')
+                      '-dts 4.0 2.0')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
   parser.add_argument('-fixed', dest='fixed', type=bool, default=False,
                       help='Indicate whether to do multiple runs starting at '
-                      'a fixed initial condition.  If false, will do one long '
+                      'a fixed initial condition.  If false, will do one '
                       'run and calculate the average time dependent MSD at '
                       'equilibrium.')
+  parser.add_argument('-location', dest='has_location', type=bool,
+                      default=False,
+                      help='Whether or not the tetrahedron is allowed '
+                      'to move (has a location).  If it is allowed to move, '
+                      'then the MSD includes translational and rotational '
+                      'displacement.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
                       'data file.  Useful for multiple runs '
                       '(--data_name=run-1).')
+
+
   args = parser.parse_args()
 
-  # Set masses and initial position.
+  # Set masses and initial position.  
+  # These only matter if there is no location.
   tdn.M1 = 0.1
   tdn.M2 = 0.1
   tdn.M3 = 0.1
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-#  initial_position = [Quaternion([1./np.sqrt(3.), 1./np.sqrt(3.), 1./np.sqrt(3.), 0.])]
-  schemes = ['FIXMAN', 'RFD', 'EM']
+  initial_location = [[0., 0., 3.5]]
+  
+  schemes = ['FIXMAN', 'RFD']
+  if not args.has_location:
+    schemes.append('EM')
 
-  dts = args.dts # [8., 4., 2.]
-  end_time = 128.  # TODO: Maybe make this an argument.
-  n_runs = args.n_steps #25000
+  dts = args.dts
+  end_time = 2.0  # TODO: Consider making this an argument.
+  n_runs = args.n_steps
 
   # Setup logging.
   # Make directory for logs if it doesn't exist.
@@ -231,6 +286,10 @@ if __name__ == "__main__":
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
+  sl = tdn.StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
 
   msd_statistics = MSDStatistics(schemes, dts)
   for scheme in schemes:
@@ -241,7 +300,9 @@ if __name__ == "__main__":
           scheme,
           dt,
           end_time,
-          n_runs)
+          n_runs,
+          has_location=args.has_location,
+          location=initial_location)
       else:
         run_data = calc_rotational_msd_from_long_run(initial_orientation,
                                                      scheme,
@@ -251,7 +312,8 @@ if __name__ == "__main__":
       msd_statistics.add_run(scheme, dt, run_data)
       progress_logger.info('finished timestepping dt= %f for scheme %s' % (
         dt, scheme))
-      sys.stdout.flush()
+
+  progress_logger.info('Runs complete.')
 
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
@@ -268,16 +330,4 @@ if __name__ == "__main__":
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
-
-
-
-#  plot_time_dependent_msd(msd_statistics)
-#  plot_msd_convergence(dts, [msd_fixman, msd_rfd, msd_em],
-#                       ['Fixman', 'RFD', 'EM'])
-  
-  # print "Calculated MSD is ", msd_calculated
-  # msd_theory = 2.*integrator.kT*tdn.tetrahedron_mobility(initial_position)
-  # print "Theoretical MSD is ", msd_theory
-  # rel_error = np.linalg.norm(msd_calculated - msd_theory)/np.linalg.norm(msd_theory)
-  # print "Relative Error is ", rel_error
 
