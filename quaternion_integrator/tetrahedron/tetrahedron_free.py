@@ -437,7 +437,8 @@ if __name__ == '__main__':
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
                            'M3': M3}
   height_data['heights'] = heights
-  height_data['buckets'] = np.array(bin_width*range(fixman_heights + 1))
+  height_data['buckets'] = (bin_width*np.array(range(len(fixman_heights[0])))
+                            + 0.5*bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
 
   # Make directory for data if it doesn't exist.
