@@ -15,6 +15,7 @@ import cProfile, StringIO, pstats
 import logging
 
 import tetrahedron as tdn
+from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
@@ -68,7 +69,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = tdn.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
