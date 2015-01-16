@@ -23,6 +23,7 @@ import logging
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from fluids import mobility as mb
 import uniform_analyzer as ua
 import tetrahedron_ext as te
 
@@ -86,7 +87,7 @@ def torque_oseen_mobility(r_vectors):
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''  
-  mobility = image_singular_stokeslet(r_vectors)
+  mobility = mb.image_singular_stokeslet(r_vectors)
   rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -107,7 +108,7 @@ def torque_mobility(r_vectors):
    "Simulation of hydrodynamically interacting particles near a no-slip
     boundary."
   '''  
-  mobility = boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -125,166 +126,12 @@ def rpy_torque_mobility(r_vectors):
   each other vertex (a length 3N vector).
   M (3N x 3N) is the RPY tensor.
   '''  
-  mobility = rotne_prager_tensor(r_vectors, ETA, A)
+  mobility = mb.rotne_prager_tensor(r_vectors, ETA, A)
   rotation_matrix = calculate_rot_matrix_cm(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),
                                                rotation_matrix)))
   return total_mobility
-
-
-def image_singular_stokeslet(r_vectors):
-  ''' Calculate the image system for the singular stokeslet (M above).'''
-  mobility = np.array([
-      np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
-  # Loop through particle interactions
-  for j in range(len(r_vectors)):
-    for k in range(len(r_vectors)):
-      if j != k:  #  do particle interaction
-        r_particles = r_vectors[j] - r_vectors[k]
-        r_norm = np.linalg.norm(r_particles)
-        wall_dist = r_vectors[k][2]
-        r_reflect = r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., wall_dist]))
-        r_ref_norm = np.linalg.norm(r_reflect)
-        # Loop through components.
-        for l in range(3):
-          for m in range(3):
-            # Two stokeslets, one with negative force at image.
-            mobility[j*3 + l][k*3 + m] = (
-              ((l == m)*1./r_norm + r_particles[l]*r_particles[m]/(r_norm**3) -
-               ((l == m)*1./r_ref_norm + r_reflect[l]*r_reflect[m]/(r_ref_norm**3)))/
-              (8.*np.pi))
-        # Add doublet and dipole contribution.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += (
-          doublet_and_dipole(r_reflect, wall_dist))
-        
-      else:
-        # j == k
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
-  return mobility
-
-def stokes_doublet(r):
-  ''' Calculate stokes doublet from direction, strength, and r. '''
-  r_norm = np.linalg.norm(r)
-  e3 = np.array([0., 0., 1.])
-  doublet = (np.outer(r, e3) + np.dot(r, e3)*np.identity(3) -
-             np.outer(e3, r) - 3.*np.dot(e3, r)*np.outer(r, r)/(r_norm**2))
-  # Negate the first two columns for the correct forcing.
-  doublet[:, 0:2] = -1.*doublet[:, 0:2]
-  doublet = doublet/(8*np.pi*(r_norm**3))
-  return doublet
-
-def potential_dipole(r):
-  ''' Calculate potential dipole. '''
-  r_norm = np.linalg.norm(r)
-  dipole = np.identity(3) - 3.*np.outer(r, r)/(r_norm**2)
-  # Negate the first two columns for the correct forcing.
-  dipole[:, 0:2] = -1.*dipole[:, 0:2]
-  dipole = dipole/(4.*np.pi*(r_norm**3))
-  return dipole
-
-
-def doublet_and_dipole(r, h):
-  ''' 
-  Just keep the pieces of the potential dipole and the doublet
-  that we need for the image system.  No point in calculating terms that will cancel.
-  This function includes the prefactors of 2H and H**2.  
-  Seems to be significantly faster.
-  '''
-  r_norm = np.linalg.norm(r)
-  e3 = np.array([0., 0., 1.])
-  doublet_and_dipole = 2.*h*(np.outer(r, e3) - np.outer(e3, r))/(8.*np.pi*(r_norm**3))
-  doublet_and_dipole[:, 0:2] = -1.*doublet_and_dipole[:, 0:2]
-  return doublet_and_dipole
-
-
-def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
-  ''' 
-  Same as single wall fluid mobility, but boosted into C++ for 
-  a speedup. Must compile tetrahedron_ext.cc before this will work 
-  (use Makefile).
-  '''
-  mobility = rotne_prager_tensor(r_vectors, eta, a)
-  num_particles = len(r_vectors)
-  te.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, mobility)
-  return mobility
-
-
-def single_wall_fluid_mobility(r_vectors, eta, a):
-  ''' Mobility for particles near a wall.  This uses the expression from
-  the Swan and Brady paper for a finite size particle, as opposed to the 
-  Blake paper point particle result. '''
-  num_particles = len(r_vectors)
-  # We add the corrections from the appendix of the paper to the unbounded mobility.
-  mobility = rotne_prager_tensor(r_vectors, eta, a)
-  for j in range(num_particles):
-    for k in range(j+1, num_particles):
-      # Here notation is based on appendix C of the Swan and Brady paper:
-      #  'Simulation of hydrodynamically interacting particles near a no-slip
-      #   boundary.'
-      h = r_vectors[k][2]
-      R = (r_vectors[j] - (r_vectors[k] - 2.*np.array([0., 0., h])))/a
-      R_norm = np.linalg.norm(R)
-      e = R/R_norm
-      e_3 = np.array([0., 0., e[2]])
-      h_hat = h/(a*R[2])
-      # Taken from Appendix C expression for M_UF
-      mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] += (1./(6.*np.pi*eta*a))*(
-        -0.25*(3.*(1. - 6.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
-               - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
-               + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e)
-         - (0.25*(3.*(1. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
-                  + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
-                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))*np.identity(3)
-         + 0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
-                - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
-                + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e_3)
-         + 0.5*(3.*h_hat/R_norm - 10./(R_norm**5))*np.outer(e_3, e)
-         - (3.*(h_hat**2)*(e[2]**2)/R_norm 
-            + 3.*(e[2]**2)/(R_norm**3)
-            + (2. - 15.*e[2]**2)/(R_norm**5))*np.outer(e_3, e_3)/(e[2]**2))
-      
-      mobility[(k*3):(k*3 + 3), (j*3):(j*3 + 3)] = (
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)].T)
-
-  for j in range(len(r_vectors)):
-    # Diagonal blocks, self mobility.
-    h = r_vectors[j][2]/a
-    for l in range(3):
-      for m in range(3):
-        mobility[j*3 + l][j*3 + m] += (1./(6.*np.pi*eta*a))*(
-          (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
-          + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
-  return mobility
-
-
-def rotne_prager_tensor(r_vectors, eta, a):
-  ''' Calculate free rotne prager tensor for particles at locations given by
-  r_vectors (list of 3 dimensional locationis) of radius a.'''
-  num_particles = len(r_vectors)
-  mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
-  for j in range(num_particles):
-    for k in range(num_particles):
-      if j != k:
-        # Particle interaction, rotne prager.
-        r = r_vectors[j] - r_vectors[k]
-        r_norm = np.linalg.norm(r)
-        if r_norm > 2.*a:
-          # Constants for far RPY tensor, taken from OverdampedIB paper.
-          C1 = 3.*a/(4.*r_norm) + (a**3)/(2.*r_norm**3)
-          C2 = 3.*a/(4.*r_norm) - (3.*a**3)/(2.*r_norm**3)
-        elif r_norm <= 2.*a:
-          # This is for the close interaction, 
-          #  Call C3 -> C1 and C4 -> C2
-          C1 = 1 - 9.*r_norm/(32.*a)
-          C2 = 3*r_norm/(32.*a)
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = (1./(6.*np.pi*eta*a)*(
-            C1*np.identity(3) + C2*np.outer(r, r)/(r_norm**2)))
-      elif j == k:
-        # j == k, diagonal block.
-        mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = ((1./(6.*np.pi*eta*a))*
-                                                      np.identity(3))
-  return mobility
 
 
 def calculate_rot_matrix(r_vectors):
@@ -418,44 +265,9 @@ def bin_particle_heights(orientation, bin_width, height_histogram):
   r_vectors = get_r_vectors(orientation)
   for k in range(3):
     # Bin each particle height.
-    idx = int(math.floor((r_vectors[k][2] - H)/bin_width)) + len(height_histogram[k])/2
+    idx = (int(math.floor((r_vectors[k][2] - H)/bin_width)) + 
+           len(height_histogram[k])/2)
     height_histogram[k][idx] += 1
-
-def calc_rotational_msd(integrator, scheme, dt, n_steps, initial_orientation):
-  ''' 
-  Calculate Error in rotational MSD at initial_orientation given an
-  integrator and number of steps. Return the error between this MSD and
-  the theoretical msd as the 2 Norm of the matrix difference.
-  '''
-  #TODO: Remove this, it is no longer used.
-  # TODO: Change this to accept an initial orientation.
-  msd = np.array([np.zeros(3) for _ in range(3)])
-  for k in range(n_steps):
-    integrator.orientation = initial_orientation
-    if scheme == 'EM':
-      integrator.additive_em_time_step(dt)
-    elif scheme == 'RFD':
-      integrator.rfd_time_step(dt)
-    elif scheme == 'FIXMAN':
-      integrator.fixman_time_step(dt)
-    else:
-      raise Exception('Scheme must be FIXMAN, RFD, or EM')
-
-    u_hat = np.zeros(3)
-    rot_matrix = integrator.orientation[0].rotation_matrix()
-    original_rot_matrix = initial_orientation[0].rotation_matrix()
-    for i in range(3):
-      e = np.zeros(3)
-      e[i] = 1.
-      u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
-                            np.inner(rot_matrix, e))
-    msd += np.outer(u_hat, u_hat)
-  msd = msd/float(n_steps)/dt
-
-  msd_theory = 2.*integrator.kT*tetrahedron_mobility(
-    initial_orientation)
-
-  return np.linalg.norm(msd_theory - msd)
 
 
 if __name__ == "__main__":
@@ -476,7 +288,6 @@ if __name__ == "__main__":
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
                       help='True or False: Do we profile this run or not.')
   
-
   args = parser.parse_args()
   if args.profile:
     pr = cProfile.Profile()
@@ -563,7 +374,6 @@ if __name__ == "__main__":
         if k > 0:
           progress_logger.info('Estimated Total time required: %.2f Minutes.' %
                                (elapsed_time*float(n_steps)/float(k)/60.))
-      sys.stdout.flush()
 
   elapsed_time = time.time() - start_time
   if elapsed_time > 60:
