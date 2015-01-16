@@ -24,16 +24,16 @@ H = 3.5     # Distance to wall.
 KT = 0.1    # Temperature
 
 # Masses of particles.
-M1 = 0.2
+M1 = 0.25
 M2 = 0.1
-M3 = 0.1
-M4 = 0.3
+M3 = 0.15
+M4 = 0.4
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 14.0
-REPULSION_CUTOFF = 1.5
+REPULSION_STRENGTH = 10.0
+REPULSION_CUTOFF = 1.0
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -370,10 +370,10 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to 30./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./2.
-  fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  bin_width = 1./10.
+  fixman_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
   start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
@@ -432,10 +432,12 @@ if __name__ == '__main__':
 
   height_data = dict()
   # Save parameters just in case they're useful in the future.
+  # TODO: Make sure you check all parameters when plotting to avoid
+  # issues there.
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
                            'M3': M3}
   height_data['heights'] = heights
-  height_data['buckets'] = np.linspace(0., 25., len(heights[0][0]))
+  height_data['buckets'] = np.array(bin_width*range(fixman_heights + 1))
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
 
   # Make directory for data if it doesn't exist.

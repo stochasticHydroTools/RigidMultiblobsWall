@@ -1,3 +1,16 @@
+''' 
+Script to plot histograms of the heights of the vertices of 
+a tetrahedron (fixed or free to move) near a wall.  Usage:
+
+python tetrahedron_plot_heights tetrahedron-dt-2.0-N-4000000-run-2.pkl
+
+The pkl file is produced by either tetraheron.pu (fixed case) or
+tetrahedron_free.py (free case).
+
+The resulting plot will be put into the figures subdirectory.
+'''
+
+import os
 import sys
 sys.path.append('../..')
 import numpy as np
