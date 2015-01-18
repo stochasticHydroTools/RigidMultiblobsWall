@@ -6,7 +6,12 @@ This file has the mobility and torque calculator used for any tetrahedron
 test.  Running this script will run a trajectory and bin the heights of each
 of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
+
+Before running this script, you must compile the tetrahedron_ext.cc in this 
+folder, and mobility_ext.cc in /constrained_diffusion/fluids.  Just run make in both 
+of these folders to do this.
 '''
+
 import sys
 sys.path.append('..')
 import os
@@ -26,9 +31,6 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from fluids import mobility as mb
 import uniform_analyzer as ua
 import tetrahedron_ext as te
-
-# TODO: Move the fluid dynamics (not tetrahedron specific)
-# stuff (mobilities,etc) to a diff file.
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
