@@ -177,11 +177,19 @@ if __name__  == '__main__':
                 ['free-tetrahedron-dt-0.5-N-5000000-run-1.pkl',
                  'free-tetrahedron-dt-0.5-N-5000000-run-2.pkl',
                  'free-tetrahedron-dt-0.5-N-5000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-4.pkl'],
+                 'free-tetrahedron-dt-0.5-N-5000000-run-4.pkl',
+                 'free-tetrahedron-dt-0.5-N-5000000-run-5.pkl',
+                 'free-tetrahedron-dt-0.5-N-5000000-run-6.pkl',
+                 'free-tetrahedron-dt-0.5-N-5000000-run-7.pkl',
+                 'free-tetrahedron-dt-0.5-N-5000000-run-8.pkl'],
                 ['free-tetrahedron-dt-0.25-N-7000000-run-1.pkl',
                  'free-tetrahedron-dt-0.25-N-7000000-run-2.pkl',
                  'free-tetrahedron-dt-0.25-N-7000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-4.pkl']]
+                 'free-tetrahedron-dt-0.25-N-7000000-run-4.pkl',
+                 'free-tetrahedron-dt-0.25-N-7000000-run-5.pkl',
+                 'free-tetrahedron-dt-0.25-N-7000000-run-6.pkl',
+                 'free-tetrahedron-dt-0.25-N-7000000-run-7.pkl',
+                 'free-tetrahedron-dt-0.25-N-7000000-run-8.pkl']]
                 
   dts = [1.0, 0.5, 0.25]
   
