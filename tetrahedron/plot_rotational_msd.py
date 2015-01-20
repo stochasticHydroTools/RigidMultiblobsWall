@@ -63,4 +63,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [2, 2])
+  plot_time_dependent_msd(msd_statistics, [3, 3])

@@ -82,7 +82,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                     force_calculator=
                                     tf.free_gravity_force_calculator)
   integrator.kT = KT
-
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
@@ -172,9 +171,12 @@ def calc_rotational_msd_from_long_run(initial_orientation,
   integrator.kT = KT
 
   trajectory_length = int(end_time/dt) + 1
+  if trajectory_length > n_steps:
+    raise Exception('Trajectory length is greater than number of steps.  '
+                    'Do a longer run.')
   lagged_trajectory = []
   lagged_location_trajectory = []
-  average_rotational_msd = np.zeros((trajectory_length, dim, dim))
+  average_rotational_msd = [[] for _ in range(trajectory_length)]
   for step in range(n_steps):
     if scheme == 'FIXMAN':
       integrator.fixman_time_step(dt)
@@ -194,24 +196,24 @@ def calc_rotational_msd_from_long_run(initial_orientation,
         lagged_location_trajectory = lagged_location_trajectory[1:]
       for k in range(trajectory_length):
         if has_location:
-          average_rotational_msd[k] += calc_total_msd(
+          average_rotational_msd[k].append(calc_total_msd(
             lagged_location_trajectory[0],
             lagged_trajectory[0],
             lagged_location_trajectory[k],
-            lagged_trajectory[k])
+            lagged_trajectory[k]))
         else:
-          average_rotational_msd[k] += calc_rotational_msd(
+          average_rotational_msd[k].append(calc_rotational_msd(
             lagged_trajectory[0],
-            lagged_trajectory[k])
+            lagged_trajectory[k]))
     
-  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+#  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
-  results[1] = average_rotational_msd
-  results[2] = np.zeros((trajectory_length, dim, dim))
+  results[1] = np.mean(average_rotational_msd, axis=1)
+  results[2] = np.std(average_rotational_msd, axis=1)/np.sqrt(n_steps/trajectory_length)
       
   return results
 
