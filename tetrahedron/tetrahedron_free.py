@@ -20,10 +20,10 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
-H = 3.5     # Distance to wall.
+H = 3.5     # Initial Distance to wall.
 KT = 0.1    # Temperature
 
-# Masses of particles.
+# Masses of particles. g = 1.
 M1 = 0.25
 M2 = 0.1
 M3 = 0.15
