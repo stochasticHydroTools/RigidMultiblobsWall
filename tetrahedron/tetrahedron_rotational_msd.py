@@ -248,7 +248,7 @@ if __name__ == "__main__":
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
-  parser.add_argument('-end', dest='end_time', type=float, default = 128.0
+  parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
                       help='How far to calculate the time dependent MSD.')
   parser.add_argument('-fixed', dest='fixed', type=bool, default=False,
                       help='Indicate whether to do multiple runs starting at '
