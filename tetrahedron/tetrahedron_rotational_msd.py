@@ -133,7 +133,10 @@ def calc_rotational_msd_from_long_run(initial_orientation,
                                       scheme,
                                       dt,
                                       end_time,
-                                      n_steps):
+                                      n_steps,
+                                      has_location=False,
+                                      location=None):
+
   ''' 
   Do one long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
@@ -145,13 +148,33 @@ def calc_rotational_msd_from_long_run(initial_orientation,
     dt:  float, timestep used by the integrator.
     end_time: float, how much time to track the evolution of the MSD.
     n_steps:  How many total steps to take.
+    has_location: boolean, do we let the tetrahedron move and track location?
+    location: initial location of tetrahedron, only used if has_location = True.
   '''
-  integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,
+  if has_location:
+    mobility = tf.free_tetrahedron_mobility
+    torque_calculator = tf.free_gravity_torque_calculator
+    KT = tf.KT
+    dim = 6
+  else:
+    mobility = tdn.tetrahedron_mobility
+    torque_calculator = tdn.gravity_torque_calculator
+    KT = 1.0
+    dim = 3
+
+  integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
-                                    tdn.gravity_torque_calculator)
+                                    torque_calculator,
+                                    has_location=has_location,
+                                    initial_location=location,
+                                    force_calculator=
+                                    tf.free_gravity_force_calculator)
+  integrator.kT = KT
+
   trajectory_length = int(end_time/dt) + 1
   lagged_trajectory = []
-  average_rotational_msd = np.zeros(trajectory_length)
+  lagged_location_trajectory = []
+  average_rotational_msd = np.zeros((trajectory_length, dim, dim))
   for step in range(n_steps):
     if scheme == 'FIXMAN':
       integrator.fixman_time_step(dt)
@@ -162,22 +185,33 @@ def calc_rotational_msd_from_long_run(initial_orientation,
 
 
     lagged_trajectory.append(integrator.orientation[0])
+    if has_location:
+      lagged_location_trajectory.append(integrator.location[0])
 
     if len(lagged_trajectory) > trajectory_length:
       lagged_trajectory = lagged_trajectory[1:]
+      if has_location:
+        lagged_location_trajectory = lagged_location_trajectory[1:]
       for k in range(trajectory_length):
-        # For now just choose the 1, 1 entry
-        average_rotational_msd[k] += calc_rotational_msd(
-          lagged_trajectory[0],
-          lagged_trajectory[k])[1, 1]
+        if has_location:
+          average_rotational_msd[k] += calc_total_msd(
+            lagged_location_trajectory[0],
+            lagged_trajectory[0],
+            lagged_location_trajectory[k],
+            lagged_trajectory[k])
+        else:
+          average_rotational_msd[k] += calc_rotational_msd(
+            lagged_trajectory[0],
+            lagged_trajectory[k])
     
   average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+  
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
   results[1] = average_rotational_msd
-  results[2] = np.zeros(trajectory_length)
+  results[2] = np.zeros((trajectory_length, dim, dim))
       
   return results
 
@@ -320,7 +354,9 @@ if __name__ == "__main__":
                                                      scheme,
                                                      dt,
                                                      end_time,
-                                                     n_runs)
+                                                     n_runs,
+                                                     has_location=args.has_location,
+                                                     location=initial_location)
       msd_statistics.add_run(scheme, dt, run_data)
       progress_logger.info('finished timestepping dt= %f for scheme %s' % (
         dt, scheme))

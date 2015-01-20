@@ -44,7 +44,7 @@ def plot_time_dependent_msd(msd_statistics, ind):
       pyplot.errorbar(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
                       msd_entries[err_idx],
                       yerr = 2.*msd_entries_std[err_idx],
-                      fmt = scheme_colors[scheme_num] + dt_styles[dt_num])
+                      fmt = scheme_colors[scheme_num] + '.')
       dt_num += 1
     scheme_num += 1
     pyplot.title('MSD(t) for Scheme %s' % scheme)
