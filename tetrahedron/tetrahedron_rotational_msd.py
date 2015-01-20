@@ -248,6 +248,8 @@ if __name__ == "__main__":
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
+  parser.add_argument('-end', dest='end_time', type=float, default = 128.0
+                      help='How far to calculate the time dependent MSD.')
   parser.add_argument('-fixed', dest='fixed', type=bool, default=False,
                       help='Indicate whether to do multiple runs starting at '
                       'a fixed initial condition.  If false, will do one '
@@ -279,7 +281,7 @@ if __name__ == "__main__":
     schemes.append('EM')
 
   dts = args.dts
-  end_time = 150.0  # TODO: Consider making this an argument.
+  end_time = args.end_time
   n_runs = args.n_steps
 
   # Setup logging.
