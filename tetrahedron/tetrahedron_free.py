@@ -165,7 +165,6 @@ def free_gravity_force_calculator(location, orientation):
   orientation: list of length 1, only entry is a quaternion with the 
                tetrahedron orientation
   '''
-  # TODO: Tune repulsion from the wall to keep tetrahedron away.
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   potential_force = np.zeros(3)
   # Add repulsion of 'top' vertex, at location.
@@ -192,6 +191,7 @@ def bin_free_particle_heights(location, orientation, bin_width,
     else:
       print 'index is: ', idx
       print 'Index exceeds histogram length.'
+
   
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
