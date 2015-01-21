@@ -313,6 +313,10 @@ if __name__ == "__main__":
   tdn.M1 = 0.1
   tdn.M2 = 0.1
   tdn.M3 = 0.1
+  tf.M1 = 0.225
+  tf.M2 = 0.225
+  tf.M3 = 0.225
+  tf.M4 = 0.225
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [[0., 0., 4.0]]
 
