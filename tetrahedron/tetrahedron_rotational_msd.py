@@ -240,16 +240,21 @@ def calc_total_msd(initial_location, initial_orientation,
   u_hat = np.zeros(3)
   rot_matrix = orientation.rotation_matrix()
   original_rot_matrix = initial_orientation.rotation_matrix()
+  original_center_of_mass = tf.get_free_center_of_mass(initial_location, 
+                                                       initial_orientation)
+  final_center_of_mass = tf.get_free_center_of_mass(location, 
+                                                    orientation)
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
-  dx = np.array(location) - np.array(initial_location)
+    
+  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
-  
+
 def plot_msd_convergence(dts, msd_list, names):
   ''' 
   Log-log plot of error in MSD v. dt.  This is for single

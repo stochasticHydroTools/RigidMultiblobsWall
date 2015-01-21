@@ -211,6 +211,7 @@ def get_r_vectors(quaternion):
   
   return [r1, r2, r3]
 
+
 def gravity_torque_calculator(orientation):
   ''' 
   Calculate torque based on orientation, given as a length

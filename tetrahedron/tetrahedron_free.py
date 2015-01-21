@@ -112,6 +112,19 @@ def get_free_r_vectors(location, quaternion):
   return [r1, r2, r3]
 
 
+def get_free_center_of_mass(location, orientation):
+    '''
+    Find the center of mass given the location of the top vertex, 
+    and the orientation given as a quaternion.  This assumes masses are
+    M1, M2, M3, M4 for r1, r2, r3, location respectively.
+    '''
+    r_vectors = get_free_r_vectors(location, orientation)
+    center_of_mass = (np.array(r_vectors[0])*M1 + np.array(r_vectors[1])*M2 + 
+                      np.array(r_vectors[2])*M3 + np.array(location)*M4)
+    center_of_mass = center_of_mass/(M1 + M2 + M3 + M4)
+    return center_of_mass
+
+
 def calc_free_rot_matrix(r_vectors, location):
   ''' 
   Calculate rotation matrix (r cross) based on the free tetrahedron.

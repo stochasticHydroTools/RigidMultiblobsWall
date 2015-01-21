@@ -6,6 +6,7 @@ sys.path.append('..')
 import unittest
 import numpy as np
 import random
+
 import tetrahedron_free as tf
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -55,6 +56,25 @@ class TestFreeTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[2][1], 20. + 1./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[2][2], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
 
+
+  def test_free_center_of_mass(self):
+    ''' 
+    Test that we get the right center of mass for some specific
+    configurations. 
+    '''
+    # Set masses.
+    tf.M1 = 1.0
+    tf.M2 = 1.0
+    tf.M3 = 1.0
+    tf.M4 = 1.0
+    location = [0., 0., 3.5]
+    orientation = Quaternion([1.0, 0., 0., 0.])
+    com = tf.get_free_center_of_mass(location, orientation)
+
+    self.assertAlmostEqual(com[0], 0.0)    
+    self.assertAlmostEqual(com[1], 0.0)
+    self.assertAlmostEqual(com[2], 3.5 - np.sqrt(6.)/2.)
+
   
   def test_calc_free_rot_matrix(self):
     '''Test that we get the correct rotation matrix.'''
@@ -97,12 +117,15 @@ class TestFreeTetrahedron(unittest.TestCase):
     # Because height is 2, the particles are guaranteed to be within a cutoff of
     # 4.
     force_array = np.array([
+      0., 0.,  
+      ((r_vectors[0][2] < tf.REPULSION_CUTOFF)*
+       (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[0][2])) - tf.M1),
       0., 0., 
-      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[0][2]) - tf.M1,
+      ((r_vectors[1][2] < tf.REPULSION_CUTOFF)*
+      (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[1][2])) - tf.M2),
       0., 0., 
-      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[1][2]) - tf.M2,
-      0., 0., 
-      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[2][2]) - tf.M3])
+      ((r_vectors[2][2] < tf.REPULSION_CUTOFF)*
+       (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[2][2])) - tf.M3)])
     
     rot_matrix = tf.calc_free_rot_matrix(r_vectors, location)
 
@@ -127,12 +150,12 @@ class TestFreeTetrahedron(unittest.TestCase):
 
     correct_force = np.zeros(3)
     # Add repulsion force from top vertex and all gravity.
-    correct_force[2] += (
-      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - location[2]) - tf.M1 -tf.M2 
+    correct_force[2] += ((location[2] < tf.REPULSION_CUTOFF)*(
+      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - location[2])) - tf.M1 -tf.M2 
       - tf.M3 - tf.M4)
     # Add repulsion force from each other particle
     for k in range(3):
-      correct_force[2] += (
+      correct_force[2] += ((r_vectors[k][2] < tf.REPULSION_CUTOFF)*
         tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[k][2]))
 
     calculated_force = tf.free_gravity_force_calculator([location], [theta])
@@ -140,11 +163,6 @@ class TestFreeTetrahedron(unittest.TestCase):
     for k in range(3):
       self.assertAlmostEqual(calculated_force[k], correct_force[k])
 
-
-    
-    
-    
-    
 
 if __name__ == '__main__':
   unittest.main()
