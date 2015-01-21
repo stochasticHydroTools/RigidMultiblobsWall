@@ -51,7 +51,8 @@ def plot_time_dependent_msd(msd_statistics, ind):
     pyplot.ylabel('MSD')
     pyplot.xlabel('time')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/TimeDependentRotationalMSD-%s.pdf' % scheme)
+    pyplot.savefig('./figures/TimeDependentRotationalMSD-%s-Component-%s.pdf' % 
+                   (scheme, ind))
 
 
 if __name__ == "__main__":
@@ -63,4 +64,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [3, 3])
+  plot_time_dependent_msd(msd_statistics, [2, 2])

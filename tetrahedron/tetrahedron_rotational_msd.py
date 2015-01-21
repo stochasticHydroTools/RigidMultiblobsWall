@@ -115,7 +115,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                               integrator.orientation[0]))
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
-  #HACK
   step = 0
   for step in range(n_steps):
     time = dt*step
@@ -291,7 +290,7 @@ if __name__ == "__main__":
                       'to perform in the case of fixed initial condition.')
   parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
                       help='How far to calculate the time dependent MSD.')
-  parser.add_argument('-fixed', dest='fixed', type=bool, default=False,
+  parser.add_argument('-initial', dest='initial', type=bool, default=False,
                       help='Indicate whether to do multiple runs starting at '
                       'a fixed initial condition.  If false, will do one '
                       'run and calculate the average time dependent MSD at '
@@ -330,8 +329,8 @@ if __name__ == "__main__":
   if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
     os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
-  log_filename = './logs/rotational-msd-fixed-%s-dts-%s-N-%d-%s.log' % (
-    args.fixed, dts, n_runs, args.data_name)
+  log_filename = './logs/rotational-msd-initial-%s-location-%s-dts-%s-N-%d-%s.log' % (
+    args.initial, args.has_location, dts, n_runs, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -347,8 +346,8 @@ if __name__ == "__main__":
   start_time = time.time()
   for scheme in schemes:
     for dt in dts:
-      if args.fixed:
-        run_data = calculate_msd_from_fixed_initial_condition(
+      if args.initial:
+        run_data = calculate_msd_from_initial_initial_condition(
           initial_orientation,
           scheme,
           dt,
@@ -382,11 +381,11 @@ if __name__ == "__main__":
   # Optional name for data provided
   data_name = args.data_name
   if len(data_name) > 3:
-    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d-%s.pkl' % (
-      args.fixed, dts, n_runs, data_name)
+    data_name = './data/rot-msd-initial-%s-location-%s-dt-%s-N-%d-%s.pkl' % (
+      args.initial, args.has_location, dts, n_runs, data_name)
   else:
-    data_name = './data/rot-msd-fixed-%s-dt-%s-N-%d.pkl' % (
-      args.fixed, dts, n_runs)
+    data_name = './data/rot-msd-initial-%s-location-%s-dt-%s-N-%d.pkl' % (
+      args.initial, args.has_location, dts, n_runs)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
