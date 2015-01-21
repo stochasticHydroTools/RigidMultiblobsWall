@@ -127,13 +127,13 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   return results
 
 
-def calc_rotational_msd_from_long_run(initial_orientation,
-                                      scheme,
-                                      dt,
-                                      end_time,
-                                      n_steps,
-                                      has_location=False,
-                                      location=None):
+def calc_rotational_msd_from_equilibrium(initial_orientation,
+                                         scheme,
+                                         dt,
+                                         end_time,
+                                         n_steps,
+                                         has_location=False,
+                                         location=None):
 
   ''' 
   Do one long run, and along the way gather statistics
@@ -175,7 +175,7 @@ def calc_rotational_msd_from_long_run(initial_orientation,
                     'Do a longer run.')
   lagged_trajectory = []
   lagged_location_trajectory = []
-  average_rotational_msd = [[] for _ in range(trajectory_length)]
+  average_rotational_msd = np.array([np.zeros((dim, dim)) for _ in range(trajectory_length)])
   for step in range(n_steps):
     if scheme == 'FIXMAN':
       integrator.fixman_time_step(dt)
@@ -195,24 +195,24 @@ def calc_rotational_msd_from_long_run(initial_orientation,
         lagged_location_trajectory = lagged_location_trajectory[1:]
       for k in range(trajectory_length):
         if has_location:
-          average_rotational_msd[k].append(calc_total_msd(
+          average_rotational_msd[k] += (calc_total_msd(
             lagged_location_trajectory[0],
             lagged_trajectory[0],
             lagged_location_trajectory[k],
             lagged_trajectory[k]))
         else:
-          average_rotational_msd[k].append(calc_rotational_msd(
+          average_rotational_msd[k] += (calc_rotational_msd(
             lagged_trajectory[0],
             lagged_trajectory[k]))
     
-#  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
-  results[1] = np.mean(average_rotational_msd, axis=1)
-  results[2] = np.std(average_rotational_msd, axis=1)/np.sqrt(n_steps/trajectory_length)
+  results[1] = average_rotational_msd
+  results[2] = np.zeros((trajectory_length, dim, dim))
       
   return results
 
@@ -328,7 +328,7 @@ if __name__ == "__main__":
   # Make directory for logs if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
     os.mkdir(os.path.join(os.getcwd(), 'logs'))
-
+  print "args.initial is ", args.initial
   log_filename = './logs/rotational-msd-initial-%s-location-%s-dts-%s-N-%d-%s.log' % (
     args.initial, args.has_location, dts, n_runs, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
@@ -347,7 +347,7 @@ if __name__ == "__main__":
   for scheme in schemes:
     for dt in dts:
       if args.initial:
-        run_data = calculate_msd_from_initial_initial_condition(
+        run_data = calculate_msd_from_fixed_initial_condition(
           initial_orientation,
           scheme,
           dt,
@@ -356,13 +356,15 @@ if __name__ == "__main__":
           has_location=args.has_location,
           location=initial_location)
       else:
-        run_data = calc_rotational_msd_from_long_run(initial_orientation,
-                                                     scheme,
-                                                     dt,
-                                                     end_time,
-                                                     n_runs,
-                                                     has_location=args.has_location,
-                                                     location=initial_location)
+        run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
+                                                        scheme,
+                                                        dt,
+                                                        end_time,
+                                                        n_runs,
+                                                        has_location=
+                                                        args.has_location,
+                                                        location=
+                                                        initial_location)
       msd_statistics.add_run(scheme, dt, run_data)
       progress_logger.info('finished timestepping dt= %f for scheme %s' % (
         dt, scheme))

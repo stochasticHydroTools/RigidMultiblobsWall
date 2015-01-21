@@ -36,7 +36,7 @@ def plot_time_dependent_msd(msd_statistics, ind):
       msd_entries = np.array([msd_statistics.data[scheme][dt][1][_][ind[0]][ind[1]]
                      for _ in range(num_steps)])
       msd_entries_std = np.array([msd_statistics.data[scheme][dt][2][_][ind[0]][ind[1]]
-                         for _ in range(num_steps)])
+                                  for _ in range(num_steps)])
       pyplot.plot(msd_statistics.data[scheme][dt][0],
                   msd_entries,
                   scheme_colors[scheme_num] + dt_styles[dt_num],
@@ -64,4 +64,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [2, 2])
+  plot_time_dependent_msd(msd_statistics, [3, 3])
