@@ -332,7 +332,6 @@ if __name__ == "__main__":
   # Make directory for logs if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
     os.mkdir(os.path.join(os.getcwd(), 'logs'))
-  print "args.initial is ", args.initial
   log_filename = './logs/rotational-msd-initial-%s-location-%s-dts-%s-N-%d-%s.log' % (
     args.initial, args.has_location, dts, n_runs, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
