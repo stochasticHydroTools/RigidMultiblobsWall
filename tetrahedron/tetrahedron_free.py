@@ -315,15 +315,11 @@ def gibbs_boltzmann_distribution(location, orientation):
 def check_particles_above_wall(location, orientation):
   ''' Check that the particles at position aren't below the wall '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  print "location is ", location
-  print "r_vectors are ", r_vectors
-  if location[0][2] < 0.0:
+  if location[0][2] < 0.5:
     return False
   for k in range(3):
-    print "distance to ", k, " is ", np.linalg.norm(location[0] - r_vectors[k])
-    if r_vectors[k][2] < 0.0: 
+    if r_vectors[k][2] < 0.5: 
       return False
-  print "all particles above wall"
   return True
 
 
