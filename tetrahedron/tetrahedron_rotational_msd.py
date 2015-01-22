@@ -39,8 +39,9 @@ class MSDStatistics(object):
   Each run is organized as a list of 3 arrays: [time, mean, std]
   mean and std are matrices (the rotational MSD).
   '''
-  def __init__(self, schemes, dts):
+  def __init__(self, schemes, dts, params):
     self.data = {}
+    self.params = params
 
   def add_run(self, scheme_name, dt, run_data):
     ''' 
@@ -362,7 +363,16 @@ if __name__ == "__main__":
   sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
 
-  msd_statistics = MSDStatistics(schemes, dts)
+  if args.has_location:
+    params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3, 'M4': tf.M4,
+              'A': tf.A, 'REPULSION_STRENGTH': tf.REPULSION_STRENGTH,
+              'REPULSION_CUTOFF': tf.REPULSION_CUTOFF,
+              'KT': tf.KT}
+  else:
+    params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3,
+              'A': tf.A, 'KT': tf.KT}
+    
+  msd_statistics = MSDStatistics(schemes, dts, params)
   # Measure time, and estimate how long runs will take.
   # One time unit is n_runs timesteps.
   start_time = time.time()
