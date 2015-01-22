@@ -45,6 +45,14 @@ class QuaternionIntegrator(object):
     #TODO: Make this dynamic
     self.kT = 1.0
 
+    # Set up a check to satisfy at every step.  This needs to be 
+    # overwritten manually to use it.
+    #  Check function should take a state (location, orientation) if
+    # has_location=True or 
+    # (orietnation) if has_location = False
+    self.check_function = None
+    self.rejections = 0
+
   def fixman_time_step(self, dt):
     ''' Take a timestep of length dt using the Fixman method '''
     if self.has_location:
@@ -88,6 +96,7 @@ class QuaternionIntegrator(object):
         np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
       velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
       omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
+      
     else:
       mobility_tilde = self.mobility(orientation_midpoint)
       noise = noise + np.random.normal(0.0, 1.0, self.dim*3)
@@ -101,12 +110,16 @@ class QuaternionIntegrator(object):
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
       new_orientation.append(quaternion_dt*self.orientation[i])
-      
+
+    # Check that the new state is admissible.
     if self.has_location:
       new_location = self.location + dt*velocity_tilde
-      self.location = new_location
-
-    self.orientation = new_orientation
+      if self.check_new_state(new_location, new_orientation):
+        self.location = new_location
+        self.orientation = new_orientation
+    else:
+      if self.check_new_state(None, new_orientation):
+        self.orientation = new_orientation
 
 
   def rfd_time_step(self, dt):
@@ -141,7 +154,6 @@ class QuaternionIntegrator(object):
       velocity = velocity_and_omega[0:(3*self.dim)]
       omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
       new_location = self.location + dt*velocity
-      self.location = new_location
 
     else:
       rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
@@ -167,13 +179,18 @@ class QuaternionIntegrator(object):
                divergence_term)
 
     # For with location and without location, we update orientation the same way.
-
     new_orientation = []
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
       new_orientation.append(quaternion_dt*self.orientation[i])
 
-    self.orientation = new_orientation
+    if self.has_location:
+      if self.check_new_state(new_location, new_orientation):
+        self.location = new_location
+        self.orientation = new_orientation
+    else:
+      if self.check_new_state(None, new_orientation):
+        self.orientation = new_orientation
 
     
   def additive_em_time_step(self, dt):
@@ -192,8 +209,9 @@ class QuaternionIntegrator(object):
     for i in range(self.dim):
       quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
       new_orientation.append(quaternion_dt*self.orientation[i])
-      
-    self.orientation = new_orientation
+
+    if self.check_new_state(None, new_orientation):
+      self.orientation = new_orientation
 
   def estimate_divergence(self):
     ''' 
@@ -268,5 +286,20 @@ class QuaternionIntegrator(object):
     return [avg_drift, avg_covariance]
       
       
-      
+  def check_new_state(self, location, orientation):
+    ''' 
+    Use the check function to test if the new state is valid.
+    If not, the timestep will be thrown out. 
+    '''
+    if self.check_function:
+      if self.has_location:
+        admissible = self.check_function(location, orientation)
+      else:
+        admissible = self.check_function(orientation)
+      if not admissible:
+        self.rejections += 1
+      return admissible
+    else:
+      return True
+
     

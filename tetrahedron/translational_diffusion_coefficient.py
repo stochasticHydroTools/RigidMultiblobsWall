@@ -97,6 +97,7 @@ def calculate_average_mu_parallel(n_samples):
   average_gamma_parallel /= 2*n_samples
 
   return [average_mu_parallel, average_gamma_parallel]
+
   
 if __name__ == "__main__":
   # Make sure figures folder exists

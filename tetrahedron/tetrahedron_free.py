@@ -32,8 +32,8 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 10.0
-REPULSION_CUTOFF = 1.0
+REPULSION_STRENGTH = 8.0
+REPULSION_CUTOFF = 1.5
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -312,6 +312,13 @@ def gibbs_boltzmann_distribution(location, orientation):
   return np.exp(-1.*U/KT)
 
 
+def check_particles_above_wall(location, orientation):
+  ''' Check that the particles at position aren't below the wall '''
+  
+  
+    
+
+
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of free '
@@ -392,6 +399,7 @@ if __name__ == '__main__':
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
+    check_particles_above_wall(fixman_integrator)
     bin_free_particle_heights(fixman_integrator.location[0],
                               fixman_integrator.orientation[0], 
                               bin_width, 

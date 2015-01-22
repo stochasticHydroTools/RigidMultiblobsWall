@@ -24,6 +24,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                                  initial_orientation,
                                                  identity_torque_calculator)
     self.assertEqual(quaternion_integrator.dim, 1)
+    self.assertEqual(quaternion_integrator.check_function, None)
 
 
   def test_deterministic_fixman(self):
@@ -190,6 +191,33 @@ class TestQuaternionIntegrator(unittest.TestCase):
         self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
 
 
+  def test_check_works(self):
+    '''Test that we successfully check new positions after a timestep.'''
+    def identity_mobility(location, orientation):
+      return np.identity(6)
+      
+    def e1_torque_calculator(location, orientation):
+      return np.array([1., 0., 0.])
+      
+    def identity_force_calculator(location, orientation):
+      return np.array([1., 1., 1.])
+    
+    def false_check_function(location, orientation):
+      return False
+
+    initial_orientation = [Quaternion([1., 0., 0., 0.])]
+    initial_location = [[1., 1., 1.]]
+    quaternion_integrator = QuaternionIntegrator(identity_mobility,
+                                                 initial_orientation,
+                                                 e1_torque_calculator,
+                                                 has_location = True,
+                                                 initial_location = initial_location,
+                                                 force_calculator = identity_force_calculator)
+    quaternion_integrator.check_function = false_check_function
+    quaternion_integrator.fixman_time_step(1.0)
+    self.assertEqual(quaternion_integrator.location, initial_location)
+    self.assertEqual(quaternion_integrator.orientation, initial_orientation)
+        
     
 if __name__ == "__main__":
   unittest.main()      
