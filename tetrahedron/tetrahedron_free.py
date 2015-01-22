@@ -314,9 +314,18 @@ def gibbs_boltzmann_distribution(location, orientation):
 
 def check_particles_above_wall(location, orientation):
   ''' Check that the particles at position aren't below the wall '''
-  
-  
-    
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  print "location is ", location
+  print "r_vectors are ", r_vectors
+  if location[0][2] < 0.0:
+    return False
+  for k in range(3):
+    print "distance to ", k, " is ", np.linalg.norm(location[0] - r_vectors[k])
+    if r_vectors[k][2] < 0.0: 
+      return False
+  print "all particles above wall"
+  return True
+
 
 
 if __name__ == '__main__':
@@ -377,6 +386,7 @@ if __name__ == '__main__':
                                            force_calculator=
                                            free_gravity_force_calculator)
   fixman_integrator.kT = KT
+  fixman_integrator.check_function = check_particles_above_wall
   rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                         initial_orientation, 
                                         free_gravity_torque_calculator, 
@@ -385,7 +395,8 @@ if __name__ == '__main__':
                                         force_calculator=
                                         free_gravity_force_calculator)
   rfd_integrator.kT = KT
-  
+  rfd_integrator.check_function = check_particles_above_wall
+
   sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
@@ -399,7 +410,6 @@ if __name__ == '__main__':
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
-    check_particles_above_wall(fixman_integrator)
     bin_free_particle_heights(fixman_integrator.location[0],
                               fixman_integrator.orientation[0], 
                               bin_width, 

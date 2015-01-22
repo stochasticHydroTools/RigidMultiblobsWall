@@ -3,10 +3,8 @@ import numpy as np
 import mobility_ext as me
 
 ETA = 1.0 # Viscosity.
-A = 1.0 # particle radius.  This is only used in the image stokeslet, which
-        # is currently not used in simulations.
 
-def image_singular_stokeslet(r_vectors):
+def image_singular_stokeslet(r_vectors, a):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   fluid_mobility = np.array([
       np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
@@ -33,7 +31,7 @@ def image_singular_stokeslet(r_vectors):
         
       else:
         # j == k
-        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*A)*np.identity(3)
+        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*a)*np.identity(3)
   return fluid_mobility
 
 def stokes_doublet(r):

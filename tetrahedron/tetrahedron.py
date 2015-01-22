@@ -87,7 +87,7 @@ def torque_oseen_mobility(r_vectors):
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''  
-  mobility = mb.image_singular_stokeslet(r_vectors)
+  mobility = mb.image_singular_stokeslet(r_vectors, A)
   rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),

@@ -58,6 +58,7 @@ class QuaternionIntegrator(object):
     if self.has_location:
       # Handle integrator with location as well.
       mobility  = self.mobility(self.location, self.orientation)
+      print "mobility is ", mobility
       mobility_half = np.linalg.cholesky(mobility)
       noise = np.random.normal(0.0, 1.0, self.dim*6)
       force = self.force_calculator(self.location, self.orientation)
