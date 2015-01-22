@@ -27,7 +27,6 @@ def plot_time_dependent_msd(msd_statistics, ind):
   num_err_bars = 12
   for scheme in msd_statistics.data.keys():
     dt_num = 0
-    pyplot.figure(scheme_num)
     for dt in msd_statistics.data[scheme].keys():
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
@@ -47,12 +46,12 @@ def plot_time_dependent_msd(msd_statistics, ind):
                       fmt = scheme_colors[scheme_num] + '.')
       dt_num += 1
     scheme_num += 1
-    pyplot.title('MSD(t) for Scheme %s' % scheme)
-    pyplot.ylabel('MSD')
-    pyplot.xlabel('time')
-    pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/TimeDependentRotationalMSD-%s-Component-%s.pdf' % 
-                   (scheme, ind))
+  pyplot.title('MSD(t) for Tetrahedron')
+  pyplot.ylabel('MSD')
+  pyplot.xlabel('time')
+  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
+                   (ind))
 
 
 if __name__ == "__main__":
@@ -64,4 +63,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [1, 1])
+  plot_time_dependent_msd(msd_statistics, [4, 4])
