@@ -83,6 +83,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                     force_calculator=
                                     tf.free_gravity_force_calculator)
   integrator.kT = KT
+  if has_location:
+    integrator.check_function = tf.check_particles_above_wall
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):

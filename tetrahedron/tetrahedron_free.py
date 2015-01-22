@@ -32,7 +32,7 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 8.0
+REPULSION_STRENGTH = 9.0
 REPULSION_CUTOFF = 1.5
 
 # Static Variable decorator for calculating acceptance rate.
@@ -448,9 +448,17 @@ if __name__ == '__main__':
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
 
-  progress_logger.info('Acceptance Rate: %s' % 
+  progress_logger.info('Fixman Rejection rate: %s' % 
+                       (float(fixman_integrator.rejections)/
+                        float(fixman_integrator.rejections + n_steps)))
+  progress_logger.info('RFD Rejection rate: %s' % 
+                       (float(rfd_integrator.rejections)/
+                        float(rfd_integrator.rejections + n_steps)))
+  progress_logger.info('Equilibrium Acceptance Rate: %s' % 
                        (float(generate_free_equilibrium_sample_mcmc.accepts)/
                        float(generate_free_equilibrium_sample_mcmc.samples)))
+
+
 
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
