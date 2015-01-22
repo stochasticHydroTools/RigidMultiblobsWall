@@ -133,7 +133,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
 
   def test_fixman_drift_and_cov(self):
     ''' Test that the drift and covariance from the fixman scheme is correct. '''
-    TOL = 5e-2
+    TOL = 1e-1
     initial_orientation = [Quaternion([1., 0., 0., 0.])]
 
     def test_mobility(orientation):
@@ -149,7 +149,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 80000, 'FIXMAN')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 50000, 'FIXMAN')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
@@ -164,7 +164,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
 
   def test_rfd_drift_and_cov(self):
     ''' Test that the drift and covariance from the RFD scheme is correct. '''
-    TOL = 5e-2
+    TOL = 1e-1
     initial_orientation = [Quaternion([1., 0., 0., 0.])]
 
     def test_mobility(orientation):
@@ -179,7 +179,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 80000, 'RFD')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 50000, 'RFD')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
@@ -217,7 +217,13 @@ class TestQuaternionIntegrator(unittest.TestCase):
     quaternion_integrator.fixman_time_step(1.0)
     self.assertEqual(quaternion_integrator.location, initial_location)
     self.assertEqual(quaternion_integrator.orientation, initial_orientation)
-        
+    self.assertEqual(quaternion_integrator.rejections, 1)
+
+    quaternion_integrator.rfd_time_step(1.0)
+    self.assertEqual(quaternion_integrator.location, initial_location)
+    self.assertEqual(quaternion_integrator.orientation, initial_orientation)
+    self.assertEqual(quaternion_integrator.rejections, 2)
+    
     
 if __name__ == "__main__":
   unittest.main()      
