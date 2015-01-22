@@ -275,6 +275,23 @@ def plot_msd_convergence(dts, msd_list, names):
   pyplot.savefig('./plots/RotationalMSD.pdf')
 
 
+def log_time_progress(elapsed_time, time_units, total_time_units):
+  ''' Write elapsed time and expected duration to progress log.'''
+  progress_logger = logging.getLogger('progress_logger')  
+  expected_duration = elapsed_time*total_time_units/time_units
+  if elapsed_time > 60.0:
+    progress_logger.info('Elapsed Time: %.2f Minutes.' % 
+                         (float(elapsed_time/60.)))
+  else:
+    progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
+  if expected_duration > 60.0:
+    progress_logger.info('Expected Duration: %.2f Minutes.' % 
+                         (float(expected_duration/60.)))
+  else:
+      progress_logger.info('Expected Duration: %.2f Seconds' % 
+                           float(expected_duration))
+
+
 if __name__ == "__main__":
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulations to calculate '
@@ -346,7 +363,11 @@ if __name__ == "__main__":
   sys.stderr = sl
 
   msd_statistics = MSDStatistics(schemes, dts)
+  # Measure time, and estimate how long runs will take.
+  # One time unit is n_runs timesteps.
   start_time = time.time()
+  total_time_units = sum(end_time/np.array(dts))*len(schemes)
+  time_units = 0
   for scheme in schemes:
     for dt in dts:
       if args.initial:
@@ -369,13 +390,11 @@ if __name__ == "__main__":
                                                         location=
                                                         initial_location)
       msd_statistics.add_run(scheme, dt, run_data)
-      progress_logger.info('finished timestepping dt= %f for scheme %s' % (
-        dt, scheme))
       elapsed_time = time.time() - start_time
-      if elapsed_time > 60.0:
-        progress_logger.info('Elapsed Time: %.2f Minutes.' % (float(elapsed_time/60.)))
-      else:
-        progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
+      time_units += end_time/dt
+      progress_logger.info('finished timestepping dt= %f for scheme %s' % (
+      dt, scheme))
+      log_time_progress(elapsed_time, time_units, total_time_units)
 
   progress_logger.info('Runs complete.')
 
