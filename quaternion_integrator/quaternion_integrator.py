@@ -52,154 +52,159 @@ class QuaternionIntegrator(object):
     # (orietnation) if has_location = False
     self.check_function = None
     self.rejections = 0
+    self.successes = 0
 
   def fixman_time_step(self, dt):
     ''' Take a timestep of length dt using the Fixman method '''
-    if self.has_location:
-      # Handle integrator with location as well.
-      mobility  = self.mobility(self.location, self.orientation)
-      mobility_half = np.linalg.cholesky(mobility)
-      noise = np.random.normal(0.0, 1.0, self.dim*6)
-      force = self.force_calculator(self.location, self.orientation)
-      torque = self.torque_calculator(self.location, self.orientation)
-      velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
-                            np.sqrt(4.0*self.kT/dt)*
-                            np.dot(mobility_half, noise))
-      velocity = velocity_and_omega[0:(3*self.dim)]
-      omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
-    else:
-      mobility  = self.mobility(self.orientation)
-      mobility_half = np.linalg.cholesky(mobility)
-      noise = np.random.normal(0.0, 1.0, self.dim*3)
-      torque = self.torque_calculator(self.orientation)
-      omega = (np.dot(mobility, torque) + 
-               np.sqrt(4.0*self.kT/dt)*np.dot(mobility_half, noise))
-
-    # Update each quaternion at a time.
-    orientation_midpoint = []
-    for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt/2.)
-      orientation_midpoint.append(quaternion_dt*self.orientation[i])
-      
-    if self.has_location:
-      location_midpoint = self.location + 0.5*dt*velocity
     
-    if self.has_location:
-      mobility_tilde = self.mobility(location_midpoint, orientation_midpoint)
-      noise = noise + np.random.normal(0.0, 1.0, self.dim*6)
-      force_tilde = self.force_calculator(location_midpoint, orientation_midpoint)
-      torque_tilde = self.torque_calculator(location_midpoint, orientation_midpoint)
-      mobility_half_inv = np.linalg.inv(mobility_half)
-      velocity_and_omega_tilde = (
-        np.dot(mobility_tilde, 
-               np.concatenate([force_tilde, torque_tilde])) + np.sqrt(self.kT/dt)*
-        np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
-      velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
-      omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
-      
-    else:
-      mobility_tilde = self.mobility(orientation_midpoint)
-      noise = noise + np.random.normal(0.0, 1.0, self.dim*3)
-      torque_tilde = self.torque_calculator(orientation_midpoint)
-      mobility_half_inv = np.linalg.inv(mobility_half)
-      omega_tilde = (
-        np.dot(mobility_tilde, torque_tilde) + np.sqrt(self.kT/dt)*
-        np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
-    
-    new_orientation = []
-    for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
-      new_orientation.append(quaternion_dt*self.orientation[i])
-
-    # Check that the new state is admissible. Re-take the step 
-    # (with tail recursion) if the new state is invalid.
-    if self.has_location:
-      new_location = self.location + dt*velocity_tilde
-      if self.check_new_state(new_location, new_orientation):
-        self.location = new_location
-        self.orientation = new_orientation
-      else: 
-        self.fixman_time_step(dt)
-    else:
-      if self.check_new_state(None, new_orientation):
-        self.orientation = new_orientation
+    # Try to take steps until one is valid
+    while True:
+      if self.has_location:
+        # Handle integrator with location as well.
+        mobility  = self.mobility(self.location, self.orientation)
+        mobility_half = np.linalg.cholesky(mobility)
+        noise = np.random.normal(0.0, 1.0, self.dim*6)
+        force = self.force_calculator(self.location, self.orientation)
+        torque = self.torque_calculator(self.location, self.orientation)
+        velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
+                              np.sqrt(4.0*self.kT/dt)*
+                              np.dot(mobility_half, noise))
+        velocity = velocity_and_omega[0:(3*self.dim)]
+        omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
       else:
-        self.fixman_time_step(dt)
+        mobility  = self.mobility(self.orientation)
+        mobility_half = np.linalg.cholesky(mobility)
+        noise = np.random.normal(0.0, 1.0, self.dim*3)
+        torque = self.torque_calculator(self.orientation)
+        omega = (np.dot(mobility, torque) + 
+               np.sqrt(4.0*self.kT/dt)*np.dot(mobility_half, noise))
+        
+      # Update each quaternion at a time.
+      orientation_midpoint = []
+      for i in range(self.dim):
+        quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt/2.)
+        orientation_midpoint.append(quaternion_dt*self.orientation[i])
+      
+      if self.has_location:
+        location_midpoint = self.location + 0.5*dt*velocity
+    
+      if self.has_location:
+        mobility_tilde = self.mobility(location_midpoint, orientation_midpoint)
+        noise = noise + np.random.normal(0.0, 1.0, self.dim*6)
+        force_tilde = self.force_calculator(location_midpoint, orientation_midpoint)
+        torque_tilde = self.torque_calculator(location_midpoint, orientation_midpoint)
+        mobility_half_inv = np.linalg.inv(mobility_half)
+        velocity_and_omega_tilde = (
+          np.dot(mobility_tilde, 
+                 np.concatenate([force_tilde, torque_tilde])) + np.sqrt(self.kT/dt)*
+          np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
+        velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
+        omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
+      
+      else:
+        mobility_tilde = self.mobility(orientation_midpoint)
+        noise = noise + np.random.normal(0.0, 1.0, self.dim*3)
+        torque_tilde = self.torque_calculator(orientation_midpoint)
+        mobility_half_inv = np.linalg.inv(mobility_half)
+        omega_tilde = (
+          np.dot(mobility_tilde, torque_tilde) + np.sqrt(self.kT/dt)*
+          np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
+        
+      new_orientation = []
+      for i in range(self.dim):
+        quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
+        new_orientation.append(quaternion_dt*self.orientation[i])
 
+      # Check that the new state is admissible. Re-take the step 
+      # (with tail recursion) if the new state is invalid.
+      if self.has_location:
+        new_location = self.location + dt*velocity_tilde
+        if self.check_new_state(new_location, new_orientation):
+          self.location = new_location
+          self.orientation = new_orientation
+          self.successes += 1
+          return
+      else:
+        if self.check_new_state(None, new_orientation):
+          self.orientation = new_orientation
+          self.successes += 1
+          return
 
   def rfd_time_step(self, dt):
     ''' Take a timestep of length dt using the RFD method '''
-    if self.has_location:
-      # Handle integrator with location as well.
-      mobility  = self.mobility(self.location, self.orientation)
-      mobility_half = np.linalg.cholesky(mobility)
-      rfd_noise = np.random.normal(0.0, 1.0, self.dim*6)
-      # Calculate RFD location.
-      rfd_location = self.location + self.rf_delta*rfd_noise[0:3*self.dim]
-      # Update each quaternion at a time for RFD orientation.
-      rfd_orientation = []
-      for i in range(self.dim):
-        quaternion_dt = Quaternion.from_rotation((self.rf_delta*
-                                                  rfd_noise[(3*self.dim + i*3):
-                                                            (3*self.dim + i*3+3)]))
-        rfd_orientation.append(quaternion_dt*self.orientation[i])
+    # Attempt steps until we find a valid endpoint.  
+    while True:
+      if self.has_location:
+        # Handle integrator with location as well.
+        mobility  = self.mobility(self.location, self.orientation)
+        mobility_half = np.linalg.cholesky(mobility)
+        rfd_noise = np.random.normal(0.0, 1.0, self.dim*6)
+        # Calculate RFD location.
+        rfd_location = self.location + self.rf_delta*rfd_noise[0:3*self.dim]
+        # Update each quaternion at a time for RFD orientation.
+        rfd_orientation = []
+        for i in range(self.dim):
+          quaternion_dt = Quaternion.from_rotation((self.rf_delta*
+                                                    rfd_noise[(3*self.dim + i*3):
+                                                              (3*self.dim + i*3+3)]))
+          rfd_orientation.append(quaternion_dt*self.orientation[i])
 
-      # divergence term d_x(N) : \Psi^T 
-      divergence_term = self.kT*np.dot(
-        (self.mobility(rfd_location, rfd_orientation) - mobility),
-        rfd_noise/self.rf_delta)
+        # divergence term d_x(N) : \Psi^T 
+        divergence_term = self.kT*np.dot(
+          (self.mobility(rfd_location, rfd_orientation) - mobility),
+          rfd_noise/self.rf_delta)
 
-      noise = np.random.normal(0.0, 1.0, self.dim*6)
-      force = self.force_calculator(self.location, self.orientation)
-      torque = self.torque_calculator(self.location, self.orientation)
-      velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
-                            np.sqrt(2.0*self.kT/dt)*
-                            np.dot(mobility_half, noise) +
-                            divergence_term)
-      velocity = velocity_and_omega[0:(3*self.dim)]
-      omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
-      new_location = self.location + dt*velocity
+        noise = np.random.normal(0.0, 1.0, self.dim*6)
+        force = self.force_calculator(self.location, self.orientation)
+        torque = self.torque_calculator(self.location, self.orientation)
+        velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
+                              np.sqrt(2.0*self.kT/dt)*
+                              np.dot(mobility_half, noise) +
+                              divergence_term)
+        velocity = velocity_and_omega[0:(3*self.dim)]
+        omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+        new_location = self.location + dt*velocity
 
-    else:
-      rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
-      mobility  = self.mobility(self.orientation)
-      mobility_half = np.linalg.cholesky(mobility)
-      torque = self.torque_calculator(self.orientation)
-
-      noise = np.random.normal(0.0, 1.0, self.dim*3)
-      # Update each quaternion at a time for rfd orientation.
-      rfd_orientation = []
-      for i in range(self.dim):
-        quaternion_dt = Quaternion.from_rotation((self.rf_delta*
-                                                  rfd_noise[(i*3):(i*3+3)]))
-        rfd_orientation.append(quaternion_dt*self.orientation[i])
-
-      # divergence term d_x(M) : \Psi^T 
-      divergence_term = self.kT*np.dot(
-        (self.mobility(rfd_orientation) - mobility),
-        rfd_noise/self.rf_delta)
-      omega = (np.dot(mobility, torque) + 
-               np.sqrt(2.*self.kT/dt)*
-               np.dot(mobility_half, noise) +
-               divergence_term)
-
-    # For with location and without location, we update orientation the same way.
-    new_orientation = []
-    for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
-      new_orientation.append(quaternion_dt*self.orientation[i])
-
-    if self.has_location:
-      if self.check_new_state(new_location, new_orientation):
-        self.location = new_location
-        self.orientation = new_orientation
       else:
-        self.rfd_time_step(dt)
-    else:
-      if self.check_new_state(None, new_orientation):
-        self.orientation = new_orientation
+        rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
+        mobility  = self.mobility(self.orientation)
+        mobility_half = np.linalg.cholesky(mobility)
+        torque = self.torque_calculator(self.orientation)
+        
+        noise = np.random.normal(0.0, 1.0, self.dim*3)
+        # Update each quaternion at a time for rfd orientation.
+        rfd_orientation = []
+        for i in range(self.dim):
+          quaternion_dt = Quaternion.from_rotation((self.rf_delta*
+                                                    rfd_noise[(i*3):(i*3+3)]))
+          rfd_orientation.append(quaternion_dt*self.orientation[i])
+
+        # divergence term d_x(M) : \Psi^T 
+        divergence_term = self.kT*np.dot(
+          (self.mobility(rfd_orientation) - mobility),
+          rfd_noise/self.rf_delta)
+        omega = (np.dot(mobility, torque) + 
+                 np.sqrt(2.*self.kT/dt)*
+                 np.dot(mobility_half, noise) +
+                 divergence_term)
+
+      # For with location and without location, we update orientation the same way.
+      new_orientation = []
+      for i in range(self.dim):
+        quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
+        new_orientation.append(quaternion_dt*self.orientation[i])
+        
+      if self.has_location:
+        if self.check_new_state(new_location, new_orientation):
+          self.location = new_location
+          self.orientation = new_orientation
+          self.successes += 1
+          return
       else:
-        self.rfd_time_step(dt)
+        if self.check_new_state(None, new_orientation):
+          self.orientation = new_orientation
+          self.successes += 1
+          return
 
     
   def additive_em_time_step(self, dt):

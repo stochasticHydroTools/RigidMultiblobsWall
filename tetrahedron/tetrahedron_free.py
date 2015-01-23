@@ -1,7 +1,8 @@
 '''
 A free tetrahedron is allowed to diffuse in a domain with a single
 wall (below the tetrahedron) in the presence of gravity and a quadratic potential
-repelling from the wall.
+repelling from the wall.  This script bins the heights of the vertices
+of the tetrahedron for comparison to equilibrium.
 '''
 import sys
 import os
@@ -21,7 +22,7 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
-KT = 0.01    # Temperature
+KT = 0.1    # Temperature
 
 # Masses of particles. g = 1.
 M1 = 0.25
@@ -32,7 +33,7 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 10.0
+REPULSION_STRENGTH = 3.0
 REPULSION_CUTOFF = 2.0
 
 # Static Variable decorator for calculating acceptance rate.
@@ -272,7 +273,7 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
   location = current_sample[0]
   orientation = current_sample[1]
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 0.02
+  dt = 0.05
   # Take a step using Metropolis.
   omega = np.random.normal(0., 1., 3)
   velocity = np.random.normal(0., 1., 3)
@@ -397,10 +398,10 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./10.
-  fixman_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
+  bin_width = 1./5.
+  fixman_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):
