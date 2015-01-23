@@ -33,6 +33,7 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
+#  For heights, originally strength = 10.0, cutoff = 1.0
 REPULSION_STRENGTH = 3.0
 REPULSION_CUTOFF = 2.0
 
