@@ -21,7 +21,7 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
-KT = 0.1    # Temperature
+KT = 0.05    # Temperature
 
 # Masses of particles. g = 1.
 M1 = 0.25
@@ -32,7 +32,7 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 9.0
+REPULSION_STRENGTH = 10.0
 REPULSION_CUTOFF = 1.5
 
 # Static Variable decorator for calculating acceptance rate.
@@ -272,7 +272,7 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
   location = current_sample[0]
   orientation = current_sample[1]
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 0.1
+  dt = 0.02
   # Take a step using Metropolis.
   omega = np.random.normal(0., 1., 3)
   velocity = np.random.normal(0., 1., 3)

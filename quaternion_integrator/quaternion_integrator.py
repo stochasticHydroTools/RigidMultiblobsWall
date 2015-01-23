@@ -111,15 +111,20 @@ class QuaternionIntegrator(object):
       quaternion_dt = Quaternion.from_rotation((omega_tilde[(i*3):(i*3+3)])*dt)
       new_orientation.append(quaternion_dt*self.orientation[i])
 
-    # Check that the new state is admissible.
+    # Check that the new state is admissible. Re-take the step 
+    # (with tail recursion) if the new state is invalid.
     if self.has_location:
       new_location = self.location + dt*velocity_tilde
       if self.check_new_state(new_location, new_orientation):
         self.location = new_location
         self.orientation = new_orientation
+      else: 
+        self.fixman_time_step(dt)
     else:
       if self.check_new_state(None, new_orientation):
         self.orientation = new_orientation
+      else:
+        self.fixman_time_step(dt)
 
 
   def rfd_time_step(self, dt):
@@ -188,9 +193,13 @@ class QuaternionIntegrator(object):
       if self.check_new_state(new_location, new_orientation):
         self.location = new_location
         self.orientation = new_orientation
+      else:
+        self.rfd_time_step(dt)
     else:
       if self.check_new_state(None, new_orientation):
         self.orientation = new_orientation
+      else:
+        self.rfd_time_step(dt)
 
     
   def additive_em_time_step(self, dt):
