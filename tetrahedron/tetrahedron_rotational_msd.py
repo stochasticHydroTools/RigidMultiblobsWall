@@ -127,6 +127,11 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
 
+  progress_logger = logging.getLogger('progress_logger')  
+  progress_logger.info('Rejection Rate: %s' % 
+                       (float(integrator.rejections)/
+                        float(n_steps*n_runs + integrator.rejections)))
+
   return results
 
 
