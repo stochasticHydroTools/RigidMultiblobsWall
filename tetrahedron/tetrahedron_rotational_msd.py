@@ -178,7 +178,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                     'Do a longer run.')
   lagged_trajectory = []
   lagged_location_trajectory = []
-  average_rotational_msd = np.array([np.zeros((dim, dim)) for _ in range(trajectory_length)])
+  average_rotational_msd = np.array([np.zeros((dim, dim)) 
+                                     for _ in range(trajectory_length)])
   for step in range(n_steps):
     if scheme == 'FIXMAN':
       integrator.fixman_time_step(dt)
@@ -369,10 +370,10 @@ if __name__ == "__main__":
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3, 'M4': tf.M4,
               'A': tf.A, 'REPULSION_STRENGTH': tf.REPULSION_STRENGTH,
               'REPULSION_CUTOFF': tf.REPULSION_CUTOFF,
-              'KT': tf.KT}
+              'KT': tf.KT, 'end_time': end_time}
   else:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3,
-              'A': tf.A, 'KT': tf.KT}
+              'A': tf.A, 'KT': tf.KT, 'end_time': end_time}
     
   msd_statistics = MSDStatistics(schemes, dts, params)
   # Measure time, and estimate how long runs will take.
