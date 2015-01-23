@@ -222,7 +222,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   results[0] = np.arange(0, trajectory_length)*dt
   results[1] = average_rotational_msd
   results[2] = np.zeros((trajectory_length, dim, dim))
-      
+
+  progress_logger = logging.getLogger('progress_logger')  
+  progress_logger.info('Rejection Rate: %s' % 
+                       (float(integrator.rejections)/
+                        float(n_steps*n_runs + integrator.rejections)))
   return results
 
   
