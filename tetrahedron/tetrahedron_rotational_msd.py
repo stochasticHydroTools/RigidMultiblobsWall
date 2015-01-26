@@ -157,7 +157,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
   '''
-  burn_in = 2000
+  burn_in = 4000
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -207,22 +207,24 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
         lagged_location_trajectory = lagged_location_trajectory[1:]
       for k in range(trajectory_length):
         if has_location:
-          average_rotational_msd[k] += (calc_total_msd(
+          current_rot_msd = (calc_total_msd(
             lagged_location_trajectory[0],
             lagged_trajectory[0],
             lagged_location_trajectory[k],
             lagged_trajectory[k]))
+          average_rotational_msd[k] += current_rot_msd
           if step > burn_in:
-            running_avg = average_rotational_msd/step
-            std_rotational_msd[k] += (average_rotational_msd[k] - 
+            running_avg = average_rotational_msd[k]/step
+            std_rotational_msd[k] += (current_rot_msd - 
                                       running_avg)**2
         else:
-          average_rotational_msd[k] += (calc_rotational_msd(
+          current_rot_msd = (calc_rotational_msd(
             lagged_trajectory[0],
             lagged_trajectory[k]))
+          average_rotational_msd[k] += current_rot_msd
           if step > burn_in:
-            running_avg = average_rotational_msd/step
-            std_rotational_msd[k] += (average_rotational_msd[k] - 
+            running_avg = average_rotational_msd[k]/step
+            std_rotational_msd[k] += (current_rot_msd - 
                                       running_avg)**2
     
   average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
