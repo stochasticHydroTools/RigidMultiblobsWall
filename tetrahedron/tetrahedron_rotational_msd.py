@@ -157,6 +157,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
   '''
+  burn_in = 2000
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -185,6 +186,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   lagged_location_trajectory = []
   average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
+  std_rotational_msd = np.array([np.zeros((dim, dim)) 
+                                     for _ in range(trajectory_length)])
   for step in range(n_steps):
     if scheme == 'FIXMAN':
       integrator.fixman_time_step(dt)
@@ -209,19 +212,28 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
             lagged_trajectory[0],
             lagged_location_trajectory[k],
             lagged_trajectory[k]))
+          if step > burn_in:
+            running_avg = average_rotational_msd/step
+            std_rotational_msd[k] += (average_rotational_msd[k] - 
+                                      running_avg)**2
         else:
           average_rotational_msd[k] += (calc_rotational_msd(
             lagged_trajectory[0],
             lagged_trajectory[k]))
+          if step > burn_in:
+            running_avg = average_rotational_msd/step
+            std_rotational_msd[k] += (average_rotational_msd[k] - 
+                                      running_avg)**2
     
   average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+  std_rotational_msd = np.sqrt(std_rotational_msd)/(n_steps - burn_in)
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
   results[1] = average_rotational_msd
-  results[2] = np.zeros((trajectory_length, dim, dim))
+  results[2] = std_rotational_msd
 
   progress_logger = logging.getLogger('progress_logger')  
   progress_logger.info('Rejection Rate: %s' % 

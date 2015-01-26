@@ -39,7 +39,9 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
                      for _ in range(num_steps)])
       msd_entries_std = np.array([msd_statistics.data[scheme][dt][2][_][ind[0]][ind[1]]
                                   for _ in range(num_steps)])
-      average_msd_slope += (msd_entries[-1] - msd_entries[-2])/dt
+      for k in range(5):
+        average_msd_slope += (msd_entries[-1 - k] - msd_entries[-2 - k])/dt
+
       num_series += 1
       pyplot.plot(msd_statistics.data[scheme][dt][0],
                   msd_entries,
@@ -67,7 +69,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.savefig('./figures/TranslationalMSDComponent.pdf')
   # Return average slope
-  average_msd_slope /= num_series
+  average_msd_slope /= num_series*5
   return average_msd_slope
 
 
@@ -107,12 +109,26 @@ if __name__ == "__main__":
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)  
-
-  average_mob_and_friction = calculate_average_mu_parallel(4000)
-  avg_slope = plot_x_and_y_msd(msd_statistics, average_mob_and_friction)
   
-  print "Mobility is ", average_mob_and_friction[0]
-  print "1/Friction is ", 1./average_mob_and_friction[1]
+  n_runs = 16
+  mobilities = []
+  frictions = []
+  for k in range(n_runs):
+    average_mob_and_friction = calculate_average_mu_parallel(12000)
+    mobilities.append(average_mob_and_friction[0])
+    frictions.append(average_mob_and_friction[1])
+
+  average_mobility = np.mean(mobilities)
+  mobility_std = np.std(mobilities)/np.sqrt(n_runs)
+  average_friction = np.mean(frictions)
+  friction_std = np.std(frictions)/np.sqrt(n_runs)
+
+  avg_slope = plot_x_and_y_msd(msd_statistics, 
+                               [average_mobility, average_friction])
+  
+  print "Mobility is ", average_mobility, " +/- ", mobility_std
+  print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
+         1./(average_friction - 2.*friction_std))
   print "Slope/kT is ", avg_slope/tf.KT
   
   
