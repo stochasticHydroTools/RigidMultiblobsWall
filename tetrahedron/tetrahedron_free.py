@@ -291,7 +291,7 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
   else:
     return [location, orientation]
                           
-
+@static_var('low_rejections', 0)
 def gibbs_boltzmann_distribution(location, orientation):
   '''
   Evaluate the equilibrium distribution at a given location 
@@ -301,6 +301,7 @@ def gibbs_boltzmann_distribution(location, orientation):
   if ((r_vectors[0][2] < 0) or
       (r_vectors[1][2] < 0) or
       (r_vectors[2][2] < 0)):
+    gibbs_boltzmann_distribution.low_rejectiions += 1
     return 0.0
   # Calculate potential.
   U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
