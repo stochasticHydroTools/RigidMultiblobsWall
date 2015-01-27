@@ -240,7 +240,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
   pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./figures/TranslationalMSDComponent.pdf')
+  pyplot.savefig('./figures/SphereTranslationalMSDComponent.pdf')
   # Return average slope
   average_msd_slope /= num_series*5
   return average_msd_slope
@@ -278,7 +278,7 @@ if __name__ == '__main__':
   scheme = 'FIXMAN'
   dt = 0.5
   end_time = 180.0
-  n_steps = 100000
+  n_steps = 300000
 
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
