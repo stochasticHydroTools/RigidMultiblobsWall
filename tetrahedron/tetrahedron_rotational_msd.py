@@ -228,7 +228,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       running_avg)**2
     
   average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
-  std_rotational_msd = np.sqrt(std_rotational_msd)/(n_steps - burn_in)
+  std_rotational_msd = np.sqrt(std_rotational_msd/(n_steps - burn_in))
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.

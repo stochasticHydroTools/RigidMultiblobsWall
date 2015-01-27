@@ -16,6 +16,7 @@ from matplotlib import pyplot
 from quaternion_integrator.quaternion import Quaternion
 import tetrahedron_free as tf
 from tetrahedron_rotational_msd import MSDStatistics
+import sphere_rotational_msd as sph
 
 def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   '''  
@@ -83,9 +84,9 @@ def calculate_average_mu_parallel(n_samples):
   tf.M2 = 0.225
   tf.M3 = 0.225
   tf.M4 = 0.225
-  initial_location = [[0., 0., tf.H]]
+  initial_location = [np.array([0., 0., tf.H])]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  sample = [initial_location[0], initial_orientation[0]]
+  sample = initial_location[0]
   average_mu_parallel = 0.0
   average_gamma_parallel = 0.0
   for k in range(n_samples):
