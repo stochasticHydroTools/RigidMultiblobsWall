@@ -7,9 +7,8 @@ test.  Running this script will run a trajectory and bin the heights of each
 of the three non-fixed vertices for Fixman, RFD, and EM timestepping, as well as
 for the equilibrium distribution.  
 
-Before running this script, you must compile the tetrahedron_ext.cc in this 
-folder, and mobility_ext.cc in /constrained_diffusion/fluids.  Just run make in both 
-of these folders to do this.
+Before running this script, you must compile mobility_ext.cc in 
+/constrained_diffusion/fluids.  Just run make in the fluids folder.
 '''
 
 import sys
@@ -30,7 +29,6 @@ from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from fluids import mobility as mb
 import uniform_analyzer as ua
-import tetrahedron_ext as te
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
@@ -89,7 +87,7 @@ def torque_oseen_mobility(r_vectors):
   M (3N x 3N) is the singular image stokeslet for a point force near a wall, but
   we've replaced the diagonal piece by 1/(6 pi eta a).
   '''  
-  mobility = mb.image_singular_stokeslet(r_vectors)
+  mobility = mb.image_singular_stokeslet(r_vectors, A)
   rotation_matrix = calculate_rot_matrix(r_vectors)
   total_mobility = np.linalg.inv(np.dot(rotation_matrix.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -212,6 +210,7 @@ def get_r_vectors(quaternion):
   r3 = np.dot(rotation_matrix, initial_r3) + np.array([0., 0., H])
   
   return [r1, r2, r3]
+
 
 def gravity_torque_calculator(orientation):
   ''' 

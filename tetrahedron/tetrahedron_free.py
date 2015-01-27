@@ -1,7 +1,8 @@
 '''
 A free tetrahedron is allowed to diffuse in a domain with a single
 wall (below the tetrahedron) in the presence of gravity and a quadratic potential
-repelling from the wall.
+repelling from the wall.  This script bins the heights of the vertices
+of the tetrahedron for comparison to equilibrium.
 '''
 import sys
 import os
@@ -20,10 +21,10 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
-H = 3.5     # Distance to wall.
+H = 3.5     # Initial Distance to wall.
 KT = 0.1    # Temperature
 
-# Masses of particles.
+# Masses of particles. g = 1.
 M1 = 0.25
 M2 = 0.1
 M3 = 0.15
@@ -32,8 +33,9 @@ M4 = 0.4
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 10.0
-REPULSION_CUTOFF = 1.0
+#  For heights, originally strength = 10.0, cutoff = 1.0
+REPULSION_STRENGTH = 3.0
+REPULSION_CUTOFF = 2.0
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -112,6 +114,19 @@ def get_free_r_vectors(location, quaternion):
   return [r1, r2, r3]
 
 
+def get_free_center_of_mass(location, orientation):
+    '''
+    Find the center of mass given the location of the top vertex, 
+    and the orientation given as a quaternion.  This assumes masses are
+    M1, M2, M3, M4 for r1, r2, r3, location respectively.
+    '''
+    r_vectors = get_free_r_vectors(location, orientation)
+    center_of_mass = (np.array(r_vectors[0])*M1 + np.array(r_vectors[1])*M2 + 
+                      np.array(r_vectors[2])*M3 + np.array(location)*M4)
+    center_of_mass = center_of_mass/(M1 + M2 + M3 + M4)
+    return center_of_mass
+
+
 def calc_free_rot_matrix(r_vectors, location):
   ''' 
   Calculate rotation matrix (r cross) based on the free tetrahedron.
@@ -165,7 +180,6 @@ def free_gravity_force_calculator(location, orientation):
   orientation: list of length 1, only entry is a quaternion with the 
                tetrahedron orientation
   '''
-  # TODO: Tune repulsion from the wall to keep tetrahedron away.
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   potential_force = np.zeros(3)
   # Add repulsion of 'top' vertex, at location.
@@ -192,6 +206,7 @@ def bin_free_particle_heights(location, orientation, bin_width,
     else:
       print 'index is: ', idx
       print 'Index exceeds histogram length.'
+
   
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
@@ -259,7 +274,7 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
   location = current_sample[0]
   orientation = current_sample[1]
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 0.1
+  dt = 0.05
   # Take a step using Metropolis.
   omega = np.random.normal(0., 1., 3)
   velocity = np.random.normal(0., 1., 3)
@@ -297,6 +312,18 @@ def gibbs_boltzmann_distribution(location, orientation):
       U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
 
   return np.exp(-1.*U/KT)
+
+
+def check_particles_above_wall(location, orientation):
+  ''' Check that the particles at position aren't below the wall '''
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  if location[0][2] < 0.5:
+    return False
+  for k in range(3):
+    if r_vectors[k][2] < 0.5: 
+      return False
+  return True
+
 
 
 if __name__ == '__main__':
@@ -357,6 +384,7 @@ if __name__ == '__main__':
                                            force_calculator=
                                            free_gravity_force_calculator)
   fixman_integrator.kT = KT
+  fixman_integrator.check_function = check_particles_above_wall
   rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                         initial_orientation, 
                                         free_gravity_torque_calculator, 
@@ -365,15 +393,16 @@ if __name__ == '__main__':
                                         force_calculator=
                                         free_gravity_force_calculator)
   rfd_integrator.kT = KT
-  
+  rfd_integrator.check_function = check_particles_above_wall
+
   sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./10.
-  fixman_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(6./bin_width)) for _ in range(3)])
+  bin_width = 1./5.
+  fixman_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):
@@ -421,9 +450,17 @@ if __name__ == '__main__':
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
 
-  progress_logger.info('Acceptance Rate: %s' % 
+  progress_logger.info('Fixman Rejection rate: %s' % 
+                       (float(fixman_integrator.rejections)/
+                        float(fixman_integrator.rejections + n_steps)))
+  progress_logger.info('RFD Rejection rate: %s' % 
+                       (float(rfd_integrator.rejections)/
+                        float(rfd_integrator.rejections + n_steps)))
+  progress_logger.info('Equilibrium Acceptance Rate: %s' % 
                        (float(generate_free_equilibrium_sample_mcmc.accepts)/
                        float(generate_free_equilibrium_sample_mcmc.samples)))
+
+
 
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
