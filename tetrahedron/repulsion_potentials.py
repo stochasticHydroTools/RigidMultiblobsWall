@@ -3,6 +3,10 @@ for various repulsion potentials.'''
 
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot
+
 import tetrahedron_free as tf
 
 def bin_center_of_mass(location, orientation, bin_width, 
@@ -22,14 +26,24 @@ if __name__ == '__main__':
   repulsion_strengths = []
   repulsion_cutoffs =[]
   n_samples = 100000
-  initial_location = 
-  initial_orientation = 
-  current_sample = [initial_location, initial_orientation]
-  bin_width = 
-  height_histogram = 
-  for k in range(n_samples):
-    sample = tf.generate_free_equilibrium_sample_mcmc(sample)
-    bin_center_of_mass()
+
+  for k in range(len(repulsion_strengths)):
+    tf.REPULSION_STRENGTH = repulsion_strengths[k]
+    tf.REPULSION_CUTOFF = repulsion_cutoffs[k]
+    initial_location = 
+    initial_orientation = 
+    current_sample = [initial_location, initial_orientation]
+    bin_width = 
+    height_histogram = 
+    for k in range(n_samples):
+      sample = tf.generate_free_equilibrium_sample_mcmc(sample)
+      bin_center_of_mass(sample[0], sample[1], bin_width, height_histogram)
+
+    pyplot.plot(bins, height_histogram, label='Strength=%s, Cutoff=%s' % 
+                (tf.REPULSION_STRENGTH, tf.REPULSION_CUTOFF))
+    
+    
+  
     
     
 
