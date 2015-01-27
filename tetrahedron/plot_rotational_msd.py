@@ -5,11 +5,12 @@ import os
 import sys
 sys.path.append('..')
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import cPickle
-from quaternion_integrator.tetrahedron.tetrahedron_rotational_msd import MSDStatistics
+
+from tetrahedron_rotational_msd import MSDStatistics
 
 def plot_time_dependent_msd(msd_statistics, ind):
   ''' 
