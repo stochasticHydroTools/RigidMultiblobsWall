@@ -216,6 +216,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
         average_msd_slope += (msd_entries[-1 - k] - msd_entries[-2 - k])/dt
 
       num_series += 1
+
       pyplot.plot(msd_statistics.data[scheme][dt][0],
                   msd_entries,
                   scheme_colors[scheme_num] + ind_styles[ind[0]],
@@ -227,16 +228,17 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
     scheme_num += 1
 
   # Annotate plot and add theory.
-    
+  print "time ", msd_statistics.data[scheme][dt][0]
+  print "mobility_parallel_line", KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0])
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
+              2.*KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
               'k--',
-              label='Slope=Mu Parallel')
+              label='Slope=2 kT Mu Parallel')
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
+              2.*KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
               'r--',
-              label='Slope=1/Friction')
-  pyplot.title('MSD(t) in X and Y directions')
+              label='Slope=2 kT/Friction')
+  pyplot.title('MSD(t) for spere in X and Y directions')
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
   pyplot.legend(loc='best', prop={'size': 9})
@@ -278,7 +280,7 @@ if __name__ == '__main__':
   scheme = 'FIXMAN'
   dt = 0.5
   end_time = 180.0
-  n_steps = 300000
+  n_steps = 10000
 
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
@@ -324,4 +326,4 @@ if __name__ == '__main__':
   print "Mobility is ", average_mobility, " +/- ", mobility_std
   print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
          1./(average_friction - 2.*friction_std))
-  print "Slope/kT is ", avg_slope/KT
+  print "Slope/2kT is ", avg_slope/2./KT

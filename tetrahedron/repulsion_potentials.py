@@ -26,8 +26,8 @@ def bin_center_of_mass(location, orientation, bin_width,
 
 
 if __name__ == '__main__':
-  repulsion_strengths = [10.0, 5.0, 3.0]
-  repulsion_cutoffs = [1.0, 1.5, 2.0]
+  repulsion_strengths = [10.0, 3.0, 2.0]
+  repulsion_cutoffs = [1.0, 2.0, 3.0]
   n_samples = 30000
 
   for k in range(len(repulsion_strengths)):
