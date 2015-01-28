@@ -141,10 +141,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          end_time,
                                          n_steps,
                                          has_location=False,
-                                         location=None):
+                                         location=None,
+                                         n_runs=4):
 
   ''' 
-  Do one long run, and along the way gather statistics
+  Do a few long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
   by calculating it from time lagged data. 
   args:
@@ -157,7 +158,6 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
   '''
-  burn_in = 4000
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -169,73 +169,65 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     KT = 1.0
     dim = 3
 
-  integrator = QuaternionIntegrator(mobility,
-                                    initial_orientation, 
-                                    torque_calculator,
-                                    has_location=has_location,
-                                    initial_location=location,
-                                    force_calculator=
-                                    tf.free_gravity_force_calculator)
-  integrator.kT = KT
+  rot_msd_list = []
+  for run in range(n_runs):
+    integrator = QuaternionIntegrator(mobility,
+                                      initial_orientation, 
+                                      torque_calculator,
+                                      has_location=has_location,
+                                      initial_location=location,
+                                      force_calculator=
+                                      tf.free_gravity_force_calculator)
+    integrator.kT = KT
 
-  trajectory_length = int(end_time/dt) + 1
-  if trajectory_length > n_steps:
-    raise Exception('Trajectory length is greater than number of steps.  '
-                    'Do a longer run.')
-  lagged_trajectory = []
-  lagged_location_trajectory = []
-  average_rotational_msd = np.array([np.zeros((dim, dim)) 
+    trajectory_length = int(end_time/dt) + 1
+    if trajectory_length > n_steps:
+      raise Exception('Trajectory length is greater than number of steps.  '
+                      'Do a longer run.')
+    lagged_trajectory = []
+    lagged_location_trajectory = []
+    average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
-  std_rotational_msd = np.array([np.zeros((dim, dim)) 
-                                     for _ in range(trajectory_length)])
-  for step in range(n_steps):
-    if scheme == 'FIXMAN':
-      integrator.fixman_time_step(dt)
-    elif scheme == 'RFD':
-      integrator.rfd_time_step(dt)
-    elif scheme == 'EM':
-      integrator.additive_em_time_step(dt)
+    for step in range(n_steps):
+      if scheme == 'FIXMAN':
+        integrator.fixman_time_step(dt)
+      elif scheme == 'RFD':
+        integrator.rfd_time_step(dt)
+      elif scheme == 'EM':
+        integrator.additive_em_time_step(dt)
 
 
-    lagged_trajectory.append(integrator.orientation[0])
-    if has_location:
-      lagged_location_trajectory.append(integrator.location[0])
-
-    if len(lagged_trajectory) > trajectory_length:
-      lagged_trajectory = lagged_trajectory[1:]
+      lagged_trajectory.append(integrator.orientation[0])
       if has_location:
-        lagged_location_trajectory = lagged_location_trajectory[1:]
-      for k in range(trajectory_length):
+        lagged_location_trajectory.append(integrator.location[0])
+
+      if len(lagged_trajectory) > trajectory_length:
+        lagged_trajectory = lagged_trajectory[1:]
         if has_location:
-          current_rot_msd = (calc_total_msd(
-            lagged_location_trajectory[0],
-            lagged_trajectory[0],
-            lagged_location_trajectory[k],
-            lagged_trajectory[k]))
-          average_rotational_msd[k] += current_rot_msd
-          if step > burn_in:
-            running_avg = average_rotational_msd[k]/step
-            std_rotational_msd[k] += (current_rot_msd - 
-                                      running_avg)**2
-        else:
-          current_rot_msd = (calc_rotational_msd(
-            lagged_trajectory[0],
-            lagged_trajectory[k]))
-          average_rotational_msd[k] += current_rot_msd
-          if step > burn_in:
-            running_avg = average_rotational_msd[k]/step
-            std_rotational_msd[k] += (current_rot_msd - 
-                                      running_avg)**2
+          lagged_location_trajectory = lagged_location_trajectory[1:]
+        for k in range(trajectory_length):
+          if has_location:
+            current_rot_msd = (calc_total_msd(
+                lagged_location_trajectory[0],
+                lagged_trajectory[0],
+                lagged_location_trajectory[k],
+                lagged_trajectory[k]))
+            average_rotational_msd[k] += current_rot_msd
+          else:
+            current_rot_msd = (calc_rotational_msd(
+                lagged_trajectory[0],
+                lagged_trajectory[k]))
+            average_rotational_msd[k] += current_rot_msd
     
   average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
-  std_rotational_msd = np.sqrt(std_rotational_msd/(n_steps - burn_in))
+  rot_msd_list.append(average_rotational_msd)
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
-  results[1] = average_rotational_msd
-  results[2] = std_rotational_msd
+  results[1] = np.mean(rot_msd_list, axis=0)
+  results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 
   progress_logger = logging.getLogger('progress_logger')  
   progress_logger.info('Rejection Rate: %s' % 

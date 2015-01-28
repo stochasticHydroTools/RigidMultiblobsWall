@@ -113,19 +113,21 @@ class TestFreeTetrahedron(unittest.TestCase):
     # Construct location and get r vectors.
     location = [10., 20., 2.0]
     r_vectors = tf.get_free_r_vectors(location, theta)
-    
-    # Because height is 2, the particles are guaranteed to be within a cutoff of
-    # 4.
+
+    # Add gravity and Yukawa force.
     force_array = np.array([
       0., 0.,  
-      ((r_vectors[0][2] < tf.REPULSION_CUTOFF)*
-       (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[0][2])) - tf.M1),
+      (tf.REPULSION_STRENGTH*((r_vectors[0][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
+       np.exp(-1.*(r_vectors[0][2] - tf.A)/tf.REPULSION_CUTOFF)/
+       ((r_vectors[0][2] - tf.A)**2) - tf.M1),
       0., 0., 
-      ((r_vectors[1][2] < tf.REPULSION_CUTOFF)*
-      (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[1][2])) - tf.M2),
+      (tf.REPULSION_STRENGTH*((r_vectors[1][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
+       np.exp(-1.*(r_vectors[1][2] - tf.A)/tf.REPULSION_CUTOFF)/
+       ((r_vectors[1][2] - tf.A)**2) - tf.M2),
       0., 0., 
-      ((r_vectors[2][2] < tf.REPULSION_CUTOFF)*
-       (tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[2][2])) - tf.M3)])
+      (tf.REPULSION_STRENGTH*((r_vectors[2][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
+       np.exp(-1.*(r_vectors[2][2] - tf.A)/tf.REPULSION_CUTOFF)/
+       ((r_vectors[2][2] - tf.A)**2) - tf.M3)])
     
     rot_matrix = tf.calc_free_rot_matrix(r_vectors, location)
 
@@ -150,16 +152,19 @@ class TestFreeTetrahedron(unittest.TestCase):
 
     correct_force = np.zeros(3)
     # Add repulsion force from top vertex and all gravity.
-    correct_force[2] += ((location[2] < tf.REPULSION_CUTOFF)*(
-      tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - location[2])) - tf.M1 -tf.M2 
-      - tf.M3 - tf.M4)
+    h = location[2]
+    correct_force[2] +=  (tf.REPULSION_STRENGTH*((h - tf.A)/tf.REPULSION_CUTOFF + 1)*
+                          np.exp(-1.*(h - tf.A)/tf.REPULSION_CUTOFF)/
+                          ((h - tf.A)**2) - tf.M1 - tf.M2 - tf.M3 - tf.M4)
     # Add repulsion force from each other particle
     for k in range(3):
-      correct_force[2] += ((r_vectors[k][2] < tf.REPULSION_CUTOFF)*
-        tf.REPULSION_STRENGTH*(tf.REPULSION_CUTOFF - r_vectors[k][2]))
+      h = r_vectors[k][2]
+      correct_force[2] +=  (tf.REPULSION_STRENGTH*
+                            ((h - tf.A)/tf.REPULSION_CUTOFF + 1)*
+                            np.exp(-1.*(h - tf.A)/tf.REPULSION_CUTOFF)/
+                            ((h - tf.A)**2))
 
     calculated_force = tf.free_gravity_force_calculator([location], [theta])
-
     for k in range(3):
       self.assertAlmostEqual(calculated_force[k], correct_force[k])
 

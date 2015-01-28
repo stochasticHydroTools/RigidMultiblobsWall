@@ -22,20 +22,19 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
-KT = 0.1    # Temperature
+KT = 0.5    # Temperature
 
 # Masses of particles. g = 1.
-M1 = 0.25
+M1 = 0.05
 M2 = 0.1
-M3 = 0.15
-M4 = 0.4
+M3 = 0.025
+M4 = 0.05
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-#  For heights, originally strength = 10.0, cutoff = 1.0
-REPULSION_STRENGTH = 3.0
-REPULSION_CUTOFF = 2.0
+REPULSION_STRENGTH = 2.0
+REPULSION_CUTOFF = 0.5  # This is the Debye length, TODO: rename.
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -164,9 +163,9 @@ def free_gravity_torque_calculator(location, orientation):
                 0., 0., -1.*M3])
   # Add repulsion from wall.
   for k in range(3):
-    if r_vectors[k][2] < REPULSION_CUTOFF:
-      g[3*k + 2] += REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])
-
+    h = r_vectors[k][2]
+    g[3*k + 2] += (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
+                   np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
   return np.dot(R.T, g)
 
 
@@ -181,17 +180,18 @@ def free_gravity_force_calculator(location, orientation):
                tetrahedron orientation
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  potential_force = np.zeros(3)
   # Add repulsion of 'top' vertex, at location.
-  if location[0][2] < REPULSION_CUTOFF:
-    potential_force[2] += REPULSION_STRENGTH*(REPULSION_CUTOFF - location[0][2])
+  h = location[0][2]
+  repulsion_force = np.array([0., 0., 
+                     (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
+                     np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))])
   # Add repulsion of other particles:
   for k in range(3):
-    if r_vectors[k][2] < REPULSION_CUTOFF:
-      potential_force[2] += (
-        REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2]))
+    h = r_vectors[k][2]
+    repulsion_force[2] += (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
+                           np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3 + M4)])
-  return potential_force + gravity_force
+  return repulsion_force + gravity_force
 
 
 def bin_free_particle_heights(location, orientation, bin_width, 
@@ -216,8 +216,11 @@ def generate_free_equilibrium_sample():
   to the distribution exp(-\beta U(heights)).
   Do this by generating a uniform quaternion and exponential location, 
   then accept/rejecting with the appropriate probability.
-  '''
   
+  DEPRECATED AND SHOULD NOT BE USED!!!
+  This uses the old potential still, not
+  the Yukawa potential.  Use the mcmc version below (which is faster anyway)
+  '''
   progress_logger = logging.getLogger('Progress Logger')
   max_gibbs_term = 0.
   while True:
@@ -265,16 +268,30 @@ def generate_free_equilibrium_sample():
 
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
+@static_var('dt', 0.13)  
 def generate_free_equilibrium_sample_mcmc(current_sample):
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)) by using MCMC.
   '''
+  rho = 0.98 #Adaptive parameter for dt.
   generate_free_equilibrium_sample_mcmc.samples += 1
   location = current_sample[0]
   orientation = current_sample[1]
+  current_acceptance_rate = (
+    float(generate_free_equilibrium_sample_mcmc.accepts)/
+    float(generate_free_equilibrium_sample_mcmc.samples))
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 0.05
+  # TODO: make adaptive timestepping work.
+  # if generate_free_equilibrium_sample_mcmc.samples > 200:
+  #   if current_acceptance_rate > 0.8:
+  #     print "adjusting timestep up, accept rate: ", current_acceptance_rate
+  #     generate_free_equilibrium_sample_mcmc.dt /= rho
+  #   elif current_acceptance_rate < 0.2:
+  #     print "adjusting timestep down, accept rate: ", current_acceptance_rate
+  #     generate_free_equilibrium_sample_mcmc.dt *= rho
+  dt = generate_free_equilibrium_sample_mcmc.dt
+
   # Take a step using Metropolis.
   omega = np.random.normal(0., 1., 3)
   velocity = np.random.normal(0., 1., 3)
@@ -298,20 +315,21 @@ def gibbs_boltzmann_distribution(location, orientation):
   and orientation.
   '''
   r_vectors = get_free_r_vectors(location, orientation)
-  if ((r_vectors[0][2] < 0) or
-      (r_vectors[1][2] < 0) or
-      (r_vectors[2][2] < 0)):
-    gibbs_boltzmann_distribution.low_rejectiions += 1
+  if ((r_vectors[0][2] < 0.5) or
+      (r_vectors[1][2] < 0.5) or
+      (r_vectors[2][2] < 0.5) or
+      location[2] < 0.5):
+    gibbs_boltzmann_distribution.low_rejections += 1
     return 0.0
   # Calculate potential.
   U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
        M3*(r_vectors[2][2]) + M4*(location[2]))
-  if location[2] < REPULSION_CUTOFF:
-    U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - location[2])**2
+  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
+        (location[2] - A))
   for k in range(3):
-    if r_vectors[k][2] < REPULSION_CUTOFF:
-      U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
-
+    h = r_vectors[k][2]
+    U += (REPULSION_STRENGTH*np.exp(-1.*(h - A)/REPULSION_CUTOFF)/
+          (h - A))
   return np.exp(-1.*U/KT)
 
 

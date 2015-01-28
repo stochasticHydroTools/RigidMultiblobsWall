@@ -24,11 +24,12 @@ from fluids import mobility as mb
 #Parameters
 ETA = 1.0
 A = 0.5
-M  = 0.25
+M  = 0.05
 H = 3.5
+# Parameters for Yukawa potential
 REPULSION_STRENGTH = 3.0
-REPULSION_CUTOFF = 2.0
-KT = 0.1
+REPULSION_CUTOFF = 0.25  # This is the Debye length, TODO: rename.
+KT = 0.5
 
 
 def null_torque_calculator(location, orientation):
@@ -36,10 +37,9 @@ def null_torque_calculator(location, orientation):
 
 def sphere_force_calculator(location, orientation):
   gravity = -1*M
-  if location[0][2] < REPULSION_CUTOFF:
-    repulsion = REPULSION_STRENGTH*(REPULSION_CUTOFF - location[0][2])
-  else: 
-    repulsion = 0
+  h = location[0][2]
+  repulsion = (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
+               np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
   return [0., 0., gravity + repulsion]
 
 def sphere_mobility(location, orientation):
@@ -77,14 +77,14 @@ def generate_sphere_equilibrium_sample_mcmc(current_sample):
 
 def gibbs_boltzmann_distribution(location):
   '''
-  Evaluate the equilibrium distribution at a given location 
-  and orientation.
+  Evaluate the equilibrium distribution at a given location for
+  a single sphere above a wall.  Location is given as a list with
+  [x, y, z] components of sphere position.
   '''
   # Calculate potential.
   U = M*location[2]
-  if location[2] < REPULSION_CUTOFF:
-    U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - location[2])**2
-
+  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
+        (location[2] - A))
   return np.exp(-1.*U/KT)  
 
 def calc_rotational_msd_from_equilibrium(initial_orientation,
@@ -93,10 +93,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          end_time,
                                          n_steps,
                                          has_location=False,
-                                         location=None):
+                                         location=None,
+                                         n_runs=4):
 
   ''' 
-  Do one long run, and along the way gather statistics
+  Do a few long runs, and along the way gather statistics
   about the average rotational Mean Square Displacement 
   by calculating it from time lagged data. 
   args:
@@ -110,73 +111,65 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
   Copied from tetrahedron_rotational_msd and modified slightly.
   '''
-  burn_in = 4000
   dim = 3
-  integrator = QuaternionIntegrator(sphere_mobility,
-                                    initial_orientation, 
-                                    null_torque_calculator,
-                                    has_location=has_location,
-                                    initial_location=location,
-                                    force_calculator=
-                                    sphere_force_calculator)
-  integrator.kT = KT
+  rot_msd_list = []
+  for k in range(n_runs):
+    integrator = QuaternionIntegrator(sphere_mobility,
+                                      initial_orientation, 
+                                      null_torque_calculator,
+                                      has_location=has_location,
+                                      initial_location=location,
+                                      force_calculator=
+                                      sphere_force_calculator)
+    integrator.kT = KT
 
-  trajectory_length = int(end_time/dt) + 1
-  if trajectory_length > n_steps:
-    raise Exception('Trajectory length is greater than number of steps.  '
-                    'Do a longer run.')
-  lagged_trajectory = []
-  lagged_location_trajectory = []
-  average_rotational_msd = np.array([np.zeros((dim, dim)) 
-                                     for _ in range(trajectory_length)])
-  std_rotational_msd = np.array([np.zeros((dim, dim)) 
-                                     for _ in range(trajectory_length)])
-  for step in range(n_steps):
-    if scheme == 'FIXMAN':
-      integrator.fixman_time_step(dt)
-    elif scheme == 'RFD':
-      integrator.rfd_time_step(dt)
-    elif scheme == 'EM':
-      integrator.additive_em_time_step(dt)
+    trajectory_length = int(end_time/dt) + 1
+    if trajectory_length > n_steps:
+      raise Exception('Trajectory length is greater than number of steps.  '
+                      'Do a longer run.')
+    lagged_trajectory = []
+    lagged_location_trajectory = []
+    average_rotational_msd = np.array([np.zeros((dim, dim)) 
+                                       for _ in range(trajectory_length)])
+    for step in range(n_steps):
+      if scheme == 'FIXMAN':
+        integrator.fixman_time_step(dt)
+      elif scheme == 'RFD':
+        integrator.rfd_time_step(dt)
+      elif scheme == 'EM':
+        integrator.additive_em_time_step(dt)
 
-
-    lagged_trajectory.append(integrator.orientation[0])
-    if has_location:
-      lagged_location_trajectory.append(integrator.location[0])
-
-    if len(lagged_trajectory) > trajectory_length:
-      lagged_trajectory = lagged_trajectory[1:]
+        
+      lagged_trajectory.append(integrator.orientation[0])
       if has_location:
-        lagged_location_trajectory = lagged_location_trajectory[1:]
-      for k in range(trajectory_length):
+        lagged_location_trajectory.append(integrator.location[0])
+
+      if len(lagged_trajectory) > trajectory_length:
+        lagged_trajectory = lagged_trajectory[1:]
         if has_location:
-          current_rot_msd = (calc_translation_msd(
-            lagged_location_trajectory[0],
-            lagged_location_trajectory[k]))
-          average_rotational_msd[k] += current_rot_msd
-          if step > burn_in:
-            running_avg = average_rotational_msd[k]/step
-            std_rotational_msd[k] += (current_rot_msd - 
-                                      running_avg)**2
-        else:
-          current_rot_msd = (calc_rotational_msd(
-            lagged_trajectory[0],
-            lagged_trajectory[k]))
-          average_rotational_msd[k] += current_rot_msd
-          if step > burn_in:
-            running_avg = average_rotational_msd[k]/step
-            std_rotational_msd[k] += (current_rot_msd - 
-                                      running_avg)**2
-    
-  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
-  std_rotational_msd = np.sqrt(std_rotational_msd/(n_steps - burn_in))
+          lagged_location_trajectory = lagged_location_trajectory[1:]
+        for k in range(trajectory_length):
+          if has_location:
+            current_rot_msd = (calc_translation_msd(
+                lagged_location_trajectory[0],
+                lagged_location_trajectory[k]))
+            average_rotational_msd[k] += current_rot_msd
+          else:
+            current_rot_msd = (calc_rotational_msd(
+                lagged_trajectory[0],
+                lagged_trajectory[k]))
+            average_rotational_msd[k] += current_rot_msd
+
+    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    rot_msd_list.append(average_rotational_msd)
+
 
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
   results[0] = np.arange(0, trajectory_length)*dt
-  results[1] = average_rotational_msd
-  results[2] = std_rotational_msd
+  results[1] = np.mean(rot_msd_list, axis=0)
+  results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 
   progress_logger = logging.getLogger('progress_logger')  
   progress_logger.info('Rejection Rate: %s' % 
@@ -228,11 +221,9 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
     scheme_num += 1
 
   # Annotate plot and add theory.
-  print "time ", msd_statistics.data[scheme][dt][0]
-  print "mobility_parallel_line", KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0])
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
               2.*KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
-              'k--',
+              'k-',
               label='Slope=2 kT Mu Parallel')
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
               2.*KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
@@ -280,7 +271,7 @@ if __name__ == '__main__':
   scheme = 'FIXMAN'
   dt = 0.5
   end_time = 180.0
-  n_steps = 10000
+  n_steps = 100000
 
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 

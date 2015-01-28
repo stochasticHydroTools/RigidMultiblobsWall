@@ -26,9 +26,9 @@ def bin_center_of_mass(location, orientation, bin_width,
 
 
 if __name__ == '__main__':
-  repulsion_strengths = [10.0, 3.0, 2.0]
-  repulsion_cutoffs = [1.0, 2.0, 3.0]
-  n_samples = 30000
+  repulsion_strengths = [1.5, 1.5, 1.5]
+  repulsion_cutoffs = [0.5, 1.0, 1.5]
+  n_samples = 70000
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
@@ -36,19 +36,28 @@ if __name__ == '__main__':
     initial_location = [0., 0., tf.H]
     initial_orientation = Quaternion([1., 0., 0., 0.])
     sample = [initial_location, initial_orientation]
-    bin_width = 1/5.
-    bins = bin_width*np.arange(int(7./bin_width)) + bin_width/2.
-    height_histogram = np.zeros(int(7./bin_width))
+    bin_width = 1/10.
+    bins = bin_width*np.arange(int(16./bin_width)) + bin_width/2.
+    height_histogram = np.zeros(int(16./bin_width))
     for k in range(n_samples):
       sample = tf.generate_free_equilibrium_sample_mcmc(sample)
       bin_center_of_mass(sample[0], sample[1], bin_width, height_histogram)
       
+    acceptance_rate = (float(tf.generate_free_equilibrium_sample_mcmc.accepts)/
+                       float(tf.generate_free_equilibrium_sample_mcmc.samples))
+    print 'acceptance rate for MCMC: %f' % acceptance_rate
+    print 'low rejections: %d' % tf.gibbs_boltzmann_distribution.low_rejections
     height_histogram = height_histogram/n_samples/bin_width
     pyplot.plot(bins, height_histogram, label='Strength=%s, Cutoff=%s' % 
                 (tf.REPULSION_STRENGTH, tf.REPULSION_CUTOFF))
+    tf.generate_free_equilibrium_sample_mcmc.accepts = 0
+    tf.generate_free_equilibrium_sample_mcmc.samples = 0
 
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.savefig('./figures/PotentialPDFs.pdf')
+
+
+
     
     
   
