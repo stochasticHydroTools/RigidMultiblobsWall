@@ -268,7 +268,7 @@ def generate_free_equilibrium_sample():
 
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
-@static_var('dt', 0.13)  
+@static_var('dt', 0.15)  
 def generate_free_equilibrium_sample_mcmc(current_sample):
   '''
   Generate an equilibrium sample of location and orientation, according

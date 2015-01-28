@@ -14,6 +14,7 @@ import os
 import sys
 sys.path.append('..')
 import time
+import math
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -239,7 +240,8 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   return average_msd_slope
 
 
-def calculate_average_mu_parallel(n_samples):
+def calculate_average_mu_parallel_and_bin_heights(n_samples, height_histogram,
+                                                  bin_width):
   ''' 
   Generate random samples from equilibrium to
   calculate the average parallel mobility and friction. 
@@ -250,18 +252,44 @@ def calculate_average_mu_parallel(n_samples):
   sample = initial_location[0]
   average_mu_parallel = 0.0
   average_gamma_parallel = 0.0
+  average_sphere_height = 0.0
   for k in range(n_samples):
     sample = generate_sphere_equilibrium_sample_mcmc(sample)
     mobility_sample = sphere_mobility([sample], initial_orientation)
-    average_mu_parallel += mobility_sample[0, 0] + mobility_sample[1, 1]
-    average_gamma_parallel += (1.0/mobility_sample[0, 0] + 
-                               1.0/mobility_sample[1, 1])
+    average_mu_parallel += mobility_sample[0, 0]
+    average_gamma_parallel += (1.0/mobility_sample[0, 0])
+    bin_sphere_height(sample, height_histogram, bin_width)
     
-  average_mu_parallel /= 2*n_samples
-  average_gamma_parallel /= 2*n_samples
+  average_mu_parallel /= n_samples
+  average_gamma_parallel /= n_samples
 
   return [average_mu_parallel, average_gamma_parallel]
 
+
+def bin_sphere_height(sample, height_histogram, bin_width):
+  ''' 
+  Bin the height (last component, idx = 2) of a sample, and
+  add the count to height_histogram.
+  '''
+  idx = int(math.floor((sample[2])/bin_width)) 
+  if idx < len(height_histogram):
+    height_histogram[idx] += 1
+  else:
+    print 'index is: ', idx
+    print 'Index exceeds histogram length.'
+
+def plot_height_histogram(buckets, height_histogram):
+  ''' Plot buckets v. height pdf and save the figure.'''
+  pyplot.figure()
+  pyplot.plot(buckets, height_histogram)
+  pyplot.title('Equilibrium Height Distribution')
+  pyplot.xlabel('Height')
+  pyplot.ylabel('PDF')
+  # Make directory for data if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+    os.mkdir(os.path.join(os.getcwd(), 'figures'))
+  pyplot.savefig('./figures/SphereHeights.pdf')
+  
 
 if __name__ == '__main__':
 
@@ -271,7 +299,10 @@ if __name__ == '__main__':
   scheme = 'FIXMAN'
   dt = 0.5
   end_time = 180.0
-  n_steps = 100000
+  n_steps = 200000
+  bin_width = 1./10.
+  buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
+  height_histogram = np.zeros(len(buckets))
 
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
@@ -302,7 +333,8 @@ if __name__ == '__main__':
   mobilities = []
   frictions = []
   for k in range(n_runs):
-    average_mob_and_friction = calculate_average_mu_parallel(12000)
+    average_mob_and_friction = calculate_average_mu_parallel_and_bin_heights(
+      15000, height_histogram, bin_width)
     mobilities.append(average_mob_and_friction[0])
     frictions.append(average_mob_and_friction[1])
 
@@ -313,7 +345,9 @@ if __name__ == '__main__':
 
   avg_slope = plot_x_and_y_msd(msd_statistics, 
                                [average_mobility, average_friction])
-  
+
+  height_histogram /= sum(height_histogram)*bin_width
+  plot_height_histogram(buckets, height_histogram)
   print "Mobility is ", average_mobility, " +/- ", mobility_std
   print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
          1./(average_friction - 2.*friction_std))
