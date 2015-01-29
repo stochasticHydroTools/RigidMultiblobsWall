@@ -57,13 +57,15 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   # Annotate plot and add theory.
     
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              tf.KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
+              tf.KT*2.*mob_and_friction[0]*
+              np.array(msd_statistics.data[scheme][dt][0]),
               'k--',
-              label='Slope=Mu Parallel')
+              label='Slope=2 kT Mu Parallel')
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              tf.KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
+              tf.KT*2.*np.array(msd_statistics.data[scheme][dt][0]/
+                                mob_and_friction[1]),
               'r--',
-              label='Slope=1/Friction')
+              label='Slope=2 kT/Friction')
   pyplot.title('MSD(t) in X and Y directions')
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
@@ -86,7 +88,7 @@ def calculate_average_mu_parallel(n_samples):
   tf.M4 = 0.225
   initial_location = [np.array([0., 0., tf.H])]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  sample = initial_location[0]
+  sample = [initial_location[0], initial_orientation[0]]
   average_mu_parallel = 0.0
   average_gamma_parallel = 0.0
   for k in range(n_samples):
@@ -130,6 +132,6 @@ if __name__ == "__main__":
   print "Mobility is ", average_mobility, " +/- ", mobility_std
   print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
          1./(average_friction - 2.*friction_std))
-  print "Slope/kT is ", avg_slope/tf.KT
+  print "Slope/2kT is ", avg_slope/2./tf.KT
   
   
