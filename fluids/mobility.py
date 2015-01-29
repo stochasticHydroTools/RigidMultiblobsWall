@@ -158,3 +158,55 @@ def rotne_prager_tensor(r_vectors, eta, a):
                                                       np.identity(3))
   return fluid_mobility
 
+def single_wall_self_mobility_with_rotation(location, eta, a):
+  ''' 
+  Self mobility for a single sphere of radius a with translation rotation
+  coupling.  Returns the 6x6 matrix taking force and torque to 
+  velocity and angular velocity.
+  This expression is taken from Swan and Brady's paper:
+  '''
+  h = location[2]/a
+  fluid_mobility = (1./(6.*np.pi*eta*a))*np.identity(3)
+  zero_matrix = np.zeros([3, 3])
+  fluid_mobility = np.concatenate([fluid_mobility, zero_matrix])
+  zero_matrix = np.zeros([6, 3])
+  fluid_mobility = np.concatenate([fluid_mobility, zero_matrix], axis=1)
+  # First the translation-translation block.
+  for l in range(3):
+    for m in range(3):
+      fluid_mobility[l][m] += (1./(6.*np.pi*eta*a))*(
+        (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+        + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+  # Translation-Rotation blocks.
+  for l in range(3):
+    for m in range(3):
+      fluid_mobility[3 + l][m] += (1./(6.*np.pi*eta*a*a))*((3./32.)*
+                                     (h**(-4))*epsilon_tensor(2, l, m))
+      fluid_mobility[m][3 + l] += fluid_mobility[3 + l][m]
+  
+  # Rotation-Rotation block.
+  for l in range(3):
+    for m in range(3):
+      fluid_mobility[3 + l][3 + m] += (
+        (1./(8.*np.pi*eta*(a**3)))*(l == m) - ((1./(6.*np.pi*eta*(a**3)))*
+                                      (15./64.)*(h**(-3))*(l == m)*(l != 2)
+                                      + (3./32.)*(h**(-3))*(m == 2)*(l == 2)))
+  return fluid_mobility
+
+  
+def epsilon_tensor(i, j, k):
+  ''' 
+  Epsilon tensor (cross product).  Only works for arguments
+  between 0 and 2.
+  '''
+  if j == ((i + 1) % 3) and k == ((j+1) % 3):
+    return 1.
+  elif i == ((j + 1) % 3) and j == ((k + 1) % 3):
+    return -1.
+  else:
+    return 0.
+  
+  
+
+  
+

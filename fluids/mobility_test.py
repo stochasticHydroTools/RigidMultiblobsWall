@@ -83,8 +83,8 @@ class TestMobility(unittest.TestCase):
   def test_image_system_spd(self):
     ''' Test that the image system for a singular stokeslet is SPD.'''
     n_particles = 5
-    a = 1.0
-    r_vectors = [np.random.normal(10., 1., 3) for _ in range(n_particles)]
+    a = 0.25
+    r_vectors = [np.random.normal(12., 2.5, 3) for _ in range(n_particles)]
     stokeslet = mb.image_singular_stokeslet(r_vectors, a)
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)    
@@ -140,6 +140,43 @@ class TestMobility(unittest.TestCase):
       for k in range(3):
         self.assertAlmostEqual(mobility[j, 3 + k], 0.0, places=6)
 
+
+  def test_single_wall_mobility_with_rotation_spd(self):
+    ''' Test that the mobility with rotation is SPD. '''
+    location = np.random.normal(10., 3., 3)
+    eta = 1.0
+    a = 0.25
+    fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, eta, a)
+    def is_pos_def(x):
+      return np.all(np.linalg.eigvals(x) > 0)    
+
+    self.assertTrue(is_pos_def(fluid_mobility))
+    for j in range(6):
+      for k in range(j+1, 6):
+        self.assertAlmostEqual(fluid_mobility[j][k], fluid_mobility[k][j])
+    
+
+  def test_sphere_wall_rotation_mobility_x_torque(self):
+    ''' 
+    Test that turning a sphere clockwise around the x axis 
+    causes motion in the positive y direction. 
+    '''
+    
+    
+    
+    
+
+  def test_epsilon_tensor(self):
+    ''' Check that we get the right cross epsilon for a few possible indices.'''
+    self.assertAlmostEqual(1.0, mb.epsilon_tensor(0, 1, 2))
+    self.assertAlmostEqual(0.0, mb.epsilon_tensor(0, 1, 1))
+    self.assertAlmostEqual(-1.0, mb.epsilon_tensor(1, 0, 2))
+    self.assertAlmostEqual(0.0, mb.epsilon_tensor(1, 1, 2))
+    self.assertAlmostEqual(-1.0, mb.epsilon_tensor(2, 1, 0))
+    self.assertAlmostEqual(1.0, mb.epsilon_tensor(2, 0, 1))
+        
+
+    
 
 if __name__ == '__main__':
   unittest.main()

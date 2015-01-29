@@ -29,8 +29,8 @@ M  = 0.1
 H = 3.5
 # Parameters for Yukawa potential
 REPULSION_STRENGTH = 2.0
-REPULSION_CUTOFF = 0.25  # This is the Debye length, TODO: rename.
-KT = 0.5
+REPULSION_CUTOFF = 0.5  # This is the Debye length, TODO: rename.
+KT = 1.0
 
 
 def null_torque_calculator(location, orientation):
@@ -108,7 +108,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          n_steps,
                                          has_location=False,
                                          location=None,
-                                         n_runs=4):
+                                         n_runs=4,
+                                         heights=None,
+                                         bin_width=None):
 
   ''' 
   Do a few long runs, and along the way gather statistics
@@ -153,6 +155,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
+      if heights is not None:
+        bin_sphere_height(integrator.location[0], heights, bin_width)
         
       lagged_trajectory.append(integrator.orientation[0])
       if has_location:
@@ -197,7 +201,7 @@ def calc_translation_msd(initial_location, location):
   return np.outer(dx, dx)
 
 
-def plot_x_and_y_msd(msd_statistics, mob_and_friction):
+def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
   '''  
   Plot Fixman and RFD x and y MSD. Also calculate the slope of the
   MSD at later times to compare to equilibrium mobility.
@@ -247,7 +251,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
   pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./figures/SphereTranslationalMSDComponent.pdf')
+  pyplot.savefig('./figures/SphereTranslationalMSDComponent-N-%d.pdf' % n_steps)
   # Return average slope
   average_msd_slope /= num_series*5
   return average_msd_slope
@@ -275,7 +279,9 @@ def calculate_average_mu_parallel_and_bin_heights(n_samples, height_histogram,
     
   average_mu_parallel /= n_samples
   average_gamma_parallel /= n_samples
-
+  print "acceptance rate: %f" % (
+    float(generate_sphere_equilibrium_sample_mcmc.accepts)/
+    float(generate_sphere_equilibrium_sample_mcmc.samples))
   return [average_mu_parallel, average_gamma_parallel]
 
 
@@ -288,14 +294,17 @@ def bin_sphere_height(sample, height_histogram, bin_width):
   if idx < len(height_histogram):
     height_histogram[idx] += 1
   else:
-    print 'index is: ', idx
-    print 'Index exceeds histogram length.'
+    pass
+#    print 'index is: ', idx
+#    print 'Index exceeds histogram length.'
 
-def plot_height_histogram(buckets, height_histogram):
-  ''' Plot buckets v. height pdf and save the figure.'''
+def plot_height_histograms(buckets, height_histogram, height_histogram_run):
+  ''' Plot buckets v. heights of eq and run pdf and save the figure.'''
   pyplot.figure()
-  pyplot.plot(buckets, height_histogram)
-  pyplot.title('Equilibrium Height Distribution')
+  pyplot.plot(buckets, height_histogram, label='Gibbs Boltzmann')
+  pyplot.plot(buckets, height_histogram_run, label='Run')
+  pyplot.title('Height Distribution')
+  pyplot.legend(loc='best', prop={'size': 9})
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
   # Make directory for data if it doesn't exist.
@@ -309,13 +318,14 @@ if __name__ == '__main__':
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [np.array([0., 0., H])]
 
-  scheme = 'FIXMAN'
-  dt = 0.1
+  scheme = 'RFD'
+  dt = 0.5
   end_time = 180.0
-  n_steps = 50000
+  n_steps = 100000
   bin_width = 1./10.
-  buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
+  buckets = np.arange(0, int(32./bin_width))*bin_width + bin_width/2.
   height_histogram = np.zeros(len(buckets))
+  height_histogram_run = np.zeros(len(buckets))
 
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
@@ -329,7 +339,9 @@ if __name__ == '__main__':
                                                   end_time,
                                                   n_steps,
                                                   has_location=True,
-                                                  location=initial_location)
+                                                  location=initial_location,
+                                                  heights=height_histogram_run,
+                                                  bin_width=bin_width)
   msd_statistics.add_run(scheme, dt, run_data)
   # Make directory for data if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
@@ -347,7 +359,7 @@ if __name__ == '__main__':
   frictions = []
   for k in range(n_runs):
     average_mob_and_friction = calculate_average_mu_parallel_and_bin_heights(
-      15000, height_histogram, bin_width)
+      30000, height_histogram, bin_width)
     mobilities.append(average_mob_and_friction[0])
     frictions.append(average_mob_and_friction[1])
 
@@ -357,10 +369,12 @@ if __name__ == '__main__':
   friction_std = np.std(frictions)/np.sqrt(n_runs)
 
   avg_slope = plot_x_and_y_msd(msd_statistics, 
-                               [average_mobility, average_friction])
+                               [average_mobility, average_friction],
+                               n_steps)
 
   height_histogram /= sum(height_histogram)*bin_width
-  plot_height_histogram(buckets, height_histogram)
+  height_histogram_run /= sum(height_histogram_run)*bin_width
+  plot_height_histograms(buckets, height_histogram, height_histogram_run)
   print "Mobility is ", average_mobility, " +/- ", mobility_std
   print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
          1./(average_friction - 2.*friction_std))
