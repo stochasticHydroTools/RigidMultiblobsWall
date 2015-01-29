@@ -27,8 +27,8 @@ def bin_center_of_mass(location, orientation, bin_width,
 
 if __name__ == '__main__':
   repulsion_strengths = [1.5, 1.5, 1.5, 3.0, 3.0]
-  repulsion_cutoffs = [0.5, 1.0, 2.0, 0.25, 0.5]
-  n_samples = 300000
+  repulsion_cutoffs = [0.25, 0.5, 1.0, 0.25, 0.5]
+  n_samples = 1000000
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     initial_orientation = Quaternion([1., 0., 0., 0.])
     sample = [initial_location, initial_orientation]
     bin_width = 1/10.
-    bins = bin_width*np.arange(int(18./bin_width)) + bin_width/2.
-    height_histogram = np.zeros(int(18./bin_width))
+    bins = bin_width*np.arange(int(24./bin_width)) + bin_width/2.
+    height_histogram = np.zeros(int(24./bin_width))
     for k in range(n_samples):
       sample = tf.generate_free_equilibrium_sample_mcmc(sample)
       bin_center_of_mass(sample[0], sample[1], bin_width, height_histogram)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     tf.generate_free_equilibrium_sample_mcmc.samples = 0
 
   pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./figures/PotentialPDFs.pdf')
+  pyplot.savefig('./figures/PotentialPDFs-N-%s.pdf' % n_samples)
 
 
 

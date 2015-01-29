@@ -25,10 +25,10 @@ from fluids import mobility as mb
 #Parameters
 ETA = 1.0
 A = 0.5
-M  = 0.05
+M  = 0.1
 H = 3.5
 # Parameters for Yukawa potential
-REPULSION_STRENGTH = 3.0
+REPULSION_STRENGTH = 2.0
 REPULSION_CUTOFF = 0.25  # This is the Debye length, TODO: rename.
 KT = 0.5
 
@@ -53,16 +53,24 @@ def sphere_mobility(location, orientation):
   return mobility
 
 @static_var('samples', 0)  
-@static_var('accepts', 0)  
+@static_var('accepts', 0)
+@static_var('dt', 0.5)
+@static_var('last_trial', 0)  
 def generate_sphere_equilibrium_sample_mcmc(current_sample):
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)) by using MCMC.
   '''
+  rho = 0.98  # Parameter for adaptive dt.
   generate_sphere_equilibrium_sample_mcmc.samples += 1
   location = current_sample
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  dt = 0.1
+  if generate_sphere_equilibrium_sample_mcmc.last_trial == 1:
+    generate_sphere_equilibrium_sample_mcmc.dt /= rho
+  else:
+    generate_sphere_equilibrium_sample_mcmc.dt *= rho
+
+  dt = generate_sphere_equilibrium_sample_mcmc.dt
   # Take a step using Metropolis.
   velocity = np.random.normal(0., 1., 3)
   new_location = location + velocity*dt
@@ -71,8 +79,10 @@ def generate_sphere_equilibrium_sample_mcmc(current_sample):
 
   if np.random.uniform() < accept_probability:
     generate_sphere_equilibrium_sample_mcmc.accepts += 1
+    generate_sphere_equilibrium_sample_mcmc.last_trial = 1
     return new_location
   else:
+    generate_sphere_equilibrium_sample_mcmc.last_trial = 0
     return location
                           
 
@@ -83,9 +93,12 @@ def gibbs_boltzmann_distribution(location):
   [x, y, z] components of sphere position.
   '''
   # Calculate potential.
-  U = M*location[2]
-  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
-        (location[2] - A))
+  if location[2] > A:
+    U = M*location[2]
+    U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
+          (location[2] - A))
+  else:
+    return 0.0
   return np.exp(-1.*U/KT)  
 
 def calc_rotational_msd_from_equilibrium(initial_orientation,
@@ -297,9 +310,9 @@ if __name__ == '__main__':
   initial_location = [np.array([0., 0., H])]
 
   scheme = 'FIXMAN'
-  dt = 0.5
+  dt = 0.1
   end_time = 180.0
-  n_steps = 200000
+  n_steps = 50000
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
   height_histogram = np.zeros(len(buckets))

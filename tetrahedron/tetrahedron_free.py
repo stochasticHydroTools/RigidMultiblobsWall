@@ -269,30 +269,21 @@ def generate_free_equilibrium_sample():
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
 @static_var('dt', 0.15)
-@static_var('recent_trials', [])
+@static_var('last_trial', 0)
 def generate_free_equilibrium_sample_mcmc(current_sample):
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)) by using MCMC.
   '''
-  rho = 0.90  # Adaptive parameter for dt.
-  if len(generate_free_equilibrium_sample_mcmc.recent_trials) > 100:
-    generate_free_equilibrium_sample_mcmc.recent_trials = (
-        generate_free_equilibrium_sample_mcmc.recent_trials[1:])
-      
+  rho = 0.98  # Adaptive parameter for dt.
   generate_free_equilibrium_sample_mcmc.samples += 1
   location = current_sample[0]
   orientation = current_sample[1]
-  current_acceptance_rate = (
-      sum(generate_free_equilibrium_sample_mcmc.recent_trials))/100.
   # Tune this dt parameter to try to achieve acceptance rate of ~50%.
-  if generate_free_equilibrium_sample_mcmc.samples > 100:
-    if current_acceptance_rate > 0.7:
-      print "adjusting timestep up, accept rate: ", current_acceptance_rate
-      generate_free_equilibrium_sample_mcmc.dt /= rho
-    elif current_acceptance_rate < 0.3:
-      print "adjusting timestep down, accept rate: ", current_acceptance_rate
-      generate_free_equilibrium_sample_mcmc.dt *= rho
+  if generate_free_equilibrium_sample_mcmc.last_trial == 1:
+    generate_free_equilibrium_sample_mcmc.dt /= rho
+  else:
+    generate_free_equilibrium_sample_mcmc.dt *= rho
   dt = generate_free_equilibrium_sample_mcmc.dt
 
   # Take a step using Metropolis.
@@ -307,10 +298,10 @@ def generate_free_equilibrium_sample_mcmc(current_sample):
                                                      orientation))
   if np.random.uniform() < accept_probability:
     generate_free_equilibrium_sample_mcmc.accepts += 1
-    generate_free_equilibrium_sample_mcmc.recent_trials.append(1.)
+    generate_free_equilibrium_sample_mcmc.last_trial = 1
     return [new_location, new_orientation]
   else:
-    generate_free_equilibrium_sample_mcmc.recent_trials.append(0.)
+    generate_free_equilibrium_sample_mcmc.last_trial = 0
     return [location, orientation]
                           
 @static_var('low_rejections', 0)
