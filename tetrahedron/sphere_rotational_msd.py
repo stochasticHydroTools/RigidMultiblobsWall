@@ -294,9 +294,12 @@ def bin_sphere_height(sample, height_histogram, bin_width):
   if idx < len(height_histogram):
     height_histogram[idx] += 1
   else:
-    pass
-#    print 'index is: ', idx
-#    print 'Index exceeds histogram length.'
+    # Extend histogram to allow for this index.
+    new_entries = np.zeros(idx - len(height_histogram[k]) + 1)
+    height_histogram[k] = np.concatenate([height_histogram[k], 
+                                            new_entries])
+    height_histogram[k][idx] += 1
+
 
 def plot_height_histograms(buckets, height_histogram, height_histogram_run):
   ''' Plot buckets v. heights of eq and run pdf and save the figure.'''

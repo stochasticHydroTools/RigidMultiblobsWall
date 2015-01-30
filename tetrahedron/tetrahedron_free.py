@@ -27,14 +27,14 @@ KT = 0.5    # Temperature
 # Masses of particles. g = 1.
 M1 = 0.05
 M2 = 0.1
-M3 = 0.025
+M3 = 0.15
 M4 = 0.05
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 2.0
-REPULSION_CUTOFF = 0.5  # This is the Debye length, TODO: rename.
+REPULSION_STRENGTH = 1.5
+REPULSION_CUTOFF = 0.25  # This is the Debye length, TODO: rename.
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -204,10 +204,9 @@ def bin_free_particle_heights(location, orientation, bin_width,
     if idx < len(height_histogram[k]):
       height_histogram[k][idx] += 1
     else:
-      print 'index is: ', idx
-      print 'Index exceeds histogram length.'
+      print "Index  %d is beyond histogram length " % idx
+      
 
-  
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
 def generate_free_equilibrium_sample():
@@ -489,7 +488,9 @@ if __name__ == '__main__':
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
                            'M3': M3}
   height_data['heights'] = heights
-  height_data['buckets'] = (bin_width*np.array(range(len(fixman_heights[0])))
+  fixman_lengths = max([len(fixman_heights[k]) 
+                        for k in range(len(fixman_heights))])
+  height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
                             + 0.5*bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
 

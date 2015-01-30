@@ -14,21 +14,25 @@ from quaternion_integrator.quaternion import Quaternion
 
 def bin_center_of_mass(location, orientation, bin_width, 
                        height_histogram):
-  '''Bin heights of the free particle based on a location and an orientaiton.'''
+  '''Bin heights of the free particle based on a location and an orientation.'''
   center_of_mass = tf.get_free_center_of_mass(location, orientation)
   # Bin each particle height.
   idx = (int(math.floor((center_of_mass[2])/bin_width)))
   if idx < len(height_histogram):
     height_histogram[idx] += 1
   else:
-    print 'index is: ', idx
-    print 'Index exceeds histogram length.'
+    # Extend histogram to allow for this index.
+    print 'Extending histogram for particle %s. ' % k
+    new_entries = np.zeros(idx - len(height_histogram) + 1)
+    height_histogram[k] = np.concatenate([height_histogram, 
+                                          new_entries])
+    height_histogram[k][idx] += 1
 
 
 if __name__ == '__main__':
-  repulsion_strengths = [1.5, 1.5, 1.5, 3.0, 3.0]
-  repulsion_cutoffs = [0.25, 0.5, 1.0, 0.25, 0.5]
-  n_samples = 1000000
+  repulsion_strengths = [1.5, 2.0, 0.5, 1.0, 2.0]
+  repulsion_cutoffs = [0.25, 0.25, 0.125, 0.125, 0.125]
+  n_samples = 200000
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
