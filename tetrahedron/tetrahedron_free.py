@@ -18,6 +18,7 @@ import tetrahedron as tdn
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import StreamToLogger
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
@@ -34,7 +35,7 @@ M4 = 0.03
 # Must be strong enough to prevent particles from passing 
 # through the wall
 REPULSION_STRENGTH = 1.0
-REPULSION_CUTOFF = 0.25  # This is the Debye length for Yukawa, TODO: rename.
+DEBYE_LENGTH = 0.25  # This is the Debye length for Yukawa, TODO: rename.
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
@@ -164,8 +165,8 @@ def free_gravity_torque_calculator(location, orientation):
   # Add repulsion from wall.
   for k in range(3):
     h = r_vectors[k][2]
-    g[3*k + 2] += (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
-                   np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
+    g[3*k + 2] += (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                   np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))
   return np.dot(R.T, g)
 
 
@@ -183,13 +184,13 @@ def free_gravity_force_calculator(location, orientation):
   # Add repulsion of 'top' vertex, at location.
   h = location[0][2]
   repulsion_force = np.array([0., 0., 
-                     (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
-                     np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))])
+                     (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                     np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))])
   # Add repulsion of other particles:
   for k in range(3):
     h = r_vectors[k][2]
-    repulsion_force[2] += (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
-                           np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
+    repulsion_force[2] += (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                           np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3 + M4)])
   return repulsion_force + gravity_force
 
@@ -242,11 +243,11 @@ def generate_free_equilibrium_sample():
       # distribution is handled by the exponential variable.
       U = (M1*(r_vectors[0][2] - z_coord) + M2*(r_vectors[1][2] - z_coord) +
            M3*(r_vectors[2][2] - z_coord))
-      if z_coord < REPULSION_CUTOFF:
-        U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - z_coord)**2
+      if z_coord < DEBYE_LENGTH:
+        U += 0.5*REPULSION_STRENGTH*(DEBYE_LENGTH - z_coord)**2
       for k in range(3):
-        if r_vectors[k][2] < REPULSION_CUTOFF:
-          U += 0.5*REPULSION_STRENGTH*(REPULSION_CUTOFF - r_vectors[k][2])**2
+        if r_vectors[k][2] < DEBYE_LENGTH:
+          U += 0.5*REPULSION_STRENGTH*(DEBYE_LENGTH - r_vectors[k][2])**2
       # Normalize so acceptance probability < 1.  The un-normalized probability
       # is definitely below exp(2M), but in fact it can never reach this because not
       # all particles can be 2 above location. Here 1.8 is determined 
@@ -319,11 +320,11 @@ def gibbs_boltzmann_distribution(location, orientation):
   # Calculate potential.
   U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
        M3*(r_vectors[2][2]) + M4*(location[2]))
-  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
+  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/DEBYE_LENGTH)/
         (location[2] - A))
   for k in range(3):
     h = r_vectors[k][2]
-    U += (REPULSION_STRENGTH*np.exp(-1.*(h - A)/REPULSION_CUTOFF)/
+    U += (REPULSION_STRENGTH*np.exp(-1.*(h - A)/DEBYE_LENGTH)/
           (h - A))
   return np.exp(-1.*U/KT)
 
@@ -359,6 +360,7 @@ if __name__ == '__main__':
                       '(--data_name=run-1).')
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
                       help='True or False: Do we profile this run or not.')
+
   args=parser.parse_args()
   if args.profile:
     pr = cProfile.Profile()
@@ -382,9 +384,9 @@ if __name__ == '__main__':
   logging.basicConfig(filename=log_filename,
                       level=logging.INFO,
                       filemode='w')
-  sl = tdn.StreamToLogger(progress_logger, logging.INFO)
+  sl = StreamToLogger(progress_logger, logging.INFO)
   sys.stdout = sl
-  sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
+  sl = StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
 
   # Script to run the various integrators on the quaternion.

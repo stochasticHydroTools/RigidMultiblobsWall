@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
-    tf.REPULSION_CUTOFF = repulsion_cutoffs[k]
+    tf.DEBYE_LENGTH = repulsion_cutoffs[k]
     initial_location = [0., 0., tf.H]
     initial_orientation = Quaternion([1., 0., 0., 0.])
     sample = [initial_location, initial_orientation]
@@ -54,11 +54,12 @@ if __name__ == '__main__':
     print 'low rejections: %d' % tf.gibbs_boltzmann_distribution.low_rejections
     height_histogram = height_histogram/n_samples/bin_width
     pyplot.plot(bins, height_histogram, label='Strength=%s, Cutoff=%s' % 
-                (tf.REPULSION_STRENGTH, tf.REPULSION_CUTOFF))
+                (tf.REPULSION_STRENGTH, tf.DEBYE_LENGTH))
     tf.generate_free_equilibrium_sample_mcmc.accepts = 0
     tf.generate_free_equilibrium_sample_mcmc.samples = 0
 
   pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.title('Distribution of center of mass')
   pyplot.savefig('./figures/PotentialPDFs-N-%s.pdf' % n_samples)
 
 

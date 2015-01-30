@@ -28,6 +28,7 @@ import logging
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from fluids import mobility as mb
+from utils import StreamToLogger
 import uniform_analyzer as ua
 
 ETA = 1.0   # Fluid viscosity.
@@ -38,21 +39,6 @@ H = 2.5     # Distance to wall.
 M1 = 0.1
 M2 = 0.2
 M3 = 0.3
-
-# Fake log-like class to redirect stdout to log file.
-class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
- 
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
-
 
 def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''

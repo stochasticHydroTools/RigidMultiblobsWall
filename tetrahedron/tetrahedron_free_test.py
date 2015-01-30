@@ -117,16 +117,16 @@ class TestFreeTetrahedron(unittest.TestCase):
     # Add gravity and Yukawa force.
     force_array = np.array([
       0., 0.,  
-      (tf.REPULSION_STRENGTH*((r_vectors[0][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
-       np.exp(-1.*(r_vectors[0][2] - tf.A)/tf.REPULSION_CUTOFF)/
+      (tf.REPULSION_STRENGTH*((r_vectors[0][2] - tf.A)/tf.DEBYE_LENGTH + 1)*
+       np.exp(-1.*(r_vectors[0][2] - tf.A)/tf.DEBYE_LENGTH)/
        ((r_vectors[0][2] - tf.A)**2) - tf.M1),
       0., 0., 
-      (tf.REPULSION_STRENGTH*((r_vectors[1][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
-       np.exp(-1.*(r_vectors[1][2] - tf.A)/tf.REPULSION_CUTOFF)/
+      (tf.REPULSION_STRENGTH*((r_vectors[1][2] - tf.A)/tf.DEBYE_LENGTH + 1)*
+       np.exp(-1.*(r_vectors[1][2] - tf.A)/tf.DEBYE_LENGTH)/
        ((r_vectors[1][2] - tf.A)**2) - tf.M2),
       0., 0., 
-      (tf.REPULSION_STRENGTH*((r_vectors[2][2] - tf.A)/tf.REPULSION_CUTOFF + 1)*
-       np.exp(-1.*(r_vectors[2][2] - tf.A)/tf.REPULSION_CUTOFF)/
+      (tf.REPULSION_STRENGTH*((r_vectors[2][2] - tf.A)/tf.DEBYE_LENGTH + 1)*
+       np.exp(-1.*(r_vectors[2][2] - tf.A)/tf.DEBYE_LENGTH)/
        ((r_vectors[2][2] - tf.A)**2) - tf.M3)])
     
     rot_matrix = tf.calc_free_rot_matrix(r_vectors, location)
@@ -153,15 +153,15 @@ class TestFreeTetrahedron(unittest.TestCase):
     correct_force = np.zeros(3)
     # Add repulsion force from top vertex and all gravity.
     h = location[2]
-    correct_force[2] +=  (tf.REPULSION_STRENGTH*((h - tf.A)/tf.REPULSION_CUTOFF + 1)*
-                          np.exp(-1.*(h - tf.A)/tf.REPULSION_CUTOFF)/
+    correct_force[2] +=  (tf.REPULSION_STRENGTH*((h - tf.A)/tf.DEBYE_LENGTH + 1)*
+                          np.exp(-1.*(h - tf.A)/tf.DEBYE_LENGTH)/
                           ((h - tf.A)**2) - tf.M1 - tf.M2 - tf.M3 - tf.M4)
     # Add repulsion force from each other particle
     for k in range(3):
       h = r_vectors[k][2]
       correct_force[2] +=  (tf.REPULSION_STRENGTH*
-                            ((h - tf.A)/tf.REPULSION_CUTOFF + 1)*
-                            np.exp(-1.*(h - tf.A)/tf.REPULSION_CUTOFF)/
+                            ((h - tf.A)/tf.DEBYE_LENGTH + 1)*
+                            np.exp(-1.*(h - tf.A)/tf.DEBYE_LENGTH)/
                             ((h - tf.A)**2))
 
     calculated_force = tf.free_gravity_force_calculator([location], [theta])

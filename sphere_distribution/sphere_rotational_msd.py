@@ -6,20 +6,21 @@ u_hat(dt) = \sum_i u_i(0) cross u_i(dt)
 import argparse
 import cPickle
 import logging
-import numpy as np
+import math
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
+import numpy as np
 import os
 import sys
 sys.path.append('..')
 import time
-import math
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from tetrahedron_rotational_msd import MSDStatistics
 from tetrahedron_free import static_var
+from utils import StreamToLogger
 from fluids import mobility as mb
 
 #Parameters
@@ -28,9 +29,9 @@ A = 0.5
 M  = 0.1
 H = 3.5
 # Parameters for Yukawa potential
-REPULSION_STRENGTH = 2.0
-REPULSION_CUTOFF = 0.5  # This is the Debye length, TODO: rename.
-KT = 1.0
+REPULSION_STRENGTH = 1.0
+DEBYE_LENGTH = 0.25  # This is the Debye length, TODO: rename.
+KT = 0.2
 
 
 def null_torque_calculator(location, orientation):
@@ -39,8 +40,8 @@ def null_torque_calculator(location, orientation):
 def sphere_force_calculator(location, orientation):
   gravity = -1*M
   h = location[0][2]
-  repulsion = (REPULSION_STRENGTH*((h - A)/REPULSION_CUTOFF + 1)*
-               np.exp(-1.*(h - A)/REPULSION_CUTOFF)/((h - A)**2))
+  repulsion = (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+               np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))
   return [0., 0., gravity + repulsion]
 
 def sphere_mobility(location, orientation):
@@ -95,7 +96,7 @@ def gibbs_boltzmann_distribution(location):
   # Calculate potential.
   if location[2] > A:
     U = M*location[2]
-    U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/REPULSION_CUTOFF)/
+    U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/DEBYE_LENGTH)/
           (location[2] - A))
   else:
     return 0.0
@@ -129,7 +130,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   '''
   dim = 3
   rot_msd_list = []
-  for k in range(n_runs):
+  progress_logger = logging.getLogger('Progress Logger')
+  for run in range(n_runs):
     integrator = QuaternionIntegrator(sphere_mobility,
                                       initial_orientation, 
                                       null_torque_calculator,
@@ -147,6 +149,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     lagged_location_trajectory = []
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                        for _ in range(trajectory_length)])
+    print_increment = n_steps/20
     for step in range(n_steps):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
@@ -178,6 +181,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
 
+      if (step % print_increment) == 0:
+        progress_logger.info('At step: %d in run %d' % (step, run))
+
     average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
 
@@ -189,7 +195,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   results[1] = np.mean(rot_msd_list, axis=0)
   results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 
-  progress_logger = logging.getLogger('progress_logger')  
+  progress_logger = logging.getLogger('Progress Logger')
   progress_logger.info('Rejection Rate: %s' % 
                        (float(integrator.rejections)/
                         float(n_steps + integrator.rejections)))
@@ -264,18 +270,22 @@ def calculate_average_mu_parallel_and_bin_heights(n_samples, height_histogram,
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
   '''
+  progress_logger = logging.getLogger('Progress Logger')
   initial_location = [np.array([0., 0., H])]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   sample = initial_location[0]
   average_mu_parallel = 0.0
   average_gamma_parallel = 0.0
   average_sphere_height = 0.0
+  print_increment = n_samples/20
   for k in range(n_samples):
     sample = generate_sphere_equilibrium_sample_mcmc(sample)
     mobility_sample = sphere_mobility([sample], initial_orientation)
     average_mu_parallel += mobility_sample[0, 0]
     average_gamma_parallel += (1.0/mobility_sample[0, 0])
     bin_sphere_height(sample, height_histogram, bin_width)
+    if k % print_increment == 0:
+      progress_logger.info('Equilibrium MCMC: At step %d' % k)
     
   average_mu_parallel /= n_samples
   average_gamma_parallel /= n_samples
@@ -295,10 +305,8 @@ def bin_sphere_height(sample, height_histogram, bin_width):
     height_histogram[idx] += 1
   else:
     # Extend histogram to allow for this index.
-    new_entries = np.zeros(idx - len(height_histogram[k]) + 1)
-    height_histogram[k] = np.concatenate([height_histogram[k], 
-                                            new_entries])
-    height_histogram[k][idx] += 1
+    print 'Index %d exceeds histogram length' % idx
+
 
 
 def plot_height_histograms(buckets, height_histogram, height_histogram_run):
@@ -306,7 +314,8 @@ def plot_height_histograms(buckets, height_histogram, height_histogram_run):
   pyplot.figure()
   pyplot.plot(buckets, height_histogram, label='Gibbs Boltzmann')
   pyplot.plot(buckets, height_histogram_run, label='Run')
-  pyplot.title('Height Distribution')
+  pyplot.plot(A*np.ones(2), [0., 0.45])
+  pyplot.title('Height Distribution for Sphere')
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
@@ -317,22 +326,59 @@ def plot_height_histograms(buckets, height_histogram, height_histogram_run):
   
 
 if __name__ == '__main__':
-
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulation of Sphere '
+                                   'using the RFD scheme, and bin the resulting '
+                                   'height distribution + calculate the MSD.  The MSD '
+                                   'data is saved in the /data folder, and also plotted. '
+                                   'The sphere is repulsed from the wall with the Yukawa '
+                                   'potential.')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs.')
+  parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
+                      help='How far to calculate the time dependent MSD.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  args=parser.parse_args()
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [np.array([0., 0., H])]
 
   scheme = 'RFD'
-  dt = 0.5
-  end_time = 180.0
-  n_steps = 100000
+  dt = args.dt
+  end_time = args.end_time
+  n_steps = args.n_steps
   bin_width = 1./10.
-  buckets = np.arange(0, int(32./bin_width))*bin_width + bin_width/2.
+  buckets = np.arange(0, int(14./bin_width))*bin_width + bin_width/2.
+
+  # Set up logging.
+  # Make directory for logs if it doesn't exist.
+  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+    os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
+  log_filename = './logs/sphere-rotation-dt-%f-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
+
   height_histogram = np.zeros(len(buckets))
   height_histogram_run = np.zeros(len(buckets))
-
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
-            'REPULSION_CUTOFF': REPULSION_CUTOFF}
+            'DEBYE_LENGTH': DEBYE_LENGTH}
 
   msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
 
@@ -351,8 +397,8 @@ if __name__ == '__main__':
     os.mkdir(os.path.join(os.getcwd(), 'data'))
 
 
-  data_name = './data/sphere-msd-dt-%s-N-%d.pkl' % (
-    dt, n_steps)
+  data_name = './data/sphere-msd-dt-%s-N-%d-%s.pkl' % (
+    dt, n_steps, args.data_name)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)

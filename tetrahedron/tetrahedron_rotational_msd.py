@@ -158,6 +158,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
   '''
+  progress_logger = logging.getLogger('Progress Logger')
+
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -170,6 +172,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     dim = 3
 
   rot_msd_list = []
+  print_increment = n_steps/20
   for run in range(n_runs):
     integrator = QuaternionIntegrator(mobility,
                                       initial_orientation, 
@@ -179,6 +182,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
+    integrator.check_function = tf.check_particles_above_wall
 
     trajectory_length = int(end_time/dt) + 1
     if trajectory_length > n_steps:
@@ -218,9 +222,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 lagged_trajectory[0],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
+      if (step % print_increment) == 0:
+        progress_logger.info('At step: %d in run %d' % (step, run))
     
-  average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
-  rot_msd_list.append(average_rotational_msd)
+    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    rot_msd_list.append(average_rotational_msd)
   
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
@@ -349,10 +355,11 @@ if __name__ == "__main__":
   tdn.M1 = 0.1
   tdn.M2 = 0.1
   tdn.M3 = 0.1
-  tf.M1 = 0.05
-  tf.M2 = 0.05
-  tf.M3 = 0.05
-  tf.M4 = 0.05
+  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
+  tf.M1 = total_free_mass/4.
+  tf.M2 = total_free_mass/4.
+  tf.M3 = total_free_mass/4.
+  tf.M4 = total_free_mass/4.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [[0., 0., 4.0]]
 
@@ -384,7 +391,7 @@ if __name__ == "__main__":
   if args.has_location:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3, 'M4': tf.M4,
               'A': tf.A, 'REPULSION_STRENGTH': tf.REPULSION_STRENGTH,
-              'REPULSION_CUTOFF': tf.REPULSION_CUTOFF,
+              'DEBYE_LENGTH': tf.DEBYE_LENGTH,
               'KT': tf.KT, 'end_time': end_time}
   else:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3,
