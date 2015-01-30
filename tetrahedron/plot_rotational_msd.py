@@ -22,7 +22,7 @@ def plot_time_dependent_msd(msd_statistics, ind):
   ind = [row index, column index].
   '''
   # Types of lines for different dts.
-  write_data = True
+  write_data = False
   if write_data:
     np.set_printoptions(threshold=np.nan)
   dt_styles = ['', ':', '--', '-.']
@@ -76,4 +76,4 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  plot_time_dependent_msd(msd_statistics, [5, 5])
+  plot_time_dependent_msd(msd_statistics, [3, 3])

@@ -1,7 +1,9 @@
 ''' 
-Estimate the total MSD (we are mainly concerned with rotation).
+Estimate the total time dependent MSD for a sphere.
+We care most about the x-x diffusion and how it relates to
+the average parallel mobility.
 
-u_hat(dt) = \sum_i u_i(0) cross u_i(dt)
+TODO: Split this into sphere MSD and sphere equilibrium repulsion potentials files.
 '''
 import argparse
 import cPickle
@@ -18,8 +20,8 @@ import time
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-from tetrahedron_rotational_msd import MSDStatistics
-from tetrahedron_free import static_var
+from tetrahedron.tetrahedron_rotational_msd import MSDStatistics
+from tetrahedron.tetrahedron_free import static_var
 from utils import StreamToLogger
 from fluids import mobility as mb
 
@@ -29,8 +31,8 @@ A = 0.5
 M  = 0.1
 H = 3.5
 # Parameters for Yukawa potential
-REPULSION_STRENGTH = 1.0
-DEBYE_LENGTH = 0.25  # This is the Debye length, TODO: rename.
+REPULSION_STRENGTH = 2.0
+DEBYE_LENGTH = 0.25  
 KT = 0.2
 
 
@@ -309,12 +311,12 @@ def bin_sphere_height(sample, height_histogram, bin_width):
 
 
 
-def plot_height_histograms(buckets, height_histogram, height_histogram_run):
+def plot_height_histograms(buckets, height_histograms, labels):
   ''' Plot buckets v. heights of eq and run pdf and save the figure.'''
   pyplot.figure()
-  pyplot.plot(buckets, height_histogram, label='Gibbs Boltzmann')
-  pyplot.plot(buckets, height_histogram_run, label='Run')
-  pyplot.plot(A*np.ones(2), [0., 0.45])
+  for k in range(len(height_histograms)):
+    pyplot.plot(buckets, height_histograms[k], label=labels[k])
+  pyplot.plot(A*np.ones(2), [0., 0.45], label="Touching Wall")
   pyplot.title('Height Distribution for Sphere')
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.xlabel('Height')
@@ -359,6 +361,8 @@ if __name__ == '__main__':
   # Make directory for logs if it doesn't exist.
   if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
     os.mkdir(os.path.join(os.getcwd(), 'logs'))
+  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+    os.mkdir(os.path.join(os.getcwd(), 'figures'))
 
   log_filename = './logs/sphere-rotation-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
@@ -373,8 +377,6 @@ if __name__ == '__main__':
   sl = StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
 
-
-  height_histogram = np.zeros(len(buckets))
   height_histogram_run = np.zeros(len(buckets))
   params = {'M': M, 'A': A,
             'REPULSION_STRENGTH': REPULSION_STRENGTH, 
@@ -403,27 +405,38 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 
-  n_runs = 16
-  mobilities = []
-  frictions = []
-  for k in range(n_runs):
-    average_mob_and_friction = calculate_average_mu_parallel_and_bin_heights(
-      30000, height_histogram, bin_width)
-    mobilities.append(average_mob_and_friction[0])
-    frictions.append(average_mob_and_friction[1])
+  repulsion_strengths = [1.0, 2.0, 1.0]
+  debye_lengths = [0.125, 0.25, 0.25]
+  n_runs = 4
+  n_steps_eq = 20000
+  height_histograms = []
+  labels = []
+  for param_idx in range(len(repulsion_strengths)):
+    REPULSION_STRENGTH = repulsion_strengths[param_idx]
+    DEBYE_LENGTH = debye_lengths[param_idx]
+    height_histograms.append(np.zeros(len(buckets)))
+    labels.append('strength=%s, b=%s' % (REPULSION_STRENGTH, DEBYE_LENGTH))
+    mobilities = []
+    frictions = []
+    for k in range(n_runs):
+      average_mob_and_friction = calculate_average_mu_parallel_and_bin_heights(
+        n_steps_eq, height_histograms[-1], bin_width)
+      mobilities.append(average_mob_and_friction[0])
+      frictions.append(average_mob_and_friction[1])
 
-  average_mobility = np.mean(mobilities)
-  mobility_std = np.std(mobilities)/np.sqrt(n_runs)
-  average_friction = np.mean(frictions)
-  friction_std = np.std(frictions)/np.sqrt(n_runs)
-
+    average_mobility = np.mean(mobilities)
+    mobility_std = np.std(mobilities)/np.sqrt(n_runs)
+    average_friction = np.mean(frictions)
+    friction_std = np.std(frictions)/np.sqrt(n_runs)
+    height_histograms[-1] /= sum(height_histograms[-1])*bin_width
   avg_slope = plot_x_and_y_msd(msd_statistics, 
                                [average_mobility, average_friction],
                                n_steps)
 
-  height_histogram /= sum(height_histogram)*bin_width
-  height_histogram_run /= sum(height_histogram_run)*bin_width
-  plot_height_histograms(buckets, height_histogram, height_histogram_run)
+  # height_histogram_run /= sum(height_histogram_run)*bin_width
+  # height_histogram.append(height_histogram_run)
+  # labels.append('Run')
+  plot_height_histograms(buckets, height_histograms, labels)
   print "Mobility is ", average_mobility, " +/- ", mobility_std
   print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
          1./(average_friction - 2.*friction_std))

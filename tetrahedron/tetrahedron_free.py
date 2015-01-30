@@ -34,7 +34,7 @@ M4 = 0.03
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 1.0
+REPULSION_STRENGTH = 2.0
 DEBYE_LENGTH = 0.25  # This is the Debye length for Yukawa, TODO: rename.
 
 # Static Variable decorator for calculating acceptance rate.
