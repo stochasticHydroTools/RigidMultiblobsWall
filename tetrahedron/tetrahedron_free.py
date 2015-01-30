@@ -22,19 +22,19 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
-KT = 0.5    # Temperature
+KT = 0.2    # Temperature
 
 # Masses of particles. g = 1.
-M1 = 0.05
-M2 = 0.1
-M3 = 0.15
-M4 = 0.05
+M1 = 0.005
+M2 = 0.015
+M3 = 0.01
+M4 = 0.03
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
-REPULSION_STRENGTH = 1.5
-REPULSION_CUTOFF = 0.25  # This is the Debye length, TODO: rename.
+REPULSION_STRENGTH = 1.0
+REPULSION_CUTOFF = 0.25  # This is the Debye length for Yukawa, TODO: rename.
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):

@@ -22,17 +22,18 @@ def bin_center_of_mass(location, orientation, bin_width,
     height_histogram[idx] += 1
   else:
     # Extend histogram to allow for this index.
-    print 'Extending histogram for particle %s. ' % k
-    new_entries = np.zeros(idx - len(height_histogram) + 1)
-    height_histogram[k] = np.concatenate([height_histogram, 
-                                          new_entries])
-    height_histogram[k][idx] += 1
+    print "index out of range: ", idx
+    # print 'Extending histogram for particle %s. ' % k
+    # new_entries = np.zeros(idx - len(height_histogram) + 1)
+    # height_histogram[k] = np.concatenate([height_histogram, 
+    #                                       new_entries])
+    # height_histogram[k][idx] += 1
 
 
 if __name__ == '__main__':
-  repulsion_strengths = [1.5, 2.0, 0.5, 1.0, 2.0]
-  repulsion_cutoffs = [0.25, 0.25, 0.125, 0.125, 0.125]
-  n_samples = 200000
+  repulsion_strengths = [0.5, 1.0, 3.0, 1.0, 3.0]
+  repulsion_cutoffs = [0.25, 0.25, 0.25, 0.125, 0.125]
+  n_samples = 100000
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
@@ -40,9 +41,9 @@ if __name__ == '__main__':
     initial_location = [0., 0., tf.H]
     initial_orientation = Quaternion([1., 0., 0., 0.])
     sample = [initial_location, initial_orientation]
-    bin_width = 1/10.
-    bins = bin_width*np.arange(int(24./bin_width)) + bin_width/2.
-    height_histogram = np.zeros(int(24./bin_width))
+    bin_width = 1/5.
+    bins = bin_width*np.arange(int(18./bin_width)) + bin_width/2.
+    height_histogram = np.zeros(int(18./bin_width))
     for k in range(n_samples):
       sample = tf.generate_free_equilibrium_sample_mcmc(sample)
       bin_center_of_mass(sample[0], sample[1], bin_width, height_histogram)
