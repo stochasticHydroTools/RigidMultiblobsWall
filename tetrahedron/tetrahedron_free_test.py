@@ -168,6 +168,28 @@ class TestFreeTetrahedron(unittest.TestCase):
     for k in range(3):
       self.assertAlmostEqual(calculated_force[k], correct_force[k])
 
+    
+
+  def test_free_mobility_spd(self):
+    ''' Test that the free tetrahedron mobility is SPD. '''
+    s = 2*random.random() - 1.
+    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
+    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
+          (1. - np.abs(s) - np.abs(p1)))
+    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
+    theta = Quaternion(np.array([s, p1, p2, p3]))
+    theta = Quaternion(np.array([0., 1., 0., 0.]))
+    # Construct location and get r vectors.
+    location = [0., 0., 0.47]    
+
+    free_mobility = tf.free_tetrahedron_mobility([location], [theta])
+    def is_pos_def(x):
+      return np.all(np.linalg.eigvals(x) > 0)    
+    self.assertTrue(is_pos_def(free_mobility))
+    for j in range(6):
+      for k in range(j+1, 6):
+        self.assertAlmostEqual(free_mobility[j][k], free_mobility[k][j])
+
 
 if __name__ == '__main__':
   unittest.main()
