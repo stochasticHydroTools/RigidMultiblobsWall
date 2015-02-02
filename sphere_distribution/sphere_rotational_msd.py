@@ -130,10 +130,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
   Copied from tetrahedron_rotational_msd and modified slightly.
   '''
+  burn_in = 2000
   dim = 3
   rot_msd_list = []
   progress_logger = logging.getLogger('Progress Logger')
-  for run in range(n_runs):
+  for run in range(burn_in + n_runs):
     integrator = QuaternionIntegrator(sphere_mobility,
                                       initial_orientation, 
                                       null_torque_calculator,
@@ -162,10 +163,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 
       if heights is not None:
         bin_sphere_height(integrator.location[0], heights, bin_width)
-        
-      lagged_trajectory.append(integrator.orientation[0])
-      if has_location:
-        lagged_location_trajectory.append(integrator.location[0])
+
+      if step > burn_in:
+        lagged_trajectory.append(integrator.orientation[0])
+        if has_location:
+          lagged_location_trajectory.append(integrator.location[0])
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]
@@ -271,6 +273,7 @@ def calculate_average_mu_parallel_and_bin_heights(n_samples, height_histogram,
   Generate random samples from equilibrium to
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
+  NOTE: This can be done much faster deterministically!
   '''
   progress_logger = logging.getLogger('Progress Logger')
   initial_location = [np.array([0., 0., H])]
@@ -297,6 +300,33 @@ def calculate_average_mu_parallel_and_bin_heights(n_samples, height_histogram,
   return [average_mu_parallel, average_gamma_parallel]
 
 
+def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
+  ''' 
+  Calculate average mu parallel and fricton using rectangle rule. 
+  Populate height histogram with equilibrium distribution.
+  TODO: Make this use trapezoidal rule.
+  '''
+  for k in range(len(height_histogram)):
+    h = A + bin_width*(k + 0.5)
+    height_histogram[k] = gibbs_boltzmann_distribution([0., 0., h])
+  
+  # Normalize to get ~PDF.
+  height_histogram /= sum(height_histogram)*bin_width
+  # Calculate Mu and gamma.
+  average_mu = 0.
+  average_gamma = 0.
+  # Just choose an arbitrary orientation, since it won't affect the
+  # distribution.
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  for k in range(len(height_histogram)):
+    h = A + bin_width*(k + 0.5)    
+    mobility = sphere_mobility([np.array([0., 0., h])], initial_orientation)
+    average_mu += mobility[0, 0]*height_histogram[k]*bin_width
+    average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
+
+  return [average_mu, average_gamma]
+
+
 def bin_sphere_height(sample, height_histogram, bin_width):
   ''' 
   Bin the height (last component, idx = 2) of a sample, and
@@ -317,6 +347,7 @@ def plot_height_histograms(buckets, height_histograms, labels):
   for k in range(len(height_histograms)):
     pyplot.plot(buckets, height_histograms[k], label=labels[k])
   pyplot.plot(A*np.ones(2), [0., 0.45], label="Touching Wall")
+  pyplot.gca().set_yscale('log')
   pyplot.title('Height Distribution for Sphere')
   pyplot.legend(loc='best', prop={'size': 9})
   pyplot.xlabel('Height')
@@ -355,7 +386,7 @@ if __name__ == '__main__':
   end_time = args.end_time
   n_steps = args.n_steps
   bin_width = 1./10.
-  buckets = np.arange(0, int(14./bin_width))*bin_width + bin_width/2.
+  buckets = np.arange(0, int(18./bin_width))*bin_width + bin_width/2.
 
   # Set up logging.
   # Make directory for logs if it doesn't exist.
@@ -405,10 +436,8 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 
-  repulsion_strengths = [1.0, 2.0, 1.0]
-  debye_lengths = [0.125, 0.25, 0.25]
-  n_runs = 4
-  n_steps_eq = 20000
+  repulsion_strengths = [2.0]
+  debye_lengths = [0.25]
   height_histograms = []
   labels = []
   for param_idx in range(len(repulsion_strengths)):
@@ -416,28 +445,17 @@ if __name__ == '__main__':
     DEBYE_LENGTH = debye_lengths[param_idx]
     height_histograms.append(np.zeros(len(buckets)))
     labels.append('strength=%s, b=%s' % (REPULSION_STRENGTH, DEBYE_LENGTH))
-    mobilities = []
-    frictions = []
-    for k in range(n_runs):
-      average_mob_and_friction = calculate_average_mu_parallel_and_bin_heights(
-        n_steps_eq, height_histograms[-1], bin_width)
-      mobilities.append(average_mob_and_friction[0])
-      frictions.append(average_mob_and_friction[1])
-
-    average_mobility = np.mean(mobilities)
-    mobility_std = np.std(mobilities)/np.sqrt(n_runs)
-    average_friction = np.mean(frictions)
-    friction_std = np.std(frictions)/np.sqrt(n_runs)
-    height_histograms[-1] /= sum(height_histograms[-1])*bin_width
+    average_mob_and_friction = calculate_mu_friction_and_height_distribution(
+      bin_width, height_histograms[-1])
   avg_slope = plot_x_and_y_msd(msd_statistics, 
-                               [average_mobility, average_friction],
+                               [average_mob_and_friction[0], average_mob_and_friction[1]],
                                n_steps)
 
   # height_histogram_run /= sum(height_histogram_run)*bin_width
   # height_histogram.append(height_histogram_run)
   # labels.append('Run')
   plot_height_histograms(buckets, height_histograms, labels)
-  print "Mobility is ", average_mobility, " +/- ", mobility_std
-  print "1/Friction is %f to %f" %  (1./(average_friction + 2.*friction_std),
-         1./(average_friction - 2.*friction_std))
+  print "Mobility is ", average_mob_and_friction[0]
+  print "Average friction is ", average_mob_and_friction[1]
+  print "1/Friction is %f" % (1./average_mob_and_friction[1])
   print "Slope/2kT is ", avg_slope/2./KT

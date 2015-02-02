@@ -159,7 +159,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
   '''
   progress_logger = logging.getLogger('Progress Logger')
-
+  burn_in = 2000
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -192,7 +192,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     lagged_location_trajectory = []
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
-    for step in range(n_steps):
+    for step in range(burn_in + n_steps):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':
@@ -200,10 +200,10 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
-
-      lagged_trajectory.append(integrator.orientation[0])
-      if has_location:
-        lagged_location_trajectory.append(integrator.location[0])
+      if step > burn_in:
+        lagged_trajectory.append(integrator.orientation[0])
+        if has_location:
+          lagged_location_trajectory.append(integrator.location[0])
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]

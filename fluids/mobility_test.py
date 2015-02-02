@@ -162,9 +162,6 @@ class TestMobility(unittest.TestCase):
     causes motion in the positive y direction. 
     '''
     
-    
-    
-    
 
   def test_epsilon_tensor(self):
     ''' Check that we get the right cross epsilon for a few possible indices.'''

@@ -178,9 +178,9 @@ class TestFreeTetrahedron(unittest.TestCase):
           (1. - np.abs(s) - np.abs(p1)))
     p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
     theta = Quaternion(np.array([s, p1, p2, p3]))
-    theta = Quaternion(np.array([0., 1., 0., 0.]))
+    theta = Quaternion(np.array([1., 0., 0., 0.]))
     # Construct location and get r vectors.
-    location = [0., 0., 0.47]    
+    location = [0., 0., 0.5]    
 
     free_mobility = tf.free_tetrahedron_mobility([location], [theta])
     def is_pos_def(x):

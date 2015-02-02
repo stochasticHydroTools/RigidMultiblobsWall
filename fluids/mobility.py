@@ -122,10 +122,9 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
     # Diagonal blocks, self mobility.
     h = r_vectors[j][2]/a
     for l in range(3):
-      for m in range(3):
-        fluid_mobility[j*3 + l][j*3 + m] += (1./(6.*np.pi*eta*a))*(
-          (l == m)*(l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
-          + (l == m)*(l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+      fluid_mobility[j*3 + l][j*3 + l] += (1./(6.*np.pi*eta*a))*(
+          (l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+          + (l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
   return fluid_mobility
 
 
