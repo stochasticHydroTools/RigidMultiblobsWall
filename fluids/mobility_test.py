@@ -156,11 +156,29 @@ class TestMobility(unittest.TestCase):
         self.assertAlmostEqual(fluid_mobility[j][k], fluid_mobility[k][j])
     
 
-  def test_sphere_wall_rotation_mobility_x_torque(self):
+  def test_sphere_wall_rotation_mobility_torque(self):
     ''' 
-    Test that turning a sphere clockwise around the x axis 
-    causes motion in the positive y direction. 
+    Test that turning a sphere clockwise around the one axis 
+    causes motion in the correct direction.
     '''
+    location = np.random.normal(10., 3., 3)
+    eta = 1.0
+    a = 0.25
+    fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, eta, a)
+    
+    # Torque about x axis.
+    self.assertAlmostEqual(fluid_mobility[0, 3], 0.)
+    self.assertTrue(fluid_mobility[1, 3] > 0)
+    self.assertAlmostEqual(fluid_mobility[2, 3], 0.)
+    #Torque about y axis.
+    self.assertTrue(fluid_mobility[0, 4] < 0)
+    self.assertAlmostEqual(fluid_mobility[1, 4], 0.)
+    self.assertAlmostEqual(fluid_mobility[2, 4], 0.)
+    # Rotate around the Z axis.
+    self.assertAlmostEqual(fluid_mobility[0, 5], 0.)
+    self.assertAlmostEqual(fluid_mobility[1, 5], 0.)
+    self.assertAlmostEqual(fluid_mobility[2, 5], 0.)
+    
     
 
   def test_epsilon_tensor(self):

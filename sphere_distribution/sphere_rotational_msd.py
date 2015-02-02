@@ -47,13 +47,14 @@ def sphere_force_calculator(location, orientation):
   return [0., 0., gravity + repulsion]
 
 def sphere_mobility(location, orientation):
-  location = [location[0]]
-  fluid_mobility = mb.boosted_single_wall_fluid_mobility(location, ETA, A)
-  mobility = np.concatenate([fluid_mobility, np.zeros([3, 3])])
-  mobility = np.concatenate([mobility, 
-                             np.concatenate([np.zeros([3, 3]), np.identity(3)])],
-                            axis=1)
-  return mobility
+  location = location[0]
+#  fluid_mobility = mb.boosted_single_wall_fluid_mobility(location, ETA, A)
+  fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, ETA, A)
+#  mobility = np.concatenate([fluid_mobility, np.zeros([3, 3])])
+#  mobility = np.concatenate([mobility, 
+#                             np.concatenate([np.zeros([3, 3]), np.identity(3)])],
+#                            axis=1)
+  return fluid_mobility
 
 @static_var('samples', 0)  
 @static_var('accepts', 0)
@@ -134,7 +135,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   dim = 3
   rot_msd_list = []
   progress_logger = logging.getLogger('Progress Logger')
-  for run in range(burn_in + n_runs):
+  for run in range(n_runs):
     integrator = QuaternionIntegrator(sphere_mobility,
                                       initial_orientation, 
                                       null_torque_calculator,
@@ -153,7 +154,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                        for _ in range(trajectory_length)])
     print_increment = n_steps/20
-    for step in range(n_steps):
+    for step in range(burn_in + n_steps):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':
