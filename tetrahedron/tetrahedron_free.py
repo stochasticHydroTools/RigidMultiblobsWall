@@ -330,12 +330,16 @@ def gibbs_boltzmann_distribution(location, orientation):
 
 
 def check_particles_above_wall(location, orientation):
-  ''' Check that the particles at position aren't below the wall '''
+  ''' 
+  Check that the particles at position aren't below the wall.
+  This ads some buffer room to also reject moves that would end up
+  pushing the particles very far from the wall.
+  '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  if location[0][2] < 0.5:
+  if location[0][2] < (A + 0.1):
     return False
   for k in range(3):
-    if r_vectors[k][2] < 0.5: 
+    if r_vectors[k][2] < (A + 0.1): 
       return False
   return True
 
@@ -416,9 +420,9 @@ if __name__ == '__main__':
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
   bin_width = 1./5.
-  fixman_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(20./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):

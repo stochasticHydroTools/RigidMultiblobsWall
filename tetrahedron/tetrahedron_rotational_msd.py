@@ -223,11 +223,12 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
       if (step % print_increment) == 0:
-        progress_logger.info('At step: %d in run %d' % (step, run))
+        progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
     
     average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
   
+  progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
