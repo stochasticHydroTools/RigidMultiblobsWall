@@ -31,9 +31,10 @@ def bin_center_of_mass(location, orientation, bin_width,
 
 
 if __name__ == '__main__':
-  repulsion_strengths = [0.5, 1.0, 3.0, 1.0, 3.0]
-  repulsion_cutoffs = [0.25, 0.25, 0.25, 0.125, 0.125]
+  repulsion_strengths = [2.0]
+  repulsion_cutoffs = [0.25]
   n_samples = 100000
+  write_data = True
 
   for k in range(len(repulsion_strengths)):
     tf.REPULSION_STRENGTH = repulsion_strengths[k]
@@ -53,6 +54,18 @@ if __name__ == '__main__':
     print 'acceptance rate for MCMC: %f' % acceptance_rate
     print 'low rejections: %d' % tf.gibbs_boltzmann_distribution.low_rejections
     height_histogram = height_histogram/n_samples/bin_width
+    if write_data:
+      with open ('./data/free-tetrahedron-pdf.txt', 'w+') as f:
+        f.write('repulsion strength: %f \n' % tf.REPULSION_STRENGTH)
+        f.write('debye length: %f \n ' % tf.DEBYE_LENGTH)
+        f.write('Buckets:\n')
+        f.write('%s' % bins)
+        f.write('PDF:\n')
+        f.write('%s' % height_histogram)
+        
+        
+                         
+                         
     pyplot.plot(bins, height_histogram, label='Strength=%s, Cutoff=%s' % 
                 (tf.REPULSION_STRENGTH, tf.DEBYE_LENGTH))
     tf.generate_free_equilibrium_sample_mcmc.accepts = 0

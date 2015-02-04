@@ -420,9 +420,9 @@ if __name__ == '__main__':
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
   bin_width = 1./5.
-  fixman_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(30./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):
@@ -496,6 +496,7 @@ if __name__ == '__main__':
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
                         for k in range(len(fixman_heights))])
+
   height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
                             + 0.5*bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']

@@ -56,6 +56,9 @@ def check_height_order(heights_list, buckets, names, dts, order):
                             for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
       # Figure 1 is just height distribution.
       pyplot.figure(scheme_idx*3)
+      print "length of height means", len(height_means)
+      print "length of height std", len(height_std)
+      print "length of buckets", len(buckets)
       pyplot.errorbar(buckets, height_means,
                       yerr = 2.*height_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
@@ -170,65 +173,21 @@ if __name__  == '__main__':
   #  dts = [32., 16., 8., 4., 2.]
 
   # Free tetrahedron.
-  data_files = [['free-tetrahedron-dt-1-N-5000000-run-1.pkl',
-                 'free-tetrahedron-dt-1-N-5000000-run-2.pkl',
-                 'free-tetrahedron-dt-1-N-5000000-run-3.pkl',
-                 'free-tetrahedron-dt-1-N-5000000-run-4.pkl'],
-                ['free-tetrahedron-dt-0.5-N-5000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-8.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-9.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-10.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-11.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-12.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-13.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-14.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-15.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-16.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-17.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-18.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-19.pkl',
-                 'free-tetrahedron-dt-0.5-N-5000000-run-20.pkl'],
-                ['free-tetrahedron-dt-0.25-N-7000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-8.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-9.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-10.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-11.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-12.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-13.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-14.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-15.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-16.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-17.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-18.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-19.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-20.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-21.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-22.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-23.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-24.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-25.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-26.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-27.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-28.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-29.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-30.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-31.pkl',
-                 'free-tetrahedron-dt-0.25-N-7000000-run-32.pkl']]
+  data_files = [['free-tetrahedron-dt-0.5-N-1000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.5-N-1000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.5-N-1000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.5-N-1000000-run-4.pkl'],
+                ['free-tetrahedron-dt-0.25-N-1000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.25-N-1000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.25-N-1000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.25-N-1000000-run-4.pkl'],
+                ['free-tetrahedron-dt-0.125-N-1000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.125-N-1000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.125-N-1000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.125-N-1000000-run-4.pkl']]
 
                 
-  dts = [1.0, 0.5, 0.25]
+  dts = [0.5, 0.25, 0.125]
   
   heights_list = []
   for parameter_set in data_files:
