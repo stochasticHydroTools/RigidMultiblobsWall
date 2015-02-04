@@ -50,6 +50,10 @@ class QuaternionIntegrator(object):
     #  Check function should take a state (location, orientation) if
     # has_location=True or 
     # (orietnation) if has_location = False
+    #  If this is false at the end of a step, the integrator will 
+    # re-take that step. This is a function that returns true or false. 
+    # Can also be None, which will not check anything.  The integrator 
+    # will count the total number of rejected steps.
     self.check_function = None
     self.rejections = 0
     self.successes = 0

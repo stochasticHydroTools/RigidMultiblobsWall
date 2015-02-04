@@ -158,9 +158,15 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     n_steps:  How many total steps to take.
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
+    n_runs:  How many separate runs to do in order to get std deviation.  
+             4 should be fine.
+    check_fcn : The check function for the integrator to use.  If this is false
+                at the end of a step, the integrator will re-take that step.  
+                This is a function that returns true or false. Can also be None
+                not check anything.
   '''
   progress_logger = logging.getLogger('Progress Logger')
-  burn_in = 2000
+  burn_in = 2000  # TODO: Choose this in a reasonable way.
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -356,8 +362,7 @@ if __name__ == "__main__":
                       '(--data_name=run-1).')
   args = parser.parse_args()
 
-  # Set masses and initial position.  
-  # These only matter if there is no location.
+  # Set masses to all be equal for simple theoretical comparison.
   tdn.M1 = 0.1
   tdn.M2 = 0.1
   tdn.M3 = 0.1
@@ -366,6 +371,8 @@ if __name__ == "__main__":
   tf.M2 = total_free_mass/4.
   tf.M3 = total_free_mass/4.
   tf.M4 = total_free_mass/4.
+
+  # Set initial conditions.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [[0., 0., 4.0]]
 
