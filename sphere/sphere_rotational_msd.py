@@ -38,6 +38,14 @@ DEBYE_LENGTH = 0.25
 KT = 0.2
 
 
+def sphere_check_function(location, orientation):
+  ''' Check that sphere is not overlapping the wall. '''
+  if location[0][2] < A:
+    return False
+  else:
+    return True
+  
+
 def null_torque_calculator(location, orientation):
   return [0., 0., 0.]
 
@@ -247,7 +255,8 @@ if __name__ == '__main__':
     end_time,
     n_steps,
     has_location=True,
-    location=initial_location)
+    location=initial_location,
+    check_fcn=sphere_check_function)
 
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)

@@ -142,7 +142,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          n_steps,
                                          has_location=False,
                                          location=None,
-                                         n_runs=4):
+                                         n_runs=4,
+                                         check_fcn=tf.check_particles_above_wall):
 
   ''' 
   Do a few long run, and along the way gather statistics
