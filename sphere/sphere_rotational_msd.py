@@ -28,14 +28,15 @@ from fluids import mobility as mb
 
 
 #Parameters
-ETA = 1.0
-A = 0.5
-M  = 0.1
-H = 3.5
+ETA = 1.0  # Viscosity.
+A = 0.5    # Radius of sphere.
+M  = 0.1   # Mass*g of sphere.
+H = 3.5    # Initial Distance from Wall.
+KT = 0.2   # Temperature.
 # Parameters for Yukawa potential
 REPULSION_STRENGTH = 2.0
 DEBYE_LENGTH = 0.25  
-KT = 0.2
+
 
 
 def sphere_check_function(location, orientation):
@@ -177,8 +178,10 @@ def bin_sphere_height(sample, height_histogram, bin_width):
 def plot_height_histograms(buckets, height_histograms, labels):
   ''' Plot buckets v. heights of eq and run pdf and save the figure.'''
   pyplot.figure()
+  start_ind = 0.4/bin_width
   for k in range(len(height_histograms)):
-    pyplot.plot(buckets, height_histograms[k], label=labels[k])
+    pyplot.plot(buckets[stard_ind:], height_histograms[k][stard_ind:],
+                label=labels[k])
   pyplot.plot(A*np.ones(2), [0., 0.45], label="Touching Wall")
   pyplot.gca().set_yscale('log')
   pyplot.title('Height Distribution for Sphere')
@@ -219,7 +222,7 @@ if __name__ == '__main__':
   end_time = args.end_time
   n_steps = args.n_steps
   bin_width = 1./10.
-  buckets = np.arange(0, int(18./bin_width))*bin_width + bin_width/2.
+  buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
 
   # Set up logging.
   # Make directory for logs if it doesn't exist.
