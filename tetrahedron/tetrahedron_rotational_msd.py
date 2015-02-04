@@ -143,7 +143,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          has_location=False,
                                          location=None,
                                          n_runs=4,
-                                         check_fcn=tf.check_particles_above_wall):
+                                         check_fcn=tf.check_particles_above_wall,
+                                         msd_calculator=calc_total_msd):
 
   ''' 
   Do a few long run, and along the way gather statistics
@@ -164,6 +165,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 at the end of a step, the integrator will re-take that step.  
                 This is a function that returns true or false. Can also be None
                 not check anything.
+    msd_calculator: function that calculates MSD given initial location, 
+                   initial_orientation, location, orientation when has_location is
+                   true, and calculates just rotational MSD given initial 
+                   orientation and orientation when has_location is false.
+  TODO: Move this somewhere that's not tetrahedron specific.
   '''
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = 2000  # TODO: Choose this in a reasonable way.
@@ -218,14 +224,14 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
           lagged_location_trajectory = lagged_location_trajectory[1:]
         for k in range(trajectory_length):
           if has_location:
-            current_rot_msd = (calc_total_msd(
+            current_rot_msd = (msd_calculator(
                 lagged_location_trajectory[0],
                 lagged_trajectory[0],
                 lagged_location_trajectory[k],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
           else:
-            current_rot_msd = (calc_rotational_msd(
+            current_rot_msd = (msd_calculator(
                 lagged_trajectory[0],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
@@ -428,6 +434,10 @@ if __name__ == "__main__":
           has_location=args.has_location,
           location=initial_location)
       else:
+        if has_location:
+          msd_calculator = calc_total_msd
+        else:
+          msd_calculator = calc_rotational_msd
         run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
                                                         scheme,
                                                         dt,
@@ -436,7 +446,8 @@ if __name__ == "__main__":
                                                         has_location=
                                                         args.has_location,
                                                         location=
-                                                        initial_location)
+                                                        initial_location,
+                                                        msd_calculator=msd_calculator)
       msd_statistics.add_run(scheme, dt, run_data)
       elapsed_time = time.time() - start_time
       time_units += end_time/dt

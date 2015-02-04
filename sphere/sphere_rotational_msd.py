@@ -86,6 +86,25 @@ def gibbs_boltzmann_distribution(location):
   return np.exp(-1.*U/KT)  
 
 
+def calc_total_sphere_msd(initial_location, initial_orientation, 
+                          location, orientation):
+  ''' Calulate 6x6 MSD for a sphere.'''
+  dx = np.array(location) - np.array(initial_location)
+
+  # Get rotational displacement, u_hat.
+  u_hat = np.zeros(3)
+  rot_matrix = orientation.rotation_matrix()
+  original_rot_matrix = initial_orientation.rotation_matrix()
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                          np.inner(rot_matrix, e))
+
+  displacement = np.concatenate([dx, u_hat])
+  return np.outer(displacement, displacement)
+
+
 def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
   '''  
   Plot Fixman and RFD x and y MSD. Also calculate the slope of the
@@ -267,7 +286,8 @@ if __name__ == '__main__':
     n_steps,
     has_location=True,
     location=initial_location,
-    check_fcn=sphere_check_function)
+    check_fcn=sphere_check_function,
+    msd_calculator=calc_total_sphere_msd)
 
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
