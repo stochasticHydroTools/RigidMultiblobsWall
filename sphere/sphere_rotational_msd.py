@@ -1,10 +1,15 @@
-''' 
-Estimate the total time dependent MSD for a sphere.
-We care most about the x-x diffusion and how it relates to
-the average parallel mobility.
-
-TODO: Split this into sphere MSD and sphere equilibrium repulsion potentials files.
 '''
+Estimate the total time dependent MSD (with std dev) for a sphere
+near a single wall, and save to a pkl file in the data subfolder.  This
+file can then be used to plot any component of time dependent mobility
+with the plot_sphere_rotational_msd.py script.
+
+We care most about the x-x diffusion and how it relates to
+the average parallel mobility, which will be reported and 
+plotted automatically, along with the equilibrium distribution
+of sphere height.
+'''
+
 import argparse
 import cPickle
 import logging
@@ -50,12 +55,14 @@ def sphere_check_function(location, orientation):
 def null_torque_calculator(location, orientation):
   return [0., 0., 0.]
 
+
 def sphere_force_calculator(location, orientation):
   gravity = -1*M
   h = location[0][2]
   repulsion = (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
                np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))
   return [0., 0., gravity + repulsion]
+
 
 def sphere_mobility(location, orientation):
   location = location[0]
@@ -134,6 +141,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
   average_msd_slope /= num_series*5
   return average_msd_slope
 
+
 def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   ''' 
   Calculate average mu parallel and fricton using rectangle rule. 
@@ -174,13 +182,12 @@ def bin_sphere_height(sample, height_histogram, bin_width):
     print 'Index %d exceeds histogram length' % idx
 
 
-
 def plot_height_histograms(buckets, height_histograms, labels):
   ''' Plot buckets v. heights of eq and run pdf and save the figure.'''
   pyplot.figure()
   start_ind = 0.4/bin_width
   for k in range(len(height_histograms)):
-    pyplot.plot(buckets[stard_ind:], height_histograms[k][stard_ind:],
+    pyplot.plot(buckets[start_ind:], height_histograms[k][start_ind:],
                 label=labels[k])
   pyplot.plot(A*np.ones(2), [0., 0.45], label="Touching Wall")
   pyplot.gca().set_yscale('log')
@@ -196,12 +203,13 @@ def plot_height_histograms(buckets, height_histograms, labels):
 
 if __name__ == '__main__':
   # Get command line arguments.
-  parser = argparse.ArgumentParser(description='Run Simulation of Sphere '
-                                   'using the RFD scheme, and bin the resulting '
-                                   'height distribution + calculate the MSD.  The MSD '
-                                   'data is saved in the /data folder, and also plotted. '
-                                   'The sphere is repulsed from the wall with the Yukawa '
-                                   'potential.')
+  parser = argparse.ArgumentParser(
+    description='Run Simulation of Sphere '
+    'using the RFD scheme, and bin the resulting '
+    'height distribution + calculate the MSD.  The MSD '
+    'data is saved in the /data folder, and also plotted. '
+    'The sphere is repulsed from the wall with the Yukawa '
+    'potential.')
   parser.add_argument('-dt', dest='dt', type=float,
                       help='Timestep to use for runs.')
   parser.add_argument('-N', dest='n_steps', type=int,
