@@ -54,6 +54,28 @@ class MSDStatistics(object):
 
     self.data[scheme_name][dt] = run_data
 
+
+def calc_total_msd(initial_location, initial_orientation, 
+                   location, orientation):
+  ''' Calculate 6x6 MSD including orientation and location. '''
+  u_hat = np.zeros(3)
+  rot_matrix = orientation.rotation_matrix()
+  original_rot_matrix = initial_orientation.rotation_matrix()
+  original_center_of_mass = tf.get_free_center_of_mass(initial_location, 
+                                                       initial_orientation)
+  final_center_of_mass = tf.get_free_center_of_mass(location, 
+                                                    orientation)
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                          np.inner(rot_matrix, e))
+    
+  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
+  displacement = np.concatenate([dx, u_hat])
+  return np.outer(displacement, displacement)
+
+
 def calculate_msd_from_fixed_initial_condition(initial_orientation,
                                                scheme,
                                                dt,
@@ -275,26 +297,6 @@ def calc_rotational_msd(initial_orientation, orientation):
                           np.inner(rot_matrix, e))
   return np.outer(u_hat, u_hat)
 
-
-def calc_total_msd(initial_location, initial_orientation, 
-                   location, orientation):
-  ''' Calculate 6x6 MSD including orientation and location. '''
-  u_hat = np.zeros(3)
-  rot_matrix = orientation.rotation_matrix()
-  original_rot_matrix = initial_orientation.rotation_matrix()
-  original_center_of_mass = tf.get_free_center_of_mass(initial_location, 
-                                                       initial_orientation)
-  final_center_of_mass = tf.get_free_center_of_mass(location, 
-                                                    orientation)
-  for i in range(3):
-    e = np.zeros(3)
-    e[i] = 1.
-    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
-                          np.inner(rot_matrix, e))
-    
-  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
-  displacement = np.concatenate([dx, u_hat])
-  return np.outer(displacement, displacement)
 
 
 def plot_msd_convergence(dts, msd_list, names):

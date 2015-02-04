@@ -208,7 +208,7 @@ def plot_height_histograms(buckets, height_histograms, labels):
   for k in range(len(height_histograms)):
     pyplot.plot(buckets[start_ind:], height_histograms[k][start_ind:],
                 label=labels[k])
-  pyplot.plot(A*np.ones(2), [0., 0.45], label="Touching Wall")
+  pyplot.plot(A*np.ones(2), [1e-5, 0.45], label="Touching Wall")
   pyplot.gca().set_yscale('log')
   pyplot.title('Height Distribution for Sphere')
   pyplot.legend(loc='best', prop={'size': 9})
