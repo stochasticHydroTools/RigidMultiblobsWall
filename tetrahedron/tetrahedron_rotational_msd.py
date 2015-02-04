@@ -183,7 +183,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
-    integrator.check_function = tf.check_particles_above_wall
+    integrator.check_function = check_fcn
 
     trajectory_length = int(end_time/dt) + 1
     if trajectory_length > n_steps:
@@ -225,6 +225,10 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
             average_rotational_msd[k] += current_rot_msd
       if (step % print_increment) == 0:
         progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
+
+    progress_logger.info('Integrator Rejection rate: %s' % 
+                         (float(integrator.rejections)/
+                          float(integrator.rejections + n_steps)))
     
     average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
