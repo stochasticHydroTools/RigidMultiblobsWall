@@ -8,9 +8,9 @@ from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 ETA = 1.0            # Viscosity.
-A = 0.05             # Radius of vertices.
-BOND_LENGTH = 1.0    # 'Radius' of entire Icosohedron.
-M = [0.01 for _ in range(13)]  #Masses of particles
+A = 0.5              # 'Radius' of entire Icosohedron.
+VERTEX_A = 0.05       # radius of individual vertices
+M = [0.007629 for _ in range(13)]  #Masses of particles (This is ~0.1/13)
 
 # Repulsion potential paramters.  Using Yukawa potential.
 REPULSION_STRENGTH = 2.0
@@ -41,7 +41,7 @@ def force_and_torque_icosohedron_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, VERTEX_A)
   rotation_matrix = calc_icosohedron_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3) for _ in range(12)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -120,7 +120,7 @@ def icosohedron_torque_calculator(location, orientation):
 
 def check_particles_above_wall(locaton, orientation):
   ''' Check that the Icosohedron is not overlapping the wall. '''
-  if location[0][2] < BOND_LENGTH + A:
+  if location[0][2] < A + VERTEX_A:
     return False
   else:
     return True
