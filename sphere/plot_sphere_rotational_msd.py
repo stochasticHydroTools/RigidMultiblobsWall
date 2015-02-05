@@ -23,8 +23,8 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
 
-  ind = [3, 3]
+  ind = [0, 0]
   plot_time_dependent_msd(msd_statistics, ind)
   pyplot.title('MSD(t) for Sphere')
-  pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
+  pyplot.savefig('./figures/SphereTimeDependentRotationalMSD-Component-%s.pdf' % 
                    (ind))

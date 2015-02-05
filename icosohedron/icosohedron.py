@@ -56,17 +56,17 @@ def get_icosohedron_r_vectors(location, orientation):
   # These values taken from an IBAMR vertex file. 'Radius' of 
   # Entire structure is ~1.
   initial_setup = [np.array([0.276393, 0.850651, 0.447214]),
-                   np.array([1e-12. 1e-12. 1]),
+                   np.array([1e-12, 1e-12, 1]),
                    np.array([-0.723607, 0.525731, 0.447214]),
                    np.array([0.276393, -0.850651, 0.447214]),
                    np.array([-0.276393, -0.850651, -0.447214]),
-                   np.array([-0.723607 -0.525731 0.447214]),
-                   np.array([-0.276393 0.850651 -0.447214]),
-                   np.array([-0.894427 1.00011e-12 -0.447214]),
-                   np.array([0.723607 -0.525731 -0.447214]),
-                   np.array([0.723607 0.525731 -0.447214]),
-                   np.array([0.894427 9.99781e-13 0.447214]),
-                   np.array([1e-12 1e-12 -1])]
+                   np.array([-0.723607, -0.525731, 0.447214]),
+                   np.array([-0.276393, 0.850651, -0.447214]),
+                   np.array([-0.894427, 1.00011e-12, -0.447214]),
+                   np.array([0.723607, -0.525731, -0.447214]),
+                   np.array([0.723607, 0.525731, -0.447214]),
+                   np.array([0.894427, 9.99781e-13, 0.447214]),
+                   np.array([1e-12, 1e-12, -1])]
   
   rotation_matrix = orientation.rotation_matrix()
   rotated_setup = []
@@ -83,6 +83,7 @@ def calc_icosohedron_rot_matrix(r_vectors, location):
   R will be 3N by 3 (36 x 3). The r vectors point from the center
   of the icosohedron to the other vertices.
   '''
+  rot_matrix = None
   for k in range(len(r_vectors)):
     # Here the cross is relative to the center.
     adjusted_r_vector = r_vectors[k] - location
