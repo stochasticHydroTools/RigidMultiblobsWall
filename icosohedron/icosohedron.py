@@ -1,20 +1,32 @@
 ''' Functions used for the Icosohedron structure near a wall. '''
 
 import numpy as np
+import os
 
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 
 
 # Parameters
-ETA = 1.0            # Viscosity.
-A = 0.5              # 'Radius' of entire Icosohedron.
+ETA = 1.0             # Viscosity.
+A = 0.5               # 'Radius' of entire Icosohedron.
 VERTEX_A = 0.05       # radius of individual vertices
-M = [0.007629 for _ in range(13)]  #Masses of particles (This is ~0.1/13)
+M = [0.1/13. for _ in range(13)]  #Masses of particles
+KT = 0.2              # Temperature
 
 # Repulsion potential paramters.  Using Yukawa potential.
 REPULSION_STRENGTH = 2.0
 DEBYE_LENGTH = 0.5
+
+# Make directory for logs if it doesn't exist.
+if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+  os.mkdir(os.path.join(os.getcwd(), 'logs'))
+# Make directory for figures if it doesn't exist.
+if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+  os.mkdir(os.path.join(os.getcwd(), 'figures'))
+# Make directory for data if it doesn't exist.
+if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
+  os.mkdir(os.path.join(os.getcwd(), 'data'))
 
 def icosohedron_mobility(location, orientation):
   ''' 
@@ -109,9 +121,9 @@ def icosohedron_force_calculator(location, orientation):
   gravity = [0., 0., -1.*sum(M)]
   h = location[0][2]
   repulsion = np.array([0., 0., 
-                        (REPULSION_STRENGTH*((h - BOND_LENGTH)/DEBYE_LENGTH + 1)*
-                         np.exp(-1.*(h - BOND_LENGTH)/DEBYE_LENGTH)/
-                         ((h - BOND_LENGTH)**2))])
+                        (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                         np.exp(-1.*(h - A)/DEBYE_LENGTH)/
+                         ((h - A)**2))])
   return repulsion + gravity
 
 
@@ -119,7 +131,8 @@ def icosohedron_torque_calculator(location, orientation):
   ''' For now, approximate torque as zero, which is true for the sphere.'''
   return [0., 0., 0.]
 
-def check_particles_above_wall(locaton, orientation):
+
+def icosohedron_check_function(location, orientation):
   ''' Check that the Icosohedron is not overlapping the wall. '''
   if location[0][2] < A + VERTEX_A:
     return False

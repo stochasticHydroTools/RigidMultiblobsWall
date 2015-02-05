@@ -1,10 +1,19 @@
 ''' Script to run the Icosohedron and calculate the MSD. '''
 
+import argparse
+import cPickle
+import cProfile
+import logging
 import numpy as np
+import os
 import sys
 sys.path.append('..')
 
 import icosohedron as ic
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from tetrahedron.tetrahedron_rotational_msd import MSDStatistics
+from utils import StreamToLogger
 
 
 def calc_icosohedron_msd_from_equilibrium(initial_orientation,
@@ -42,7 +51,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                                       initial_location=location,
                                       force_calculator=
                                       ic.icosohedron_force_calculator)
-    integrator.kT = KT
+    integrator.kT = ic.KT
     integrator.check_function = ic.icosohedron_check_function
 
     trajectory_length = int(end_time/dt) + 1
@@ -112,7 +121,7 @@ def calc_total_icosohedron_msd(initial_location, initial_rotation,
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
-    u_hat += 0.5*np.cross(np.inner(initial_rotation e),
+    u_hat += 0.5*np.cross(np.inner(initial_rotation, e),
                           np.inner(rotation, e))
 
   displacement = np.concatenate([dx, u_hat])
@@ -120,4 +129,75 @@ def calc_total_icosohedron_msd(initial_location, initial_rotation,
 
 
 if __name__ == '__main__':
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulations to calculate '
+                                   'icosohedron rotational MSD using the '
+                                   'Fixman, Random Finite Difference, and '
+                                   'Euler-Maruyama schemes at a given '
+                                   'timestep')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs. specify as a list, '
+                      'e.g. -dt 0.8')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs')
+  parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
+                      help='How far to calculate the time dependent MSD.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Do we profile this run or not.')
+  args = parser.parse_args()
+  if args.profile:
+    pr = cProfile.Profile()
+    pr.enable()
   
+  # Set initial conditions.
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  initial_location = [[0., 0., 4.0]]
+
+  scheme = 'RFD'
+  dt = args.dt
+  end_time = args.end_time
+  n_steps = args.n_steps
+  bin_width = 1./10.
+  buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
+
+  # Set up logging.
+  log_filename = './logs/icosohedron-rotation-dt-%f-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
+  height_histogram_run = np.zeros(len(buckets))
+  params = {'M': ic.M, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
+            'REPULSION_STRENGTH': ic.REPULSION_STRENGTH, 
+            'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT}
+  msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
+
+  run_data = calc_icosohedron_msd_from_equilibrium(
+    initial_orientation,
+    scheme,
+    dt, 
+    end_time,
+    n_steps,
+    location=initial_location)
+
+  progress_logger.info('Completed equilibrium runs.')
+  msd_statistics.add_run(scheme, dt, run_data)
+
+  data_name = './data/sphere-msd-dt-%s-N-%d-%s.pkl' % (
+    dt, n_steps, args.data_name)
+
+  with open(data_name, 'wb') as f:
+    cPickle.dump(msd_statistics, f)

@@ -387,17 +387,12 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 
-  repulsion_strengths = [2.0]
-  debye_lengths = [0.25]
   height_histograms = []
   labels = []
-  for param_idx in range(len(repulsion_strengths)):
-    REPULSION_STRENGTH = repulsion_strengths[param_idx]
-    DEBYE_LENGTH = debye_lengths[param_idx]
-    height_histograms.append(np.zeros(len(buckets)))
-    labels.append('strength=%s, b=%s' % (REPULSION_STRENGTH, DEBYE_LENGTH))
-    average_mob_and_friction = calculate_mu_friction_and_height_distribution(
-      bin_width, height_histograms[-1])
+  height_histograms.append(np.zeros(len(buckets)))
+  labels.append('strength=%s, b=%s' % (REPULSION_STRENGTH, DEBYE_LENGTH))
+  average_mob_and_friction = calculate_mu_friction_and_height_distribution(
+    bin_width, height_histograms[-1])
   avg_slope = plot_x_and_y_msd(msd_statistics, 
                                [average_mob_and_friction[0], average_mob_and_friction[1]],
                                n_steps)
