@@ -33,7 +33,7 @@ def bin_center_of_mass(location, orientation, bin_width,
 if __name__ == '__main__':
   repulsion_strengths = [2.0]
   repulsion_cutoffs = [0.25]
-  n_samples = 100000
+  n_samples = 200000
   write_data = True
 
   for k in range(len(repulsion_strengths)):
@@ -59,9 +59,9 @@ if __name__ == '__main__':
         f.write('repulsion strength: %f \n' % tf.REPULSION_STRENGTH)
         f.write('debye length: %f \n ' % tf.DEBYE_LENGTH)
         f.write('Buckets:\n')
-        f.write('%s' % bins)
+        f.write('%s \n' % bins)
         f.write('PDF:\n')
-        f.write('%s' % height_histogram)
+        f.write('%s \n' % height_histogram)
         
         
                          
