@@ -56,9 +56,6 @@ def check_height_order(heights_list, buckets, names, dts, order):
                             for l in range(n_runs)], axis=0)/np.sqrt(n_runs)
       # Figure 1 is just height distribution.
       pyplot.figure(scheme_idx*3)
-      print "length of height means", len(height_means)
-      print "length of height std", len(height_std)
-      print "length of buckets", len(buckets)
       pyplot.errorbar(buckets, height_means,
                       yerr = 2.*height_std,
                       label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
@@ -173,18 +170,18 @@ if __name__  == '__main__':
   #  dts = [32., 16., 8., 4., 2.]
 
   # Free tetrahedron.
-  data_files = [['free-tetrahedron-dt-0.5-N-1000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.5-N-1000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.5-N-1000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.5-N-1000000-run-4.pkl'],
-                ['free-tetrahedron-dt-0.25-N-1000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.25-N-1000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.25-N-1000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.25-N-1000000-run-4.pkl'],
-                ['free-tetrahedron-dt-0.125-N-1000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.125-N-1000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.125-N-1000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.125-N-1000000-run-4.pkl']]
+  data_files = [['free-tetrahedron-dt-0.5-N-2000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.5-N-2000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.5-N-2000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.5-N-2000000-run-4.pkl'],
+                ['free-tetrahedron-dt-0.25-N-2000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.25-N-2000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.25-N-2000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.25-N-2000000-run-4.pkl'],
+                ['free-tetrahedron-dt-0.125-N-2000000-run-1.pkl',
+                 'free-tetrahedron-dt-0.125-N-2000000-run-2.pkl',
+                 'free-tetrahedron-dt-0.125-N-2000000-run-3.pkl',
+                 'free-tetrahedron-dt-0.125-N-2000000-run-4.pkl']]
 
                 
   dts = [0.5, 0.25, 0.125]

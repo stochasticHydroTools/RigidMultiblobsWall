@@ -18,7 +18,9 @@ import tetrahedron as tdn
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import static_var
 from utils import StreamToLogger
+
 
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
@@ -36,13 +38,6 @@ M4 = 0.03
 # through the wall
 REPULSION_STRENGTH = 2.0
 DEBYE_LENGTH = 0.25  # This is the Debye length for Yukawa, TODO: rename.
-
-# Static Variable decorator for calculating acceptance rate.
-def static_var(varname, value):
-    def decorate(func):
-        setattr(func, varname, value)
-        return func
-    return decorate
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -194,7 +189,7 @@ def free_gravity_force_calculator(location, orientation):
   gravity_force = np.array([0., 0., -1.*(M1 + M2 + M3 + M4)])
   return repulsion_force + gravity_force
 
-
+@static_var('max_index', 0)
 def bin_free_particle_heights(location, orientation, bin_width, 
                               height_histogram):
   '''Bin heights of the free particle based on a location and an orientaiton.'''
@@ -205,7 +200,9 @@ def bin_free_particle_heights(location, orientation, bin_width,
     if idx < len(height_histogram[k]):
       height_histogram[k][idx] += 1
     else:
-      print "Index  %d is beyond histogram length " % idx
+      if idx > bin_free_particle_heights.max_index:
+        bin_free_particle_heights.max_index = idx
+        print "New maximum Index  %d is beyond histogram length " % idx
       
 
 @static_var('samples', 0)  
@@ -420,9 +417,9 @@ if __name__ == '__main__':
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
   bin_width = 1./5.
-  fixman_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(33./bin_width)) for _ in range(3)])
+  fixman_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):

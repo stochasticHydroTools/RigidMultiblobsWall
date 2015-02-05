@@ -14,3 +14,11 @@ class StreamToLogger(object):
    def write(self, buf):
       for line in buf.rstrip().splitlines():
          self.logger.log(self.log_level, line.rstrip())
+
+
+# Static Variable decorator for calculating acceptance rate.
+def static_var(varname, value):
+    def decorate(func):
+        setattr(func, varname, value)
+        return func
+    return decorate

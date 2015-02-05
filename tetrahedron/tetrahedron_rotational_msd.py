@@ -15,13 +15,16 @@ lagged trajectory, then average.
 '''
 import argparse
 import cPickle
+import cProfile
 import logging
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
+import numpy as np
 import os
+import pstats
 import sys
+import StringIO
 sys.path.append('..')
 import time
 
@@ -29,6 +32,7 @@ from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import tetrahedron as tdn
 import tetrahedron_free as tf
+from utils import static_var
 
 class MSDStatistics(object):
   '''
@@ -65,6 +69,24 @@ def calc_total_msd(initial_location, initial_orientation,
                                                        initial_orientation)
   final_center_of_mass = tf.get_free_center_of_mass(location, 
                                                     orientation)
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                          np.inner(rot_matrix, e))
+    
+  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
+  displacement = np.concatenate([dx, u_hat])
+  return np.outer(displacement, displacement)
+
+
+def calc_total_msd_from_matrix_and_com(original_center_of_mass, original_rot_matrix, 
+                                       final_center_of_mass, rot_matrix):
+  ''' 
+  Calculate 6x6 MSD including orientation and location.  This is calculated from
+  precomputed center of mass and rotation matrix data to avoid repeating computation.
+  '''
+  u_hat = np.zeros(3)
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
@@ -164,14 +186,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          n_steps,
                                          has_location=False,
                                          location=None,
-                                         n_runs=4,
-                                         check_fcn=tf.check_particles_above_wall,
-                                         msd_calculator=calc_total_msd):
-
+                                         n_runs=4):
   ''' 
   Do a few long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
-  by calculating it from time lagged data. 
+  by calculating it from time lagged data.  This is Tetrahedron Specific.
   args:
     initial_orientation: list of length 1 quaternion where 
                  the run starts.  This shouldn't effect results.
@@ -183,18 +202,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
     n_runs:  How many separate runs to do in order to get std deviation.  
              4 should be fine.
-    check_fcn : The check function for the integrator to use.  If this is false
-                at the end of a step, the integrator will re-take that step.  
-                This is a function that returns true or false. Can also be None
-                not check anything.
-    msd_calculator: function that calculates MSD given initial location, 
-                   initial_orientation, location, orientation when has_location is
-                   true, and calculates just rotational MSD given initial 
-                   orientation and orientation when has_location is false.
-  TODO: Move this somewhere that's not tetrahedron specific.
   '''
   progress_logger = logging.getLogger('Progress Logger')
-  burn_in = 2000  # TODO: Choose this in a reasonable way.
+  burn_in = int(end_time*4./dt)
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -217,14 +227,14 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
-    integrator.check_function = check_fcn
+    integrator.check_function = tf.check_particles_above_wall
 
     trajectory_length = int(end_time/dt) + 1
     if trajectory_length > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
-    lagged_trajectory = []
-    lagged_location_trajectory = []
+    lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
+    lagged_location_trajectory = []  # Locations of center of mass.
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
     for step in range(burn_in + n_steps):
@@ -236,9 +246,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
         integrator.additive_em_time_step(dt)
 
       if step > burn_in:
-        lagged_trajectory.append(integrator.orientation[0])
+        lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
         if has_location:
-          lagged_location_trajectory.append(integrator.location[0])
+          center_of_mass = tf.get_free_center_of_mass(integrator.location[0], 
+                                                      integrator.orientation[0])
+          lagged_location_trajectory.append(center_of_mass)
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]
@@ -246,14 +258,14 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
           lagged_location_trajectory = lagged_location_trajectory[1:]
         for k in range(trajectory_length):
           if has_location:
-            current_rot_msd = (msd_calculator(
+            current_rot_msd = (calc_total_msd_from_matrix_and_com(
                 lagged_location_trajectory[0],
                 lagged_trajectory[0],
                 lagged_location_trajectory[k],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
           else:
-            current_rot_msd = (msd_calculator(
+            current_rot_msd = (calc_rotational_msd(
                 lagged_trajectory[0],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
@@ -368,7 +380,12 @@ if __name__ == "__main__":
                       help='Optional name added to the end of the '
                       'data file.  Useful for multiple runs '
                       '(--data_name=run-1).')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Do we profile this run or not.')
   args = parser.parse_args()
+  if args.profile:
+    pr = cProfile.Profile()
+    pr.enable()
 
   # Set masses to all be equal for simple theoretical comparison.
   tdn.M1 = 0.1
@@ -436,10 +453,6 @@ if __name__ == "__main__":
           has_location=args.has_location,
           location=initial_location)
       else:
-        if has_location:
-          msd_calculator = calc_total_msd
-        else:
-          msd_calculator = calc_rotational_msd
         run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
                                                         scheme,
                                                         dt,
@@ -448,8 +461,7 @@ if __name__ == "__main__":
                                                         has_location=
                                                         args.has_location,
                                                         location=
-                                                        initial_location,
-                                                        msd_calculator=msd_calculator)
+                                                        initial_location)
       msd_statistics.add_run(scheme, dt, run_data)
       elapsed_time = time.time() - start_time
       time_units += end_time/dt
@@ -475,3 +487,10 @@ if __name__ == "__main__":
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 
+  if args.profile:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()

@@ -86,23 +86,112 @@ def gibbs_boltzmann_distribution(location):
   return np.exp(-1.*U/KT)  
 
 
-def calc_total_sphere_msd(initial_location, initial_orientation, 
-                          location, orientation):
+def calc_total_sphere_msd(initial_location, initial_rot_matrix, 
+                          location, rot_matrix):
   ''' Calulate 6x6 MSD for a sphere.'''
   dx = np.array(location) - np.array(initial_location)
-
   # Get rotational displacement, u_hat.
   u_hat = np.zeros(3)
-  rot_matrix = orientation.rotation_matrix()
-  original_rot_matrix = initial_orientation.rotation_matrix()
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
-    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+    u_hat += 0.5*np.cross(np.inner(initial_rot_matrix, e),
                           np.inner(rot_matrix, e))
 
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
+
+def calc_sphere_msd_from_equilibrium(initial_orientation,
+                                     scheme,
+                                     dt,
+                                     end_time,
+                                     n_steps,
+                                     location=None,
+                                     n_runs=4):
+  ''' 
+  Do a few long run, and along the way gather statistics
+  about the average rotational Mean Square Displacement 
+  by calculating it from time lagged data.  This is sphere specific.
+  args:
+    initial_orientation: list of length 1 quaternion where 
+                 the run starts.  This shouldn't effect results.
+    scheme: FIXMAN, RFD, or EM, scheme for the integrator to use.
+    dt:  float, timestep used by the integrator.
+    end_time: float, how much time to track the evolution of the MSD.
+    n_steps:  How many total steps to take.
+    location: initial location of sphere.
+    n_runs:  How many separate runs to do in order to get std deviation.  
+             4 should be fine.
+  '''
+  progress_logger = logging.getLogger('Progress Logger')
+  burn_in = int(end_time*4./dt)
+  rot_msd_list = []
+  print_increment = n_steps/20
+  dim = 6
+  for run in range(n_runs):
+    integrator = QuaternionIntegrator(sphere_mobility,
+                                      initial_orientation, 
+                                      null_torque_calculator,
+                                      has_location=True,
+                                      initial_location=location,
+                                      force_calculator=sphere_force_calculator)
+    integrator.kT = KT
+    integrator.check_function = sphere_check_function
+
+    trajectory_length = int(end_time/dt) + 1
+    if trajectory_length > n_steps:
+      raise Exception('Trajectory length is greater than number of steps.  '
+                      'Do a longer run.')
+    lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
+    lagged_location_trajectory = [] 
+    average_rotational_msd = np.array([np.zeros((dim, dim)) 
+                                       for _ in range(trajectory_length)])
+    for step in range(burn_in + n_steps):
+      if scheme == 'FIXMAN':
+        integrator.fixman_time_step(dt)
+      elif scheme == 'RFD':
+        integrator.rfd_time_step(dt)
+      elif scheme == 'EM':
+        integrator.additive_em_time_step(dt)
+
+      if step > burn_in:
+        lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
+        lagged_location_trajectory.append(integrator.location[0])
+
+      if len(lagged_trajectory) > trajectory_length:
+        lagged_trajectory = lagged_trajectory[1:]
+        lagged_location_trajectory = lagged_location_trajectory[1:]
+        for k in range(trajectory_length):
+          current_rot_msd = (calc_total_sphere_msd(
+            lagged_location_trajectory[0],
+            lagged_trajectory[0],
+            lagged_location_trajectory[k],
+            lagged_trajectory[k]))
+          average_rotational_msd[k] += current_rot_msd
+
+      if (step % print_increment) == 0:
+        progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
+
+    progress_logger.info('Integrator Rejection rate: %s' % 
+                         (float(integrator.rejections)/
+                          float(integrator.rejections + n_steps)))
+    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    rot_msd_list.append(average_rotational_msd)
+  
+  progress_logger.info('Done with Equilibrium MSD runs.')
+  # Average results to get time, mean, and std of rotational MSD.
+  # For now, std = 0.  Will figure out a good way to calculate this later.
+  results = [[], [], []]
+  results[0] = np.arange(0, trajectory_length)*dt
+  results[1] = np.mean(rot_msd_list, axis=0)
+  results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
+
+  progress_logger = logging.getLogger('progress_logger')  
+  progress_logger.info('Rejection Rate: %s' % 
+                       (float(integrator.rejections)/
+                        float(n_steps*n_runs + integrator.rejections)))
+  return results
+
 
 
 def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
@@ -278,16 +367,13 @@ if __name__ == '__main__':
 
   msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
 
-  run_data = trm.calc_rotational_msd_from_equilibrium(
+  run_data = calc_sphere_msd_from_equilibrium(
     initial_orientation,
     scheme,
     dt, 
     end_time,
     n_steps,
-    has_location=True,
-    location=initial_location,
-    check_fcn=sphere_check_function,
-    msd_calculator=calc_total_sphere_msd)
+    location=initial_location)
 
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
