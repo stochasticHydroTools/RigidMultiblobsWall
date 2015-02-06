@@ -10,7 +10,7 @@ from matplotlib import pyplot
 import numpy as np
 import cPickle
 
-from tetrahedron_rotational_msd import MSDStatistics
+from utils import MSDStatistics
 
 def plot_time_dependent_msd(msd_statistics, ind):
   ''' 

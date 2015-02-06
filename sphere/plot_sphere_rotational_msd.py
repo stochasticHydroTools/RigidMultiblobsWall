@@ -10,8 +10,8 @@ from matplotlib import pyplot
 import numpy as np
 import cPickle
 
-from tetrahedron.tetrahedron_rotational_msd import MSDStatistics
 from tetrahedron.plot_rotational_msd import plot_time_dependent_msd
+from utils import MSDStatistics
 
 
 if __name__ == "__main__":

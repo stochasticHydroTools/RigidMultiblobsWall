@@ -12,8 +12,8 @@ sys.path.append('..')
 import icosohedron as ic
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-from tetrahedron.tetrahedron_rotational_msd import MSDStatistics
 from utils import StreamToLogger
+from utils import MSDStatistics
 
 
 def calc_icosohedron_msd_from_equilibrium(initial_orientation,

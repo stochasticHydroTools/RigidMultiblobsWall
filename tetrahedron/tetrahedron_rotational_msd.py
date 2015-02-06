@@ -33,30 +33,7 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import tetrahedron as tdn
 import tetrahedron_free as tf
 from utils import static_var
-
-class MSDStatistics(object):
-  '''
-  Class to hold the means and std deviations of the time dependent
-  MSD for multiple schemes and timesteps.  data is a dictionary of
-  dictionaries, holding runs indexed by scheme and timestep in that 
-  order.
-  Each run is organized as a list of 3 arrays: [time, mean, std]
-  mean and std are matrices (the rotational MSD).
-  '''
-  def __init__(self, schemes, dts, params):
-    self.data = {}
-    self.params = params
-
-  def add_run(self, scheme_name, dt, run_data):
-    ''' 
-    Add a run.  Create the entry if need be. 
-    run is organized as a list of 3 arrays: [time, mean, std]
-    In that order.
-    '''
-    if scheme_name not in self.data:
-      self.data[scheme_name] = dict()
-
-    self.data[scheme_name][dt] = run_data
+from utils import MSDStatistics
 
 
 def calc_total_msd(initial_location, initial_orientation, 
