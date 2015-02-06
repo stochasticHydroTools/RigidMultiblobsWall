@@ -26,5 +26,5 @@ if __name__ == "__main__":
   ind = [0, 0]
   plot_time_dependent_msd(msd_statistics, ind)
   pyplot.title('MSD(t) for Sphere')
-  pyplot.savefig('./figures/SphereTimeDependentRotationalMSD-Component-%s.pdf' % 
+  pyplot.savefig('./figures/SphereTimeDependentMSD-Component-%s.pdf' % 
                    (ind))

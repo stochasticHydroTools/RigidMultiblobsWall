@@ -23,10 +23,10 @@ class TestIcosohedron(unittest.TestCase):
     r_vectors = ic.get_icosohedron_r_vectors(location, theta)
     
     self.assertAlmostEqual(r_vectors[1][0], 0.0)
-    self.assertAlmostEqual(r_vectors[1][1], -1.0)
+    self.assertAlmostEqual(r_vectors[1][1], -1.*ic.A)
     self.assertAlmostEqual(r_vectors[1][2], 10.0)
     self.assertAlmostEqual(r_vectors[11][0], 0.0)
-    self.assertAlmostEqual(r_vectors[11][1], 1.0)
+    self.assertAlmostEqual(r_vectors[11][1], ic.A)
     self.assertAlmostEqual(r_vectors[11][2], 10.0)
 
   def test_icosohedron_mobility_spd(self):

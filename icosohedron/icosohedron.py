@@ -81,6 +81,11 @@ def get_icosohedron_r_vectors(location, orientation):
                    np.array([1e-12, 1e-12, -1])]
   
   rotation_matrix = orientation.rotation_matrix()
+
+  # TODO: Maybe don't do this on the fly every single time.
+  for k in range(len(initial_setup)):
+    initial_setup[k] = A*(initial_setup[k])
+
   rotated_setup = []
   for r in initial_setup:
     rotated_setup.append(np.dot(rotation_matrix, r) + np.array(location))
