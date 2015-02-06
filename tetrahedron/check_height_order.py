@@ -110,10 +110,6 @@ def check_height_order(heights_list, buckets, names, dts, order):
 
 
 if __name__  == '__main__':
-  # Make sure figures folder exists
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
-  
   # Grab the data from a few runs with different dts, and
   # Check their order.
   # List of lists. Each entry should be a list of names of data

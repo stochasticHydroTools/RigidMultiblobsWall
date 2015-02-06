@@ -31,6 +31,17 @@ from fluids import mobility as mb
 from utils import StreamToLogger
 import uniform_analyzer as ua
 
+
+# Make sure figures folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+  os.mkdir(os.path.join(os.getcwd(), 'figures'))
+# Make sure data folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
+  os.mkdir(os.path.join(os.getcwd(), 'data'))
+# Make sure logs folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+  os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 2.5     # Distance to wall.
@@ -299,10 +310,6 @@ if __name__ == "__main__":
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  # Make directory for logs if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
-    os.mkdir(os.path.join(os.getcwd(), 'logs'))
-
   log_filename = './logs/tetrahedron-dt-%d-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
@@ -374,10 +381,6 @@ if __name__ == "__main__":
              rfd_heights/(n_steps*bin_width),
              em_heights/(n_steps*bin_width),
              equilibrium_heights/(n_steps*bin_width)]
-
-  # Make directory for data if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
-    os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   # Optional name for data provided    
   if len(args.data_name) > 0:

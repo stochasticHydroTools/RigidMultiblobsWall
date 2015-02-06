@@ -43,10 +43,6 @@ def plot_phis(phi_list, names, buckets):
 
   
 if __name__ == "__main__":
-  # Make sure figures folder exists
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
-
   # Script to run the various integrators on the quaternion.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   fixman_integrator = QuaternionIntegrator(tdn.tetrahedron_mobility,

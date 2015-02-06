@@ -43,9 +43,6 @@ def check_first_order_height_distribution(heights, buckets, names):
   
 
 if __name__ == '__main__':
-  # Make sure figures folder exists
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
   # Load data and plot.
   data_name = './data/%s' % sys.argv[1]
   with open(data_name, 'rb') as data:

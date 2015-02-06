@@ -21,7 +21,17 @@ from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
 from utils import StreamToLogger
 
+# Make sure figures folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+  os.mkdir(os.path.join(os.getcwd(), 'figures'))
+# Make sure data folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
+  os.mkdir(os.path.join(os.getcwd(), 'data'))
+# Make sure logs folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+  os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
+  
 ETA = 1.0   # Fluid viscosity.
 A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
@@ -373,10 +383,6 @@ if __name__ == '__main__':
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  # Make directory for logs if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
-    os.mkdir(os.path.join(os.getcwd(), 'logs'))
-
   log_filename = './logs/free-tetrahedron-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
@@ -497,10 +503,6 @@ if __name__ == '__main__':
   height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
                             + 0.5*bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
-
-  # Make directory for data if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
-    os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   # Optional name for data provided
   if len(args.data_name) > 0:

@@ -387,9 +387,6 @@ if __name__ == "__main__":
   n_runs = args.n_steps
 
   # Setup logging.
-  # Make directory for logs if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
-    os.mkdir(os.path.join(os.getcwd(), 'logs'))
   log_filename = './logs/rotational-msd-initial-%s-location-%s-dts-%s-N-%d-%s.log' % (
     args.initial, args.has_location, dts, n_runs, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
@@ -447,10 +444,6 @@ if __name__ == "__main__":
       log_time_progress(elapsed_time, time_units, total_time_units)
 
   progress_logger.info('Runs complete.')
-
-  # Make directory for data if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
-    os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   # Optional name for data provided
   data_name = args.data_name
