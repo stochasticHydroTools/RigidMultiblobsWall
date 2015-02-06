@@ -194,7 +194,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     dim = 3
 
   rot_msd_list = []
-  print_increment = n_steps/20
+  print_increment = n_steps/10
+  start_time = time.time()
   for run in range(n_runs):
     integrator = QuaternionIntegrator(mobility,
                                       initial_orientation, 
@@ -247,7 +248,13 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
       if (step % print_increment) == 0:
-        progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
+        progress_logger.info(
+          'At step: %d in run %d of %d ' %
+          (step, run + 1, n_runs))
+        if step > 0:
+          time_elapsed = time.time() - start_time
+          log_time_progress(time_elapsed, step + (burn_in + n_steps)*run,
+                            (burn_in + n_steps)*n_runs)
 
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
@@ -285,7 +292,6 @@ def calc_rotational_msd(initial_orientation, orientation):
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
   return np.outer(u_hat, u_hat)
-
 
 
 def plot_msd_convergence(dts, msd_list, names):
@@ -333,9 +339,8 @@ if __name__ == "__main__":
                                    'Fixman, Random Finite Difference, and '
                                    'Euler-Maruyama schemes at multiple '
                                    'timesteps.')
-  parser.add_argument('-dts', dest='dts', type=float, nargs='+',
-                      help='Timesteps to use for runs. specify as a list, e.g. '
-                      '-dts 4.0 2.0')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs or number of runs '
                       'to perform in the case of fixed initial condition.')
@@ -346,12 +351,16 @@ if __name__ == "__main__":
                       'a fixed initial condition.  If false, will do one '
                       'run and calculate the average time dependent MSD at '
                       'equilibrium.')
-  parser.add_argument('-location', dest='has_location', type=bool,
+  parser.add_argument('-free', dest='has_location', type=bool,
                       default=False,
                       help='Whether or not the tetrahedron is allowed '
-                      'to move (has a location).  If it is allowed to move, '
+                      'to move (is free).  If it is allowed to move, '
                       'then the MSD includes translational and rotational '
                       'displacement.')
+  parser.add_argument('-scheme', dest='scheme', type=str,
+                      default='RFD',
+                      help='Scheme to use for timestepping. Must be '
+                      'RFD, FIXMAN, or EM (Euler Maruyama)')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -363,6 +372,9 @@ if __name__ == "__main__":
   if args.profile:
     pr = cProfile.Profile()
     pr.enable()
+
+  if args.scheme not in ['RFD', 'FIXMAN', 'EM']:
+    raise Exception('Scheme must be one of RFD, FIXMAN, or EM')
 
   # Set masses to all be equal for simple theoretical comparison.
   tdn.M1 = 0.1
@@ -378,17 +390,14 @@ if __name__ == "__main__":
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [[0., 0., 4.0]]
 
-  schemes = ['FIXMAN', 'RFD']
-  if not args.has_location:
-    schemes.append('EM')
-
-  dts = args.dts
+  dt = args.dt
   end_time = args.end_time
   n_runs = args.n_steps
 
   # Setup logging.
-  log_filename = './logs/rotational-msd-initial-%s-location-%s-dts-%s-N-%d-%s.log' % (
-    args.initial, args.has_location, dts, n_runs, args.data_name)
+  log_filename = ('./logs/rotational-msd-initial-%s-location-%s-'
+                  'scheme-%s-dt-%s-N-%d-%s.log' % (
+      args.initial, args.has_location, args.scheme, dt, n_runs, args.data_name))
   progress_logger = logging.getLogger('progress_logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -409,50 +418,43 @@ if __name__ == "__main__":
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3,
               'A': tf.A, 'KT': tf.KT, 'end_time': end_time}
     
-  msd_statistics = MSDStatistics(schemes, dts, params)
+  msd_statistics = MSDStatistics([args.scheme], [dt], params)
   # Measure time, and estimate how long runs will take.
   # One time unit is n_runs timesteps.
-  start_time = time.time()
-  total_time_units = sum(end_time/np.array(dts))*len(schemes)
-  time_units = 0
-  for scheme in schemes:
-    for dt in dts:
-      if args.initial:
-        run_data = calculate_msd_from_fixed_initial_condition(
-          initial_orientation,
-          scheme,
-          dt,
-          end_time,
-          n_runs,
-          has_location=args.has_location,
-          location=initial_location)
-      else:
-        run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
-                                                        scheme,
-                                                        dt,
-                                                        end_time,
-                                                        n_runs,
-                                                        has_location=
-                                                        args.has_location,
-                                                        location=
-                                                        initial_location)
-      msd_statistics.add_run(scheme, dt, run_data)
-      elapsed_time = time.time() - start_time
-      time_units += end_time/dt
-      progress_logger.info('finished timestepping dt= %f for scheme %s' % (
-      dt, scheme))
-      log_time_progress(elapsed_time, time_units, total_time_units)
-
+  if args.initial:
+    run_data = calculate_msd_from_fixed_initial_condition(
+      initial_orientation,
+      args.scheme,
+      dt,
+      end_time,
+      n_runs,
+      has_location=args.has_location,
+      location=initial_location)
+  else:
+    run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
+                                                    args.scheme,
+                                                    dt,
+                                                    end_time,
+                                                    n_runs,
+                                                    has_location=
+                                                    args.has_location,
+                                                    location=
+                                                    initial_location)
+  msd_statistics.add_run(args.scheme, dt, run_data)
+  progress_logger.info('finished timestepping dt= %f for scheme %s' % (
+      dt, args.scheme))
   progress_logger.info('Runs complete.')
 
   # Optional name for data provided
   data_name = args.data_name
   if len(data_name) > 3:
-    data_name = './data/rot-msd-initial-%s-location-%s-dt-%s-N-%d-%s.pkl' % (
-      args.initial, args.has_location, dts, n_runs, data_name)
+    data_name = ( 
+      './data/rot-msd-initial-%s-location-%s-scheme-%s-dt-%s-N-%d-%s.pkl' % (
+        args.initial, args.has_location, args.scheme, dt, n_runs, data_name))
   else:
-    data_name = './data/rot-msd-initial-%s-location-%s-dt-%s-N-%d.pkl' % (
-      args.initial, args.has_location, dts, n_runs)
+    data_name = (
+      './data/rot-msd-initial-%s-location-%s-scheme-%s-dt-%s-N-%d.pkl' % (
+        args.initial, args.has_location, args.scheme, dt, n_runs))
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
