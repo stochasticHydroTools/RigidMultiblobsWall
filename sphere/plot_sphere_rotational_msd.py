@@ -15,9 +15,6 @@ from tetrahedron.plot_rotational_msd import plot_time_dependent_msd
 
 
 if __name__ == "__main__":
-  # Make sure figures folder exists
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
   # Open data file.
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:

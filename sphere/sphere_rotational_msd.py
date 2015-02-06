@@ -30,44 +30,7 @@ import tetrahedron.tetrahedron_rotational_msd as trm
 from tetrahedron.tetrahedron_free import static_var
 from utils import StreamToLogger
 from fluids import mobility as mb
-
-
-#Parameters
-ETA = 1.0  # Viscosity.
-A = 0.5    # Radius of sphere.
-M  = 0.1   # Mass*g of sphere.
-H = 3.5    # Initial Distance from Wall.
-KT = 0.2   # Temperature.
-# Parameters for Yukawa potential
-REPULSION_STRENGTH = 2.0
-DEBYE_LENGTH = 0.25  
-
-
-
-def sphere_check_function(location, orientation):
-  ''' Check that sphere is not overlapping the wall. '''
-  if location[0][2] < A:
-    return False
-  else:
-    return True
-  
-
-def null_torque_calculator(location, orientation):
-  return [0., 0., 0.]
-
-
-def sphere_force_calculator(location, orientation):
-  gravity = -1*M
-  h = location[0][2]
-  repulsion = (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
-               np.exp(-1.*(h - A)/DEBYE_LENGTH)/((h - A)**2))
-  return [0., 0., gravity + repulsion]
-
-
-def sphere_mobility(location, orientation):
-  location = location[0]
-  fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, ETA, A)
-  return fluid_mobility
+import sphere as sph
 
 
 def gibbs_boltzmann_distribution(location):
@@ -77,13 +40,13 @@ def gibbs_boltzmann_distribution(location):
   [x, y, z] components of sphere position.
   '''
   # Calculate potential.
-  if location[2] > A:
-    U = M*location[2]
-    U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/DEBYE_LENGTH)/
-          (location[2] - A))
+  if location[2] > sph.A:
+    U = sph.M*location[2]
+    U += (sph.REPULSION_STRENGTH*np.exp(-1.*(location[2] - sph.A)/sph.DEBYE_LENGTH)/
+          (location[2] - sph.A))
   else:
     return 0.0
-  return np.exp(-1.*U/KT)  
+  return np.exp(-1.*U/sph.KT)  
 
 
 def calc_total_sphere_msd(initial_location, initial_rot_matrix, 
@@ -129,14 +92,15 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
   print_increment = n_steps/20
   dim = 6
   for run in range(n_runs):
-    integrator = QuaternionIntegrator(sphere_mobility,
+    integrator = QuaternionIntegrator(sph.sphere_mobility,
                                       initial_orientation, 
-                                      null_torque_calculator,
+                                      sph.null_torque_calculator,
                                       has_location=True,
                                       initial_location=location,
-                                      force_calculator=sphere_force_calculator)
-    integrator.kT = KT
-    integrator.check_function = sphere_check_function
+                                      force_calculator=
+                                      sph.sphere_force_calculator)
+    integrator.kT = sph.KT
+    integrator.check_function = sph.sphere_check_function
 
     trajectory_length = int(end_time/dt) + 1
     if trajectory_length > n_steps:
@@ -233,11 +197,11 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
 
   # Annotate plot and add theory.
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              2.*KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
+              2.*sph.KT*mob_and_friction[0]*np.array(msd_statistics.data[scheme][dt][0]),
               'k-',
               label='Slope=2 kT Mu Parallel')
   pyplot.plot(msd_statistics.data[scheme][dt][0], 
-              2.*KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
+              2.*sph.KT*np.array(msd_statistics.data[scheme][dt][0]/mob_and_friction[1]),
               'r--',
               label='Slope=2 kT/Friction')
   pyplot.title('MSD(t) for spere in X and Y directions')
@@ -257,7 +221,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   TODO: Make this use trapezoidal rule.
   '''
   for k in range(len(height_histogram)):
-    h = A + bin_width*(k + 0.5)
+    h = sph.A + bin_width*(k + 0.5)
     height_histogram[k] = gibbs_boltzmann_distribution([0., 0., h])
   
   # Normalize to get ~PDF.
@@ -269,7 +233,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   # distribution.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   for k in range(len(height_histogram)):
-    h = A + bin_width*(k + 0.5)    
+    h = sph.A + bin_width*(k + 0.5)    
     mobility = sphere_mobility([np.array([0., 0., h])], initial_orientation)
     average_mu += mobility[0, 0]*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
@@ -297,7 +261,7 @@ def plot_height_histograms(buckets, height_histograms, labels):
   for k in range(len(height_histograms)):
     pyplot.plot(buckets[start_ind:], height_histograms[k][start_ind:],
                 label=labels[k])
-  pyplot.plot(A*np.ones(2), [1e-5, 0.45], label="Touching Wall")
+  pyplot.plot(sph.A*np.ones(2), [1e-5, 0.45], label="Touching Wall")
   pyplot.gca().set_yscale('log')
   pyplot.title('Height Distribution for Sphere')
   pyplot.legend(loc='best', prop={'size': 9})
@@ -331,7 +295,7 @@ if __name__ == '__main__':
                       '(--data_name=run-1).')
   args=parser.parse_args()
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  initial_location = [np.array([0., 0., H])]
+  initial_location = [np.array([0., 0., sph.H])]
 
   scheme = 'RFD'
   dt = args.dt
@@ -339,13 +303,6 @@ if __name__ == '__main__':
   n_steps = args.n_steps
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
-
-  # Set up logging.
-  # Make directory for logs if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
-    os.mkdir(os.path.join(os.getcwd(), 'logs'))
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
 
   log_filename = './logs/sphere-rotation-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
@@ -361,9 +318,10 @@ if __name__ == '__main__':
   sys.stderr = sl
 
   height_histogram_run = np.zeros(len(buckets))
-  params = {'M': M, 'A': A,
-            'REPULSION_STRENGTH': REPULSION_STRENGTH, 
-            'DEBYE_LENGTH': DEBYE_LENGTH}
+  params = {'M': sph.M, 'A': sph.A,
+            'REPULSION_STRENGTH': sph.REPULSION_STRENGTH, 
+            'DEBYE_LENGTH': sph.DEBYE_LENGTH,
+            'KT': sph.KT}
 
   msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
 
@@ -377,9 +335,6 @@ if __name__ == '__main__':
 
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
-  # Make directory for data if it doesn't exist.
-  if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
-    os.mkdir(os.path.join(os.getcwd(), 'data'))
 
   data_name = './data/sphere-msd-dt-%s-N-%d-%s.pkl' % (
     dt, n_steps, args.data_name)
@@ -397,9 +352,6 @@ if __name__ == '__main__':
                                [average_mob_and_friction[0], average_mob_and_friction[1]],
                                n_steps)
 
-  # height_histogram_run /= sum(height_histogram_run)*bin_width
-  # height_histogram.append(height_histogram_run)
-  # labels.append('Run')
   plot_height_histograms(buckets, height_histograms, labels)
   print "Mobility is ", average_mob_and_friction[0]
   print "Average friction is ", average_mob_and_friction[1]
