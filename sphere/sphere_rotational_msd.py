@@ -234,7 +234,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   for k in range(len(height_histogram)):
     h = sph.A + bin_width*(k + 0.5)    
-    mobility = sphere_mobility([np.array([0., 0., h])], initial_orientation)
+    mobility = sph.sphere_mobility([np.array([0., 0., h])], initial_orientation)
     average_mu += mobility[0, 0]*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
 
@@ -345,7 +345,7 @@ if __name__ == '__main__':
   height_histograms = []
   labels = []
   height_histograms.append(np.zeros(len(buckets)))
-  labels.append('strength=%s, b=%s' % (REPULSION_STRENGTH, DEBYE_LENGTH))
+  labels.append('strength=%s, b=%s' % (sph.REPULSION_STRENGTH, sph.DEBYE_LENGTH))
   average_mob_and_friction = calculate_mu_friction_and_height_distribution(
     bin_width, height_histograms[-1])
   avg_slope = plot_x_and_y_msd(msd_statistics, 
@@ -356,4 +356,4 @@ if __name__ == '__main__':
   print "Mobility is ", average_mob_and_friction[0]
   print "Average friction is ", average_mob_and_friction[1]
   print "1/Friction is %f" % (1./average_mob_and_friction[1])
-  print "Slope/2kT is ", avg_slope/2./KT
+  print "Slope/2kT is ", avg_slope/2./sph.KT

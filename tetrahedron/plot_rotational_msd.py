@@ -68,7 +68,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure):
       dt_num += 1
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
-  pyplot.legend(loc='best', prop={'size': 9})
+
 
 
 if __name__ == "__main__":
@@ -82,6 +82,7 @@ if __name__ == "__main__":
     plot_time_dependent_msd(msd_statistics, ind, 1)
 
   pyplot.title('MSD(t) for Tetrahedron')
+  pyplot.legend(loc='best', prop={'size': 9})
   pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
                    (ind))
 
