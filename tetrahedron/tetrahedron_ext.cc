@@ -115,12 +115,84 @@ void SingleWallFluidMobility(bp::list r_vectors,
   }
 }
 
+void ConstructRotationMatrix(bp::list orientation, double* rotation_matrix) {
+	// Construct rotation matrix from a list of quaternion entries.
+	// orientation = [s, p1, p2, p3]
+	// rotation_matrix is output as a pointer to 9 doubles, stored in row 
+	// major order.
+	double s = bp::extract<double>(orientation[0]);
+	double* p = new double[3];
+	p[0] = bp::extract<double>(orientation[1]);
+	p[1] = bp::extract<double>(orientation[2]);
+	p[2] = bp::extract<double>(orientation[3]);
+	// add 2 * p p^t
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			rotation_matrix[i*3 + j] = 2.0*p[i]*p[j];
+		}
+	}
+	// Add 2.*(s^2 - 0.5)*identity
+	for (int i = 0; i < 3; ++i) {
+		rotation_matrix[i*3 + i] += 2.0*s*s - 1.0;
+	}
+
+	// Add 2.* s cross P.
+	rotation_matrix[1] += -2.0*p[2]*s;
+	rotation_matrix[2] += 2.0*p[1]*s;
+	rotation_matrix[3] += 2.0*p[2]*s;
+	rotation_matrix[5] += -2.0*p[0]*s;
+	rotation_matrix[6] += -2.0*p[1]*s;
+	rotation_matrix[7] += 2.0*p[0]*s;
+}
+
+
+void GetFreeRVectors(bp::numeric::array location, bp::list orientation,
+								 bp::list r_vectors) {
+	// Get R vectors from the location and orientation of a free tetrahedron.
+	// location is a list of coordinates, x, y, z.
+	// orientation is a list of entries of a Quaternion, s, p1, p2, p3.
+	// output is r_vectors, a list of arrays of r_vectors.
+	// See get_free_r_vectors in tetrahedron_free.py for 
+	// a description of the geometric setup.
+	
+	// Rotation matrix is a 3x3 matrix stored in row major order.
+	double* rotation_matrix = new double[9];
+	// Initial configuration, each 3 entries is one initial r vector.
+	double* initial_r = new double[9];
+	initial_r[0] = 0.0;
+	initial_r[1] = 2.0/sqrt(3.0);
+	initial_r[2] = -2.0*sqrt(2.0)/sqrt(3.0);
+	initial_r[3] = -1.0;
+	initial_r[4] = -1.0/sqrt(3.0);
+	initial_r[5] = -2*sqrt(2.0)/sqrt(3.0);
+	initial_r[6] = 1.0;
+	initial_r[7] = -1.0/sqrt(3.0);
+	initial_r[8] = -2*sqrt(2.0)/sqrt(3.0);
+	ConstructRotationMatrix(orientation, rotation_matrix);
+
+	for (int k = 0; k < 3; ++k) {
+		bp::numeric::array current_r_vector =
+			bp::extract<bp::numeric::array>(r_vectors[k]);
+		for (int i = 0; i < 3; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				current_r_vector[i] += rotation_matrix[i*3 + j]*initial_r[k*3 + j];
+			}
+		}
+		// Add location.
+		for(int i = 0; i < 3; ++i) {
+			current_r_vector[i] += location[i];
+		}
+	}
+}
+
+
 BOOST_PYTHON_MODULE(tetrahedron_ext)
 {
   using namespace boost::python;
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
   def("print_test", PrintTest);
   def("test_list", TestList);
-  def("single_wall_fluid_mobility", SingleWallFluidMobility);
+	//  def("single_wall_fluid_mobility", SingleWallFluidMobility);
+  def("get_free_r_vectors", GetFreeRVectors);
 }
 

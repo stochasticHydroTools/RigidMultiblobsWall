@@ -205,7 +205,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
-    integrator.check_function = tf.check_particles_above_wall
+    if has_location:
+      integrator.check_function = tf.check_particles_above_wall
 
     trajectory_length = int(end_time/dt) + 1
     if trajectory_length > n_steps:

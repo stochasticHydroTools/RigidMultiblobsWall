@@ -15,6 +15,7 @@ import cProfile, StringIO, pstats
 import logging
 
 import tetrahedron as tdn
+import tetrahedron_ext as te
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -85,7 +86,7 @@ def force_and_torque_mobility(r_vectors, location):
   return total_mobility
 
 
-def get_free_r_vectors(location, quaternion):
+def old_get_free_r_vectors(location, quaternion):
   ''' Calculate r_i from a given quaternion. 
   The initial configuration is hard coded here but can be changed by
   considering an initial quaternion not equal to the identity rotation.
@@ -117,6 +118,41 @@ def get_free_r_vectors(location, quaternion):
   r3 = np.dot(rotation_matrix, initial_r3) + np.array(location)
   
   return [r1, r2, r3]
+
+
+def get_free_r_vectors(location, orientation):
+  ''' Calculate r_i from a given quaternion.
+  The initial configuration is hard coded here but can be changed by
+  considering an initial quaternion not equal to the identity rotation.
+  initial configuration (top down view, the top vertex is fixed at the origin):
+
+                         O r_1 = (0, 2/sqrt(3), -(2 sqrt(2))/3)
+                        / \
+                       /   \
+                      /     \
+                     /   O(location, everything else relative to this location)
+                    /          \
+                   /            \
+               -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
+             /
+           r_2 = (-1, -1/sqrt(3),-(2 sqrt(2))/3)
+
+  Each side of the tetrahedron has length 2.
+  location is a 3-dimensional list giving the location of the "top" vertex.
+  quaternion is a quaternion representing the tetrahedron orientation.
+
+  This function is written in C++ using boost for speed.  This has about a 2x
+  speedup, but doesn't really make a huge difference in MSD scripts 
+  unfortunately.
+  '''
+  r_vectors = [np.zeros(3) for _ in range(3)]
+  location = np.array(location)
+  te.get_free_r_vectors(location, [float(orientation.s), 
+                                   float(orientation.p[0]), 
+                                   float(orientation.p[1]), 
+                                   float(orientation.p[2])],
+                        r_vectors)
+  return r_vectors
 
 
 def get_free_center_of_mass(location, orientation):
@@ -376,6 +412,7 @@ if __name__ == '__main__':
   if args.profile:
     pr = cProfile.Profile()
     pr.enable()
+
 
   # Get command line parameters
   dt = args.dt
