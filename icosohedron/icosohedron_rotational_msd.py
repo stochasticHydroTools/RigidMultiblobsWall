@@ -196,7 +196,7 @@ if __name__ == '__main__':
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
 
-  data_name = './data/sphere-msd-dt-%s-N-%d-%s.pkl' % (
+  data_name = './data/icosohedron-msd-dt-%s-N-%d-%s.pkl' % (
     dt, n_steps, args.data_name)
 
   with open(data_name, 'wb') as f:

@@ -66,6 +66,7 @@ if __name__ == "__main__":
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
+    msd_statistics.print_params()
 
 
   bin_width = 1./10.

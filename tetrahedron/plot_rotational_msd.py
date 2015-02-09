@@ -77,6 +77,7 @@ if __name__ == "__main__":
     data_name = os.path.join('data', sys.argv[k])
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
+      msd_statistics.print_params()
   
     ind = [2, 2]
     plot_time_dependent_msd(msd_statistics, ind, 1)

@@ -46,3 +46,11 @@ class MSDStatistics(object):
       self.data[scheme_name] = dict()
 
     self.data[scheme_name][dt] = run_data
+
+  def print_params(self):
+     print "Parameters are: "
+     print self.params
+     
+
+
+
