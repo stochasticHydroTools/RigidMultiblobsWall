@@ -36,6 +36,14 @@ def icosohedron_mobility(location, orientation):
   r_vectors = get_icosohedron_r_vectors(location[0], orientation[0])
   return force_and_torque_icosohedron_mobility(r_vectors, location[0])
 
+def icosohedron_center_mobility(location, orientation):
+  ''' 
+  Mobility for the rigid icosohedron, return a 6x6 matrix
+  that takes Force + Torque and returns velocity and angular velocity.
+  '''
+  r_vectors = get_icosohedron_center_r_vectors(location[0], orientation[0])
+  return force_and_torque_icosohedron_mobility(r_vectors, location[0])
+
 
 def force_and_torque_icosohedron_mobility(r_vectors, location):
   '''
@@ -55,7 +63,7 @@ def force_and_torque_icosohedron_mobility(r_vectors, location):
   '''  
   mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, VERTEX_A)
   rotation_matrix = calc_icosohedron_rot_matrix(r_vectors, location)
-  J = np.concatenate([np.identity(3) for _ in range(12)])
+  J = np.concatenate([np.identity(3) for _ in range(len(r_vectors))])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -68,6 +76,39 @@ def get_icosohedron_r_vectors(location, orientation):
   # These values taken from an IBAMR vertex file. 'Radius' of 
   # Entire structure is ~1.
   initial_setup = [np.array([0.276393, 0.850651, 0.447214]),
+                   np.array([1e-12, 1e-12, 1]),
+                   np.array([-0.723607, 0.525731, 0.447214]),
+                   np.array([0.276393, -0.850651, 0.447214]),
+                   np.array([-0.276393, -0.850651, -0.447214]),
+                   np.array([-0.723607, -0.525731, 0.447214]),
+                   np.array([-0.276393, 0.850651, -0.447214]),
+                   np.array([-0.894427, 1.00011e-12, -0.447214]),
+                   np.array([0.723607, -0.525731, -0.447214]),
+                   np.array([0.723607, 0.525731, -0.447214]),
+                   np.array([0.894427, 9.99781e-13, 0.447214]),
+                   np.array([1e-12, 1e-12, -1])]
+  
+  rotation_matrix = orientation.rotation_matrix()
+
+  # TODO: Maybe don't do this on the fly every single time.
+  for k in range(len(initial_setup)):
+    initial_setup[k] = A*(initial_setup[k])
+
+  rotated_setup = []
+  for r in initial_setup:
+    rotated_setup.append(np.dot(rotation_matrix, r) + np.array(location))
+    
+  return rotated_setup
+
+
+def get_icosohedron_center_r_vectors(location, orientation):
+  ''' Get the locations of each individual vertex of the icosohedron. 
+  Same as above, b'''
+  # These values tut now we have a blob in the center.
+  # taken from an IBAMR vertex file. 'Radius' of 
+  # Entire structure is ~1.
+  initial_setup = [np.array([0., 0., 0.]),
+                   np.array([0.276393, 0.850651, 0.447214]),
                    np.array([1e-12, 1e-12, 1]),
                    np.array([-0.723607, 0.525731, 0.447214]),
                    np.array([0.276393, -0.850651, 0.447214]),

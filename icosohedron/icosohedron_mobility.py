@@ -13,7 +13,6 @@ import icosohedron as ic
 import sphere.sphere as sph
 from quaternion_integrator.quaternion import Quaternion
 
-
 def plot_scatter_icosohedron_mobilities(a, heights):
   '''
   Calculate parallel, perpendicular, and rotational mobilities
@@ -30,6 +29,9 @@ def plot_scatter_icosohedron_mobilities(a, heights):
     mu_parallel = []
     mu_perp = []
     mu_rotation = []
+    mu_center_parallel = []
+    mu_center_perp = []
+    mu_center_rotation = []
 
     for h in heights:
       # Calculate 5 random orientations for heights.
@@ -38,19 +40,30 @@ def plot_scatter_icosohedron_mobilities(a, heights):
         theta = Quaternion(theta/np.linalg.norm(theta))
         location = [0., 0., h]
         mobility = ic.icosohedron_mobility([location], [theta])
+        mobility_center = ic.icosohedron_center_mobility([location], [theta])
         x.append(h)
         mu_parallel.append(mobility[0, 0])
         mu_perp.append(mobility[2, 2])
         mu_rotation.append(mobility[3, 3])
+        mu_center_parallel.append(mobility_center[0, 0])
+        mu_center_perp.append(mobility_center[2, 2])
+        mu_center_rotation.append(mobility_center[3, 3])
         
     pyplot.figure(1)
-    pyplot.plot(x, mu_parallel, symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_parallel, 'b' + symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_center_parallel, 'g' + symbols[d], 
+                label="d = %s a, center" % d)
     
     pyplot.figure(2)
-    pyplot.plot(x, mu_perp, symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_perp, 'b' + symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_center_perp, 'g' + symbols[d], 
+                label="d = %s a, center" % d)
+
     
     pyplot.figure(3)
-    pyplot.plot(x, mu_rotation, symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_rotation, 'b' + symbols[d], label="d = %s a" % d)
+    pyplot.plot(x, mu_center_rotation, 'g' + symbols[d], 
+                label="d = %s a, center" % d)
         
 
   sphere_parallel = []
