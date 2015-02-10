@@ -21,7 +21,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   from 1.5 to 2.5.
   Compare these results to a sphere of radius 0.5
   '''
-  symbols = {1.5: '*', 2.0: '.', 2.5: 's'}
+  symbols = {1.5: '^', 2.0: '.', 2.5: 's'}
   for d in [1.5, 2.0, 2.5]:
     ic.VERTEX_A = a
     ic.A = d*a
@@ -92,14 +92,14 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   pyplot.figure(3)
   pyplot.plot(heights, sphere_rotation, 'k--', label='Sphere')
   pyplot.title('Rotational Mobility for Icosohedron, a = %s' % a)
-  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.legend(loc='upper right', prop={'size': 9})
   pyplot.savefig('./figures/IcosohedronRotationalMobility.pdf')
   
 
 if __name__ == '__main__':
   
   a = 0.2
-  heights = np.linspace(0.5, 7.0, 40)
+  heights = np.linspace(0.65, 7.0, 40)
   plot_scatter_icosohedron_mobilities(a, heights)
   
 
