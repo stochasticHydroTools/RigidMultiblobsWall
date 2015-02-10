@@ -10,7 +10,7 @@ from quaternion_integrator.quaternion import Quaternion
 # Parameters
 ETA = 1.0             # Viscosity.
 A = 0.5               # 'Radius' of entire Icosohedron.
-VERTEX_A = 0.2       # radius of individual vertices
+VERTEX_A = 0.05       # radius of individual vertices
 M = [0.1/13. for _ in range(13)]  #Masses of particles
 KT = 0.2              # Temperature
 
