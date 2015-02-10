@@ -9,9 +9,9 @@ from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 ETA = 1.0             # Viscosity.
-A = 0.5               # 'Radius' of entire Icosohedron.
-VERTEX_A = 0.05       # radius of individual vertices
-M = [0.1/13. for _ in range(13)]  #Masses of particles
+VERTEX_A = 0.145     # radius of individual vertices
+A = 1.63*VERTEX_A               # 'Radius' of entire Icosohedron.
+M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 
 # Repulsion potential paramters.  Using Yukawa potential.
@@ -87,7 +87,7 @@ def get_icosohedron_r_vectors(location, orientation):
                    np.array([0.723607, 0.525731, -0.447214]),
                    np.array([0.894427, 9.99781e-13, 0.447214]),
                    np.array([1e-12, 1e-12, -1])]
-  
+
   rotation_matrix = orientation.rotation_matrix()
 
   # TODO: Maybe don't do this on the fly every single time.
