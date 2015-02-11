@@ -17,9 +17,8 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   '''
   Calculate parallel, perpendicular, and rotational mobilities
   at the given heights for an icosohedron with vertices radius a.
-  Here we vary the ratio between Icosohedron length and vertex radius
-  from 1.5 to 2.5.
-  Compare these results to a sphere of radius 0.5
+  Here we vary the ratio between Icosohedron length and vertex radius.
+  Compare these results to a sphere with the corresponding effective radius.
   '''
   symbols = {1.63: '^', 2.0: '.', 2.5: 's', 3.26: 'v', 5.0: 'x', 6.0: 'o'}
   orientation = [Quaternion([1., 0., 0., 0.])]
@@ -84,6 +83,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   pyplot.xlabel('H/a_effective')
   pyplot.ylabel('Mobility/Bulk Mobility')
   pyplot.savefig('./figures/IcosohedronParallelMobility.pdf')
+  pyplot.clf()
 
   pyplot.figure(2)
   pyplot.plot(np.array(heights), sphere_perp, 'k--', label='Sphere')
@@ -92,6 +92,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   pyplot.xlabel('H/a_effective')
   pyplot.ylabel('Mobility/Bulk Mobility') 
   pyplot.savefig('./figures/IcosohedronPerpendicularMobility.pdf')
+  pyplot.clf()
 
   pyplot.figure(3)
   pyplot.plot(np.array(heights), sphere_rotation, 'k--', label='Sphere')
@@ -100,6 +101,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   pyplot.xlabel('H/a_effective')
   pyplot.ylabel('Mobility/Bulk Mobility')
   pyplot.savefig('./figures/IcosohedronRotationalMobility.pdf')
+  pyplot.clf()
   
 
 
@@ -112,55 +114,94 @@ def plot_icosohedron_mobilities_at_wall(h_over_a, a, r):
   units (h = a_effective*h_over_a)
   '''
   # Put icosohedron in contact with wall.
-  ic.VERTEX_A = a
-  ic.A = r*a
-  orientation = [Quaternion([1., 0., 0., 0.])]
-  far_location = [[0., 0., 30000.*a]]
-  # Compute theoretical mobility.
-  mobility_theory = ic.icosohedron_mobility(far_location, orientation)
-  a_eff = 1.0/(6.*np.pi*ic.ETA*mobility_theory[0, 0])
-  print 'a_effective is %f' % a_eff
-  sph.A = a_eff
-  h = h_over_a*a_eff
-  sphere_mobility_near_wall = sph.sphere_mobility([[0., 0., h]],
+  for r in r_list:
+    ic.VERTEX_A = a
+    ic.A = r*a
+    orientation = [Quaternion([1., 0., 0., 0.])]
+    far_location = [[0., 0., 30000.*a]]
+    # Compute theoretical mobility far from wall.
+    mobility_theory = ic.icosohedron_mobility(far_location, orientation)
+    a_eff = 1.0/(6.*np.pi*ic.ETA*mobility_theory[0, 0])
+    print 'a_effective is %f' % a_eff
+    sph.A = a_eff
+    h = h_over_a*a_eff
+    sphere_mobility_near_wall = sph.sphere_mobility([[0., 0., h]],
                                                   orientation)
-  mobility_scatter_points = []
-  components = []
-  for k in range(100):
-    # Generate 100 random orientations of the icosohedron near the wall.
-    theta = np.random.normal(0., 1., 4)
-    theta = [Quaternion(theta/np.linalg.norm(theta))]
-    mobility = ic.icosohedron_mobility([[0., 0., h]], theta)
-    mobility_error = [((mobility[0, 0] - sphere_mobility_near_wall[0, 0])/
-                      sphere_mobility_near_wall[0, 0]),
-                      ((mobility[2, 2] - sphere_mobility_near_wall[2, 2])/
-                       sphere_mobility_near_wall[2, 2]),
-                      ((mobility[3, 3] - sphere_mobility_near_wall[3, 3])/
-                       sphere_mobility_near_wall[3, 3]),
-                      ((mobility[5, 5] - sphere_mobility_near_wall[5, 5])/
-                       sphere_mobility_near_wall[5, 5]),
-                      ((mobility[0, 4] - sphere_mobility_near_wall[0, 4])/
-                       sphere_mobility_near_wall[0, 4])]
+    mobility_t_xx = []
+    mobility_t_zz = []
+    mobility_r_xx = []
+    mobility_r_zz = []
+    mobility_tr = []
+    components = []
+    for k in range(100):
+      # Generate 100 random orientations of the icosohedron near the wall.
+      theta = np.random.normal(0., 1., 4)
+      theta = [Quaternion(theta/np.linalg.norm(theta))]
+      mobility = ic.icosohedron_mobility([[0., 0., h]], theta)
+      mobility_t_xx.append((mobility[0, 0]/
+                            sphere_mobility_near_wall[0, 0]))
+      mobility_t_zz.append((mobility[2, 2]/
+                            sphere_mobility_near_wall[2, 2]))
+      mobility_r_xx.append((mobility[3, 3]/
+                            sphere_mobility_near_wall[3, 3]))
+      mobility_r_zz.append((mobility[5, 5]/
+                            sphere_mobility_near_wall[5, 5]))
+      mobility_tr.append((mobility[0, 4]/
+                          sphere_mobility_near_wall[0, 4]))
+      
+    pyplot.figure(1)
+    pyplot.plot(r*np.ones(100), mobility_t_xx, 'g.')
+    pyplot.figure(2)
+    pyplot.plot(r*np.ones(100), mobility_t_zz, 'g.')
+    pyplot.figure(3)
+    pyplot.plot(r*np.ones(100), mobility_r_xx, 'g.')
+    pyplot.figure(4)
+    pyplot.plot(r*np.ones(100), mobility_r_zz, 'g.')
+    pyplot.figure(5)
+    pyplot.plot(r*np.ones(100), mobility_tr, 'g.')
 
-    mobility_scatter_points = np.concatenate([mobility_scatter_points, 
-                                              mobility_error])
-    components = np.concatenate([components, [0, 2, 3, 5, 6]])
+  pyplot.figure(1)
+  pyplot.title('Mu Parallel')
+  pyplot.ylabel('Mobility Component / Sphere')
+  pyplot.xlabel('d/a')
+  pyplot.xlim([0.0, 7.0])
+  pyplot.savefig('./figures/IcosohedronTranslation-xx-NearWall.pdf')
+  pyplot.clf()
+  pyplot.figure(2)
+  pyplot.title('Mu Perpendicular')
+  pyplot.ylabel('Mobility Component / Sphere')
+  pyplot.xlabel('d/a')
+  pyplot.xlim([0.0, 7.0])
+  pyplot.savefig('./figures/IcosohedronTranslation-zz-NearWall.pdf')
+  pyplot.clf()
+  pyplot.figure(3)
+  pyplot.title('Mu Rotational X')
+  pyplot.ylabel('Mobility Component / Sphere')
+  pyplot.xlabel('d/a')
+  pyplot.xlim([0.0, 7.0])
+  pyplot.savefig('./figures/IcosohedronRotation-xx-NearWall.pdf')
+  pyplot.clf()
+  pyplot.figure(4)
+  pyplot.title('Mu Rotation Z')
+  pyplot.ylabel('Mobility Component / Sphere')
+  pyplot.xlabel('d/a')
+  pyplot.xlim([0.0, 7.0])
+  pyplot.savefig('./figures/IcosohedronRotation-zz-NearWall.pdf')
+  pyplot.clf()
+  pyplot.figure(5)
+  pyplot.title('Mu Translation-Rotation X-Y')
+  pyplot.ylabel('Mobility Component / Sphere')
+  pyplot.xlabel('d/a')
+  pyplot.xlim([0.0, 7.0])
+  pyplot.savefig('./figures/IcosohedronTR-xy-NearWall.pdf')
 
-  pyplot.figure()
-  pyplot.plot(components, mobility_scatter_points, 'g.')
-  pyplot.title('Icosohedron near wall, a = %f, r = %f' % (a, r))
-  pyplot.xlim([-1, 7])
-  pyplot.ylabel('Relative error in mobility')
-  pyplot.xlabel('Component of Mobility')
-  pyplot.savefig('./figures/IcosohedronMobilityNearWall-r-%f.pdf' % r)
-  
 
 if __name__ == '__main__':
   
   a = 0.3
   heights = np.linspace(1.4, 18.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
-  h_over_a = 1.38
-  for r in [2.0, 2.5, 3.0, 5.0]:
-    plot_icosohedron_mobilities_at_wall(h_over_a, a, r)
+  h_over_a = 1.4
+  r_list = [2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0]
+  plot_icosohedron_mobilities_at_wall(h_over_a, a, r_list)
 

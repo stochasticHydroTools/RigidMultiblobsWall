@@ -169,15 +169,27 @@ if __name__  == '__main__':
   data_files = [['free-tetrahedron-dt-0.8-N-4000000-run-1.pkl',
                  'free-tetrahedron-dt-0.8-N-4000000-run-2.pkl',
                  'free-tetrahedron-dt-0.8-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-4.pkl'],
+                 'free-tetrahedron-dt-0.8-N-4000000-run-4.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-run-5.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-run-6.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-run-7.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-run-8.pkl'],
                 ['free-tetrahedron-dt-0.4-N-4000000-run-1.pkl',
                  'free-tetrahedron-dt-0.4-N-4000000-run-2.pkl',
                  'free-tetrahedron-dt-0.4-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-4.pkl'],
+                 'free-tetrahedron-dt-0.4-N-4000000-run-4.pkl',
+                 'free-tetrahedron-dt-0.4-N-4000000-run-5.pkl',
+                 'free-tetrahedron-dt-0.4-N-4000000-run-6.pkl',
+                 'free-tetrahedron-dt-0.4-N-4000000-run-7.pkl',
+                 'free-tetrahedron-dt-0.4-N-4000000-run-8.pkl'],
                 ['free-tetrahedron-dt-0.2-N-4000000-run-1.pkl',
                  'free-tetrahedron-dt-0.2-N-4000000-run-2.pkl',
                  'free-tetrahedron-dt-0.2-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-4.pkl']]
+                 'free-tetrahedron-dt-0.2-N-4000000-run-4.pkl',
+                 'free-tetrahedron-dt-0.2-N-4000000-run-5.pkl',
+                 'free-tetrahedron-dt-0.2-N-4000000-run-6.pkl',
+                 'free-tetrahedron-dt-0.2-N-4000000-run-7.pkl',
+                 'free-tetrahedron-dt-0.2-N-4000000-run-8.pkl']]
                 
   dts = [0.8, 0.4, 0.2]
   
