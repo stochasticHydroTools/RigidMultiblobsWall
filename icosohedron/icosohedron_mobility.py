@@ -103,14 +103,15 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   
 
 
-def plot_icosohedron_mobilities_at_wall(a, r):
+def plot_icosohedron_mobilities_at_wall(h_over_a, a, r):
   ''' 
   Plot the icosohedron mobilities at the wall.
   r is the ratio of icosohedron vertex radius to distance
   from vertices to the center.  a is the icosohedron vertex radius.
+  h_over_a is where we will measure the mobilities in nondimensionalized
+  units (h = a_effective*h_over_a)
   '''
   # Put icosohedron in contact with wall.
-  h = a*(r + 1.0)
   ic.VERTEX_A = a
   ic.A = r*a
   orientation = [Quaternion([1., 0., 0., 0.])]
@@ -120,6 +121,7 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   a_eff = 1.0/(6.*np.pi*ic.ETA*mobility_theory[0, 0])
   print 'a_effective is %f' % a_eff
   sph.A = a_eff
+  h = h_over_a*a_eff
   sphere_mobility_near_wall = sph.sphere_mobility([[0., 0., h]],
                                                   orientation)
   mobility_scatter_points = []
@@ -150,7 +152,7 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   pyplot.xlim([-1, 7])
   pyplot.ylabel('Relative error in mobility')
   pyplot.xlabel('Component of Mobility')
-  pyplot.savefig('./figures/IcosohedronMobilityNearWall.pdf')
+  pyplot.savefig('./figures/IcosohedronMobilityNearWall-r-%f.pdf' % r)
   
 
 if __name__ == '__main__':
@@ -158,5 +160,7 @@ if __name__ == '__main__':
   a = 0.3
   heights = np.linspace(1.4, 18.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
-  plot_icosohedron_mobilities_at_wall(a, 1.5)
+  h_over_a = 1.38
+  for r in [2.0, 2.5, 3.0, 5.0]:
+    plot_icosohedron_mobilities_at_wall(h_over_a, a, r)
 
