@@ -145,9 +145,9 @@ def calculate_rot_matrix(r_vectors):
 
     # Current r cross x matrix block.
     block = np.array(
-        [[0.0, r_vectors[k][2], -1.*r_vectors[k][1]],
-        [-1.*r_vectors[k][2], 0.0, r_vectors[k][0]],
-        [r_vectors[k][1], -1.*r_vectors[k][0], 0.0]])
+        [[0.0, -1.*r_vectors[k][2], r_vectors[k][1]],
+        [r_vectors[k][2], 0.0, -1.*r_vectors[k][0]],
+        [-1.*r_vectors[k][1], r_vectors[k][0], 0.0]])
 
     if rot_matrix is None:
       rot_matrix = block

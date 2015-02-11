@@ -47,7 +47,23 @@ class TestIcosohedron(unittest.TestCase):
     for j in range(6):
       for k in range(j+1, 6):
         self.assertAlmostEqual(mobility[j][k], mobility[k][j])
-    
+
+  def test_icosohedron_rotation(self):
+    '''Test that rotations of the icosohedron make sense.'''
+    theta = np.random.normal(0., 1., 4)
+    theta = Quaternion(theta/np.linalg.norm(theta))
+    location = [np.random.uniform(1., 3.) for _ in range(3)]
+    mobility = ic.icosohedron_mobility([location], [theta])
+    # Rotation in the positive x direction should produce positive y velocity
+    self.assertTrue(mobility[1, 3] > 0.0)
+    # Rotation in the positive y direction should produce negative x velocity
+    self.assertTrue(mobility[0, 4] < 0.0)
+    # Push in the positive y direction should produce positive x rotation.
+    # (This should already be true by symmetry, but test anyway)
+    self.assertTrue(mobility[3, 1] > 0.0)
+    # Push in the positive x direction should produce negative y rotation.
+    # (This should already be true by symmetry, but test anyway)
+    self.assertTrue(mobility[4, 0] < 0.0)
     
     
     

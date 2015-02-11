@@ -9,8 +9,8 @@ from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 ETA = 1.0             # Viscosity.
-VERTEX_A = 0.145     # radius of individual vertices
-A = 1.63*VERTEX_A               # 'Radius' of entire Icosohedron.
+VERTEX_A = 0.3     # radius of individual vertices
+A = 1.4*VERTEX_A               # 'Radius' of entire Icosohedron.
 M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 
@@ -146,9 +146,9 @@ def calc_icosohedron_rot_matrix(r_vectors, location):
     # Here the cross is relative to the center.
     adjusted_r_vector = r_vectors[k] - location
     block = np.array(
-        [[0.0, adjusted_r_vector[2], -1.*adjusted_r_vector[1]],
-        [-1.*adjusted_r_vector[2], 0.0, adjusted_r_vector[0]],
-        [adjusted_r_vector[1], -1.*adjusted_r_vector[0], 0.0]])
+        [[0.0, -1.*adjusted_r_vector[2], adjusted_r_vector[1]],
+        [adjusted_r_vector[2], 0.0, -1.*adjusted_r_vector[0]],
+        [-1.*adjusted_r_vector[1], adjusted_r_vector[0], 0.0]])
     if rot_matrix is None:
       rot_matrix = block
     else:

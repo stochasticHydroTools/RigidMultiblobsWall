@@ -110,7 +110,7 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   from vertices to the center.  a is the icosohedron vertex radius.
   '''
   # Put icosohedron in contact with wall.
-  h = a*(1. + r)
+  h = a*(r + 1.0)
   ic.VERTEX_A = a
   ic.A = r*a
   orientation = [Quaternion([1., 0., 0., 0.])]
@@ -118,6 +118,7 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   # Compute theoretical mobility.
   mobility_theory = ic.icosohedron_mobility(far_location, orientation)
   a_eff = 1.0/(6.*np.pi*ic.ETA*mobility_theory[0, 0])
+  print 'a_effective is %f' % a_eff
   a_rot_eff = (1./(mobility_theory[3, 3]*8.*np.pi*ic.ETA))**(1./3.)
   sph.A = a_eff
   sphere_mobility_near_wall = sph.sphere_mobility([[0., 0., h]],
@@ -129,16 +130,29 @@ def plot_icosohedron_mobilities_at_wall(a, r):
     theta = np.random.normal(0., 1., 4)
     theta = [Quaternion(theta/np.linalg.norm(theta))]
     mobility = ic.icosohedron_mobility([[0., 0., h]], theta)
-    mobility_error = ((mobility - sphere_mobility_near_wall)/
-                      sphere_mobility_near_wall)
-    
+    print '0,4 entry for sphere', sphere_mobility_near_wall[0, 4]
+    print '0,4 entry for icosohedron ', mobility[0, 4]
+    mobility_error = [((mobility[0, 0] - sphere_mobility_near_wall[0, 0])/
+                      sphere_mobility_near_wall[0, 0]),
+                      ((mobility[2, 2] - sphere_mobility_near_wall[2, 2])/
+                       sphere_mobility_near_wall[2, 2]),
+                      ((mobility[3, 3] - sphere_mobility_near_wall[3, 3])/
+                       sphere_mobility_near_wall[3, 3]),
+                      ((mobility[5, 5] - sphere_mobility_near_wall[5, 5])/
+                       sphere_mobility_near_wall[5, 5]),
+                      ((mobility[0, 4] - sphere_mobility_near_wall[0, 4])/
+                       sphere_mobility_near_wall[0, 4])]
+#    mobility_error = ((mobility - sphere_mobility_near_wall)/
+#                      sphere_mobility_near_wall)
+
     mobility_scatter_points = np.concatenate([mobility_scatter_points, 
-                                              mobility.reshape((36))])
-    components = np.concatenate([components, range(36)])
+                                              mobility_error])
+    components = np.concatenate([components, [0, 2, 3, 5, 6]])
 
   pyplot.figure()
   pyplot.plot(components, mobility_scatter_points, 'g.')
   pyplot.title('Icosohedron near wall, a = %f, r = %f' % (a, r))
+  pyplot.xlim([-1, 7])
   pyplot.ylabel('Relative error in mobility')
   pyplot.xlabel('Component of Mobility')
   pyplot.savefig('./figures/IcosohedronMobilityNearWall.pdf')
@@ -149,7 +163,7 @@ if __name__ == '__main__':
   a = 0.3
   heights = np.linspace(1.4, 18.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
-  plot_icosohedron_mobilities_at_wall(a, 12.0)
+  plot_icosohedron_mobilities_at_wall(a, 2.0)
 
   
 
