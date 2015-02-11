@@ -25,7 +25,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   orientation = [Quaternion([1., 0., 0., 0.])]
   far_location = [[0., 0., 30000.*a]]
   sphere_mobility_theory = sph.sphere_mobility(far_location, orientation)
-  for d in [1.63, 2.0, 2.5, 3.26, 5.0, 6.0]:
+  for d in [1.63, 2.0, 2.5, 3.26]:
     ic.VERTEX_A = a
     ic.A = d*a
     x = []
@@ -110,7 +110,7 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   from vertices to the center.  a is the icosohedron vertex radius.
   '''
   # Put icosohedron in contact with wall.
-  h = a*(r + 2.0)
+  h = a*(r + 1.0)
   ic.VERTEX_A = a
   ic.A = r*a
   orientation = [Quaternion([1., 0., 0., 0.])]
@@ -119,7 +119,6 @@ def plot_icosohedron_mobilities_at_wall(a, r):
   mobility_theory = ic.icosohedron_mobility(far_location, orientation)
   a_eff = 1.0/(6.*np.pi*ic.ETA*mobility_theory[0, 0])
   print 'a_effective is %f' % a_eff
-#  a_rot_eff = (1./(mobility_theory[3, 3]*8.*np.pi*ic.ETA))**(1./3.)
   sph.A = a_eff
   sphere_mobility_near_wall = sph.sphere_mobility([[0., 0., h]],
                                                   orientation)
@@ -130,8 +129,6 @@ def plot_icosohedron_mobilities_at_wall(a, r):
     theta = np.random.normal(0., 1., 4)
     theta = [Quaternion(theta/np.linalg.norm(theta))]
     mobility = ic.icosohedron_mobility([[0., 0., h]], theta)
-    print "Icosohedron 5 is ", mobility[5, 5]
-    print "sphere 5 is ", sphere_mobility_near_wall[5, 5]
     mobility_error = [((mobility[0, 0] - sphere_mobility_near_wall[0, 0])/
                       sphere_mobility_near_wall[0, 0]),
                       ((mobility[2, 2] - sphere_mobility_near_wall[2, 2])/
@@ -161,10 +158,5 @@ if __name__ == '__main__':
   a = 0.3
   heights = np.linspace(1.4, 18.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
-  plot_icosohedron_mobilities_at_wall(a, 12.0)
-
-  
-
-
-      
+  plot_icosohedron_mobilities_at_wall(a, 1.5)
 

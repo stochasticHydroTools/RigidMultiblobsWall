@@ -187,9 +187,9 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
   for l in range(3):
     for m in range(3):
       fluid_mobility[3 + l][3 + m] += (
-        (1./(8.*np.pi*eta*(a**3)))*(l == m) - ((1./(6.*np.pi*eta*(a**3)))*
+        (1./(8.*np.pi*eta*(a**3)))*(l == m) - ((1./(6.*np.pi*eta*(a**3)))*(
                                       (15./64.)*(h**(-3))*(l == m)*(l != 2)
-                                      + (3./32.)*(h**(-3))*(m == 2)*(l == 2)))
+                                      + (3./32.)*(h**(-3))*(m == 2)*(l == 2))))
   return fluid_mobility
 
   
