@@ -2,6 +2,8 @@
 
 import numpy as np
 import os
+import sys
+sys.path.append('..')
 
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
@@ -9,8 +11,8 @@ from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 ETA = 1.0             # Viscosity.
-VERTEX_A = 0.3     # radius of individual vertices
-A = 1.4*VERTEX_A               # 'Radius' of entire Icosohedron.
+VERTEX_A = 0.175     # radius of individual vertices
+A = 2.5*VERTEX_A               # 'Radius' of entire Icosohedron.
 M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 

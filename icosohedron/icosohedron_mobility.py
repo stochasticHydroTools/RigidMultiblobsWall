@@ -6,8 +6,6 @@ with a scatter plot.
 
 from matplotlib import pyplot
 import numpy as np
-import sys
-sys.path.append('..')
 
 import icosohedron as ic
 import sphere.sphere as sph
@@ -198,7 +196,7 @@ def plot_icosohedron_mobilities_at_wall(h_over_a, a, r):
 
 if __name__ == '__main__':
   
-  a = 0.3
+  a = 0.175
   heights = np.linspace(1.4, 3.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
   h_over_a = 1.4
