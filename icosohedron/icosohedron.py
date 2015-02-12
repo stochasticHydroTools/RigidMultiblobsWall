@@ -92,6 +92,12 @@ def get_icosohedron_r_vectors(location, orientation):
 
   rotation_matrix = orientation.rotation_matrix()
 
+# HACK
+#  for j in range(12):
+#    for k in range(j+1,12):
+#      print 'distance from %d to %d is %f' % (
+#        j, k, np.linalg.norm(initial_setup[j] - initial_setup[k]))
+
   # TODO: Maybe don't do this on the fly every single time.
   for k in range(len(initial_setup)):
     initial_setup[k] = A*(initial_setup[k])
