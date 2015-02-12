@@ -20,11 +20,11 @@ def plot_scatter_icosohedron_mobilities(a, heights):
   Here we vary the ratio between Icosohedron length and vertex radius.
   Compare these results to a sphere with the corresponding effective radius.
   '''
-  symbols = {1.63: '^', 2.0: '.', 2.5: 's', 3.26: 'v', 5.0: 'x', 6.0: 'o'}
+  symbols = {1.63: '^', 2.0: '.', 2.5: 's', 3.2: 'v', 4.0: 'x', 5.0: 'o'}
   orientation = [Quaternion([1., 0., 0., 0.])]
   far_location = [[0., 0., 30000.*a]]
   sphere_mobility_theory = sph.sphere_mobility(far_location, orientation)
-  for d in [1.63, 2.0, 2.5, 3.26]:
+  for d in [1.63, 2.0, 2.5, 3.2, 4.0, 5.0]:
     ic.VERTEX_A = a
     ic.A = d*a
     x = []
@@ -44,7 +44,7 @@ def plot_scatter_icosohedron_mobilities(a, heights):
     for r in heights:
       # Calculate 2 random orientations for heights.
       h = r*a_eff
-      for k in range(3):
+      for k in range(5):
         theta = np.random.normal(0., 1., 4)
         theta = Quaternion(theta/np.linalg.norm(theta))
         location = [0., 0., h]
@@ -199,9 +199,9 @@ def plot_icosohedron_mobilities_at_wall(h_over_a, a, r):
 if __name__ == '__main__':
   
   a = 0.3
-  heights = np.linspace(1.4, 18.0, 50)
+  heights = np.linspace(1.4, 3.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
   h_over_a = 1.4
-  r_list = [2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0]
+  r_list = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,  5.0, 6.0]
   plot_icosohedron_mobilities_at_wall(h_over_a, a, r_list)
 
