@@ -78,12 +78,16 @@ if __name__ == "__main__":
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
-  
-    ind = [2, 2]
-    plot_time_dependent_msd(msd_statistics, ind, 1)
 
-  pyplot.title('MSD(t) for Tetrahedron')
-  pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
-                   (ind))
+
+    for l in range(6):
+      ind = [l, l]
+      plot_time_dependent_msd(msd_statistics, ind, l)
+
+  for l in range(6):
+    pyplot.figure(l)
+    pyplot.title('MSD(t) for Tetrahedron')
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
+                   ([l, l]))
 
