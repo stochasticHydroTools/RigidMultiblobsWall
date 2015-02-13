@@ -59,9 +59,6 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
 
 
 if __name__ == "__main__":
-  # Make sure figures folder exists
-  if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
-    os.mkdir(os.path.join(os.getcwd(), 'figures'))
   # Open data file.
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:
@@ -75,17 +72,17 @@ if __name__ == "__main__":
   average_mob_and_friction = calculate_mu_friction_and_height_distribution(
     bin_width, height_histogram)
   
-
-  ind = [0, 0]
-  plot_time_dependent_msd(msd_statistics, ind, 1)
-  if ind == [0, 0] or ind == [1, 1]:
-    pyplot.plot([0.0, 180.0], [0.0, 180.*2.*sph.KT*0.0941541889044], 'r--', 
-              label='Sphere Mobility')
-    pyplot.plot([0., 180.], [0., 180.*average_mob_and_friction[0]*2.*ic.KT], 'k--',
-                label='Icosohedron Mobility')
-  pyplot.title('MSD(t) for Sphere')
-  pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s.pdf' % 
+  for l in range(6):
+    ind = [l, l]
+    plot_time_dependent_msd(msd_statistics, ind, l)
+    if ind == [0, 0] or ind == [1, 1]:
+      pyplot.plot([0.0, 180.0], [0.0, 180.*2.*sph.KT*0.0941541889044], 'r:', 
+                  label='Sphere Mobility')
+      pyplot.plot([0., 180.], [0., 180.*average_mob_and_friction[0]*2.*ic.KT], 'k--',
+                  label='Icosohedron Mobility')
+    pyplot.title('MSD(t) for icosohedron')
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s.pdf' % 
                    (ind))
 
   print "Icosohedron mobility is ", average_mob_and_friction[0]
