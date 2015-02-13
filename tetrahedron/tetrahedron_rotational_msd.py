@@ -353,7 +353,7 @@ if __name__ == "__main__":
                       'run and calculate the average time dependent MSD at '
                       'equilibrium.')
   parser.add_argument('-free', dest='has_location', type=bool,
-                      default=False,
+                      default=True,
                       help='Whether or not the tetrahedron is allowed '
                       'to move (is free).  If it is allowed to move, '
                       'then the MSD includes translational and rotational '
