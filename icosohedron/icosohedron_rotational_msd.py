@@ -6,8 +6,6 @@ import cProfile
 import logging
 import numpy as np
 import os
-import sys
-sys.path.append('..')
 
 import icosohedron as ic
 from quaternion_integrator.quaternion import Quaternion

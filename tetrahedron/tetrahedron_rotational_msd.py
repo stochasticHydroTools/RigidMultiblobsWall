@@ -25,7 +25,6 @@ import os
 import pstats
 import sys
 import StringIO
-sys.path.append('..')
 import time
 
 from quaternion_integrator.quaternion import Quaternion

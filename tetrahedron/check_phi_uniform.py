@@ -3,14 +3,13 @@ Script to check that phi, the angle of rotation around the vertical axis,
 is uniformly distributed as it should be for a Fixed tetrahedron.
 '''
 import sys
-sys.path.append('..')
 import numpy as np
 import math
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
 
-import quaternion_integrator.tetrahedron.tetrahedron as tdn
+import tetrahedron as tdn
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from quaternion_integrator.quaternion import Quaternion
 

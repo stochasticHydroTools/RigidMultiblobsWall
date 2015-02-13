@@ -1,6 +1,4 @@
 """ Test the functions used in the tetrahedron script. """
-import sys
-sys.path.append('..')
 import unittest
 import numpy as np
 import random

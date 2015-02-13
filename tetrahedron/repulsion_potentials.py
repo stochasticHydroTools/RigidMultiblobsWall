@@ -1,8 +1,6 @@
 ''' Script to plot the equilibrium PDF of the free tetrahedron
 for various repulsion potentials.'''
 
-import sys
-sys.path.append('..')
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')

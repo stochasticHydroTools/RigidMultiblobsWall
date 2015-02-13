@@ -4,15 +4,19 @@ wall (below the tetrahedron) in the presence of gravity and a quadratic potentia
 repelling from the wall.  This script bins the heights of the vertices
 of the tetrahedron for comparison to equilibrium.
 '''
-import sys
-import os
-import numpy as np
-import math
-import cPickle
-import time
+
 import argparse
-import cProfile, StringIO, pstats
+import cPickle
+import cProfile,
 import logging
+import math
+import numpy as np
+import os
+import pstats
+import StringIO
+import sys
+sys.path.append('..')
+import time
 
 import tetrahedron as tdn
 import tetrahedron_ext as te

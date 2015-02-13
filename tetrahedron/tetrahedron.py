@@ -11,19 +11,21 @@ Before running this script, you must compile mobility_ext.cc in
 /constrained_diffusion/fluids.  Just run make in the fluids folder.
 '''
 
-import sys
-sys.path.append('..')
-import os
-import numpy as np
+import argparse
+import cPickle
+import cProfile
+import logging
+import math
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
-import argparse
-import cPickle
-import cProfile, pstats, StringIO
-import math
+import numpy as np
+import os
+import pstats
+import StringIO
+import sys
+sys.path.append('..')
 import time
-import logging
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator

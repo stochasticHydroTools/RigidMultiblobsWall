@@ -9,7 +9,6 @@ from matplotlib import pyplot
 import numpy as np
 import os
 import sys
-sys.path.append('..')
 import re
 
 from utils import MSDStatistics
