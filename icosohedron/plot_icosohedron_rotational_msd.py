@@ -13,9 +13,8 @@ import cPickle
 import icosohedron as ic
 from quaternion_integrator.quaternion import Quaternion
 import sphere.sphere as sph
-from tetrahedron.plot_rotational_msd import plot_time_dependent_msd
 from utils import MSDStatistics
-
+from utils import plot_time_dependent_msd
 
 def gibbs_boltzmann_distribution(location):
   ''' 
@@ -63,9 +62,19 @@ if __name__ == "__main__":
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
+    print 'Icosohedron parameters:'
     msd_statistics.print_params()
 
 
+  # Open Sphere file to compare to.
+  sphere_data_name = os.path.join('..', 'sphere', 'data',
+                                  'sphere-msd-dt-0.8-N-100000-final.pkl')
+  with open(sphere_data_name, 'rb') as f:
+    sphere_statistics = cPickle.load(f)
+    print 'Sphere parameters:'
+    sphere_statistics.print_params()
+
+    
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
   height_histogram = np.zeros(len(buckets))
@@ -75,6 +84,8 @@ if __name__ == "__main__":
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, l)
+    plot_time_dependent_msd(sphere_statistics, ind, l, color='r', 
+                            label='Sphere RFD dt = 0.8')
     if ind == [0, 0] or ind == [1, 1]:
       pyplot.plot([0.0, 180.0], [0.0, 180.*2.*sph.KT*0.0941541889044], 'r:', 
                   label='Sphere Mobility')
