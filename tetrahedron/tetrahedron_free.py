@@ -7,7 +7,7 @@ of the tetrahedron for comparison to equilibrium.
 
 import argparse
 import cPickle
-import cProfile,
+import cProfile
 import logging
 import math
 import numpy as np
