@@ -27,10 +27,11 @@ import sys
 import StringIO
 import time
 
-from quaternion_integrator.quaternion import Quaternion
-from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import tetrahedron as tdn
 import tetrahedron_free as tf
+
+from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
 from utils import MSDStatistics
 
