@@ -6,6 +6,8 @@ import cProfile
 import logging
 import numpy as np
 import os
+import sys
+sys.path.append('..')
 
 import icosohedron as ic
 from quaternion_integrator.quaternion import Quaternion
@@ -183,7 +185,7 @@ if __name__ == '__main__':
   params = {'M': ic.M, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
             'REPULSION_STRENGTH': ic.REPULSION_STRENGTH, 
             'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT}
-  msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
+  msd_statistics = MSDStatistics(params)
 
   run_data = calc_icosohedron_msd_from_equilibrium(
     initial_orientation,

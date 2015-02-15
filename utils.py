@@ -39,9 +39,10 @@ class MSDStatistics(object):
   Each run is organized as a list of 3 arrays: [time, mean, std]
   mean and std are matrices (the rotational MSD).
   '''
-  def __init__(self, schemes, dts, params):
+  def __init__(self, params):
     self.data = {}
     self.params = params
+
 
   def add_run(self, scheme_name, dt, run_data):
     ''' 
@@ -51,8 +52,8 @@ class MSDStatistics(object):
     '''
     if scheme_name not in self.data:
       self.data[scheme_name] = dict()
-
     self.data[scheme_name][dt] = run_data
+
 
   def print_params(self):
      print "Parameters are: "

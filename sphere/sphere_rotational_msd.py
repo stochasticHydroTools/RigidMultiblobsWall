@@ -20,6 +20,7 @@ from matplotlib import pyplot
 import numpy as np
 import os
 import sys
+sys.path.append('..')
 import time
 
 from fluids import mobility as mb
@@ -322,7 +323,7 @@ if __name__ == '__main__':
             'DEBYE_LENGTH': sph.DEBYE_LENGTH,
             'KT': sph.KT}
 
-  msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
+  msd_statistics = MSDStatistics(params)
 
   run_data = calc_sphere_msd_from_equilibrium(
     initial_orientation,

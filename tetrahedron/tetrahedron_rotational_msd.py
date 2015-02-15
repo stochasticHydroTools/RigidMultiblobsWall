@@ -410,16 +410,21 @@ if __name__ == "__main__":
   sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
 
+
+
+
   if args.has_location:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3, 'M4': tf.M4,
               'A': tf.A, 'REPULSION_STRENGTH': tf.REPULSION_STRENGTH,
               'DEBYE_LENGTH': tf.DEBYE_LENGTH,
-              'KT': tf.KT, 'end_time': end_time}
+              'KT': tf.KT, 'end_time': end_time, 'N': n_runs}
   else:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3,
-              'A': tf.A, 'KT': tf.KT, 'end_time': end_time}
-    
-  msd_statistics = MSDStatistics([args.scheme], [dt], params)
+              'A': tf.A, 'KT': tf.KT, 'end_time': end_time,
+              'N': n_runs}
+
+
+  msd_statistics = MSDStatistics(params)
   # Measure time, and estimate how long runs will take.
   # One time unit is n_runs timesteps.
   if args.initial:

@@ -8,8 +8,10 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import cPickle
+import sys
+sys.path.append('..')
 
-from tetrahedron.plot_rotational_msd import plot_time_dependent_msd
+from utils import plot_time_dependent_msd
 from utils import MSDStatistics
 
 
