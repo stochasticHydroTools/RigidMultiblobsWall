@@ -1,7 +1,15 @@
-
+'''
+Set up the mobility, torque, and force functions for the Boomerang
+from:
+"Chakrabarty et. al - Brownian Motion of Boomerang Colloidal
+Particles"
+'''
 
 import numpy as np
+import sys
+sys.path.append('..')
 
+from fluids import mobility as mb
 
 # Parameters
 A = 0.2625  # Radius of blobs in um
