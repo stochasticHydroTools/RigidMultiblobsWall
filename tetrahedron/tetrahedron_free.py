@@ -147,7 +147,8 @@ def get_free_r_vectors(location, orientation):
 
   This function is written in C++ using boost for speed.  This has about a 2x
   speedup, but doesn't really make a huge difference in MSD scripts 
-  unfortunately.
+  unfortunately after a recent change to call this function much less 
+  frequently.
   '''
   r_vectors = [np.zeros(3) for _ in range(3)]
   location = np.array(location)
