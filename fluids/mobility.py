@@ -106,7 +106,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
                + 10.*(1. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e)
          - (0.25*(3.*(1. + 2.*h_hat*(1. - h_hat)*e[2]**2)/R_norm
                   + 2.*(1. - 3.*e[2]**2)/(R_norm**3)
-                  - 2.*(2. - 5.*e[2]**2)/(R_norm**5)))*np.identity(3)
+                  - 2.*(1. - 5.*e[2]**2)/(R_norm**5)))*np.identity(3)
          + 0.5*(3.*h_hat*(1. - 6.*(1. - h_hat)*e[2]**2)/R_norm
                 - 6.*(1. - 5.*e[2]**2)/(R_norm**3)
                 + 10.*(2. - 7.*e[2]**2)/(R_norm**5))*np.outer(e, e_3)

@@ -59,7 +59,7 @@ void SingleWallFluidMobility(bp::list r_vectors,
                       + 10.0*(1.0 - 7.0*pow(e[2],2))/(pow(R_norm,5)))*(e[l]*e[m])
                - (0.25*(3.0*(1.0 + 2.0*h_hat*(1. - h_hat)*pow(e[2],2))/R_norm
                         + 2.0*(1.0 - 3.0*pow(e[2],2))/(pow(R_norm,3))
-                        - 2.0*(2.0 - 5.0*pow(e[2],2))/(pow(R_norm,5))))*(l == m ? 1.0 : 0.0)
+                        - 2.0*(1.0 - 5.0*pow(e[2],2))/(pow(R_norm,5))))*(l == m ? 1.0 : 0.0)
                + 0.5*(3.0*h_hat*(1. - 6.0*(1. - h_hat)*pow(e[2],2))/R_norm
                       - 6.0*(1.0 - 5.0*pow(e[2],2))/(pow(R_norm,3))
                       + 10.0*(2.0 - 7.0*pow(e[2],2))/(pow(R_norm,5)))*(e[l]*e_3[m])
