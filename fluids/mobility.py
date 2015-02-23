@@ -1,6 +1,8 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
 import mobility_ext as me
+import sys
+sys.path.append('..')
 
 ETA = 1.0 # Viscosity.
 

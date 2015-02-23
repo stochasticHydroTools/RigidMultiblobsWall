@@ -2,6 +2,9 @@
 import unittest
 import numpy as np
 import random
+import sys
+sys.path.append('..')
+
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import mobility as mb
@@ -187,6 +190,22 @@ class TestMobility(unittest.TestCase):
     self.assertAlmostEqual(0.0, mb.epsilon_tensor(1, 1, 2))
     self.assertAlmostEqual(-1.0, mb.epsilon_tensor(2, 1, 0))
     self.assertAlmostEqual(1.0, mb.epsilon_tensor(2, 0, 1))
+
+  def test_boosted_v_python_agreement(self):
+    ''' 
+    Test that for random R vectors, the boosted and python
+    versions of mobility agree.'''
+    location = [np.random.normal(10., 3., 3) for _ in range(4)]
+    eta = 1.0
+    a = 0.25
+    fluid_mobility = mb.single_wall_fluid_mobility(location, eta, a)
+    fluid_mobility_boost = mb.boosted_single_wall_fluid_mobility(
+      location, eta, a)
+    
+
+    for i in range(len(fluid_mobility)):
+      for j in range(len(fluid_mobility[0])):
+        self.assertAlmostEqual(fluid_mobility[i, j], fluid_mobility_boost[i, j])
         
 
     
