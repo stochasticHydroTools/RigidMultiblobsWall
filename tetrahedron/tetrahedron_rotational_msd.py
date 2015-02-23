@@ -381,15 +381,16 @@ if __name__ == "__main__":
   tdn.M1 = 0.1
   tdn.M2 = 0.1
   tdn.M3 = 0.1
-  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
-  tf.M1 = total_free_mass/4.
-  tf.M2 = total_free_mass/4.
-  tf.M3 = total_free_mass/4.
-  tf.M4 = total_free_mass/4.
+  # Stick with original TF masses for now.
+#  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
+#  tf.M1 = total_free_mass/4.
+#  tf.M2 = total_free_mass/4.
+#  tf.M3 = total_free_mass/4.
+#  tf.M4 = total_free_mass/4.
 
   # Set initial conditions.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  initial_location = [[0., 0., 4.0]]
+  initial_location = [[0., 0., 3.5]]
 
   dt = args.dt
   end_time = args.end_time
@@ -409,9 +410,6 @@ if __name__ == "__main__":
   sys.stdout = sl
   sl = tdn.StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
-
-
-
 
   if args.has_location:
     params = {'M1': tf.M1, 'M2': tf.M2, 'M3': tf.M3, 'M4': tf.M4,

@@ -73,7 +73,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
   scheme_colors = {'RFD': 'g', 'FIXMAN': 'b', 'EM': 'r'}
   pyplot.figure(figure)
   # Types of lines for different dts.
-  write_data = False
+  write_data = True
   if write_data:
     np.set_printoptions(threshold=np.nan)
   num_err_bars = 12

@@ -27,8 +27,7 @@ from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import sphere as sph
-import tetrahedron.tetrahedron_rotational_msd as trm
-from tetrahedron.tetrahedron_free import static_var
+from utils import static_var
 from utils import MSDStatistics
 from utils import StreamToLogger
 

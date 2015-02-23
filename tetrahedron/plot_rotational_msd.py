@@ -1,5 +1,12 @@
 ''' 
-Plot rotational msd data from a pickle file. 
+Plot rotational msd data from a pickle file. This is for final plots, 
+and assumes that there could be multiple runs at each dt and scheme with 
+the same number of steps.  It expects all data to be plotted to have the same
+data-name with increasing numbers, e.g. *-run-1.pkl, *-run-2.pkl
+
+run:
+  python plot_rotational_msd.py -h
+for usage.
 '''
 import argparse
 import cPickle
@@ -13,9 +20,6 @@ sys.path.append('..')
 
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
-
-
-
 
 
 if __name__ == "__main__":
@@ -45,7 +49,7 @@ if __name__ == "__main__":
                       help='Name of data runs to plot.  All runs must have '
                       'the same name specified when running '
                       'tetrahedron_rotational_msd.py to plot together. '
-                      ' This is easy to change, by just renaming the pkl file.')
+                      ' This is easy to change by just renaming the pkl file.')
   args = parser.parse_args()
 
   combined_msd_statistics = None
