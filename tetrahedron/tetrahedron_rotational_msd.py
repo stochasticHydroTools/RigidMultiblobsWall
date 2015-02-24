@@ -279,14 +279,12 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   return results
 
   
-def calc_rotational_msd(initial_orientation, orientation):
+def calc_rotational_msd(original_rot_matrix, rot_matrix):
   ''' 
   Calculate the rotational MSD from an initial configuration to
   a final orientation.  Orientations are given as single quaternion objects.
   '''  
   u_hat = np.zeros(3)
-  rot_matrix = orientation.rotation_matrix()
-  original_rot_matrix = initial_orientation.rotation_matrix()
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
