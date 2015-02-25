@@ -53,6 +53,8 @@ M1 = 0.1
 M2 = 0.2
 M3 = 0.3
 
+KT = 0.0
+
 def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''
   return np.identity(3)
@@ -146,10 +148,12 @@ def calculate_rot_matrix(r_vectors):
     r_vectors[k] = r_vectors[k] - np.array([0., 0., H])
 
     # Current r cross x matrix block.
+    # This is actually the negative, because R transpose gives
+    # r_i cross x.
     block = np.array(
-        [[0.0, -1.*r_vectors[k][2], r_vectors[k][1]],
-        [r_vectors[k][2], 0.0, -1.*r_vectors[k][0]],
-        [-1.*r_vectors[k][1], r_vectors[k][0], 0.0]])
+        [[0.0, 1.*r_vectors[k][2], -1.*r_vectors[k][1]],
+        [-1.*r_vectors[k][2], 0.0, 1.*r_vectors[k][0]],
+        [1.*r_vectors[k][1], -1.*r_vectors[k][0], 0.0]])
 
     if rot_matrix is None:
       rot_matrix = block

@@ -229,6 +229,7 @@ class QuaternionIntegrator(object):
       velocity = velocity_and_omega[0:(3*self.dim)]
       omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
       new_location = self.location + dt*velocity
+      new_orientation = []
       for i in range(self.dim):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
         new_orientation.append(quaternion_dt*self.orientation[i])

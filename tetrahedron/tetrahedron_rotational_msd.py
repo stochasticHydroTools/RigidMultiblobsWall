@@ -94,8 +94,11 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
-    KT = 1.0
-
+    #HACK, deterministic.
+    KT = 0.0
+  
+  #HACK
+  r_vectors = tdn.get_r_vectors(initial_orientation[0])
   integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
                                     torque_calculator,
@@ -109,6 +112,9 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
+    #HACK: track particle position.
+    particle_position = []
+
     integrator.orientation = initial_orientation
     integrator.location = initial_location
     trajectories.append([])
@@ -119,8 +125,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                        integrator.location[0], integrator.orientation[0]))
     else:
       trajectories[run].append(
-        calc_rotational_msd(initial_orientation[0],
-                            integrator.orientation[0]))
+        calc_rotational_msd_from_likely_position(
+          integrator.orientation[0]))
     for step in range(n_steps):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
@@ -128,15 +134,20 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
         integrator.rfd_time_step(dt)
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
-
+      
+      #HACK.
+      particle_position.append(tdn.get_r_vectors(integrator.orientation[0])[0])
+              
       if has_location:
+        raise NotImplementedError('Need to fix calc total msd for initial '
+                                  'position run with location.')
         trajectories[run].append(
           calc_total_msd(initial_location[0], initial_orientation[0],
                          integrator.location[0], integrator.orientation[0]))
       else:
         trajectories[run].append(
-          calc_rotational_msd(initial_orientation[0],
-                              integrator.orientation[0]))
+          calc_rotational_msd_from_likely_position(
+            integrator.orientation[0]))
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
   step = 0
@@ -153,6 +164,26 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                        (float(integrator.rejections)/
                         float(n_steps*n_runs + integrator.rejections)))
 
+  #HACK, plot particle trajectories.
+  floren_time = []
+  floren_position = []
+  with open('./data/p.1 (1).dat', 'r') as f:
+    ctr = 0
+    for line in f:
+      if ctr == 0:
+        ctr += 1
+        continue
+      data = line.split(' ')
+      floren_time.append(float(data[0]))
+      floren_position.append([float(d) for d in data[1:]])
+      ctr += 1
+  for l in range(3):
+    pyplot.figure(l)
+    pyplot.plot(results[0], [dat[l] for dat in particle_position], 'g--', label='Python')
+    pyplot.plot(floren_time, [dat[l] for dat in floren_position], 'r:', label='IBAMR')
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.savefig('./figures/BlobPosition-Coordinate-' + str(l) + '.pdf')
+      
   return results
 
 
@@ -190,7 +221,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
-    KT = 1.0
+    KT = 0.0
     dim = 3
 
   rot_msd_list = []
@@ -293,6 +324,19 @@ def calc_rotational_msd(original_rot_matrix, rot_matrix):
   return np.outer(u_hat, u_hat)
 
 
+def calc_rotational_msd_from_likely_position(orientation):
+  ''' Calculate rotational MSD from the quaternion Identity.'''
+  rot_matrix = orientation.rotation_matrix()
+  u_hat = np.zeros(3)
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(e, np.inner(rot_matrix, e))
+
+  msd = np.outer(u_hat, u_hat)
+  return msd
+
+
 def plot_msd_convergence(dts, msd_list, names):
   ''' 
   Log-log plot of error in MSD v. dt.  This is for single
@@ -377,8 +421,8 @@ if __name__ == "__main__":
 
   # Set masses to all be equal for simple theoretical comparison.
   tdn.M1 = 0.1
-  tdn.M2 = 0.1
-  tdn.M3 = 0.1
+  tdn.M2 = 0.2
+  tdn.M3 = 0.3
   # Stick with original TF masses for now.
 #  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
 #  tf.M1 = total_free_mass/4.
@@ -387,7 +431,14 @@ if __name__ == "__main__":
 #  tf.M4 = total_free_mass/4.
 
   # Set initial conditions.
-  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  #HACK: start a rotation of pi/16 around the positive y axis.
+#  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  initial_orientation = [Quaternion([np.cos(np.pi/32.), 
+                                     0., -1.*np.sin(np.pi/32.), 0.])]
+  initial_orientation[0] = (Quaternion([np.cos(np.pi/32.), 0., 0., np.sin(np.pi/32.)])*
+                            initial_orientation[0])
+  r_vectors = tdn.get_r_vectors(initial_orientation[0])
+  print "r_vectors are ", r_vectors
   initial_location = [[0., 0., 3.5]]
 
   dt = args.dt

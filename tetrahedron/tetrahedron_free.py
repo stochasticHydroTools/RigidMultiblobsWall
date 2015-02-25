@@ -181,6 +181,7 @@ def calc_free_rot_matrix(r_vectors, location):
   rot_matrix = None
   for k in range(len(r_vectors)):
     # Current r cross x matrix block.
+    # NOTE: Actually r_transpose is r cross x
     adjusted_r_vector = r_vectors[k] - location
     block = np.array(
         [[0.0, adjusted_r_vector[2], -1.*adjusted_r_vector[1]],
