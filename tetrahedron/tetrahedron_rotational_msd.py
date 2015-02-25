@@ -167,7 +167,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   #HACK, plot particle trajectories.
   floren_time = []
   floren_position = []
-  with open('./data/p.1 (1).dat', 'r') as f:
+  with open('./data/p.1.dat', 'r') as f:
     ctr = 0
     for line in f:
       if ctr == 0:
