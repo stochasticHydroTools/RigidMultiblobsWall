@@ -53,7 +53,7 @@ M1 = 0.1
 M2 = 0.2
 M3 = 0.3
 
-KT = 0.0
+KT = 0.2
 
 def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''

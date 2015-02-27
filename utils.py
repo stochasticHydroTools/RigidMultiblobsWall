@@ -76,7 +76,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
   write_data = True
   if write_data:
     np.set_printoptions(threshold=np.nan)
-  num_err_bars = 12
+  num_err_bars = 18
   linestyles = ['', ':', '--', '-.']
   for scheme in msd_statistics.data.keys():
     for dt in msd_statistics.data[scheme].keys():
@@ -112,7 +112,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
                   plot_style,
                   label = plot_label)
       if write_data:
-        with open("./MSD-component-%s-%s.txt" % (ind[0], ind[1]),'w+') as f:
+        with open("./data/MSD-component-%s-%s.txt" % (ind[0], ind[1]),'w+') as f:
           f.write("scheme %s \n" % scheme)
           f.write("dt %s \n" % dt)
           f.write("time: %s \n" % msd_statistics.data[scheme][dt][0])

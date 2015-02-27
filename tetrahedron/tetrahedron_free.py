@@ -42,11 +42,17 @@ A = 0.5     # Particle Radius.
 H = 3.5     # Initial Distance to wall.
 KT = 0.2    # Temperature
 
-# Masses of particles. g = 1.
-M1 = 0.005
-M2 = 0.015
-M3 = 0.01
-M4 = 0.03
+# Masses of particles. g = 1. My original masses:
+# M1 = 0.005
+# M2 = 0.015
+# M3 = 0.01
+# M4 = 0.03
+
+# These below are consistent with Floren's masses.
+M4 = 0.005
+M1 = 0.015
+M2 = 0.01
+M3 = 0.03
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
@@ -82,7 +88,7 @@ def force_and_torque_mobility(r_vectors, location):
   '''  
   mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
-  J = np.concatenate([np.identity(3), np.identity(3), np.identity(3)])
+  J = np.concatenate([np.identity(3) for _ in range(4)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -90,7 +96,7 @@ def force_and_torque_mobility(r_vectors, location):
   return total_mobility
 
 
-def old_get_free_r_vectors(location, quaternion):
+def get_free_r_vectors(location, quaternion):
   ''' Calculate r_i from a given quaternion. 
   The initial configuration is hard coded here but can be changed by
   considering an initial quaternion not equal to the identity rotation.
@@ -120,11 +126,12 @@ def old_get_free_r_vectors(location, quaternion):
   r1 = np.dot(rotation_matrix, initial_r1) + np.array(location)
   r2 = np.dot(rotation_matrix, initial_r2) + np.array(location)
   r3 = np.dot(rotation_matrix, initial_r3) + np.array(location)
+  r4 = np.array(location)
   
-  return [r1, r2, r3]
+  return [r1, r2, r3, r4]
 
 
-def get_free_r_vectors(location, orientation):
+def boosted_get_free_r_vectors(location, orientation):
   ''' Calculate r_i from a given quaternion.
   The initial configuration is hard coded here but can be changed by
   considering an initial quaternion not equal to the identity rotation.
@@ -148,7 +155,8 @@ def get_free_r_vectors(location, orientation):
   This function is written in C++ using boost for speed.  This has about a 2x
   speedup, but doesn't really make a huge difference in MSD scripts 
   unfortunately after a recent change to call this function much less 
-  frequently.
+  frequently.  
+  THIS IS NO LONGER USED.
   '''
   r_vectors = [np.zeros(3) for _ in range(3)]
   location = np.array(location)
@@ -171,6 +179,17 @@ def get_free_center_of_mass(location, orientation):
                       np.array(r_vectors[2])*M3 + np.array(location)*M4)
     center_of_mass = center_of_mass/(M1 + M2 + M3 + M4)
     return center_of_mass
+
+def get_free_geometric_center(location, orientation):
+    '''
+    Find the geometric center given the location of the top vertex, 
+    and the orientation given as a quaternion.  
+    '''
+    r_vectors = get_free_r_vectors(location, orientation)
+    center_of_tet = (np.array(r_vectors[0]) + np.array(r_vectors[1]) + 
+                      np.array(r_vectors[2]) + np.array(location))
+    center_of_tet = center_of_tet/4.
+    return center_of_tet
 
 
 def calc_free_rot_matrix(r_vectors, location):
@@ -208,7 +227,8 @@ def free_gravity_torque_calculator(location, orientation):
   # Gravity.
   g = np.array([0., 0., -1.*M1, 
                 0., 0., -1.*M2,
-                0., 0., -1.*M3])
+                0., 0., -1.*M3, 
+                0., 0., -1.*M4])
   # Add repulsion from wall.
   for k in range(3):
     h = r_vectors[k][2]
@@ -244,11 +264,15 @@ def free_gravity_force_calculator(location, orientation):
 @static_var('max_index', 0)
 def bin_free_particle_heights(location, orientation, bin_width, 
                               height_histogram):
-  '''Bin heights of the free particle based on a location and an orientaiton.'''
+  '''
+  Bin heights of the free particle based on a location and an orientation.
+  Heights are binned relative to the geometric center of the tetrahedron.
+  '''
   r_vectors = get_free_r_vectors(location, orientation)
+  center_of_tet = get_free_geometric_center(location, orientation)
   for k in range(3):
     # Bin each particle height.
-    idx = (int(math.floor((r_vectors[k][2])/bin_width)))
+    idx = (int(math.floor((r_vectors[k][2] - center_of_tet[2] + 2.0)/bin_width)))
     if idx < len(height_histogram[k]):
       height_histogram[k][idx] += 1
     else:
@@ -465,10 +489,10 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./5.
-  fixman_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(40./bin_width)) for _ in range(3)])
+  bin_width = 1./10.
+  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  rfd_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
 
   start_time = time.time()
   for k in range(n_steps):
@@ -544,7 +568,7 @@ if __name__ == '__main__':
                         for k in range(len(fixman_heights))])
 
   height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
-                            + 0.5*bin_width)
+                            + 0.5*bin_width) - 2.0
   height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
 
   # Optional name for data provided

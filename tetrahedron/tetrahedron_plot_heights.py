@@ -19,6 +19,26 @@ def distribution_height_particle(heights, buckets, names):
     ax = fig.add_subplot(1, 1, 1)
     for k in range(len(heights)):
       pyplot.plot(buckets, heights[k][particle],  label=names[k])
+    
+    #HACK for floren's data
+    if particle == 0:
+      # Mass 0.005
+      data_file = './data/hBlob.geometricCenter.mass.0.005.dat'
+    elif particle == 1:
+      data_file = './data/hBlob.geometricCenter.mass.0.015.dat'
+    elif particle == 2:
+      data_file = './data/hBlob.geometricCenter.mass.0.01.dat'
+
+    x = []
+    num = []
+    with open(data_file, 'r') as f:
+      for line in f:
+        dat = line.split(' ')
+        if len(dat) > 1:
+          x.append(float(dat[0]))
+          num.append(float(dat[1]))
+
+    pyplot.plot(x, num, label='IBAMR')
 
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.title('Location of particle %d' % particle)

@@ -95,7 +95,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
     #HACK, deterministic.
-    KT = 0.0
+    KT = 0.2
   
   #HACK
   r_vectors = tdn.get_r_vectors(initial_orientation[0])
@@ -420,9 +420,9 @@ if __name__ == "__main__":
     raise Exception('Scheme must be one of RFD, FIXMAN, or EM')
 
   # Set masses to all be equal for simple theoretical comparison.
-  tdn.M1 = 0.1
-  tdn.M2 = 0.2
-  tdn.M3 = 0.3
+  tdn.M1 = 0.0
+  tdn.M2 = 0.0
+  tdn.M3 = 0.0
   # Stick with original TF masses for now.
 #  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
 #  tf.M1 = total_free_mass/4.
@@ -431,14 +431,13 @@ if __name__ == "__main__":
 #  tf.M4 = total_free_mass/4.
 
   # Set initial conditions.
-  #HACK: start a rotation of pi/16 around the positive y axis.
-#  initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  initial_orientation = [Quaternion([np.cos(np.pi/32.), 
-                                     0., -1.*np.sin(np.pi/32.), 0.])]
-  initial_orientation[0] = (Quaternion([np.cos(np.pi/32.), 0., 0., np.sin(np.pi/32.)])*
-                            initial_orientation[0])
+  #HACK: start a rotation of pi/16 around the positive y axis, ETC.
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+#  initial_orientation = [Quaternion([np.cos(np.pi/32.), 
+#                                     0., -1.*np.sin(np.pi/32.), 0.])]
+#  initial_orientation[0] = (Quaternion([np.cos(np.pi/32.), 0., 0., np.sin(np.pi/32.)])*
+#                            initial_orientation[0])
   r_vectors = tdn.get_r_vectors(initial_orientation[0])
-  print "r_vectors are ", r_vectors
   initial_location = [[0., 0., 3.5]]
 
   dt = args.dt
