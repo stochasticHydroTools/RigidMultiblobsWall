@@ -49,16 +49,16 @@ KT = 0.2    # Temperature
 # M4 = 0.03
 
 # These below are consistent with Floren's masses.
-M4 = 0.005
-M1 = 0.015
-M2 = 0.01
-M3 = 0.03
+M4 = 0.005*4.
+M1 = 0.015*4.
+M2 = 0.01*4.
+M3 = 0.03*4.
 
 # Repulsion strength and cutoff.  
 # Must be strong enough to prevent particles from passing 
 # through the wall
 REPULSION_STRENGTH = 2.0
-DEBYE_LENGTH = 0.25  # This is the Debye length for Yukawa, TODO: rename.
+DEBYE_LENGTH = 0.25  # This is the Debye length for the Yukawa potential.
 
 def free_tetrahedron_mobility(location, orientation):
   ''' 
@@ -270,15 +270,24 @@ def bin_free_particle_heights(location, orientation, bin_width,
   '''
   r_vectors = get_free_r_vectors(location, orientation)
   center_of_tet = get_free_geometric_center(location, orientation)
-  for k in range(3):
+  for k in range(4):
     # Bin each particle height.
-    idx = (int(math.floor((r_vectors[k][2] - center_of_tet[2] + 2.0)/bin_width)))
+    idx = (int(math.floor((r_vectors[k][2])/bin_width)))
     if idx < len(height_histogram[k]):
       height_histogram[k][idx] += 1
     else:
       if idx > bin_free_particle_heights.max_index:
         bin_free_particle_heights.max_index = idx
         print "New maximum Index  %d is beyond histogram length " % idx
+
+  # Bin center of tetrahedron.
+  center_idx = (int(math.floor((center_of_tet[2])/bin_width)))
+  if center_idx < len(height_histogram[4]):
+    height_histogram[4][center_idx] += 1
+  else:
+    if idx > bin_free_particle_heights.max_index:
+      bin_free_particle_heights.max_index = idx
+      print "New maximum Index  %d is beyond histogram length " % idx
       
 
 @static_var('samples', 0)  
@@ -489,10 +498,11 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./10.
-  fixman_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
-  rfd_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
-  equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
+  bin_width = 1./5.
+  fixman_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+  rfd_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+  equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+
 
   start_time = time.time()
   for k in range(n_steps):
@@ -562,7 +572,8 @@ if __name__ == '__main__':
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
-                           'M3': M3}
+                           'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
+                           'DEBYE_LENGTH': DEBYE_LENGTH}
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
                         for k in range(len(fixman_heights))])

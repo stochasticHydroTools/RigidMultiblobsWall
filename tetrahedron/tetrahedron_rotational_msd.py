@@ -208,11 +208,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     n_steps:  How many total steps to take.
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
-    n_runs:  How many separate runs to do in order to get std deviation.  
-             4 should be fine.
+    n_runs:  How many separate runs to do in order to estimate std deviation.  
   '''
   progress_logger = logging.getLogger('Progress Logger')
-  burn_in = int(end_time*4./dt)
+  # 5 percent burn_in time.
+  burn_in = n_steps*0.05
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -420,9 +420,9 @@ if __name__ == "__main__":
     raise Exception('Scheme must be one of RFD, FIXMAN, or EM')
 
   # Set masses to all be equal for simple theoretical comparison.
-  tdn.M1 = 0.0
-  tdn.M2 = 0.0
-  tdn.M3 = 0.0
+#  tdn.M1 = 0.0
+#  tdn.M2 = 0.0
+#  tdn.M3 = 0.0
   # Stick with original TF masses for now.
 #  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
 #  tf.M1 = total_free_mass/4.
@@ -491,7 +491,8 @@ if __name__ == "__main__":
                                                     has_location=
                                                     args.has_location,
                                                     location=
-                                                    initial_location)
+                                                    initial_location,
+                                                    n_runs=10)
   msd_statistics.add_run(args.scheme, dt, run_data)
   progress_logger.info('finished timestepping dt= %f for scheme %s' % (
       dt, args.scheme))
