@@ -212,7 +212,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   '''
   progress_logger = logging.getLogger('Progress Logger')
   # 5 percent burn_in time.
-  burn_in = n_steps*0.05
+  burn_in = int(n_steps*0.05)
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
