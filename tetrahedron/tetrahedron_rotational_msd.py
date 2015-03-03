@@ -209,7 +209,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     has_location: boolean, do we let the tetrahedron move and track location?
     location: initial location of tetrahedron, only used if has_location = True.
     n_runs:  How many separate runs to do in order to get std deviation.  
-             4 should be fine.
+             4 should is the default.
   '''
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
