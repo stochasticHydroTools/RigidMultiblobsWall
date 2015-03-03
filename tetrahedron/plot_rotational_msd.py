@@ -18,8 +18,28 @@ import os
 import sys
 sys.path.append('..')
 
+from quaternion_integrator.quaternion import Quaternion
+from translational_diffusion_coefficient import calculate_average_mu_parallel
+import tetrahedron_free as tf
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
+
+
+def calculate_zz_msd_at_equilibrium(n_steps):
+  ''' 
+  Calculate the zz at equilibrium by generating pairs of samples
+  and calculating their zz MSD.  We use this to compare to
+  the ZZ MSD from the runs.
+  '''
+  zz_msd = 0.0
+  for k in range(n_steps):
+    sample = tf.generate_free_equilibrium_sample()
+    sample_2 = tf.generate_free_equilibrium_sample()
+    center_1 = tf.get_free_geometric_center(sample[0], sample[1])
+    center_2 = tf.get_free_geometric_center(sample_2[0], sample_2[1])
+    zz_msd += (center_1[2] - center_2[2])**2
+  zz_msd /= n_steps
+  return zz_msd
 
 
 if __name__ == "__main__":
@@ -98,11 +118,20 @@ if __name__ == "__main__":
           combined_msd_statistics = msd_statistics
         else:
           combined_msd_statistics.add_run(scheme, dt, msd_statistics.data[scheme][dt])
-          
+
+  if args.has_location:
+    average_mob_and_friction = calculate_average_mu_parallel(200)
+    zz_msd = calculate_zz_msd_at_equilibrium(2000)
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, l)
     pyplot.figure(l)
+    if args.has_location:
+      if l in [0, 1]:
+        pyplot.plot([0.0, 300.0], [0.0, 300.*tf.KT*average_mob_and_friction[0]], label='mu parallel')
+      elif l == 2:
+        pyplot.plot([0.0, 300.0], [zz_msd, zz_msd], label='Equilibrium zz MSD')
+    
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 

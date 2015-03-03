@@ -13,6 +13,9 @@ import numpy as np
 import os
 import sys
 sys.path.append('..')
+
+from plot_rotational_msd import calculate_zz_msd_at_equilibrium
+from translational_diffusion_coefficient import calculate_average_mu_parallel
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
@@ -32,8 +35,15 @@ if __name__ == '__main__':
         plot_time_dependent_msd(msd_statistics, ind, l, color=colors[k-1],
                                 label=label_list[k-1])
 
+
+  average_mob_and_friction = calculate_average_mu_parallel(1000)
+  zz_msd = calculate_zz_msd_at_equilibrium(1000)
   for l in range(6):
     pyplot.figure(l)
+    if l in [0, 1]:
+      pyplot.plot([0.0, 300.0], [0.0, 300.*tf.KT*average_mob_and_friction[0]], label='mu parallel')
+    elif l == 2:
+      pyplot.plot([0.0, 300.0], [zz_msd, zz_msd], label='Equilibrium zz MSD')
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 

@@ -219,6 +219,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     torque_calculator = tf.free_gravity_torque_calculator
     KT = tf.KT
     dim = 6
+    sample = tf.generate_free_equilibrium_sample()
+    location = [sample[0]]
+    initial_orientation = [sample[1]]
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
@@ -230,15 +233,12 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   start_time = time.time()
   for run in range(n_runs):
     # do some MCMC to get a sample from the Gibbs distribution.
-    for k in range(2000):
-      [location, initial_orientation] =  (
-        generate_free_equilibrium_sample_mcmc([location,
-                                               initial_orientation]))
+
     integrator = QuaternionIntegrator(mobility,
-                                      [initial_orientation], 
+                                      initial_orientation, 
                                       torque_calculator,
                                       has_location=has_location,
-                                      initial_location=[location],
+                                      initial_location=location,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
@@ -473,7 +473,7 @@ if __name__ == "__main__":
       has_location=args.has_location,
       location=initial_location)
   else:
-    run_data = calc_rotational_msd_from_equilibrium(initial_orientation[0],
+    run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
                                                     args.scheme,
                                                     dt,
                                                     end_time,
@@ -481,7 +481,7 @@ if __name__ == "__main__":
                                                     has_location=
                                                     args.has_location,
                                                     location=
-                                                    initial_location[0],
+                                                    initial_location,
                                                     n_runs=10)
   msd_statistics.add_run(args.scheme, dt, run_data)
   progress_logger.info('finished timestepping dt= %f for scheme %s' % (

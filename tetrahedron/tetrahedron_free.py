@@ -10,6 +10,8 @@ import cPickle
 import cProfile
 import logging
 import math
+#HACK
+from matplotlib import pyplot
 import numpy as np
 import os
 import pstats
@@ -291,57 +293,18 @@ def generate_free_equilibrium_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
-  Do this by generating a uniform quaternion and exponential location, 
-  then accept/rejecting with the appropriate probability.
-  
-  DEPRECATED AND SHOULD NOT BE USED!!!
-  This uses the old potential still, not
-  the Yukawa potential.  Use the mcmc version below (which is faster anyway)
+  Do this by taking 100 steps of MCMC, which is faster than accept/reject.
   '''
-  progress_logger = logging.getLogger('Progress Logger')
-  max_gibbs_term = 0.
-  while True:
-    generate_free_equilibrium_sample.samples += 1
-    # First generate a uniform quaternion on the 4-sphere.
-    theta = np.random.normal(0., 1., 4)
-    theta = Quaternion(theta/np.linalg.norm(theta))
-    # For location, set x and y to 0, since these are not affected
-    # by the potential at all. Generate z coordinate as an exponential 
-    # random variable.
-    phi = np.random.uniform(0.0, 1.0)
-    M = M1 + M2 + M3 + M4
-    z_coord = -1.*np.log(phi)/M
-    location = [0., 0., z_coord]
-    r_vectors = get_free_r_vectors(location, theta)
-    if ((r_vectors[0][2] > 0) and
-        (r_vectors[1][2] > 0) and
-        (r_vectors[2][2] > 0)):
-      # Potential minus (M1 + M2 + M3 + M4)*z_coord because that part of the
-      # distribution is handled by the exponential variable.
-      U = (M1*(r_vectors[0][2] - z_coord) + M2*(r_vectors[1][2] - z_coord) +
-           M3*(r_vectors[2][2] - z_coord))
-      if z_coord < DEBYE_LENGTH:
-        U += 0.5*REPULSION_STRENGTH*(DEBYE_LENGTH - z_coord)**2
-      for k in range(3):
-        if r_vectors[k][2] < DEBYE_LENGTH:
-          U += 0.5*REPULSION_STRENGTH*(DEBYE_LENGTH - r_vectors[k][2])**2
-      # Normalize so acceptance probability < 1.  The un-normalized probability
-      # is definitely below exp(2M), but in fact it can never reach this because not
-      # all particles can be 2 above location. Here 1.8 is determined 
-      # experimentally to give more accepts without giving an acceptance 'probability' 
-      # above 1 (at least not often).
-      normalization_constant = np.exp(1.8*(M1 + M2 + M3)/KT)
-      gibbs_term = np.exp(-1.*U/KT)
-      if gibbs_term > max_gibbs_term:
-        max_gibbs_term = gibbs_term
-      accept_prob = gibbs_term/normalization_constant
-      if accept_prob > 1:
-        progress_logger.warning('Acceptance probability > 1.')
-        progress_logger.warning('accept_prob = %f' % accept_prob)
-        progress_logger.warning('z_coord is %f' % z_coord)
-      if np.random.uniform() < accept_prob:
-        generate_free_equilibrium_sample.accepts += 1
-        return [location, theta]
+  #We just use 100 steps of MCMC
+  theta = np.random.normal(0., 1., 4)
+  initial_orientation = Quaternion(theta/np.linalg.norm(theta))
+  initial_position = np.random.normal(5.0, 1.0, 3)
+  sample = [initial_position, initial_orientation]
+  trajectory = []
+  for k in range(600):
+    sample = generate_free_equilibrium_sample_mcmc(sample)
+  return sample
+
 
 @static_var('samples', 0)  
 @static_var('accepts', 0)  
@@ -419,6 +382,34 @@ def check_particles_above_wall(location, orientation):
     if r_vectors[k][2] < (A + 0.1): 
       return False
   return True
+
+
+def plot_correlation_function_of_mcmc():
+  ''' 
+  Plot the correlation function of mcmc to estimate how many steps we need to
+  get an independent sample.
+  '''
+  initial_orientation = Quaternion([1., 0., 0., 0.])
+  initial_position = [0., 0., 3.5]
+  sample = [initial_position, initial_orientation]
+  trajectory = []
+  for k in range(3500):
+    sample = generate_free_equilibrium_sample_mcmc(sample)
+    trajectory.append(sample)
+
+  # calculate correlation function of location[2] the naive way.
+  correlation = np.zeros(500)
+  mean_height = np.mean([trajectory[k][0][2] for k in range(1200)])
+  for k in range(3000):
+    for j in range(500):
+      correlation[j] += (trajectory[k][0][2] - mean_height)*(
+        trajectory[j+k][0][2] - mean_height)
+  
+  pyplot.plot(range(500), correlation)
+  pyplot.title('correlation function of MCMC')
+  pyplot.xlabel('steps')
+  pyplot.savefig('./figures/MCMCCorrelationFunction.pdf')
+  return
 
 
 
