@@ -210,9 +210,10 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
     n_runs:  How many separate runs to do in order to estimate std deviation.  
   '''
+
   progress_logger = logging.getLogger('Progress Logger')
-  # 5 percent burn_in time.
-  burn_in = int(n_steps*0.05)
+  # Instead of burn in we generate a sample using MCMC.
+  burn_in = 0
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -228,11 +229,16 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   print_increment = n_steps/10
   start_time = time.time()
   for run in range(n_runs):
+    # do some MCMC to get a sample from the Gibbs distribution.
+    for k in range(2000):
+      [location, initial_orientation] =  (
+        generate_free_equilibrium_sample_mcmc([location,
+                                               initial_orientation]))
     integrator = QuaternionIntegrator(mobility,
-                                      initial_orientation, 
+                                      [initial_orientation], 
                                       torque_calculator,
                                       has_location=has_location,
-                                      initial_location=location,
+                                      initial_location=[location],
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
@@ -419,24 +425,8 @@ if __name__ == "__main__":
   if args.scheme not in ['RFD', 'FIXMAN', 'EM']:
     raise Exception('Scheme must be one of RFD, FIXMAN, or EM')
 
-  # Set masses to all be equal for simple theoretical comparison.
-#  tdn.M1 = 0.0
-#  tdn.M2 = 0.0
-#  tdn.M3 = 0.0
-  # Stick with original TF masses for now.
-#  total_free_mass = tf.M1 + tf.M2 + tf.M3 + tf.M4
-#  tf.M1 = total_free_mass/4.
-#  tf.M2 = total_free_mass/4.
-#  tf.M3 = total_free_mass/4.
-#  tf.M4 = total_free_mass/4.
-
   # Set initial conditions.
-  #HACK: start a rotation of pi/16 around the positive y axis, ETC.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-#  initial_orientation = [Quaternion([np.cos(np.pi/32.), 
-#                                     0., -1.*np.sin(np.pi/32.), 0.])]
-#  initial_orientation[0] = (Quaternion([np.cos(np.pi/32.), 0., 0., np.sin(np.pi/32.)])*
-#                            initial_orientation[0])
   r_vectors = tdn.get_r_vectors(initial_orientation[0])
   initial_location = [[0., 0., 3.5]]
 
@@ -483,7 +473,7 @@ if __name__ == "__main__":
       has_location=args.has_location,
       location=initial_location)
   else:
-    run_data = calc_rotational_msd_from_equilibrium(initial_orientation,
+    run_data = calc_rotational_msd_from_equilibrium(initial_orientation[0],
                                                     args.scheme,
                                                     dt,
                                                     end_time,
@@ -491,7 +481,7 @@ if __name__ == "__main__":
                                                     has_location=
                                                     args.has_location,
                                                     location=
-                                                    initial_location,
+                                                    initial_location[0],
                                                     n_runs=10)
   msd_statistics.add_run(args.scheme, dt, run_data)
   progress_logger.info('finished timestepping dt= %f for scheme %s' % (

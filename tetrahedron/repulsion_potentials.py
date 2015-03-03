@@ -13,7 +13,7 @@ from quaternion_integrator.quaternion import Quaternion
 def bin_center_of_mass(location, orientation, bin_width, 
                        height_histogram):
   '''Bin heights of the free particle based on a location and an orientation.'''
-  center_of_mass = tf.get_free_center_of_mass(location, orientation)
+  center_of_mass = tf.get_(location, orientation)
   # Bin each particle height.
   idx = (int(math.floor((center_of_mass[2])/bin_width)))
   if idx < len(height_histogram):
