@@ -14,38 +14,61 @@ def distribution_height_particle(heights, buckets, names):
   if len(names) != len(heights):
     raise Exception('Heights and names must have the same length.')
 
-  for particle in range(3):
+  # Test if this is free tetrahedron data by looking at number of 
+  # particles we binned.  NOTE: Older runs of the free tetrahedron
+  # only consider 3 particles (not the top vertex), and will be 
+  # plotted as if they're fixed runs.
+  if len(heights[0]) == 5:
+    location = True
+  else:
+    location = False
+
+
+  for particle in range(3 + 1*location):
     fig = pyplot.figure()
     ax = fig.add_subplot(1, 1, 1)
     for k in range(len(heights)):
       pyplot.plot(buckets, heights[k][particle],  label=names[k])
     
-    #HACK for floren's data
-    if particle == 0:
-      # Mass 0.005
-      data_file = './data/hBlob.geometricCenter.mass.0.005.dat'
-    elif particle == 1:
-      data_file = './data/hBlob.geometricCenter.mass.0.015.dat'
-    elif particle == 2:
-      data_file = './data/hBlob.geometricCenter.mass.0.01.dat'
+    # #HACK for floren's data
+    # if particle == 0:
+    #   # Mass 0.005
+    #   data_file = './data/hBlob.geometricCenter.mass.0.005.dat'
+    # elif particle == 1:
+    #   data_file = './data/hBlob.geometricCenter.mass.0.015.dat'
+    # elif particle == 2:
+    #   data_file = './data/hBlob.geometricCenter.mass.0.01.dat'
 
-    x = []
-    num = []
-    with open(data_file, 'r') as f:
-      for line in f:
-        dat = line.split(' ')
-        if len(dat) > 1:
-          x.append(float(dat[0]))
-          num.append(float(dat[1]))
+    # x = []
+    # num = []
+    # with open(data_file, 'r') as f:
+    #   for line in f:
+    #     dat = line.split(' ')
+    #     if len(dat) > 1:
+    #       x.append(float(dat[0]))
+    #       num.append(float(dat[1]))
 
-    pyplot.plot(x, num, label='IBAMR')
-
+    # pyplot.plot(x, num, label='IBAMR')
+      
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.title('Location of particle %d' % particle)
     pyplot.ylabel('Probability Density')
     pyplot.xlabel('Height')
     # ax.set_yscale('log')
     pyplot.savefig('./figures/Height%d_Distribution.pdf' % particle)
+
+  # Plot center of tetrahedron.  Only do this for the Free tetrahedron.
+  if location:
+    fig = pyplot.figure()
+    for k in range(len(heights)):
+      pyplot.plot(buckets, heights[k][4], label=names[k])
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.title('PDF for Location of center of Tetrahedron. %d' % particle)
+    pyplot.ylabel('Probability Density')
+    pyplot.xlabel('Height')
+    # ax.set_yscale('log')
+    pyplot.savefig('./figures/TetrahedronCenterHeightDistribution.pdf')
+    
 
 
 def check_first_order_height_distribution(heights, buckets, names):

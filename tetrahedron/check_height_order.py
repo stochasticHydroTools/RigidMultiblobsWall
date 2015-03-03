@@ -14,8 +14,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
   Plot just the discrepency between each scheme and the equilibrium,
   which is assumed to be the last entry in heights.  
   heights_list[dt][run][scheme][particle] is a histogram of
-  the distribution of the height of a particle (0 - 2)
-  given by running scheme with timestep dt.  Run indicates
+  the distribution of the height of a particle (0 - 3)
+  given by running scheme with timestep dt.  The 
+  5th entry (particle = 4), if it exists, is the PDF of the center of 
+  the tetrahedron. Run indicates
   which run this is, and the multiple runs are used for generating error bars.
 
   buckets gives a list of the midpionts of buckets, which is used for 
@@ -30,8 +32,11 @@ def check_height_order(heights_list, buckets, names, dts, order):
   order is used to scale errors at smaller timesteps for checking the order
   of accuracy of the schemes.
   '''
-  # Just look at the heaviest particle for now.
-  particle = 2
+  # Just look at the center of the tetrahedron for now.
+  # WARNING: This will not work with the fixed tetrahedron or 
+  # with older free tetrahedron runs!  In those cases, particle must
+  # be between 0 and 2.
+  particle = 4  
   for scheme_idx in range(len(heights_list[0][0]) - 1):
     # Loop through schemes, indexed by scheme_idx
     error_sums = []
