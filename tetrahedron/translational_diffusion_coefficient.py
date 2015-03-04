@@ -83,10 +83,6 @@ def calculate_average_mu_parallel(n_samples):
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
   '''
-  tf.M1 = 0.225
-  tf.M2 = 0.225
-  tf.M3 = 0.225
-  tf.M4 = 0.225
   initial_location = [np.array([0., 0., tf.H])]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   sample = [initial_location[0], initial_orientation[0]]

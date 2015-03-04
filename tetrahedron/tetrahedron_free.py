@@ -10,8 +10,6 @@ import cPickle
 import cProfile
 import logging
 import math
-#HACK
-from matplotlib import pyplot
 import numpy as np
 import os
 import pstats
@@ -293,17 +291,18 @@ def generate_free_equilibrium_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
   to the distribution exp(-\beta U(heights)).
-  Do this by taking 100 steps of MCMC, which is faster than accept/reject.
   '''
-  #We just use 100 steps of MCMC
-  theta = np.random.normal(0., 1., 4)
-  initial_orientation = Quaternion(theta/np.linalg.norm(theta))
-  initial_position = np.random.normal(5.0, 1.0, 3)
-  sample = [initial_position, initial_orientation]
-  trajectory = []
-  for k in range(600):
-    sample = generate_free_equilibrium_sample_mcmc(sample)
-  return sample
+  # Use accept reject
+  while True:
+    theta = np.random.normal(0., 1., 4)
+    orientation = Quaternion(theta/np.linalg.norm(theta))
+    location = [0., 0., np.random.uniform(A, 14.0)]
+    accept_prob = gibbs_boltzmann_distribution(location, orientation)/(1.1e-1)
+    if accept_prob > 1.:
+      print 'Accept probability %s is greater than 1' % accept_prob
+    
+    if np.random.uniform(0., 1.) < accept_prob:
+      return [location, orientation]
 
 
 @static_var('samples', 0)  
@@ -399,18 +398,19 @@ def plot_correlation_function_of_mcmc():
 
   # calculate correlation function of location[2] the naive way.
   correlation = np.zeros(500)
-  mean_height = np.mean([trajectory[k][0][2] for k in range(1200)])
+  mean_height = np.mean([trajectory[k][0][2] for k in range(3500)])
   for k in range(3000):
     for j in range(500):
       correlation[j] += (trajectory[k][0][2] - mean_height)*(
         trajectory[j+k][0][2] - mean_height)
   
+  # Only import pyplot if we use it.
+  from matplotlib import pyplot
   pyplot.plot(range(500), correlation)
   pyplot.title('correlation function of MCMC')
   pyplot.xlabel('steps')
   pyplot.savefig('./figures/MCMCCorrelationFunction.pdf')
   return
-
 
 
 if __name__ == '__main__':
@@ -547,7 +547,6 @@ if __name__ == '__main__':
                        float(generate_free_equilibrium_sample_mcmc.samples)))
 
 
-
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
              rfd_heights/(n_steps*bin_width),
@@ -560,6 +559,7 @@ if __name__ == '__main__':
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
                            'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
                            'DEBYE_LENGTH': DEBYE_LENGTH}
+  print 'parameters are: ', height_data['params']
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
                         for k in range(len(fixman_heights))])

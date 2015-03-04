@@ -16,13 +16,14 @@ sys.path.append('..')
 
 from plot_rotational_msd import calculate_zz_msd_at_equilibrium
 from translational_diffusion_coefficient import calculate_average_mu_parallel
+import tetrahedron_free as tf
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = ['4 Blobs ', '3 Blobs']
+  label_list = ['RFD', 'FIXMAN']
   colors = ['b', 'g']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
@@ -36,14 +37,15 @@ if __name__ == '__main__':
                                 label=label_list[k-1])
 
 
-  average_mob_and_friction = calculate_average_mu_parallel(1000)
-  zz_msd = calculate_zz_msd_at_equilibrium(1000)
+  average_mob_and_friction = calculate_average_mu_parallel(10)
+  zz_msd = calculate_zz_msd_at_equilibrium(2000)
+
   for l in range(6):
     pyplot.figure(l)
     if l in [0, 1]:
-      pyplot.plot([0.0, 300.0], [0.0, 300.*tf.KT*average_mob_and_friction[0]], label='mu parallel')
+      pyplot.plot([0.0, 500.0], [0.0, 500.*tf.KT*average_mob_and_friction[0]], 'k--', label='mu parallel')
     elif l == 2:
-      pyplot.plot([0.0, 300.0], [zz_msd, zz_msd], label='Equilibrium zz MSD')
+      pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 

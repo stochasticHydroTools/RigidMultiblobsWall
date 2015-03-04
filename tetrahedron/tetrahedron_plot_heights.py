@@ -61,9 +61,13 @@ def distribution_height_particle(heights, buckets, names):
   if location:
     fig = pyplot.figure()
     for k in range(len(heights)):
+      #HACk, fix buckets from mistake where I subtracted 2.0
+      if buckets[0] < 0.0:
+        buckets = buckets + 2.0
       pyplot.plot(buckets, heights[k][4], label=names[k])
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.title('PDF for Location of center of Tetrahedron. %d' % particle)
+    pyplot.title('PDF for Location of center of Tetrahedron')
+    pyplot.xlim([0.0, 8.5])
     pyplot.ylabel('Probability Density')
     pyplot.xlabel('Height')
     # ax.set_yscale('log')

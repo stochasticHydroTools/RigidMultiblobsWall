@@ -32,6 +32,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
   order is used to scale errors at smaller timesteps for checking the order
   of accuracy of the schemes.
   '''
+  #HACK: Fix buckets negative when I subtracted 2.0 for different histograms.
+  if buckets[0] < 0.0:
+    buckets += 2.0
+
   # Just look at the center of the tetrahedron for now.
   # WARNING: This will not work with the fixed tetrahedron or 
   # with older free tetrahedron runs!  In those cases, particle must
@@ -94,24 +98,39 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.figure(scheme_idx*3)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
     pyplot.xlabel('Height')
+    pyplot.xlim([0., 8.5])
     pyplot.ylabel('PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
-    pyplot.savefig('./figures/HeightRefinement-Scheme-%s-Particle-%s.pdf' %
-                   (names[scheme_idx], particle))
+    if particle == 4:
+      pyplot.savefig('./figures/HeightRefinement-Scheme-%s-Center.pdf' %
+                     (names[scheme_idx]))
+    else:
+      pyplot.savefig('./figures/HeightRefinement-Scheme-%s-Particle-%s.pdf' %
+                     (names[scheme_idx], particle))
     pyplot.figure(scheme_idx*3 + 1)
-    pyplot.title('%s scheme, order %s test' % (names[scheme_idx], order))
+    pyplot.title('%s - Error in height distribution'  % (names[scheme_idx]))
     pyplot.xlabel('Height')
-    pyplot.ylabel('Error in height distribution')
+    pyplot.xlim([0., 8.5])
+    pyplot.ylabel('Error in PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
-    pyplot.savefig('./figures/HeightError-Scheme-%s-Particle-%s.pdf' %
-                   (names[scheme_idx], particle))
+    if particle == 4:
+      pyplot.savefig('./figures/HeightError-Scheme-%s-Center.pdf' %
+                     (names[scheme_idx]))
+    else:
+      pyplot.savefig('./figures/HeightError-Scheme-%s-Particle-%s.pdf' %
+                     (names[scheme_idx], particle))
     pyplot.figure(scheme_idx*3 + 2)
     pyplot.title('LogLog plot dt v. Error, %s' % (names[scheme_idx]))
+    pyplot.xlim([0., 8.5])
     pyplot.xlabel('Log(dt)')
     pyplot.ylabel('Log(Error)')
     pyplot.legend(loc = 'best', prop={'size': 9})
-    pyplot.savefig('./figures/LogLogError-Scheme-%s-Particle-%s.pdf' %
-                   (names[scheme_idx], particle))
+    if particle == 4:
+      pyplot.savefig('./figures/LogLogError-Scheme-%s-Center.pdf' %
+                     (names[scheme_idx]))
+    else:
+      pyplot.savefig('./figures/LogLogError-Scheme-%s-Particle-%s.pdf' %
+                     (names[scheme_idx], particle))
 
 
 if __name__  == '__main__':
@@ -171,32 +190,13 @@ if __name__  == '__main__':
   #  dts = [32., 16., 8., 4., 2.]
 
   # Free tetrahedron.
-  data_files = [['free-tetrahedron-dt-0.8-N-4000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-run-8.pkl'],
-                ['free-tetrahedron-dt-0.4-N-4000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.4-N-4000000-run-8.pkl'],
-                ['free-tetrahedron-dt-0.2-N-4000000-run-1.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-2.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-3.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-4.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-5.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-6.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-7.pkl',
-                 'free-tetrahedron-dt-0.2-N-4000000-run-8.pkl']]
+  data_files = [['free-tetrahedron-dt-1.6-N-2000000-four-blobs-1.pkl',
+                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',],
+                ['free-tetrahedron-dt-0.8-N-4000000-four-blobs-1.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-2.pkl',]]
+
                 
-  dts = [0.8, 0.4, 0.2]
+  dts = [1.6, 0.8]
   
   heights_list = []
   for parameter_set in data_files:
@@ -209,6 +209,6 @@ if __name__  == '__main__':
   # For now assume all runs have the same scheme order and buckets.
   buckets = heights_data['buckets']
   names = heights_data['names']
-  check_height_order(heights_list, buckets, names, dts, 1.0)
+  check_height_order(heights_list, buckets, names, dts, 0.0)
       
   
