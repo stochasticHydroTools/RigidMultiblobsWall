@@ -93,6 +93,7 @@ if __name__ == "__main__":
             msd_statistics.print_params()
           if time is None:
             time = msd_statistics.data[scheme][dt][0]
+            print "time is ", time
             average_msd = msd_statistics.data[scheme][dt][1]
             std_msd = msd_statistics.data[scheme][dt][2]**2
           else:
@@ -115,6 +116,7 @@ if __name__ == "__main__":
         with open(data_name, 'rb') as f:
           msd_statistics = cPickle.load(f)
           msd_statistics.print_params()
+          print "msd_statistics time", msd_statistics.data[scheme][dt][0]
         if not combined_msd_statistics:
           combined_msd_statistics = msd_statistics
         else:
@@ -136,6 +138,6 @@ if __name__ == "__main__":
     
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
-                   ([l, l]))
+    pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
+                   (l, l))
 

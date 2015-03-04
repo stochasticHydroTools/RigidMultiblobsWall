@@ -48,8 +48,8 @@ if __name__ == '__main__':
       pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s.pdf' % 
-                   ([l, l]))
+    pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
+                   (l, l))
   
     
     

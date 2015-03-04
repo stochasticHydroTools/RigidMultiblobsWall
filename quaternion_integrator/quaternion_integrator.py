@@ -198,6 +198,7 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
         new_orientation.append(quaternion_dt*self.orientation[i])
         
+      # Check validity of new state.
       if self.has_location:
         if self.check_new_state(new_location, new_orientation):
           self.location = new_location
