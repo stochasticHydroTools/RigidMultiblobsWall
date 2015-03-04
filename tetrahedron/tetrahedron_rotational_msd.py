@@ -210,10 +210,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     location: initial location of tetrahedron, only used if has_location = True.
     n_runs:  How many separate runs to do in order to estimate std deviation.  
   '''
-
+  burn_in = 0
   progress_logger = logging.getLogger('Progress Logger')
   # Instead of burn in we generate a sample using MCMC.
-  burn_in = 0
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -245,7 +244,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     if has_location:
       integrator.check_function = tf.check_particles_above_wall
 
-    trajectory_length = int(end_time/dt) + 1
+    # choose number of steps to take before saving data.
+    # Want 100 points on our plot.
+    data_interval = int((end_time/dt)/100.)
+    trajectory_length = 100
+
     if trajectory_length > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
@@ -253,7 +256,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     lagged_location_trajectory = []  # Locations of center of mass.
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
-    for step in range(burn_in + n_steps):
+    for step in range(n_steps):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':
@@ -261,7 +264,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
-      if step > burn_in:
+      if step % data_interval == 0:
         lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
         if has_location:
           center_of_mass = tf.get_free_center_of_mass(integrator.location[0], 
@@ -305,7 +308,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
-  results[0] = np.arange(0, trajectory_length)*dt
+  results[0] = np.arange(0, trajectory_length)*dt*data_interval
   results[1] = np.mean(rot_msd_list, axis=0)
   results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 
