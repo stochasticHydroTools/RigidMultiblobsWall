@@ -32,8 +32,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
   order is used to scale errors at smaller timesteps for checking the order
   of accuracy of the schemes.
   '''
-  #HACK: Fix buckets negative when I subtracted 2.0 for different histograms.
   if buckets[0] < 0.0:
+    # Check for incorrect buckets.  Some old data had this, and is
+    # not relevant.
+    raise Exception('Expect buckets to start above 0.')
     buckets += 2.0
 
   symbols = ['*', '.', 's', '^', 'x']

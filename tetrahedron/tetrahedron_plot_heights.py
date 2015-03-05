@@ -63,6 +63,7 @@ def distribution_height_particle(heights, buckets, names):
     for k in range(len(heights)):
       #HACk, fix buckets from mistake where I subtracted 2.0
       if buckets[0] < 0.0:
+        raise Exception('Buckets start at a negative value.')
         buckets = buckets + 2.0
       pyplot.plot(buckets, heights[k][4], label=names[k])
     pyplot.legend(loc='best', prop={'size': 9})
