@@ -55,6 +55,8 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     integrator.check_function = ic.icosohedron_check_function
 
     data_interval = int((end_time/dt)/100.)
+    if data_interval == 0:
+      data_interval = 1
     trajectory_length = 100
 
     if trajectory_length*data_interval > n_steps:
@@ -95,6 +97,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                           float(integrator.rejections + n_steps)))
     average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
+    print "average velocity ", integrator.avg_velocity/(n_steps + burn_in)
   
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
