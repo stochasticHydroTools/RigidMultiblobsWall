@@ -100,9 +100,12 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
                                       sph.sphere_force_calculator)
     integrator.kT = sph.KT
     integrator.check_function = sph.sphere_check_function
+    # choose number of steps to take before saving data.
+    # Want 100 points on our plot.
+    data_interval = int((end_time/dt)/100.)
+    trajectory_length = 100
 
-    trajectory_length = int(end_time/dt) + 1
-    if trajectory_length > n_steps:
+    if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
@@ -117,7 +120,7 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
-      if step > burn_in:
+      if (step > burn_in) and (step % data_interval == 0):
         lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
         lagged_location_trajectory.append(integrator.location[0])
 
@@ -138,14 +141,14 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
                           float(integrator.rejections + n_steps)))
-    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
   
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
-  results[0] = np.arange(0, trajectory_length)*dt
+  results[0] = np.arange(0, trajectory_length)*dt*data_interval
   results[1] = np.mean(rot_msd_list, axis=0)
   results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 
