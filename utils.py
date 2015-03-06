@@ -61,7 +61,7 @@ class MSDStatistics(object):
      print self.params
      
 
-def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
+def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None,
                             label=None, error_indices=[0, 1, 2, 3, 4, 5], data_name=None):
   ''' 
   Plot the <ind> entry of the rotational MSD as 
@@ -82,12 +82,17 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
   for scheme in msd_statistics.data.keys():
     for dt in msd_statistics.data[scheme].keys():
       if dt in DT_STYLES.keys():
-        if not style:
+        if not symbol:
            style = DT_STYLES[dt]
+        else:
+           style = symbol + DT_STYLES[dt]
       else:
-        if not style:
+        if not symbol:
            style = linestyles[len(DT_STYLES)]
            DT_STYLES[dt] = style
+        else:
+           DT_STYLES[dt] = linestyles[len(DT_STYLES)]
+           style = symbol + DT_STYLES[dt]
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
       # Don't put error bars at every point
@@ -100,7 +105,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
       # Set label and style.
       if label:
          #HACK, use scheme in Label + given.
-         plot_label = scheme + label
+         plot_label = ('dt = %s ' % dt) + scheme + label
       else:
          plot_label = '%s, dt=%s' % (scheme, dt)
 
@@ -110,7 +115,6 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
       else:
          plot_style = scheme_colors[scheme] + style
          err_bar_color = scheme_colors[scheme]
-
       pyplot.plot(msd_statistics.data[scheme][dt][0],
                   msd_entries,
                   plot_style,

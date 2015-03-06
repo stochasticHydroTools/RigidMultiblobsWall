@@ -100,15 +100,15 @@ if __name__ == "__main__":
                 ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   sphere_label_list = [' Sphere xx MSD', ' Sphere yy MSD', ' Sphere zz MSD', 
                        ' Sphere Rotational MSD', ' Sphere Rotational MSD', ' Sphere Rotational MSD']
-  style_list = ['.--', 's--', '^--', '.--', '.--', '.--']
-  sphere_style_list = ['x:', 'o:', 'o:', 'o:', 'o:', 'o:']
+  style_list = ['.', 's', '^', '.', '.', '.']
+  sphere_style_list = ['x', 'o', 'o', 'o', 'o', 'o']
   translation_plot_limit = 1100.
   for l in range(6):
     ind = [l, l]
-    plot_time_dependent_msd(msd_statistics, ind, figure_index[l], style=style_list[l], 
+    plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
                             label=label_list[l])
     plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='r', 
-                            label=sphere_label_list[l], style=sphere_style_list[l],
+                            label=sphere_label_list[l], symbol=sphere_style_list[l],
                             data_name = "SphereMSDComponent-%s.txt" % l)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], [0.0, translation_plot_limit*2.*sph.KT*0.0941541889044], 'r:', 

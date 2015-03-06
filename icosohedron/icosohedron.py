@@ -6,6 +6,7 @@ import numpy as np
 import os
 import sys
 sys.path.append('..')
+import time
 
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
