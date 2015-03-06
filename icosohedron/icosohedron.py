@@ -111,8 +111,8 @@ def get_icosohedron_r_vectors(location, orientation):
 
 def get_icosohedron_center_r_vectors(location, orientation):
   ''' Get the locations of each individual vertex of the icosohedron. 
-  Same as above, b'''
-  # These values tut now we have a blob in the center.
+  Same as above, but now we have a blob in the center '''
+  # These values
   # taken from an IBAMR vertex file. 'Radius' of 
   # Entire structure is ~1.
   initial_setup = [np.array([0., 0., 0.]),
@@ -192,3 +192,33 @@ def icosohedron_check_function(location, orientation):
     return False
   else:
     return True
+
+def generate_icosohedron_equilibrium_sample():
+  '''Generate a sample icosohedron location and orientation according to the 
+  Gibbs Boltzmann distribution.'''
+  while True:
+    theta = np.random.normal(0., 1., 4)
+    orientation = Quaternion(theta/np.linalg.norm(theta))
+    location = [0., 0., np.random.uniform(A, 20.0)]
+    accept_prob = gibbs_boltzmann_distribution(location, orientation)/(3.0e-1)
+    if accept_prob > 1.:
+      print 'Accept probability %s is greater than 1' % accept_prob
+    
+    if np.random.uniform(0., 1.) < accept_prob:
+      return [location, orientation]
+
+  
+def gibbs_boltzmann_distribution(location, orientation):
+  ''' Calculate Gibbs Boltzmann Distribution at location and orientation.'''
+  if location < A:
+    return 0.0
+  else:
+    U = sum(M)*location[2]
+    U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/DEBYE_LENGTH)/
+          (location[2] - A))
+
+  return np.exp(-1.*U/KT)
+  
+
+
+  

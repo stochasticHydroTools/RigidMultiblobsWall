@@ -22,7 +22,7 @@ if __name__ == "__main__":
     msd_statistics = cPickle.load(f)
     msd_statistics.print_params()
 
-  ind = [0, 0]
+  ind = [2, 2]
   plot_time_dependent_msd(msd_statistics, ind, 1)
   pyplot.title('MSD(t) for Sphere')
   pyplot.savefig('./figures/SphereTimeDependentMSD-Component-%s.pdf' % 

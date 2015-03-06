@@ -285,8 +285,6 @@ def bin_free_particle_heights(location, orientation, bin_width,
       print "New maximum Index  %d is beyond histogram length " % idx
       
 
-@static_var('samples', 0)  
-@static_var('accepts', 0)  
 def generate_free_equilibrium_sample():
   '''
   Generate an equilibrium sample of location and orientation, according
