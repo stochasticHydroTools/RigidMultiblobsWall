@@ -5,18 +5,19 @@ Script to calculate, from free rotational MSD data, the translational
 distribution.
 '''
 import os
-import sys
-sys.path.append('..')
+
 import numpy as np
 import cPickle
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
+import sys
+sys.path.append('..')
 
 from quaternion_integrator.quaternion import Quaternion
 import tetrahedron_free as tf
-from tetrahedron_rotational_msd import MSDStatistics
-import sphere_rotational_msd as sph
+from utils import MSDStatistics
+import sphere.sphere_rotational_msd as sph
 
 def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   '''  
@@ -82,10 +83,6 @@ def calculate_average_mu_parallel(n_samples):
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
   '''
-  tf.M1 = 0.225
-  tf.M2 = 0.225
-  tf.M3 = 0.225
-  tf.M4 = 0.225
   initial_location = [np.array([0., 0., tf.H])]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   sample = [initial_location[0], initial_orientation[0]]
@@ -110,7 +107,7 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)  
   
-  n_runs = 16
+  n_runs = 8
   mobilities = []
   frictions = []
   for k in range(n_runs):

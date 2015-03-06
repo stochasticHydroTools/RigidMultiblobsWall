@@ -104,6 +104,24 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(phi.p[1], theta.p[1])
     self.assertAlmostEqual(phi.p[2], theta.p[2])
 
+  def test_quaternion_stabiliyt(self):
+    ''' Test numerical stability of quaternion multiplication.'''
+    # This test is just to see roughly how bad things are and
+    # how quickly the quaternions become un-normalized.  Seems somewhat slow, 
+    # so that's good.
+    orientation = Quaternion([1., 0., 0., 0.])
+    max_err = 0.0
+    for k in range(4000):
+      theta = np.random.normal(0., 1., 4)
+      theta = Quaternion(theta/np.linalg.norm(theta))
+      orientation = theta*orientation
+      norm_err = abs(orientation.s**2 + np.dot(orientation.p, orientation.p)
+                     - 1.0)
+      if norm_err > max_err:
+        max_err = norm_err 
+    print 'max_err is ', max_err
+    self.assertAlmostEqual(max_err, 0.0)
+
 
     
 if __name__ == '__main__':

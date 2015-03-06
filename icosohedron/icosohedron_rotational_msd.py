@@ -157,11 +157,13 @@ if __name__ == '__main__':
   # Set initial conditions.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   initial_location = [[0., 0., 4.0]]
-
+  
+  # Extract parameters from Arguments.
   scheme = 'RFD'
   dt = args.dt
   end_time = args.end_time
   n_steps = args.n_steps
+  # Set up buckets for histogram.
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
 
@@ -183,7 +185,7 @@ if __name__ == '__main__':
   params = {'M': ic.M, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
             'REPULSION_STRENGTH': ic.REPULSION_STRENGTH, 
             'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT}
-  msd_statistics = MSDStatistics(['FIXMAN'], [dt], params)
+  msd_statistics = MSDStatistics(params)
 
   run_data = calc_icosohedron_msd_from_equilibrium(
     initial_orientation,

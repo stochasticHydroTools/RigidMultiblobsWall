@@ -2,6 +2,8 @@
 
 import numpy as np
 import os
+import sys
+sys.path.append('..')
 
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
@@ -9,8 +11,8 @@ from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 ETA = 1.0             # Viscosity.
-VERTEX_A = 0.3     # radius of individual vertices
-A = 1.4*VERTEX_A               # 'Radius' of entire Icosohedron.
+VERTEX_A = 0.175     # radius of individual vertices
+A = 2.5*VERTEX_A               # 'Radius' of entire Icosohedron.
 M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 
@@ -89,6 +91,12 @@ def get_icosohedron_r_vectors(location, orientation):
                    np.array([1e-12, 1e-12, -1])]
 
   rotation_matrix = orientation.rotation_matrix()
+
+# HACK
+#  for j in range(12):
+#    for k in range(j+1,12):
+#      print 'distance from %d to %d is %f' % (
+#        j, k, np.linalg.norm(initial_setup[j] - initial_setup[k]))
 
   # TODO: Maybe don't do this on the fly every single time.
   for k in range(len(initial_setup)):

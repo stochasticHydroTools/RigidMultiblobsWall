@@ -1,9 +1,10 @@
 """ Test the functions used in the tetrahedron script. """
-import sys
-sys.path.append('..')
 import unittest
 import numpy as np
 import random
+import sys
+sys.path.append('..')
+
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import tetrahedron

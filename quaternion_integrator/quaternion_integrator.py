@@ -217,19 +217,39 @@ class QuaternionIntegrator(object):
     constant.  This for testing and debugging.  We also use it to make sure
     that we need the drift for the correct distribution, etc.
     '''
-    mobility = self.mobility(self.orientation)
-    mobility_half = np.linalg.cholesky(mobility)
-    torque = self.torque_calculator(self.orientation)
-    noise = np.random.normal(0.0, 1.0, self.dim*3)
-    omega = (np.dot(mobility, torque) + 
-             np.sqrt(2.0*self.kT/dt)*np.dot(mobility_half, noise))
-    new_orientation = []
-    for i in range(self.dim):
-      quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
-      new_orientation.append(quaternion_dt*self.orientation[i])
+    if self.has_location:
+      mobility  = self.mobility(self.location, self.orientation)
+      mobility_half = np.linalg.cholesky(mobility)
+      noise = np.random.normal(0.0, 1.0, self.dim*6)
+      force = self.force_calculator(self.location, self.orientation)
+      torque = self.torque_calculator(self.location, self.orientation)
+      velocity_and_omega = (np.dot(mobility, np.concatenate([force, torque])) +
+                            np.sqrt(2.0*self.kT/dt)*
+                            np.dot(mobility_half, noise))
+      velocity = velocity_and_omega[0:(3*self.dim)]
+      omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+      new_location = self.location + dt*velocity
+      new_orientation = []
+      for i in range(self.dim):
+        quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
+        new_orientation.append(quaternion_dt*self.orientation[i])
+      if self.check_new_state(new_location, new_orientation):
+        self.orientation = new_orientation
+        self.location = new_location
+    else:
+      mobility = self.mobility(self.orientation)
+      mobility_half = np.linalg.cholesky(mobility)
+      torque = self.torque_calculator(self.orientation)
+      noise = np.random.normal(0.0, 1.0, self.dim*3)
+      omega = (np.dot(mobility, torque) + 
+               np.sqrt(2.0*self.kT/dt)*np.dot(mobility_half, noise))
+      new_orientation = []
+      for i in range(self.dim):
+        quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
+        new_orientation.append(quaternion_dt*self.orientation[i])
 
-    if self.check_new_state(None, new_orientation):
-      self.orientation = new_orientation
+      if self.check_new_state(None, new_orientation):
+        self.orientation = new_orientation
 
   def estimate_divergence(self):
     ''' 

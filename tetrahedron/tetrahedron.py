@@ -11,19 +11,21 @@ Before running this script, you must compile mobility_ext.cc in
 /constrained_diffusion/fluids.  Just run make in the fluids folder.
 '''
 
-import sys
-sys.path.append('..')
-import os
-import numpy as np
+import argparse
+import cPickle
+import cProfile
+import logging
+import math
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
-import argparse
-import cPickle
-import cProfile, pstats, StringIO
-import math
+import numpy as np
+import os
+import pstats
+import StringIO
+import sys
+sys.path.append('..')
 import time
-import logging
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -50,6 +52,8 @@ H = 2.5     # Distance to wall.
 M1 = 0.1
 M2 = 0.2
 M3 = 0.3
+
+KT = 0.2
 
 def identity_mobility(orientation):
   ''' Simple identity mobility for testing. '''
@@ -144,10 +148,12 @@ def calculate_rot_matrix(r_vectors):
     r_vectors[k] = r_vectors[k] - np.array([0., 0., H])
 
     # Current r cross x matrix block.
+    # This is actually the negative, because R transpose gives
+    # r_i cross x.
     block = np.array(
-        [[0.0, -1.*r_vectors[k][2], r_vectors[k][1]],
-        [r_vectors[k][2], 0.0, -1.*r_vectors[k][0]],
-        [-1.*r_vectors[k][1], r_vectors[k][0], 0.0]])
+        [[0.0, 1.*r_vectors[k][2], -1.*r_vectors[k][1]],
+        [-1.*r_vectors[k][2], 0.0, 1.*r_vectors[k][0]],
+        [1.*r_vectors[k][1], -1.*r_vectors[k][0], 0.0]])
 
     if rot_matrix is None:
       rot_matrix = block
