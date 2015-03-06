@@ -84,7 +84,7 @@ if __name__ == "__main__":
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, l)
     plot_time_dependent_msd(sphere_statistics, ind, l, color='r', 
-                            label='Sphere RFD dt = 0.8')
+                            label='Sphere dt = 0.8')
     if ind == [0, 0] or ind == [1, 1]:
       pyplot.plot([0.0, 180.0], [0.0, 180.*2.*sph.KT*0.0941541889044], 'r:', 
                   label='Sphere Mobility')
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                   label='Icosohedron Mobility')
     pyplot.title('MSD(t) for icosohedron')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s.pdf' % 
-                   (ind))
+    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s-%s.pdf' % 
+                   (ind[0], ind[1]))
 
   print "Icosohedron mobility is ", average_mob_and_friction[0]

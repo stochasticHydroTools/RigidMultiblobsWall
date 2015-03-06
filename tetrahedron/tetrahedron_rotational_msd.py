@@ -232,8 +232,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   start_time = time.time()
   for run in range(n_runs):
     # do some MCMC to get a sample from the Gibbs distribution.
-    #HACK
-    counter = 0
+
     integrator = QuaternionIntegrator(mobility,
                                       initial_orientation, 
                                       torque_calculator,
@@ -250,7 +249,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     data_interval = int((end_time/dt)/100.)
     trajectory_length = 100
 
-    if trajectory_length > n_steps:
+    if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
@@ -284,13 +283,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                 lagged_location_trajectory[k],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
-            counter += 1
           else:
             current_rot_msd = (calc_rotational_msd(
                 lagged_trajectory[0],
                 lagged_trajectory[k]))
             average_rotational_msd[k] += current_rot_msd
-            counter += 1
       if (step % print_increment) == 0:
         progress_logger.info(
           'At step: %d in run %d of %d ' %
@@ -305,7 +302,6 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                           float(integrator.rejections + n_steps)))
     average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
-  
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.

@@ -42,16 +42,30 @@ def check_height_order(heights_list, buckets, names, dts, order):
   # WARNING: This will not work with the fixed tetrahedron or 
   # with older free tetrahedron runs!  In those cases, particle must
   # be between 0 and 2.
-  particle = 2
+  # In the free case, particle = 4 indicates the geometric center.
+  particle = 4
+  upper_limit = 8.5  # Upper limit for histogram buckets in plot.
   if write_data:
-    with open('./data/EquilibriumDistributionParticle-%s-data.txt' 
+    if particle == 4:
+      with open('./data/EquilibriumDistributionCenter-data.txt',
+                'w') as f:
+        f.write('Buckets:\n')
+        f.write('%s \n' % buckets)
+    else:
+      with open('./data/EquilibriumDistributionParticle-%s-data.txt' 
+                % particle, 'w') as f:
+        f.write('Buckets:\n')
+        f.write('%s \n' % buckets)
+    if particle == 4:
+      with open('./data/ErrorCenter-data.txt',
+                'w') as f:
+        f.write('Buckets:\n')
+        f.write('%s \n' % buckets)
+    else:
+      with open('./data/ErrorParticle-%s-data.txt' 
               % particle, 'w') as f:
-      f.write('Buckets:\n')
-      f.write('%s \n' % buckets)
-    with open('./data/ErrorParticle-%s-data.txt' 
-              % particle, 'w') as f:
-      f.write('Buckets:\n')
-      f.write('%s \n' % buckets)
+        f.write('Buckets:\n')
+        f.write('%s \n' % buckets)
 
   for scheme_idx in range(len(heights_list[0][0]) - 1):
     # Loop through schemes, indexed by scheme_idx
@@ -95,11 +109,18 @@ def check_height_order(heights_list, buckets, names, dts, order):
           pyplot.plot(buckets, height_means, symbols[scheme_idx] + '--',
                       label=names[scheme_idx])
         if write_data:
-          with open('./data/EquilibriumDistributionParticle-%s-data.txt' % 
-                    particle, 'a') as f:
-            f.write('Scheme: %s\n' % names[scheme_idx])
-            f.write('Heights PDF:')
-            f.write('%s \n' % height_means)
+          if particle == 4:
+            with open('./data/EquilibriumDistributionCenter-data.txt', 
+                      'a') as f:
+              f.write('Scheme: %s\n' % names[scheme_idx])
+              f.write('Heights PDF:')
+              f.write('%s \n' % height_means)
+          else:
+            with open('./data/EquilibriumDistributionParticle-%s-data.txt' % 
+                      particle, 'a') as f:
+              f.write('Scheme: %s\n' % names[scheme_idx])
+              f.write('Heights PDF:')
+              f.write('%s \n' % height_means)
 
       # Figure 2 is the errors, scaled to check order.
       pyplot.figure(scheme_idx*3 + 1)
@@ -113,12 +134,20 @@ def check_height_order(heights_list, buckets, names, dts, order):
                     symbols[dt_idx] + '--',
                     label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
       if write_data:
-        with open('./data/ErrorParticle-%s-data.txt' 
-                  % particle, 'a') as f:
-          f.write('Scheme: %s \n' % names[scheme_idx])
-          f.write('dt: %s \n' % dts[dt_idx])
-          f.write('Error in Height PDF (not scaled):\n')
-          f.write('%s \n' % error_means)
+        if particle == 4:
+          with open('./data/ErrorCenter-data.txt',
+                    'a') as f:
+            f.write('Scheme: %s \n' % names[scheme_idx])
+            f.write('dt: %s \n' % dts[dt_idx])
+            f.write('Error in Height PDF (not scaled):\n')
+            f.write('%s \n' % error_means)
+        else:
+          with open('./data/ErrorParticle-%s-data.txt' 
+                    % particle, 'a') as f:
+            f.write('Scheme: %s \n' % names[scheme_idx])
+            f.write('dt: %s \n' % dts[dt_idx])
+            f.write('Error in Height PDF (not scaled):\n')
+            f.write('%s \n' % error_means)
 
     # Figure 3 is a log-log plot of error v. dt.
     pyplot.figure(scheme_idx*3 + 2)
@@ -144,19 +173,24 @@ def check_height_order(heights_list, buckets, names, dts, order):
 #                  label = 'Monte Carlo')
   pyplot.plot(buckets, height_means, 'k-', linewidth=2.0, label='Monte Carlo')
   if write_data:
-    with open('./data/EquilibriumDistributionParticle-%s-data.txt' % particle, 'a') as f:
-      f.write('Monte Carlo\n')
-      f.write('Heights PDF:')
-      f.write('%s \n' % height_means)
-    
-  
+    if particle == 4:
+      with open('./data/EquilibriumDistributionCenter-data.txt', 'a') as f:
+        f.write('Monte Carlo\n')
+        f.write('Heights PDF:')
+        f.write('%s \n' % height_means)
+    else:
+      with open('./data/EquilibriumDistributionParticle-%s-data.txt'
+                % particle, 'a') as f:
+        f.write('Monte Carlo\n')
+        f.write('Heights PDF:')
+        f.write('%s \n' % height_means)
 
   # Title and labels.
   for scheme_idx in range(len(heights_list[0][0]) - 1):
     pyplot.figure(scheme_idx*3)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
     pyplot.xlabel('Height')
-    pyplot.xlim([0., 5.0])
+    pyplot.xlim([0., upper_limit])
     pyplot.ylabel('PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
     if particle == 4:
@@ -168,7 +202,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.figure(scheme_idx*3 + 1)
     pyplot.title('%s - Error in height distribution'  % (names[scheme_idx]))
     pyplot.xlabel('Height')
-    pyplot.xlim([0., 5.0])
+    pyplot.xlim([0., upper_limit])
     pyplot.ylabel('Error in PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
     if particle == 4:
@@ -179,7 +213,6 @@ def check_height_order(heights_list, buckets, names, dts, order):
                      (names[scheme_idx], particle))
     pyplot.figure(scheme_idx*3 + 2)
     pyplot.title('LogLog plot dt v. Error, %s' % (names[scheme_idx]))
-    pyplot.xlim([0., 8.5])
     pyplot.xlabel('Log(dt)')
     pyplot.ylabel('Log(Error)')
     pyplot.legend(loc = 'best', prop={'size': 9})
@@ -192,13 +225,21 @@ def check_height_order(heights_list, buckets, names, dts, order):
 
 
   pyplot.figure(12)
-  pyplot.title('Equilibrium Distribution for Particle %s, dt=%s' % 
-               (particle, dts[small_dt_idx]))
+  if particle == 4:
+    pyplot.title('Equilibrium distribution for geometric center, dt=%s' % 
+                 (dts[small_dt_idx]))
+  else:
+    pyplot.title('Equilibrium Distribution for Particle %s, dt=%s' % 
+                 (particle, dts[small_dt_idx]))
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
   pyplot.legend(loc = 'best', prop={'size': 9})
-  pyplot.savefig('./figures/EquilibriumDistributionParticle-%s.pdf' %
-                 particle)
+  pyplot.xlim([0.0, upper_limit])
+  if particle == 4:
+    pyplot.savefig('./figures/EquilibriumDistributionCenter.pdf')
+  else:
+    pyplot.savefig('./figures/EquilibriumDistributionParticle-%s.pdf' %
+                   particle)
 
 
 if __name__  == '__main__':
@@ -206,65 +247,71 @@ if __name__  == '__main__':
   # Check their order.
   # List of lists. Each entry should be a list of names of data
   # files for multiple runs with the same timestep and number of steps.
-  data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
-                ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-9-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-10-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-11-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-12-fixed.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-13.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-14.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-15.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-16.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-17.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-18.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-19.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-20.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-21.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-22.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-23.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-24.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-25.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-26.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-27.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-28.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-29.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-30.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-31.pkl',
-                 'tetrahedron-dt-2-N-6000000-run-32.pkl']]
+  # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
+  #               ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-9-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-10-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-11-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-12-fixed.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-13.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-14.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-15.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-16.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-17.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-18.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-19.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-20.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-21.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-22.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-23.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-24.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-25.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-26.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-27.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-28.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-29.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-30.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-31.pkl',
+  #                'tetrahedron-dt-2-N-6000000-run-32.pkl']]
   
-  dts = [32., 16., 8., 4., 2.]  #This is assumed to be in decreasing order.
+  # dts = [32., 16., 8., 4., 2.]  #This is assumed to be in decreasing order.
 
   # Free tetrahedron.
-  # data_files = [['free-tetrahedron-dt-1.6-N-2000000-four-blobs-1.pkl',
-  #                'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',],
-  #               ['free-tetrahedron-dt-0.8-N-4000000-four-blobs-1.pkl',
-  #                'free-tetrahedron-dt-0.8-N-4000000-four-blobs-2.pkl',]]
+  data_files = [['free-tetrahedron-dt-1.6-N-2000000-four-blobs-1.pkl',
+                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',
+                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',
+                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',],
+                ['free-tetrahedron-dt-0.8-N-4000000-four-blobs-1.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-2.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-3.pkl',
+                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-4.pkl',],
+                ['free-tetrahedron-dt-0.4-N-8000000-four-blobs-1.pkl',
+                 'free-tetrahedron-dt-0.4-N-8000000-four-blobs-2.pkl',]]
 
                 
-  # dts = [1.6, 0.8] This is assumed to be in decreasing order.
+  dts = [1.6, 0.8, 0.4]  # This is assumed to be in decreasing order.
   
   heights_list = []
   for parameter_set in data_files:
