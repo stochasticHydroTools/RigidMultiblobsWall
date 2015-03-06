@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
+import os
 
 
 DT_STYLES = {}  # Used for plotting different timesteps of MSD.
@@ -61,7 +62,7 @@ class MSDStatistics(object):
      
 
 def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
-                            label=None, error_indices=[0, 1, 2, 3, 4, 5]):
+                            label=None, error_indices=[0, 1, 2, 3, 4, 5], data_name=None):
   ''' 
   Plot the <ind> entry of the rotational MSD as 
   a function of time on given figure (integer).  
@@ -114,8 +115,10 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
                   msd_entries,
                   plot_style,
                   label = plot_label)
+      if not data_name:
+         data_name = "MSD-component-%s-%s.txt" % (ind[0], ind[1])
       if write_data:
-        with open("./data/MSD-component-%s-%s.txt" % (ind[0], ind[1]),'w+') as f:
+        with open(os.path.join('.', 'data', data_name),'w+') as f:
           f.write("scheme %s \n" % scheme)
           f.write("dt %s \n" % dt)
           f.write("time: %s \n" % msd_statistics.data[scheme][dt][0])
@@ -130,3 +133,18 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
 
+def log_time_progress(elapsed_time, time_units, total_time_units):
+  ''' Write elapsed time and expected duration to progress log.'''
+  progress_logger = logging.getLogger('progress_logger')  
+  expected_duration = elapsed_time*total_time_units/time_units
+  if elapsed_time > 60.0:
+    progress_logger.info('Elapsed Time: %.2f Minutes.' % 
+                         (float(elapsed_time/60.)))
+  else:
+    progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
+  if expected_duration > 60.0:
+    progress_logger.info('Expected Duration: %.2f Minutes.' % 
+                         (float(expected_duration/60.)))
+  else:
+      progress_logger.info('Expected Duration: %.2f Seconds' % 
+                           float(expected_duration))

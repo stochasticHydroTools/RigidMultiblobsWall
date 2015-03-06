@@ -557,7 +557,6 @@ if __name__ == '__main__':
   height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
                            'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
                            'DEBYE_LENGTH': DEBYE_LENGTH}
-  print 'parameters are: ', height_data['params']
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
                         for k in range(len(fixman_heights))])

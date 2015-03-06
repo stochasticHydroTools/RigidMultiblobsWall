@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 import icosohedron as ic
+import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 
 class TestIcosohedron(unittest.TestCase):
@@ -61,6 +62,21 @@ class TestIcosohedron(unittest.TestCase):
     # Push in the positive x direction should produce negative y rotation.
     # (This should already be true by symmetry, but test anyway)
     self.assertTrue(mobility[4, 0] < 0.0)
+    
+
+  def test_nonuniform_torque(self):
+    ''' Test that the nonuniform torque makes sense for the heavy particle.
+    on the side.'''
+    
+    theta = Quaternion([1./(np.sqrt(2.)), 1./np.sqrt(2.), 0., 0.])
+    location = [0., 0., 3.]
+
+    torque = icn.nonuniform_torque_calculator([location], [theta])
+    
+    self.assertTrue(torque[0] > 0.0)
+    self.assertAlmostEqual(torque[1], 0.0)
+    self.assertAlmostEqual(torque[2], 0.0)
+    
     
     
 if __name__ == '__main__':

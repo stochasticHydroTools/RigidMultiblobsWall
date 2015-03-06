@@ -10,6 +10,7 @@ import sys
 sys.path.append('..')
 
 import icosohedron as ic
+import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import StreamToLogger
@@ -17,12 +18,13 @@ from utils import MSDStatistics
 
 
 def calc_icosohedron_msd_from_equilibrium(initial_orientation,
-                                     scheme,
-                                     dt,
-                                     end_time,
-                                     n_steps,
-                                     location=None,
-                                     n_runs=4):
+                                          scheme,
+                                          dt,
+                                          end_time,
+                                          n_steps,
+                                          location=None,
+                                          n_runs=4,
+                                          uniform=True):
   ''' 
   Do a few long runs, and along the way gather statistics
   about the average rotational Mean Square Displacement 
@@ -37,16 +39,21 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     location: initial location of icosohedron.
     n_runs:  How many separate runs to do in order to get std deviation.  
              4 should be fine.
+    uniform: Whether to use a uniform icosohedron, or one with one heavy marker.
   '''
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
   rot_msd_list = []
   print_increment = n_steps/20
   dim = 6
+  if uniform:
+    torque_calculator = ic.icosohedron_torque_calculator
+  else:
+    torque_calculator = icn.nonuniform_torque_calculator
   for run in range(n_runs):
     integrator = QuaternionIntegrator(ic.icosohedron_mobility,
                                       initial_orientation, 
-                                      ic.icosohedron_torque_calculator,
+                                      torque_calculator,
                                       has_location=True,
                                       initial_location=location,
                                       force_calculator=
@@ -147,6 +154,8 @@ if __name__ == '__main__':
                       help='Number of steps to take for runs')
   parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
                       help='How far to calculate the time dependent MSD.')
+  parser.add_argument('-nonuniform', dest='nonuniform', type=bool, default = False,
+                      help='Whether to do the Nonuniform Icosohedron.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -189,7 +198,8 @@ if __name__ == '__main__':
   height_histogram_run = np.zeros(len(buckets))
   params = {'M': ic.M, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
             'REPULSION_STRENGTH': ic.REPULSION_STRENGTH, 
-            'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT}
+            'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
+            'END_TIME': args.end_time}
   msd_statistics = MSDStatistics(params)
 
   run_data = calc_icosohedron_msd_from_equilibrium(

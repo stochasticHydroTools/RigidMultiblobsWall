@@ -1,5 +1,7 @@
 ''' Functions used for the Icosohedron structure near a wall. '''
 
+import argparse
+import logging
 import numpy as np
 import os
 import sys
@@ -7,7 +9,9 @@ sys.path.append('..')
 
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
-
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import StreamToLogger
+from utils import log_time_progress
 
 # Parameters
 ETA = 1.0             # Viscosity.
@@ -91,12 +95,6 @@ def get_icosohedron_r_vectors(location, orientation):
                    np.array([1e-12, 1e-12, -1])]
 
   rotation_matrix = orientation.rotation_matrix()
-
-# HACK
-#  for j in range(12):
-#    for k in range(j+1,12):
-#      print 'distance from %d to %d is %f' % (
-#        j, k, np.linalg.norm(initial_setup[j] - initial_setup[k]))
 
   # TODO: Maybe don't do this on the fly every single time.
   for k in range(len(initial_setup)):
@@ -220,5 +218,110 @@ def gibbs_boltzmann_distribution(location, orientation):
   return np.exp(-1.*U/KT)
   
 
+if __name__ == '__main__':
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulation of Uniform '
+                                   'Icosohedron with Fixman and RFD '
+                                   'schemes, and bin the resulting '
+                                   'height distribution.  Icosohedron is '
+                                   'affected by gravity, and repulsed from '
+                                   'the wall gently.')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs '
+                      '(--data_name=run-1).')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Do we profile this run or not.')
 
+  args=parser.parse_args()
+  if args.profile:
+    pr = cProfile.Profile()
+    pr.enable()
+
+
+  # Get command line parameters
+  dt = args.dt
+  n_steps = args.n_steps
+  print_increment = max(int(n_steps/20.), 1)
+
+  # Set up logging.
+  log_filename = './logs/icosohedron-dt-%f-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
+  # Script to run the various integrators on the quaternion.
+  initial_location = [[0., 0., 1.5]]
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  fixman_integrator = QuaternionIntegrator(icosohedron_mobility,
+                                           initial_orientation, 
+                                           icosohedron_torque_calculator, 
+                                           has_location=True,
+                                           initial_location=initial_location,
+                                           force_calculator=
+                                           icosohedron_force_calculator)
+  fixman_integrator.kT = KT
+  fixman_integrator.check_function = icosohedron_check_function
+  rfd_integrator = QuaternionIntegrator(icosohedron_mobility,
+                                           initial_orientation, 
+                                           icosohedron_torque_calculator, 
+                                           has_location=True,
+                                           initial_location=initial_location,
+                                           force_calculator=
+                                           icosohedron_force_calculator)
+  rfd_integrator.kT = KT
+  rfd_integrator.check_function = icosohedron_check_function
   
+  # Set up histogram for heights.
+  bin_width = 1./5.
+  fixman_heights = np.zeros(int(12./bin_width))
+  rfd_heights = np.zeros(int(12./bin_width))
+
+  start_time = time.time()
+  for k in range(n_steps):
+    # Fixman step and bin result.
+    fixman_integrator.fixman_time_step(dt)
+    bin_icosohedron_height(fixman_integrator.location[0],
+                           bin_width, 
+                           fixman_heights)
+
+    # RFD step and bin result.
+    rfd_integrator.rfd_time_step(dt)
+    bin_icosohedron_height(rfd_integrator.location[0],
+                           bin_width, 
+                           rfd_heights)
+
+    if k % print_increment == 0:
+      elapsed_time = time.time() - start_time
+      log_time_progress(elapsed_time, k, n_steps)
+
+  # Gather data to save.
+  heights = [fixman_heights/(n_steps*bin_width),
+             rfd_heights/(n_steps*bin_width)]
+
+  height_data = dict()
+  # Save parameters just in case they're useful in the future.
+  # TODO: Make sure you check all parameters when plotting to avoid
+  # issues there.
+  height_data['params'] = {'A': A, 'ETA': ETA, 'VERTEX_A': VERTEX_A, 'M': M, 
+                           'REPULSION_STRENGTH': REPULSION_STRENGTH,
+                           'DEBYE_LENGTH': DEBYE_LENGTH, 'KT': KT,}
+  height_data['heights'] = heights
+  height_data['buckets'] = (bin_width*np.array(range(len(fixman_heights)))
+                            + 0.5*bin_width)
+  height_data['names'] = ['Fixman', 'RFD']
+
+
