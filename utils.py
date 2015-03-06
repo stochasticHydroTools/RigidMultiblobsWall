@@ -60,8 +60,8 @@ class MSDStatistics(object):
      print self.params
      
 
-def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
-                            label=None):
+def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
+                            label=None, error_indices=[0, 1, 2, 3, 4, 5]):
   ''' 
   Plot the <ind> entry of the rotational MSD as 
   a function of time on given figure (integer).  
@@ -81,10 +81,12 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
   for scheme in msd_statistics.data.keys():
     for dt in msd_statistics.data[scheme].keys():
       if dt in DT_STYLES.keys():
-        dt_style = DT_STYLES[dt]
+        if not style:
+           style = DT_STYLES[dt]
       else:
-        dt_style = linestyles[len(DT_STYLES)]
-        DT_STYLES[dt] = dt_style
+        if not style:
+           style = linestyles[len(DT_STYLES)]
+           DT_STYLES[dt] = style
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
       # Don't put error bars at every point
@@ -96,15 +98,16 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
          for _ in range(num_steps)])
       # Set label and style.
       if label:
-         plot_label = label
+         #HACK, use scheme in Label + given.
+         plot_label = scheme + label
       else:
          plot_label = '%s, dt=%s' % (scheme, dt)
 
       if color:
-         plot_style = color + dt_style
+         plot_style = color + style
          err_bar_color = color
       else:
-         plot_style = scheme_colors[scheme] + dt_style
+         plot_style = scheme_colors[scheme] + style
          err_bar_color = scheme_colors[scheme]
 
       pyplot.plot(msd_statistics.data[scheme][dt][0],
@@ -118,11 +121,12 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None,
           f.write("time: %s \n" % msd_statistics.data[scheme][dt][0])
           f.write("MSD component: %s \n" % msd_entries)
           f.write("Std Dev:  %s \n" % msd_entries_std)
-        
-      pyplot.errorbar(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
-                      msd_entries[err_idx],
-                      yerr = 2.*msd_entries_std[err_idx],
-                      fmt = err_bar_color + '.')
+
+      if ind[0] in error_indices:
+         pyplot.errorbar(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
+                         msd_entries[err_idx],
+                         yerr = 2.*msd_entries_std[err_idx],
+                         fmt = err_bar_color + '.')
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
 

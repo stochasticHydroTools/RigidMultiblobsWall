@@ -249,7 +249,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     data_interval = int((end_time/dt)/100.)
     trajectory_length = 100
 
-    if trajectory_length > n_steps:
+    if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
@@ -300,10 +300,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
                           float(integrator.rejections + n_steps)))
-    
-    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
-  
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.

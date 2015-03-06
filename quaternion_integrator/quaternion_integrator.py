@@ -58,6 +58,10 @@ class QuaternionIntegrator(object):
     self.rejections = 0
     self.successes = 0
 
+    # Accumulate total velocity and angular velocity.
+    self.avg_velocity = 0.0
+    self.avg_omega = 0.0
+
   def fixman_time_step(self, dt):
     ''' Take a timestep of length dt using the Fixman method '''
     
@@ -103,7 +107,9 @@ class QuaternionIntegrator(object):
                  np.concatenate([force_tilde, torque_tilde])) + np.sqrt(self.kT/dt)*
           np.dot(mobility_tilde, np.dot(mobility_half_inv.T, noise)))
         velocity_tilde = velocity_and_omega_tilde[0:(3*self.dim)]
+        self.avg_velocity += np.linalg.norm(velocity_tilde)
         omega_tilde = velocity_and_omega_tilde[(3*self.dim):(6*self.dim)]
+        self.avg_omega += np.linalg.norm(omega_tilde)
       
       else:
         mobility_tilde = self.mobility(orientation_midpoint)
@@ -166,7 +172,11 @@ class QuaternionIntegrator(object):
                               np.dot(mobility_half, noise) +
                               divergence_term)
         velocity = velocity_and_omega[0:(3*self.dim)]
+        self.avg_velocity += np.linalg.norm(velocity)
+
         omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+        self.avg_omega += np.linalg.norm(omega)
+
         new_location = self.location + dt*velocity
 
       else:
@@ -198,6 +208,7 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
         new_orientation.append(quaternion_dt*self.orientation[i])
         
+      # Check validity of new state.
       if self.has_location:
         if self.check_new_state(new_location, new_orientation):
           self.location = new_location

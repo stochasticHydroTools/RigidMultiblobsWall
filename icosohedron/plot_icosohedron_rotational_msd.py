@@ -15,6 +15,18 @@ import sphere.sphere as sph
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
+def calculate_zz_msd_at_equilibrium(n_steps):
+  ''' Use MC to caluclate asymptotic (t -> inf) zz MSD at equilibrium'''
+  zz_msd = 0.
+  for k in range(n_steps):
+    sample_1 = ic.generate_icosohedron_equilibrium_sample()
+    sample_2 = ic.generate_icosohedron_equilibrium_sample()
+    zz_msd += (sample_2[0][2] - sample_1[0][2])**2
+
+  zz_msd /= n_steps
+  return zz_msd
+
+
 def gibbs_boltzmann_distribution(location):
   ''' 
   Return gibbs boltzmann distribution (without normalization)
@@ -80,19 +92,32 @@ if __name__ == "__main__":
   average_mob_and_friction = calculate_mu_friction_and_height_distribution(
     bin_width, height_histogram)
   
+  zz_msd = calculate_zz_msd_at_equilibrium(1000)
+  
+  figure_index = [1, 2, 1, 3, 4, 5]
+  label_list = ['Icosohedron xx MSD', 'Icosohedron yy MSD', 'Icosohedron zz MSD', 
+                'Rotational MSD', 'Rotational MSD', 'Rotational MSD']
+  sphere_label_list = ['Sphere xx MSD', 'Sphere yy MSD', 'Sphere zz MSD', 
+                       'Sphere Rotational MSD', 'Sphere Rotational MSD', 'Sphere Rotational MSD']
+  style_list = ['.--', 's--', '^--', '.--', '.--', '.--']
+  sphere_style_list = ['x:', 'o:', 'o:', 'o:', 'o:', 'o:']
   for l in range(6):
     ind = [l, l]
-    plot_time_dependent_msd(msd_statistics, ind, l)
-    plot_time_dependent_msd(sphere_statistics, ind, l, color='r', 
-                            label='Sphere RFD dt = 0.8')
-    if ind == [0, 0] or ind == [1, 1]:
-      pyplot.plot([0.0, 180.0], [0.0, 180.*2.*sph.KT*0.0941541889044], 'r:', 
-                  label='Sphere Mobility')
-      pyplot.plot([0., 180.], [0., 180.*average_mob_and_friction[0]*2.*ic.KT], 'k--',
-                  label='Icosohedron Mobility')
+    plot_time_dependent_msd(msd_statistics, ind, figure_index[l], style=style_list[l], 
+                            label=label_list[l])
+    plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='r', 
+                            label=sphere_label_list[l], style=sphere_style_list[l])
+    if l == 0:
+      pyplot.plot([0.0, 360.0], [0.0, 360.*2.*sph.KT*0.0941541889044], 'r:', 
+                  label='Slope = Sphere Mobility')
+      pyplot.plot([0., 360.], [0., 360.*average_mob_and_friction[0]*2.*ic.KT], 'k--',
+                  label='Slope = Icosohedron Mobility')
+    if l == 2:
+      pyplot.plot([0., 400.], [zz_msd, zz_msd], 'b--',  
+                  label='Asymptotic ZZ MSD')
     pyplot.title('MSD(t) for icosohedron')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s.pdf' % 
-                   (ind))
+    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s-%s.pdf' % 
+                   (ind[0], ind[1]))
 
   print "Icosohedron mobility is ", average_mob_and_friction[0]
