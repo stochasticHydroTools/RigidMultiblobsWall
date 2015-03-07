@@ -34,6 +34,7 @@ from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
 from utils import MSDStatistics
+from utils import log_time_progress
 
 
 def calc_total_msd(initial_location, initial_orientation, 
@@ -246,8 +247,10 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 
     # choose number of steps to take before saving data.
     # Want 100 points on our plot.
-    data_interval = int((end_time/dt)/100.)
-    trajectory_length = 100
+    data_interval = int((end_time/dt)/200.)
+    trajectory_length = 200
+    if data_interval == 0:
+      data_interval = 1
 
     if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
@@ -363,23 +366,6 @@ def plot_msd_convergence(dts, msd_list, names):
   ax.set_yscale('log')
   ax.set_xscale('log')
   pyplot.savefig('./plots/RotationalMSD.pdf')
-
-
-def log_time_progress(elapsed_time, time_units, total_time_units):
-  ''' Write elapsed time and expected duration to progress log.'''
-  progress_logger = logging.getLogger('progress_logger')  
-  expected_duration = elapsed_time*total_time_units/time_units
-  if elapsed_time > 60.0:
-    progress_logger.info('Elapsed Time: %.2f Minutes.' % 
-                         (float(elapsed_time/60.)))
-  else:
-    progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
-  if expected_duration > 60.0:
-    progress_logger.info('Expected Duration: %.2f Minutes.' % 
-                         (float(expected_duration/60.)))
-  else:
-      progress_logger.info('Expected Duration: %.2f Seconds' % 
-                           float(expected_duration))
 
 
 if __name__ == "__main__":

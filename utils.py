@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
+import os
 
 
 DT_STYLES = {}  # Used for plotting different timesteps of MSD.
@@ -60,8 +61,8 @@ class MSDStatistics(object):
      print self.params
      
 
-def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
-                            label=None, error_indices=[0, 1, 2, 3, 4, 5]):
+def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None,
+                            label=None, error_indices=[0, 1, 2, 3, 4, 5], data_name=None):
   ''' 
   Plot the <ind> entry of the rotational MSD as 
   a function of time on given figure (integer).  
@@ -81,12 +82,17 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
   for scheme in msd_statistics.data.keys():
     for dt in msd_statistics.data[scheme].keys():
       if dt in DT_STYLES.keys():
-        if not style:
+        if not symbol:
            style = DT_STYLES[dt]
+        else:
+           style = symbol + DT_STYLES[dt]
       else:
-        if not style:
+        if not symbol:
            style = linestyles[len(DT_STYLES)]
            DT_STYLES[dt] = style
+        else:
+           DT_STYLES[dt] = linestyles[len(DT_STYLES)]
+           style = symbol + DT_STYLES[dt]
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
       # Don't put error bars at every point
@@ -99,7 +105,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
       # Set label and style.
       if label:
          #HACK, use scheme in Label + given.
-         plot_label = scheme + label
+         plot_label = ('dt = %s ' % dt) + scheme + label
       else:
          plot_label = '%s, dt=%s' % (scheme, dt)
 
@@ -109,13 +115,14 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
       else:
          plot_style = scheme_colors[scheme] + style
          err_bar_color = scheme_colors[scheme]
-
       pyplot.plot(msd_statistics.data[scheme][dt][0],
                   msd_entries,
                   plot_style,
                   label = plot_label)
+      if not data_name:
+         data_name = "MSD-component-%s-%s.txt" % (ind[0], ind[1])
       if write_data:
-        with open("./data/MSD-component-%s-%s.txt" % (ind[0], ind[1]),'w+') as f:
+        with open(os.path.join('.', 'data', data_name),'w+') as f:
           f.write("scheme %s \n" % scheme)
           f.write("dt %s \n" % dt)
           f.write("time: %s \n" % msd_statistics.data[scheme][dt][0])
@@ -130,3 +137,18 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, style=None,
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
 
+def log_time_progress(elapsed_time, time_units, total_time_units):
+  ''' Write elapsed time and expected duration to progress log.'''
+  progress_logger = logging.getLogger('progress_logger')  
+  expected_duration = elapsed_time*total_time_units/time_units
+  if elapsed_time > 60.0:
+    progress_logger.info('Elapsed Time: %.2f Minutes.' % 
+                         (float(elapsed_time/60.)))
+  else:
+    progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
+  if expected_duration > 60.0:
+    progress_logger.info('Expected Duration: %.2f Minutes.' % 
+                         (float(expected_duration/60.)))
+  else:
+      progress_logger.info('Expected Duration: %.2f Seconds' % 
+                           float(expected_duration))

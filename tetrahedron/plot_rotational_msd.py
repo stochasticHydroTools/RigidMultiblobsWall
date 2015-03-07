@@ -121,26 +121,29 @@ if __name__ == "__main__":
           combined_msd_statistics.add_run(scheme, dt, msd_statistics.data[scheme][dt])
 
   if args.has_location:
-    average_mob_and_friction = calculate_average_mu_parallel(6000)
-    zz_msd = calculate_zz_msd_at_equilibrium(5000)
+    average_mob_and_friction = calculate_average_mu_parallel(10000)
+    zz_msd = calculate_zz_msd_at_equilibrium(20000)
   
   # Decide which components go on which figures.
-  figure_numbers = [1, 1, 1, 2, 3, 4]
-  labels= ['xx-Msd', 'yy-Msd', 'zz-Msd', 'Rotational MSD', 'Rotational MSD', 'Rotational MSD']
-  styles = ['s--', '^--', '.--', '.--', '.--', '.--']
+  figure_numbers = [1, 5, 1, 2, 3, 4]
+  labels= [' XX-Msd', ' YY-Msd', ' ZZ-Msd', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
+  styles = ['+', '^', '.', '.', '.', '.']
   
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
-                            error_indices=[0], label=labels[l], style=styles[l])
+                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l])
     pyplot.figure(figure_numbers[l])
     if args.has_location:
-      if l in [1]:
+      if l in [0]:
         pyplot.rc('text', usetex=True)
         pyplot.plot([0.0, 500.0], [0.0, 500.*tf.KT*average_mob_and_friction[0]], 'k-',
-                    label=r'Slope=$\mu_{xx}$')
+                    label=r'Slope=$2k_B T \mu_{xx}$')
       elif l == 2:
-        pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'k-', label='Equilibrium Perp MSD')
+        pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'b--', label='Asymptotic Perp MSD')
+        pyplot.xlim([0., 500.])
+    if l == 3:
+      pyplot.xlim([0., 400.])
     
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 9})
