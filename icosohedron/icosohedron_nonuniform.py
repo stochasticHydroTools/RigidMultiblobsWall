@@ -17,7 +17,7 @@ from utils import StreamToLogger
 from utils import log_time_progress
 
 
-M = [0.00/12. for _ in range(12)]
+M = [0.0 for _ in range(12)]
 M[11] += 0.1
 
 def nonuniform_torque_calculator(location, orientation):
@@ -39,7 +39,7 @@ def bin_height_and_theta(location, orientation, bin_width, height_histogram,
   and the negative z axis.'''
   # Bin Theta.
   r_vectors  = ic.get_icosohedron_r_vectors(location, orientation)
-  heavy_blob_vector =  (location - r_vectors[-1])
+  heavy_blob_vector =  (r_vectors[-1] - location)
   heavy_blob_vector /= np.linalg.norm(heavy_blob_vector)
   theta = np.arccos(heavy_blob_vector[2])
   theta_idx = int(theta/theta_width)
