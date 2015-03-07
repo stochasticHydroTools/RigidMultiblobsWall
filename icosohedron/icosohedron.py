@@ -228,8 +228,8 @@ def bin_icosohedron_height(location, bin_width, height_histogram):
   if idx < len(height_histogram):
     height_histogram[idx] += 1
   else:
-    if idx > bin_free_particle_heights.max_index:
-      bin_icosohedron_heights.max_index = idx
+    if idx > bin_icosohedron_height.max_index:
+      bin_icosohedron_height.max_index = idx
       print "New maximum Index  %d is beyond histogram length " % idx
 
 
