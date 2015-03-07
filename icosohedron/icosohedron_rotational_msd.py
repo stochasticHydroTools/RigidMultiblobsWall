@@ -41,6 +41,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
              4 should be fine.
     uniform: Whether to use a uniform icosohedron, or one with one heavy marker.
   '''
+  print "uniform is ", uniform
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
   rot_msd_list = []
@@ -61,10 +62,10 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     integrator.kT = ic.KT
     integrator.check_function = ic.icosohedron_check_function
 
-    data_interval = int((end_time/dt)/100.)
+    data_interval = int((end_time/dt)/200.)
     if data_interval == 0:
       data_interval = 1
-    trajectory_length = 100
+    trajectory_length = 200
 
     if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
@@ -208,13 +209,14 @@ if __name__ == '__main__':
     dt, 
     end_time,
     n_steps,
-    location=initial_location)
+    location=initial_location,
+    uniform = (not args.nonuniform))
 
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
 
-  data_name = './data/icosohedron-msd-dt-%s-N-%d-%s.pkl' % (
-    dt, n_steps, args.data_name)
+  data_name = './data/icosohedron-msd-uniform-%s-dt-%s-N-%d-%s.pkl' % (
+    (not args.nonuniform), dt, n_steps, args.data_name)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)

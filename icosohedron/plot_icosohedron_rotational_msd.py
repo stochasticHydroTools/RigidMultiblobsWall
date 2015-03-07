@@ -102,7 +102,7 @@ if __name__ == "__main__":
                        ' Sphere Rotational MSD', ' Sphere Rotational MSD', ' Sphere Rotational MSD']
   style_list = ['.', 's', '^', '.', '.', '.']
   sphere_style_list = ['x', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 1100.
+  translation_plot_limit = 100.
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
