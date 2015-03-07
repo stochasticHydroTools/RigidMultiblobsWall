@@ -17,8 +17,8 @@ from utils import StreamToLogger
 from utils import log_time_progress
 
 
-M = [0.05/12. for _ in range(12)]
-M[11] += 0.05
+M = [0.00/12. for _ in range(12)]
+M[11] += 0.1
 
 def nonuniform_torque_calculator(location, orientation):
   ''' Calculate torque based on a nonuniform icosohedron. '''
