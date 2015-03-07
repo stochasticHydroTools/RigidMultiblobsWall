@@ -64,7 +64,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     data_interval = int((end_time/dt)/200.)
     if data_interval == 0:
       data_interval = 1
-    trajectory_length = 200
+    trajectory_length = 400
 
     if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '

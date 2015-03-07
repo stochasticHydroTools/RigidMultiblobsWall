@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-1.0-N-500000-production.pkl')
+                                  'sphere-msd-dt-1.0-N-500000-more-points-1.pkl')
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
     print 'Sphere parameters:'
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                        ' Sphere Rotational MSD', ' Sphere Rotational MSD', ' Sphere Rotational MSD']
   style_list = ['.', 's', '^', '.', '.', '.']
   sphere_style_list = ['x', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 100.
+  translation_plot_limit = 1100.
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
