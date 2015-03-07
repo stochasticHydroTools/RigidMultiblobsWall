@@ -41,7 +41,6 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
              4 should be fine.
     uniform: Whether to use a uniform icosohedron, or one with one heavy marker.
   '''
-  print "uniform is ", uniform
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
   rot_msd_list = []
