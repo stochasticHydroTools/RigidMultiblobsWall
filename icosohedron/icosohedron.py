@@ -1,7 +1,9 @@
 ''' Functions used for the Icosohedron structure near a wall. '''
 
 import argparse
+import cPickle
 import logging
+import math
 import numpy as np
 import os
 import sys
@@ -12,6 +14,7 @@ from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import StreamToLogger
+from utils import static_var
 from utils import log_time_progress
 
 # Parameters
@@ -218,6 +221,17 @@ def gibbs_boltzmann_distribution(location, orientation):
 
   return np.exp(-1.*U/KT)
   
+@static_var('max_index', 0)
+def bin_icosohedron_height(location, bin_width, height_histogram):
+  ''' Bin the z coordinate of location and add to height_histogram.'''
+  idx = int(math.floor((location[2])/bin_width))
+  if idx < len(height_histogram):
+    height_histogram[idx] += 1
+  else:
+    if idx > bin_free_particle_heights.max_index:
+      bin_icosohedron_heights.max_index = idx
+      print "New maximum Index  %d is beyond histogram length " % idx
+
 
 if __name__ == '__main__':
   # Get command line arguments.
@@ -292,6 +306,7 @@ if __name__ == '__main__':
   rfd_heights = np.zeros(int(12./bin_width))
 
   start_time = time.time()
+  progress_logger.info('Starting run...')
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
@@ -305,10 +320,11 @@ if __name__ == '__main__':
                            bin_width, 
                            rfd_heights)
 
-    if k % print_increment == 0:
+    if k % print_increment == 0 and k > 0:
       elapsed_time = time.time() - start_time
       log_time_progress(elapsed_time, k, n_steps)
 
+  progress_logger.info('Finished Runs.')
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
              rfd_heights/(n_steps*bin_width)]
@@ -326,3 +342,19 @@ if __name__ == '__main__':
   height_data['names'] = ['Fixman', 'RFD']
 
 
+  # Optional name for data provided    
+  if len(args.data_name) > 0:
+    data_name = './data/icosohedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+  else:
+    data_name = './data/icosohedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+
+  with open(data_name, 'wb') as f:
+    cPickle.dump(height_data, f)
+  
+  if args.profile:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()  
