@@ -119,7 +119,7 @@ if __name__ == "__main__":
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'b--',  
                   label='Asymptotic ZZ MSD')
       pyplot.xlim([0., translation_plot_limit,])
-    if l == 3:
+    if l in [3, 4, 5]:
       pyplot.xlim([0., 150.])
     pyplot.title('MSD(t) for icosohedron')
     pyplot.legend(loc='best', prop={'size': 9})
