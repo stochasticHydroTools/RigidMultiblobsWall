@@ -35,7 +35,10 @@ def generate_equilibrium_thetas(theta_buckets):
   '''
   distribution = []
   for theta in theta_buckets:
-    distribution.append(np.sin(theta))
+    #HACK, shouldn't be negative theta for new data.
+    gibbs = np.exp(-icn.M[11]*np.sin(-1.*theta)/ic.KT)
+    print "gibbs is ", gibbs
+    distribution.append(gibbs*np.sin(theta))
 
   distribution = np.array(distribution)
   distribution /= sum(distribution)*(theta_buckets[1] - theta_buckets[0])
