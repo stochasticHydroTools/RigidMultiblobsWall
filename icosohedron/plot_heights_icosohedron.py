@@ -54,6 +54,10 @@ def plot_heights_and_theta(heights_data):
     
   equilibrium_heights = generate_equilibrium_heights(buckets)
   pyplot.plot(buckets, equilibrium_heights, 'k-', label='Gibbs Boltzmann')
+  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.title('PDF of Height distribution of Icosohedron')
+  pyplot.xlabel('Height')
+  pyplot.ylabel('PDF')
   pyplot.savefig('./figures/IcosohedronHeightDistribution.pdf')
 
   if 'thetas' in heights_data:
@@ -66,6 +70,10 @@ def plot_heights_and_theta(heights_data):
     
     equilibrium_thetas = generate_equilibrium_thetas(theta_buckets)
     pyplot.plot(theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
+    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.title('PDF of Theta Distribution of Icosohedron.')
+    pyplot.xlabel('Theta')
+    pyplot.ylabel('PDF')
     pyplot.savefig('./figures/IcosohedronThetaDistribution.pdf')
 
     

@@ -199,7 +199,7 @@ if __name__ == '__main__':
   a = 0.175
   heights = np.linspace(1.4, 3.0, 50)
   plot_scatter_icosohedron_mobilities(a, heights)
-  h_over_a = 1.4
+  h_over_a = 300.0
   r_list = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5,  5.0, 6.0]
   plot_icosohedron_mobilities_at_wall(h_over_a, a, r_list)
 

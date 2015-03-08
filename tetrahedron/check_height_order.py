@@ -247,71 +247,65 @@ if __name__  == '__main__':
   # Check their order.
   # List of lists. Each entry should be a list of names of data
   # files for multiple runs with the same timestep and number of steps.
-  # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
-  #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
-  #                'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
-  #                'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
-  #               ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
-  #                'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
-  #                'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
-  #                'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
-  #               ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
-  #                'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
-  #                'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
-  #                'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
-  #               ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
-  #                'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
-  #                'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
-  #                'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
-  #               ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-9-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-10-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-11-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-12-fixed.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-13.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-14.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-15.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-16.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-17.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-18.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-19.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-20.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-21.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-22.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-23.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-24.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-25.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-26.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-27.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-28.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-29.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-30.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-31.pkl',
-  #                'tetrahedron-dt-2-N-6000000-run-32.pkl']]
+  data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-32-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-16-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-16-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-8-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-8-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-8-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-8-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-4-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-4-N-6000000-run-4-fixed.pkl'],
+                ['tetrahedron-dt-2-N-6000000-run-1-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-2-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-3-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-4-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-5-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-6-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-7-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-8-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-9-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-10-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-11-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-12-fixed.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-13.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-14.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-15.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-16.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-17.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-18.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-19.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-20.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-21.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-22.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-23.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-24.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-25.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-26.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-27.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-28.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-29.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-30.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-31.pkl',
+                 'tetrahedron-dt-2-N-6000000-run-32.pkl']]
   
-  # dts = [32., 16., 8., 4., 2.]  #This is assumed to be in decreasing order.
+  dts = [32., 16., 8., 4., 2.]
 
   # Free tetrahedron.
-  data_files = [['free-tetrahedron-dt-1.6-N-2000000-four-blobs-1.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',],
-                ['free-tetrahedron-dt-0.8-N-4000000-four-blobs-1.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-2.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-3.pkl',
-                 'free-tetrahedron-dt-0.8-N-4000000-four-blobs-4.pkl',],
-                ['free-tetrahedron-dt-0.4-N-8000000-four-blobs-1.pkl',
-                 'free-tetrahedron-dt-0.4-N-8000000-four-blobs-2.pkl',]]
+  # data_files = [['free-tetrahedron-dt-1.6-N-2000000-four-blobs-1.pkl',
+  #                'free-tetrahedron-dt-1.6-N-2000000-four-blobs-2.pkl',],
+  #               ['free-tetrahedron-dt-0.8-N-4000000-four-blobs-1.pkl',
+  #                'free-tetrahedron-dt-0.8-N-4000000-four-blobs-2.pkl',]]
 
                 
-  dts = [1.6, 0.8, 0.4]  # This is assumed to be in decreasing order.
+  # dts = [1.6, 0.8]
   
   heights_list = []
   for parameter_set in data_files:
@@ -324,6 +318,6 @@ if __name__  == '__main__':
   # For now assume all runs have the same scheme order and buckets.
   buckets = heights_data['buckets']
   names = heights_data['names']
-  check_height_order(heights_list, buckets, names, dts, 0.0)
+  check_height_order(heights_list, buckets, names, dts, 1.0)
       
   
