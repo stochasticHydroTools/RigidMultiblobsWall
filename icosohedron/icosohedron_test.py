@@ -73,7 +73,7 @@ class TestIcosohedron(unittest.TestCase):
 
     torque = icn.nonuniform_torque_calculator([location], [theta])
     
-    self.assertTrue(torque[0] > 0.0)
+    self.assertTrue(torque[0] < 0.0)
     self.assertAlmostEqual(torque[1], 0.0)
     self.assertAlmostEqual(torque[2], 0.0)
     

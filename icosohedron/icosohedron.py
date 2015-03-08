@@ -163,7 +163,7 @@ def calc_icosohedron_rot_matrix(r_vectors, location):
       rot_matrix = block
     else:
       rot_matrix = np.concatenate([rot_matrix, block], axis=0)
-  return rot_matrix
+  return -1.*rot_matrix
 
 
 def icosohedron_force_calculator(location, orientation):

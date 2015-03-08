@@ -122,7 +122,7 @@ def rpy_torque_mobility(r_vectors):
   Calculate the mobility, torque -> angular velocity, at orientation 
   In this case, orientation is length 1, as there is just 1 quaternion.
   The mobility is equal to R M^-1 R^t where R is 3N x 3 (9 x 3)
-  Rx = r cross x
+  Rx = -1.*(r cross x)
   r is the distance from the fixed vertex of the tetrahedron to
   each other vertex (a length 3N vector).
   M (3N x 3N) is the RPY tensor.

@@ -211,31 +211,5 @@ class TestTetrahedron(unittest.TestCase):
       print "\n"
       print "divergence term is ", div_term
 
-  def test_rpy_tensor_value_diagonal(self):
-    ''' Test that the free rotational mobility of the tetrahedron is diagonal. '''
-    n_particles = 3
-    # Random configuration.
-    # Center of mass is (0, 0, -1/sqrt(2) )
-    r_vectors = [np.array([0., 0., np.sqrt(3.)/np.sqrt(2.)]),
-                 np.array([0., 2./np.sqrt(3.), -1./(np.sqrt(6.))]),
-                 np.array([-1., -1./np.sqrt(3.), -1./(np.sqrt(6.))]),
-                 np.array([1., -1./np.sqrt(3.), -1./(np.sqrt(6.))])]
-
-    # Construct any random unit quaternion to rotate. Not uniform.
-    s = 2*random.random() - 1.
-    p1 = (2. - 2*np.abs(s))*random.random() - (1. - np.abs(s))
-    p2 = ((2. - 2.*np.abs(s) - 2.*np.abs(p1))*random.random() - 
-          (1. - np.abs(s) - np.abs(p1)))
-    p3 = np.sqrt(1. - s**2 - p1**2 - p2**2)
-    theta = Quaternion(np.array([s, p1, p2, p3]))
-
-    r_vectors = [np.dot(theta.rotation_matrix(), vec) for vec in r_vectors]
-    mobility = tetrahedron.rpy_torque_mobility(r_vectors)
-    
-    for j in range(3):
-      for k in range(j+1, 3):
-        self.assertAlmostEqual(mobility[j, k], 0.)
-        self.assertAlmostEqual(mobility[k, j], 0.)
-
 if __name__ == '__main__':
   unittest.main()
