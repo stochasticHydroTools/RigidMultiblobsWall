@@ -127,8 +127,8 @@ if __name__ == '__main__':
   
   # Set up histogram for heights.
   bin_width = 1./5.
-  fixman_heights = np.zeros(int(12./bin_width))
-  rfd_heights = np.zeros(int(12./bin_width))
+  fixman_heights = np.zeros(int(15./bin_width))
+  rfd_heights = np.zeros(int(15./bin_width))
 
   theta_bin_width = 1./10.
   fixman_thetas = np.zeros(int(2.*np.pi/bin_width))
