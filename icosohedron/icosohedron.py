@@ -302,8 +302,8 @@ if __name__ == '__main__':
   
   # Set up histogram for heights.
   bin_width = 1./5.
-  fixman_heights = np.zeros(int(12./bin_width))
-  rfd_heights = np.zeros(int(12./bin_width))
+  fixman_heights = np.zeros(int(15./bin_width))
+  rfd_heights = np.zeros(int(15./bin_width))
 
   start_time = time.time()
   progress_logger.info('Starting run...')
