@@ -320,6 +320,6 @@ if __name__  == '__main__':
   # For now assume all runs have the same scheme order and buckets.
   buckets = heights_data['buckets']
   names = heights_data['names']
-  check_height_order(heights_list, buckets, names, dts, 1.0)
+  check_height_order(heights_list, buckets, names, dts, 0.0)
       
   

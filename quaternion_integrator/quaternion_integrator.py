@@ -173,7 +173,6 @@ class QuaternionIntegrator(object):
                               divergence_term)
         velocity = velocity_and_omega[0:(3*self.dim)]
         self.avg_velocity += np.linalg.norm(velocity)
-
         omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
         self.avg_omega += np.linalg.norm(omega)
 
@@ -245,6 +244,7 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
         new_orientation.append(quaternion_dt*self.orientation[i])
       if self.check_new_state(new_location, new_orientation):
+        self.successes += 1
         self.orientation = new_orientation
         self.location = new_location
     else:
@@ -260,6 +260,7 @@ class QuaternionIntegrator(object):
         new_orientation.append(quaternion_dt*self.orientation[i])
 
       if self.check_new_state(None, new_orientation):
+        self.successes += 1
         self.orientation = new_orientation
 
   def estimate_divergence(self):

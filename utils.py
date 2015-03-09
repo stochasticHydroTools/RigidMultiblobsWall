@@ -75,8 +75,13 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
   pyplot.figure(figure)
   # Types of lines for different dts.
   write_data = True
+  if not data_name:
+     data_name = "MSD-component-%s-%s.txt" % (ind[0], ind[1])
   if write_data:
     np.set_printoptions(threshold=np.nan)
+    with open(os.path.join('.', 'data', data_name),'w') as f:
+      f.write('  \n')
+    
   num_err_bars = 18
   linestyles = ['', ':', '--', '-.']
   for scheme in msd_statistics.data.keys():
@@ -119,10 +124,9 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
                   msd_entries,
                   plot_style,
                   label = plot_label)
-      if not data_name:
-         data_name = "MSD-component-%s-%s.txt" % (ind[0], ind[1])
+
       if write_data:
-        with open(os.path.join('.', 'data', data_name),'w+') as f:
+        with open(os.path.join('.', 'data', data_name),'a') as f:
           f.write("scheme %s \n" % scheme)
           f.write("dt %s \n" % dt)
           f.write("time: %s \n" % msd_statistics.data[scheme][dt][0])

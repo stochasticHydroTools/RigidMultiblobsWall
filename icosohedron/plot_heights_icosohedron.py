@@ -18,10 +18,10 @@ def generate_equilibrium_heights(buckets):
       distribution.append(0.)
       continue
     # WARNING: This assumes uniform and nonuniform icosohedrons
-    # have the *same* total mass!!
-    potential = x*sum(ic.M) + (ic.REPULSION_STRENGTH*np.exp(-1.*(x - ic.A)/
-                                                            ic.DEBYE_LENGTH)/
-                               (x - ic.A))
+    # have the *same* total mass!!  This must be changed for uniform.
+    potential = x*sum(icn.M) + (ic.REPULSION_STRENGTH*np.exp(-1.*(x - ic.A)/
+                                                              ic.DEBYE_LENGTH)/
+                                (x - ic.A))
     distribution.append(np.exp(-1.*potential/ic.KT))
 
   distribution = np.array(distribution)
@@ -35,8 +35,7 @@ def generate_equilibrium_thetas(theta_buckets):
   '''
   distribution = []
   for theta in theta_buckets:
-    #HACK, shouldn't be negative theta for new data.
-    gibbs = np.exp(-1.*icn.M[11]*np.cos(theta)*ic.A/ic.KT)
+    gibbs = np.exp((icn.M[11])*np.cos(theta)*ic.A/ic.KT)
     distribution.append(gibbs*np.sin(theta))
 
   distribution = np.array(distribution)
@@ -45,47 +44,85 @@ def generate_equilibrium_thetas(theta_buckets):
   
 
 def plot_heights_and_theta(heights_data):
-  ''' Plot height histogram and also theta histogram if the data exists.'''
-  buckets = heights_data['buckets']
-  heights = heights_data['heights']
-  names = heights_data['names']
-  
+  ''' Plot height histogram and also theta histogram if the data exists.
+  heights_data is a list of height_data dictionaries produced by 
+  the icosohedron.py or icosohedron_nonuniform.py scripts.
+  It is assumed that the same schemes exist in each of the 
+  runs, and the same buckets are used.
+  '''
+  colors = ['g', 'b', 'r']
+  lines = ['--', ':', '-.']
+  symbols = ['o', 's', '^']
+  # Get buckets and names. We assume these are the same for all runs.
+  # TODO: Allow different buckets.
+  buckets = heights_data[0]['buckets']
+  error_indices = range(0, len(buckets), len(buckets)/15)
+  names = heights_data[0]['names']
+  avg_heights = np.zeros(len(buckets))
+  std_heights = 0.0
+  all_heights_data = []
+  all_theta_data = []
+  for k in range(len(heights_data)):
+    all_heights_data.append(heights_data[k]['heights'])
+    if 'thetas' in heights_data[k]:
+      all_theta_data.append(heights_data[k]['thetas'])
+
+  average_heights = np.mean(all_heights_data, axis=0)
+  std_heights = np.std(all_heights_data, axis=0)
+  if 'thetas' in heights_data[0]:
+    theta_buckets = heights_data[0]['theta_buckets']
+    theta_error_indices = range(0, len(theta_buckets), 
+                                len(theta_buckets)/15)
+    average_theta = np.mean(all_theta_data, axis=0)
+    std_theta = np.std(all_theta_data, axis=0)
+
   pyplot.figure(1)
-  for k in range(len(heights)):
-    pyplot.plot(buckets, heights[k], label=names[k])
-    
+  # HACK: DON'T PLOT EM FOR NOW.
+  for k in range(len(average_heights)):
+    pyplot.plot(buckets, average_heights[k], colors[k] + lines[k], 
+                label=names[k])
+    pyplot.errorbar(buckets[error_indices], average_heights[k][error_indices],
+                    fmt=(colors[k] + symbols[k]),
+                    yerr=2.*std_heights[k][error_indices])
+
   equilibrium_heights = generate_equilibrium_heights(buckets)
-  pyplot.plot(buckets, equilibrium_heights, 'k-', label='Gibbs Boltzmann')
+  pyplot.plot(buckets, equilibrium_heights, 'k-', linewidth=2, 
+              label='Gibbs Boltzmann')
   pyplot.legend(loc='best', prop={'size': 9})
-  pyplot.title('PDF of Height distribution of Icosohedron')
+  pyplot.title('PDF of Height distribution of Icosahedron')
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
-  pyplot.savefig('./figures/IcosohedronHeightDistribution.pdf')
+  pyplot.xlim([0., 5.])    
+  pyplot.savefig('./figures/IcosahedronHeightDistribution.pdf')
 
-  if 'thetas' in heights_data:
+  if 'thetas' in heights_data[0]:
     # Plot theta as well.
-    thetas = heights_data['thetas']
-    theta_buckets = heights_data['theta_buckets']
     pyplot.figure(2)
-    for k in range(len(thetas)):
-      pyplot.plot(theta_buckets, thetas[k], label=names[k])
+    for k in range(len(average_theta)):
+      pyplot.plot(theta_buckets, average_theta[k], 
+                  colors[k] + lines[k], label=names[k])
+      pyplot.errorbar(theta_buckets[theta_error_indices], 
+                      average_theta[k][theta_error_indices],
+                      fmt=(colors[k] + symbols[k]), 
+                      yerr=2.*std_theta[k][theta_error_indices])
     
     equilibrium_thetas = generate_equilibrium_thetas(theta_buckets)
     # HACK, accidentally bucketed negative theta.
-    pyplot.plot(-1.*theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
+    pyplot.plot(theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
     pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.title('PDF of Theta Distribution of Icosohedron.')
+    pyplot.title('PDF of Theta Distribution of Icosahedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('PDF')
-    pyplot.savefig('./figures/IcosohedronThetaDistribution.pdf')
+    pyplot.savefig('./figures/IcosahedronThetaDistribution.pdf')
 
     
 if __name__ == '__main__':
-
+  
+  heights_data = []
   data_name = './data/%s' % sys.argv[1]
   with open(data_name, 'rb') as data:
-    heights_data = cPickle.load(data)
+    heights_data.append(cPickle.load(data))
 
-  print "params are: ", heights_data['params']
+  print "params are: ", heights_data[0]['params']
   plot_heights_and_theta(heights_data)
 
