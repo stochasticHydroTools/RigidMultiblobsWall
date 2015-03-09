@@ -71,7 +71,8 @@ def plot_heights_and_theta(heights_data):
       pyplot.plot(theta_buckets, thetas[k], label=names[k])
     
     equilibrium_thetas = generate_equilibrium_thetas(theta_buckets)
-    pyplot.plot(theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
+    # HACK, accidentally bucketed negative theta.
+    pyplot.plot(-1.*theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.title('PDF of Theta Distribution of Icosohedron.')
     pyplot.xlabel('Theta')
