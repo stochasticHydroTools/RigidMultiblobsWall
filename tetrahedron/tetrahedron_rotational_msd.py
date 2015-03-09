@@ -247,8 +247,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 
     # choose number of steps to take before saving data.
     # Want 100 points on our plot.
-    data_interval = int((end_time/dt)/200.)
-    trajectory_length = 200
+    data_interval = int((end_time/dt)/300.)
+    trajectory_length = 300
     if data_interval == 0:
       data_interval = 1
 

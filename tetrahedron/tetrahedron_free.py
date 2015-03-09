@@ -477,6 +477,15 @@ if __name__ == '__main__':
                                         free_gravity_force_calculator)
   rfd_integrator.kT = KT
   rfd_integrator.check_function = check_particles_above_wall
+  em_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+                                       initial_orientation, 
+                                       free_gravity_torque_calculator, 
+                                       has_location=True,
+                                       initial_location=initial_location,
+                                       force_calculator=
+                                       free_gravity_force_calculator)
+  em_integrator.kT = KT
+  em_integrator.check_function = check_particles_above_wall
 
   sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
@@ -485,6 +494,7 @@ if __name__ == '__main__':
   bin_width = 1./5.
   fixman_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   rfd_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+  em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 
 
@@ -503,6 +513,12 @@ if __name__ == '__main__':
                               rfd_integrator.orientation[0], 
                               bin_width, 
                               rfd_heights)
+    # EM step and bin result.
+    em_integrator.additive_em_time_step(dt)
+    bin_free_particle_heights(em_integrator.location[0],
+                              em_integrator.orientation[0], 
+                              bin_width, 
+                              em_heights)
 
     # Bin equilibrium sample.
     sample = generate_free_equilibrium_sample_mcmc(sample)
@@ -548,6 +564,7 @@ if __name__ == '__main__':
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
              rfd_heights/(n_steps*bin_width),
+             em_heights/(n_steps*bin_width),
              equilibrium_heights/(n_steps*bin_width)]
 
   height_data = dict()
@@ -563,7 +580,7 @@ if __name__ == '__main__':
 
   height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
                             + 0.5*bin_width)
-  height_data['names'] = ['Fixman', 'RFD', 'Gibbs-Boltzmann']
+  height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
 
   # Optional name for data provided
   if len(args.data_name) > 0:

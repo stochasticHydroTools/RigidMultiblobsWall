@@ -32,7 +32,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
   order is used to scale errors at smaller timesteps for checking the order
   of accuracy of the schemes.
   '''
-  symbols = ['*', '.', 's', '^', 'x']
+  symbols = ['o', '^', 's', '^', 'x']
+  facecolors_list = ['none', 'g']
+  colors_list = ['b', 'g']
+  symbols_idx = range(0, len(buckets), len(buckets)/30)
   write_data = True
   error_bars = False  # do we plot error bars?
 
@@ -123,16 +126,21 @@ def check_height_order(heights_list, buckets, names, dts, order):
               f.write('%s \n' % height_means)
 
       # Figure 2 is the errors, scaled to check order.
-      pyplot.figure(scheme_idx*3 + 1)
+      pyplot.figure(1)
       scale_factor = (dts[0]/dts[dt_idx])**order
       if error_bars:
         pyplot.errorbar(buckets, scale_factor*(error_means), 
                         yerr = scale_factor*2.*error_std,
                         label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
       else:
-        pyplot.plot(buckets, scale_factor*(error_means), 
-                    symbols[dt_idx] + '--',
+        pyplot.plot(buckets[symbols_idx], scale_factor*(error_means[symbols_idx]), 
+                    colors_list[scheme_idx] + symbols[dt_idx],
+                    mfc = facecolors_list[scheme_idx],
                     label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
+        pyplot.plot(buckets, scale_factor*(error_means), 
+                    colors_list[scheme_idx] + '--')
+
+
       if write_data:
         if particle == 4:
           with open('./data/ErrorCenter-data.txt',
@@ -199,18 +207,17 @@ def check_height_order(heights_list, buckets, names, dts, order):
     else:
       pyplot.savefig('./figures/HeightRefinement-Scheme-%s-Particle-%s.pdf' %
                      (names[scheme_idx], particle))
-    pyplot.figure(scheme_idx*3 + 1)
+    pyplot.figure(1)
     pyplot.title('%s - Error in height distribution'  % (names[scheme_idx]))
     pyplot.xlabel('Height')
     pyplot.xlim([0., upper_limit])
     pyplot.ylabel('Error in PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
     if particle == 4:
-      pyplot.savefig('./figures/HeightError-Scheme-%s-Center.pdf' %
-                     (names[scheme_idx]))
+      pyplot.savefig('./figures/HeightErrorCenter.pdf')
     else:
-      pyplot.savefig('./figures/HeightError-Scheme-%s-Particle-%s.pdf' %
-                     (names[scheme_idx], particle))
+      pyplot.savefig('./figures/HeightError-Particle-%s.pdf' %
+                     (particle))
     pyplot.figure(scheme_idx*3 + 2)
     pyplot.title('LogLog plot dt v. Error, %s' % (names[scheme_idx]))
     pyplot.xlabel('Log(dt)')
@@ -301,7 +308,8 @@ if __name__  == '__main__':
   # Free tetrahedron.
   data_files = [['free-tetrahedron-dt-6.4-N-500000-run-1.pkl',
                  'free-tetrahedron-dt-6.4-N-500000-run-2.pkl'],
-                ['free-tetrahedron-dt-3.2-N-1000000-run-1.pkl'],
+                ['free-tetrahedron-dt-3.2-N-1000000-run-1.pkl',
+                 'free-tetrahedron-dt-3.2-N-1000000-run-2.pkl'],
                 ['free-tetrahedron-dt-1.6-N-2000000-run-1.pkl',
                  'free-tetrahedron-dt-1.6-N-2000000-run-2.pkl',
                  'free-tetrahedron-dt-1.6-N-2000000-run-3.pkl',

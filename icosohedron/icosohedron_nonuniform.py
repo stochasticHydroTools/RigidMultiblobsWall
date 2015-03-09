@@ -29,6 +29,22 @@ def nonuniform_torque_calculator(location, orientation):
   R = ic.calc_icosohedron_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
 
+def nonuniform_force_calculator(location, orientation):
+  ''' Force on the Icosohedron center. 
+  args: 
+  location:   list of length 1, only entry is a list of
+              length 3 with coordinates of tetrahedon "top" vertex.
+  orientation: list of length 1, only entry is a quaternion with the 
+               tetrahedron orientation
+  '''
+  gravity = [0., 0., -1.*sum(M)]
+  h = location[0][2]
+  repulsion = np.array([0., 0., 
+                        (ic.REPULSION_STRENGTH*((h - ic.A)/ic.DEBYE_LENGTH + 1)*
+                         np.exp(-1.*(h - ic.A)/ic.DEBYE_LENGTH)/
+                         ((h - ic.A)**2))])
+  return repulsion + gravity
+
 
 @static_var('max_index', 0)
 @static_var('max_theta_index', 0)
@@ -112,7 +128,7 @@ if __name__ == '__main__':
                                            has_location=True,
                                            initial_location=initial_location,
                                            force_calculator=
-                                           ic.icosohedron_force_calculator)
+                                           nonuniform_force_calculator)
   fixman_integrator.kT = ic.KT
   fixman_integrator.check_function = ic.icosohedron_check_function
   rfd_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
@@ -121,7 +137,7 @@ if __name__ == '__main__':
                                         has_location=True,
                                         initial_location=initial_location,
                                         force_calculator=
-                                        ic.icosohedron_force_calculator)
+                                        nonuniform_force_calculator)
   rfd_integrator.kT = ic.KT
   rfd_integrator.check_function = ic.icosohedron_check_function
 
@@ -131,7 +147,7 @@ if __name__ == '__main__':
                                        has_location=True,
                                        initial_location=initial_location,
                                        force_calculator=
-                                       ic.icosohedron_force_calculator)
+                                       nonuniform_force_calculator)
   em_integrator.kT = ic.KT
   em_integrator.check_function = ic.icosohedron_check_function
 
