@@ -36,13 +36,12 @@ def generate_equilibrium_thetas(theta_buckets):
   distribution = []
   for theta in theta_buckets:
     #HACK, shouldn't be negative theta for new data.
-    gibbs = np.exp(-icn.M[11]*np.sin(-1.*theta)/ic.KT)
-    print "gibbs is ", gibbs
+    gibbs = np.exp(-1.*icn.M[11]*np.cos(theta)*ic.A/ic.KT)
     distribution.append(gibbs*np.sin(theta))
 
   distribution = np.array(distribution)
   distribution /= sum(distribution)*(theta_buckets[1] - theta_buckets[0])
-  return np.array(distribution)
+  return distribution
   
 
 def plot_heights_and_theta(heights_data):
@@ -86,5 +85,6 @@ if __name__ == '__main__':
   with open(data_name, 'rb') as data:
     heights_data = cPickle.load(data)
 
+  print "params are: ", heights_data['params']
   plot_heights_and_theta(heights_data)
 

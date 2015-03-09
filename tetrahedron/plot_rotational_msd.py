@@ -142,6 +142,7 @@ if __name__ == "__main__":
       elif l == 2:
         pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'b--', label='Asymptotic Perp MSD')
         pyplot.xlim([0., 500.])
+        pyplot.ylim([0., 10.])
     if l == 3:
       pyplot.xlim([0., 400.])
     
@@ -150,3 +151,6 @@ if __name__ == "__main__":
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
 
+
+    print "Mu parallel on average is ", average_mob_and_friction[0]
+    print "MSD ZZ asymptotic is ", zz_msd
