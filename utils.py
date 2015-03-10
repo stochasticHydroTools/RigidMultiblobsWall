@@ -62,7 +62,8 @@ class MSDStatistics(object):
      
 
 def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None,
-                            label=None, error_indices=[0, 1, 2, 3, 4, 5], data_name=None):
+                            label=None, error_indices=[0, 1, 2, 3, 4, 5], data_name=None,
+                            num_err_bars=None):
   ''' 
   Plot the <ind> entry of the rotational MSD as 
   a function of time on given figure (integer).  
@@ -75,29 +76,35 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
   pyplot.figure(figure)
   # Types of lines for different dts.
   write_data = True
+  data_write_type = 'w'
   if not data_name:
      data_name = "MSD-component-%s-%s.txt" % (ind[0], ind[1])
+     data_write_type = 'a' # Append to data.
   if write_data:
     np.set_printoptions(threshold=np.nan)
-    with open(os.path.join('.', 'data', data_name),'w') as f:
+    with open(os.path.join('.', 'data', data_name), data_write_type) as f:
       f.write('  \n')
-    
-  num_err_bars = 18
-  linestyles = ['', ':', '--', '-.']
+  if not num_err_bars:
+     num_err_bars =30
+  linestyles = [':', '--', '-.', '']
   for scheme in msd_statistics.data.keys():
     for dt in msd_statistics.data[scheme].keys():
       if dt in DT_STYLES.keys():
         if not symbol:
-           style = DT_STYLES[dt]
+           style = ''
+           nosymbol_style = DT_STYLES[dt]
         else:
-           style = symbol + DT_STYLES[dt]
+           style = symbol #+ DT_STYLES[dt]
+           nosymbol_style = DT_STYLES[dt]
       else:
         if not symbol:
-           style = linestyles[len(DT_STYLES)]
-           DT_STYLES[dt] = style
+           style = '' #linestyles[len(DT_STYLES)]
+           DT_STYLES[dt] = linestyles[len(DT_STYLES)]
+           nosymbol_style = DT_STYLES[dt]
         else:
            DT_STYLES[dt] = linestyles[len(DT_STYLES)]
-           style = symbol + DT_STYLES[dt]
+           style = symbol #+ DT_STYLES[dt]
+           nosymbol_style = DT_STYLES[dt]
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
       # Don't put error bars at every point
@@ -116,14 +123,19 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
 
       if color:
          plot_style = color + style
+         nosymbol_plot_style = color + nosymbol_style
          err_bar_color = color
       else:
          plot_style = scheme_colors[scheme] + style
+         nosymbol_plot_style = scheme_colors[scheme] + nosymbol_style
          err_bar_color = scheme_colors[scheme]
-      pyplot.plot(msd_statistics.data[scheme][dt][0],
-                  msd_entries,
+      pyplot.plot(msd_statistics.data[scheme][dt][0][err_idx],
+                  msd_entries[err_idx],
                   plot_style,
                   label = plot_label)
+      pyplot.plot(msd_statistics.data[scheme][dt][0],
+                  msd_entries,
+                  nosymbol_plot_style)
 
       if write_data:
         with open(os.path.join('.', 'data', data_name),'a') as f:

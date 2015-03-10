@@ -80,7 +80,7 @@ def plot_heights_and_theta(heights_data):
 
   pyplot.figure(1)
   # HACK: DON'T PLOT EM FOR NOW.
-  for k in range(len(average_heights) - 1):
+  for k in range(len(average_heights)):
     pyplot.plot(buckets, average_heights[k], colors[k] + lines[k], 
                 label=names[k])
     pyplot.errorbar(buckets[error_indices], average_heights[k][error_indices],
@@ -90,7 +90,7 @@ def plot_heights_and_theta(heights_data):
   equilibrium_heights = generate_equilibrium_heights(buckets)
   pyplot.plot(buckets, equilibrium_heights, 'k-', linewidth=2, 
               label='Gibbs Boltzmann')
-  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.legend(loc='best', prop={'size': 10})
   pyplot.title('PDF of Height distribution of Icosahedron')
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
@@ -106,7 +106,7 @@ def plot_heights_and_theta(heights_data):
                     average_heights[k][error_indices] - equilibrium_heights[error_indices],
                     fmt=(colors[k] + symbols[k]),
                     yerr=2.*std_heights[k][error_indices])
-  pyplot.legend(loc='best', prop={'size': 9})
+  pyplot.legend(loc='best', prop={'size': 10})
   pyplot.title('Error Height distribution of Icosahedron')
   pyplot.xlabel('Height')
   pyplot.ylabel('Error in PDF')
@@ -131,7 +131,7 @@ def plot_heights_and_theta(heights_data):
   if 'thetas' in heights_data[0]:
     # Plot theta as well.
     pyplot.figure(2)
-    for k in range(len(average_theta) - 1):
+    for k in range(len(average_theta)):
       pyplot.plot(theta_buckets, average_theta[k], 
                   colors[k] + lines[k], label=names[k])
       pyplot.errorbar(theta_buckets[theta_error_indices], 
@@ -142,7 +142,7 @@ def plot_heights_and_theta(heights_data):
     equilibrium_thetas = generate_equilibrium_thetas(theta_buckets)
     # HACK, accidentally bucketed negative theta.
     pyplot.plot(theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
-    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.legend(loc='best', prop={'size': 10})
     pyplot.title('PDF of Theta Distribution of Icosahedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('PDF')
@@ -158,7 +158,7 @@ def plot_heights_and_theta(heights_data):
                       yerr=2.*std_theta[k][theta_error_indices])
     
     # HACK, accidentally bucketed negative theta.
-    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.legend(loc='best', prop={'size': 10})
     pyplot.title('PDF of Theta PDF Error of Icosahedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('Error in PDF')
@@ -186,7 +186,11 @@ if __name__ == '__main__':
 
 
   data_names = ['nonuniform-icosohedron-dt-0.5-N-400000-heavy-1.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-2.pkl']
+                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-2.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-3.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-4.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-5.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-6.pkl']
   
   heights_data = []
   for file_name in data_names:
