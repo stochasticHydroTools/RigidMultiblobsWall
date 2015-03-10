@@ -46,6 +46,8 @@ def generate_equilibrium_thetas(theta_buckets):
 
 def plot_heights_and_theta(heights_data):
   ''' Plot height histogram and also theta histogram if the data exists.'''
+  # Whether to write out plot data or not.
+  write_data = True
   buckets = heights_data['buckets']
   heights = heights_data['heights']
   names = heights_data['names']
@@ -62,22 +64,47 @@ def plot_heights_and_theta(heights_data):
   pyplot.ylabel('PDF')
   pyplot.savefig('./figures/IcosohedronHeightDistribution.pdf')
 
+  if write_data:
+    with open('./data/IcosohedronHeightDistribution-data.txt', 'w') as f:
+      f.write('Icosohedron Height PDF data\n')
+      f.write('Height Buckets:\n')
+      f.write('%s \n' % buckets)
+      for k in range(len(heights)):
+        f.write('Scheme %s PDF:\n' % names[k])
+        f.write('%s \n' % heights[k])
+
+      f.write('Equilibrium PDF\n')
+      f.write('%s \n' % equilibrium_heights)
+      
   if 'thetas' in heights_data:
     # Plot theta as well.
     thetas = heights_data['thetas']
     theta_buckets = heights_data['theta_buckets']
     pyplot.figure(2)
     for k in range(len(thetas)):
-      pyplot.plot(theta_buckets, thetas[k], label=names[k])
+      pyplot.plot((np.pi - theta_buckets), thetas[k], label=names[k])
     
     equilibrium_thetas = generate_equilibrium_thetas(theta_buckets)
     # HACK, accidentally bucketed negative theta.
-    pyplot.plot(-1.*theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
+    pyplot.plot(np.pi - theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
     pyplot.legend(loc='best', prop={'size': 9})
     pyplot.title('PDF of Theta Distribution of Icosohedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('PDF')
     pyplot.savefig('./figures/IcosohedronThetaDistribution.pdf')
+
+  if write_data:
+    with open('./data/IcosohedronThetaDistribution-data.txt', 'w') as f:
+      f.write('Icosohedron Theta PDF data\n')
+      f.write('Theta Buckets:\n')
+      #HACK, negated to fix bad bucketing.
+      f.write('%s \n' % (np.pi - theta_buckets))
+      for k in range(len(heights)):
+        f.write('Scheme %s Theta PDF:\n' % names[k])
+        f.write('%s \n' % thetas[k])
+
+      f.write('Equilibrium Theta PDF\n')
+      f.write('%s \n' % equilibrium_thetas)
 
     
 if __name__ == '__main__':
@@ -89,3 +116,5 @@ if __name__ == '__main__':
   print "params are: ", heights_data['params']
   plot_heights_and_theta(heights_data)
 
+
+  
