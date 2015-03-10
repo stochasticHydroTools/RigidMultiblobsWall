@@ -123,6 +123,5 @@ if __name__ == '__main__':
   with open(data_name, 'rb') as data:
     heights_data.append(cPickle.load(data))
 
-  print "params are: ", heights_data[0]['params']
   plot_heights_and_theta(heights_data)
 
