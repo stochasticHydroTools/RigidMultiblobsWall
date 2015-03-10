@@ -95,10 +95,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
-    #HACK, deterministic.
     KT = 0.2
   
-  #HACK
   r_vectors = tdn.get_r_vectors(initial_orientation[0])
   integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
@@ -113,9 +111,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   n_steps = int(end_time/dt) + 1
   trajectories = []
   for run in range(n_runs):
-    #HACK: track particle position.
-    particle_position = []
-
     integrator.orientation = initial_orientation
     integrator.location = initial_location
     trajectories.append([])
@@ -135,9 +130,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
         integrator.rfd_time_step(dt)
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
-      
-      #HACK.
-      particle_position.append(tdn.get_r_vectors(integrator.orientation[0])[0])
               
       if has_location:
         raise NotImplementedError('Need to fix calc total msd for initial '
@@ -165,19 +157,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
                        (float(integrator.rejections)/
                         float(n_steps*n_runs + integrator.rejections)))
 
-  #HACK, plot particle trajectories.
-  floren_time = []
-  floren_position = []
-  with open('./data/p.1.dat', 'r') as f:
-    ctr = 0
-    for line in f:
-      if ctr == 0:
-        ctr += 1
-        continue
-      data = line.split(' ')
-      floren_time.append(float(data[0]))
-      floren_position.append([float(d) for d in data[1:]])
-      ctr += 1
   for l in range(3):
     pyplot.figure(l)
     pyplot.plot(results[0], [dat[l] for dat in particle_position], 'g--', label='Python')
@@ -213,7 +192,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   '''
   burn_in = 0
   progress_logger = logging.getLogger('Progress Logger')
-  # Instead of burn in we generate a sample using MCMC.
+  # Instead of burn in we generate a sample start point using accept-reject.
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -225,15 +204,18 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
-    KT = 0.0
+    KT = tdn.KT
     dim = 3
 
   rot_msd_list = []
   print_increment = n_steps/10
   start_time = time.time()
   for run in range(n_runs):
-    # do some MCMC to get a sample from the Gibbs distribution.
-
+    print "kT is ", KT
+    print "M1 ", tf.M1
+    print "M2 ", tf.M2
+    print "M3 ", tf.M3
+    print "M4 ", tf.M4
     integrator = QuaternionIntegrator(mobility,
                                       initial_orientation, 
                                       torque_calculator,
@@ -247,10 +229,12 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 
     # choose number of steps to take before saving data.
     # Want 100 points on our plot.
-    data_interval = int((end_time/dt)/300.)
-    trajectory_length = 300
+    #HACK
+    data_interval = int((end_time/dt)/100.)
+    trajectory_length = int(end_time/dt)
     if data_interval == 0:
       data_interval = 1
+    data_interval = 1
 
     if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
@@ -259,7 +243,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     lagged_location_trajectory = []  # Locations of center of mass.
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
-    for step in range(n_steps):
+    for step in range(n_steps + burn_in):
       if scheme == 'FIXMAN':
         integrator.fixman_time_step(dt)
       elif scheme == 'RFD':

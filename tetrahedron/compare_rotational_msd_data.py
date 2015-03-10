@@ -14,7 +14,7 @@ import os
 import sys
 sys.path.append('..')
 
-from plot_rotational_msd import calculate_zz_msd_at_equilibrium
+from plot_rotational_msd import calculate_zz_and_rot_msd_at_equilibrium
 from translational_diffusion_coefficient import calculate_average_mu_parallel
 import tetrahedron_free as tf
 from utils import MSDStatistics
@@ -23,8 +23,8 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = ['RFD', 'FIXMAN']
-  colors = ['b', 'g']
+  label_list = [' short-end', ' long-end', ' Old', 'new']
+  colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
     data_name = os.path.join('data', data_file)
@@ -38,12 +38,12 @@ if __name__ == '__main__':
 
 
   average_mob_and_friction = calculate_average_mu_parallel(10)
-  zz_msd = calculate_zz_msd_at_equilibrium(2000)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
 
   for l in range(6):
     pyplot.figure(l)
     if l in [0, 1]:
-      pyplot.plot([0.0, 500.0], [0.0, 500.*tf.KT*average_mob_and_friction[0]], 'k--', label='mu parallel')
+      pyplot.plot([0.0, 500.0], [0.0, 500.*2.*tf.KT*average_mob_and_friction[0]], 'k--', label='mu parallel')
     elif l == 2:
       pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
     pyplot.title('MSD(t) for Tetrahedron')

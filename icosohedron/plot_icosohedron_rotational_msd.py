@@ -115,10 +115,14 @@ if __name__ == "__main__":
   zz_msd = calculate_zz_msd_at_equilibrium(20000)
   
   figure_index = [1, 2, 1, 3, 4, 5]
-  label_list = [' Icosohedron Parallel MSD', ' Icosohedron yy MSD', ' Icosohedron Perpendicular MSD', 
-                ' Icosohedron Rotational MSD', ' Icosohedron Rotational MSD', ' Icosohedron Rotational MSD']
-  sphere_label_list = [' Sphere Parallel MSD', ' Sphere yy MSD', ' Sphere perpendicular MSD', 
-                       ' Sphere Rotational MSD', ' Sphere Rotational MSD', ' Sphere Rotational MSD']
+  label_list = [' Icosohedron Parallel MSD', ' Icosohedron yy MSD', 
+                ' Icosohedron Perpendicular MSD', 
+                ' Icosohedron Rotational MSD', ' Icosohedron Rotational MSD', 
+                ' Icosohedron Rotational MSD']
+  sphere_label_list = [' Sphere Parallel MSD', ' Sphere yy MSD', 
+                       ' Sphere perpendicular MSD', 
+                       ' Sphere Rotational MSD', ' Sphere Rotational MSD',
+                       ' Sphere Rotational MSD']
   style_list = ['.', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
   translation_plot_limit = 1100.

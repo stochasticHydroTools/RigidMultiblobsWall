@@ -101,11 +101,12 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
             lagged_trajectory[k]))
           average_rotational_msd[k] += current_rot_msd
 
-      if (step % print_increment) and (step > 0  or run > 0) == 0:
+      if (step % print_increment == 0) and (step > 0  or run > 0):
         progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
         elapsed_time = time.time() - start
         elapsed_units = step + run*(burn_in + n_steps)
         total_units = (burn_in + n_steps)*n_runs
+        
         log_time_progress(elapsed_time, elapsed_units, total_units)
         
 
