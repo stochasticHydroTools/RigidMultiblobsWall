@@ -18,7 +18,7 @@ from utils import log_time_progress
 
 
 M = [0.0 for _ in range(12)]
-M[11] += 0.1
+M[11] += 0.5
 
 def nonuniform_torque_calculator(location, orientation):
   ''' Calculate torque based on a nonuniform icosohedron. '''
@@ -28,6 +28,22 @@ def nonuniform_torque_calculator(location, orientation):
     forces += [0., 0., -1.*mass]
   R = ic.calc_icosohedron_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
+
+def nonuniform_force_calculator(location, orientation):
+  ''' Force on the Icosohedron center. 
+  args: 
+  location:   list of length 1, only entry is a list of
+              length 3 with coordinates of tetrahedon "top" vertex.
+  orientation: list of length 1, only entry is a quaternion with the 
+               tetrahedron orientation
+  '''
+  gravity = [0., 0., -1.*sum(M)]
+  h = location[0][2]
+  repulsion = np.array([0., 0., 
+                        (ic.REPULSION_STRENGTH*((h - ic.A)/ic.DEBYE_LENGTH + 1)*
+                         np.exp(-1.*(h - ic.A)/ic.DEBYE_LENGTH)/
+                         ((h - ic.A)**2))])
+  return repulsion + gravity
 
 
 @static_var('max_index', 0)
@@ -112,7 +128,7 @@ if __name__ == '__main__':
                                            has_location=True,
                                            initial_location=initial_location,
                                            force_calculator=
-                                           ic.icosohedron_force_calculator)
+                                           nonuniform_force_calculator)
   fixman_integrator.kT = ic.KT
   fixman_integrator.check_function = ic.icosohedron_check_function
   rfd_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
@@ -121,18 +137,31 @@ if __name__ == '__main__':
                                         has_location=True,
                                         initial_location=initial_location,
                                         force_calculator=
-                                        ic.icosohedron_force_calculator)
+                                        nonuniform_force_calculator)
   rfd_integrator.kT = ic.KT
   rfd_integrator.check_function = ic.icosohedron_check_function
+
+  em_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
+                                       initial_orientation, 
+                                       nonuniform_torque_calculator,
+                                       has_location=True,
+                                       initial_location=initial_location,
+                                       force_calculator=
+                                       nonuniform_force_calculator)
+  em_integrator.kT = ic.KT
+  em_integrator.check_function = ic.icosohedron_check_function
+
   
   # Set up histogram for heights.
-  bin_width = 1./5.
-  fixman_heights = np.zeros(int(15./bin_width))
-  rfd_heights = np.zeros(int(15./bin_width))
+  bin_width = 1./10.
+  fixman_heights = np.zeros(int(9./bin_width))
+  rfd_heights = np.zeros(int(9./bin_width))
+  em_heights = np.zeros(int(9./bin_width))
 
   theta_bin_width = 1./10.
-  fixman_thetas = np.zeros(int(2.*np.pi/bin_width))
-  rfd_thetas = np.zeros(int(2.*np.pi/bin_width))
+  fixman_thetas = np.zeros(int(np.pi/theta_bin_width))
+  rfd_thetas = np.zeros(int(np.pi/theta_bin_width))
+  em_thetas = np.zeros(int(np.pi/theta_bin_width))
   
   start_time = time.time()
   progress_logger.info('Starting run...')
@@ -153,16 +182,38 @@ if __name__ == '__main__':
                          rfd_heights,
                          theta_bin_width,
                          rfd_thetas)
+    # em step and bin result.
+    em_integrator.additive_em_time_step(dt)
+    bin_height_and_theta(em_integrator.location[0],
+                         em_integrator.orientation[0],
+                         bin_width, 
+                         em_heights,
+                         theta_bin_width,
+                         em_thetas)
 
     if k % print_increment == 0 and k > 0:
       elapsed_time = time.time() - start_time
       log_time_progress(elapsed_time, k, n_steps)
+
   progress_logger.info('Finished Runs.')
+  progress_logger.info('Fixman Rejections: %s' % (float(fixman_integrator.rejections)/
+                       float(n_steps + fixman_integrator.rejections)))
+  progress_logger.info('RFD Rejections: %s' % (float(rfd_integrator.rejections)/
+                       float(n_steps + rfd_integrator.rejections)))
+  progress_logger.info('EM Rejections: %s' % (float(em_integrator.rejections)/
+                       float(n_steps + em_integrator.rejections)))
+
+  progress_logger.info('Average velocity is %s' % (
+      float(rfd_integrator.avg_velocity)/
+      float(n_steps + rfd_integrator.rejections)))
+  
   # Gather data to save.
   heights = [fixman_heights/(n_steps*bin_width),
-             rfd_heights/(n_steps*bin_width)]
+             rfd_heights/(n_steps*bin_width),
+             em_heights/(n_steps*bin_width)]
   thetas = [fixman_thetas/(n_steps*theta_bin_width),
-             rfd_thetas/(n_steps*theta_bin_width)]
+             rfd_thetas/(n_steps*theta_bin_width),
+             em_thetas/(n_steps*theta_bin_width)]
 
   height_data = dict()
   # Save parameters just in case they're useful in the future.
@@ -170,14 +221,15 @@ if __name__ == '__main__':
   # issues there.
   height_data['params'] = {'A': ic.A, 'ETA': ic.ETA, 'VERTEX_A': ic.VERTEX_A, 'M': M, 
                            'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
-                           'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,}
+                           'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
+                           'DT': dt}
   height_data['heights'] = heights
   height_data['thetas'] = thetas
   height_data['buckets'] = (bin_width*np.array(range(len(fixman_heights)))
                             + 0.5*bin_width)
   height_data['theta_buckets'] = (theta_bin_width*np.array(range(len(fixman_thetas)))
                             + 0.5*theta_bin_width)
-  height_data['names'] = ['Fixman', 'RFD']
+  height_data['names'] = ['Fixman', 'RFD', 'EM']
 
   # Optional name for data provided    
   if len(args.data_name) > 0:

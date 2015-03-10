@@ -182,8 +182,8 @@ if __name__ == '__main__':
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
 
   # Set up logging.
-  log_filename = './logs/icosohedron-rotation-dt-%f-N-%d-%s.log' % (
-    dt, n_steps, args.data_name)
+  log_filename = './logs/icosohedron-rotation-msd-uniform-%s-dt-%f-N-%d-%s.log' % (
+    (not args.nonuniform), dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
