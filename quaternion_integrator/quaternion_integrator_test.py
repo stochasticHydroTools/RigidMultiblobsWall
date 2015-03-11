@@ -217,12 +217,13 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                            initial_location=initial_location,
                                            force_calculator=zero_force_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.003, 10000, 'RFD')
-    true_covariance = test_mobility(initial_location, initial_orientation)    
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(
+      0.003, 10000, 'RFD')
+    true_covariance = test_mobility(initial_location, initial_orientation)
 
     for j in range(6):
       for k in range(6):
-        self.assertTrue(abs(avg_cov[j, k] - true_covariance[j, k]) <  TOL)
+        self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
 
 
   def test_check_works(self):
