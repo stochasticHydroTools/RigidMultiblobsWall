@@ -77,7 +77,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction):
   return average_msd_slope
 
 
-def calculate_average_mu_parallel(n_samples):
+def calculate_average_mu_parallel_and_perpendicular(n_samples):
   ''' 
   Generate random samples from equilibrium to
   calculate the average parallel mobility and friction. 
@@ -87,18 +87,21 @@ def calculate_average_mu_parallel(n_samples):
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   sample = [initial_location[0], initial_orientation[0]]
   average_mu_parallel = 0.0
+  average_mu_perp = 0.0
   average_gamma_parallel = 0.0
   for k in range(n_samples):
-    sample = tf.generate_free_equilibrium_sample_mcmc(sample)
+    sample = tf.generate_free_equilibrium_sample()
     mobility_sample = tf.free_tetrahedron_mobility([sample[0]], [sample[1]])
     average_mu_parallel += mobility_sample[0, 0] + mobility_sample[1, 1]
+    average_mu_perp += mobility_sample[2, 2]
     average_gamma_parallel += (1.0/mobility_sample[0, 0] + 
                                1.0/mobility_sample[1, 1])
     
   average_mu_parallel /= 2*n_samples
+  average_mu_perp /= n_samples
   average_gamma_parallel /= 2*n_samples
 
-  return [average_mu_parallel, average_gamma_parallel]
+  return [average_mu_parallel, average_gamma_parallel, average_mu_perp]
 
   
 if __name__ == "__main__":
@@ -111,7 +114,7 @@ if __name__ == "__main__":
   mobilities = []
   frictions = []
   for k in range(n_runs):
-    average_mob_and_friction = calculate_average_mu_parallel(12000)
+    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(12000)
     mobilities.append(average_mob_and_friction[0])
     frictions.append(average_mob_and_friction[1])
 

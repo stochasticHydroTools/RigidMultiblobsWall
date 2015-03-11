@@ -19,7 +19,7 @@ import sys
 sys.path.append('..')
 
 from quaternion_integrator.quaternion import Quaternion
-from translational_diffusion_coefficient import calculate_average_mu_parallel
+from translational_diffusion_coefficient import calculate_average_mu_parallel_and_perpendicular
 import tetrahedron_free as tf
 from tetrahedron_rotational_msd import calc_rotational_msd
 from utils import MSDStatistics
@@ -157,18 +157,19 @@ if __name__ == "__main__":
           combined_msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
   if args.has_location:
-    average_mob_and_friction = calculate_average_mu_parallel(10000)
-    [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
+    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(6000)
+    [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
   
   # Decide which components go on which figures.
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 2500.
+  translation_end = 10.
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
-                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l])
+                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
+                            num_err_bars=300)
     pyplot.figure(figure_numbers[l])
     if args.has_location:
       if l in [0]:
@@ -179,9 +180,17 @@ if __name__ == "__main__":
       elif l == 2:
         pyplot.plot([0.0, translation_end],
                     [zz_msd, zz_msd], 'b--', label='Asymptotic Perpendicular MSD')
+        fit_line = np.polyfit([combined_msd_statistics.data['RFD'][1.6][0][_] for _ in range(5)],
+                              [combined_msd_statistics.data['RFD'][1.6][1][_][2][2] for _ in range(5)],
+                              1)
+        print "fit line is ", fit_line
+        print "ratio for perp is ", fit_line[0]/(2*tf.KT*average_mob_and_friction[2])
+        pyplot.plot([0.0, translation_end],
+                    [0.0, translation_end*2.*tf.KT*average_mob_and_friction[2]],
+                    'b:', label='Average Perpendicular Mobility')
         pyplot.xlim([0., translation_end])
         #HACK
-        pyplot.ylim([0., 82.])
+        pyplot.ylim([0., 0.5])
     if l == 3:
       pyplot.plot([0.0, 500.],
                   [rot_msd, rot_msd], 'k--', label='Asymptotic Rotational MSD')
@@ -191,6 +200,7 @@ if __name__ == "__main__":
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
 
-  print "Mu parallel on average is ", average_mob_and_friction[0]
+  print "Mu parallel on average is ", average_mob_and_friction[0]*2.
+  print "Mu perp on average is ", average_mob_and_friction[2]
   print "MSD Perpendicular asymptotic is ", zz_msd
   print "MSD Rotational asymptotic is ", rot_msd

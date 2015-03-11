@@ -174,7 +174,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                          n_steps,
                                          has_location=False,
                                          location=None,
-                                         n_runs=4):
+                                         n_runs=8):
   ''' 
   Do a few long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
@@ -211,11 +211,6 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
   print_increment = n_steps/10
   start_time = time.time()
   for run in range(n_runs):
-    print "kT is ", KT
-    print "M1 ", tf.M1
-    print "M2 ", tf.M2
-    print "M3 ", tf.M3
-    print "M4 ", tf.M4
     integrator = QuaternionIntegrator(mobility,
                                       initial_orientation, 
                                       torque_calculator,
