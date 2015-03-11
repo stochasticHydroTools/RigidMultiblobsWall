@@ -88,6 +88,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   to time = end_time.
   Average over these trajectories to get the curve of MSD v. time.
   '''
+ progress_logger = logging.getLogger('progress_logger')  
+ print_increment = n_runs/20.
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -110,6 +112,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     integrator.check_function = tf.check_particles_above_wall
   n_steps = int(end_time/dt) + 1
   trajectories = []
+  start_time = time.time()
+  progress_logger.info('Started runs...')
   for run in range(n_runs):
     integrator.orientation = initial_orientation
     integrator.location = initial_location
@@ -141,6 +145,12 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
         trajectories[run].append(
           calc_rotational_msd_from_likely_position(
             integrator.orientation[0]))
+
+    if (n_runs % print_increment) == 0:
+      elapsed_time = time.time() - start_time
+      progress_logger.info('finished run %s' % run)
+      log_time_progress(elapsed_time, run, n_runs)
+      
   # Average results to get time, mean, and std of rotational MSD.
   results = [[], [], []]
   step = 0
@@ -152,17 +162,17 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
 
-  progress_logger = logging.getLogger('progress_logger')  
+ 
   progress_logger.info('Rejection Rate: %s' % 
                        (float(integrator.rejections)/
                         float(n_steps*n_runs + integrator.rejections)))
 
-  for l in range(3):
-    pyplot.figure(l)
-    pyplot.plot(results[0], [dat[l] for dat in particle_position], 'g--', label='Python')
-    pyplot.plot(floren_time, [dat[l] for dat in floren_position], 'r:', label='IBAMR')
-    pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/BlobPosition-Coordinate-' + str(l) + '.pdf')
+#  for l in range(3):
+#    pyplot.figure(l)
+#    pyplot.plot(results[0], [dat[l] for dat in particle_position], 'g--', label='Python')
+#    pyplot.plot(floren_time, [dat[l] for dat in floren_position], 'r:', label='IBAMR')
+#    pyplot.legend(loc='best', prop={'size': 9})
+#    pyplot.savefig('./figures/BlobPosition-Coordinate-' + str(l) + '.pdf')
       
   return results
 
