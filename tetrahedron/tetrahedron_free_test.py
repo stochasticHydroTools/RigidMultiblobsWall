@@ -36,22 +36,22 @@ class TestFreeTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[2][1], 20. - 1./np.sqrt(3.))
     self.assertAlmostEqual(r_vectors[2][2], 20. - 2.*np.sqrt(2.)/np.sqrt(3.))
 
-    # Orientation upside down, rotate around x axis by 180 degrees.
-    theta = Quaternion([0., 1., 0., 0.])
+    # Orientation upside down, rotate around x axis by 90 degrees.
+    theta = Quaternion([1./np.sqrt(2.), 1./np.sqrt(2.), 0., 0.])
     r_vectors = tf.get_free_r_vectors(location, theta)
 
     # Check r1.
     self.assertAlmostEqual(r_vectors[0][0], 20.)
-    self.assertAlmostEqual(r_vectors[0][1], 20. - 2./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[0][2], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[0][1], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[0][2], 20. + 2./np.sqrt(3.))
     # Check r2.
     self.assertAlmostEqual(r_vectors[1][0], 19.)
-    self.assertAlmostEqual(r_vectors[1][1], 20. + 1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[1][2], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[1][1], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[1][2], 20. - 1./np.sqrt(3.))
     # Check r3.
     self.assertAlmostEqual(r_vectors[2][0], 21.)
-    self.assertAlmostEqual(r_vectors[2][1], 20. + 1./np.sqrt(3.))
-    self.assertAlmostEqual(r_vectors[2][2], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[2][1], 20. + 2.*np.sqrt(2.)/np.sqrt(3.))
+    self.assertAlmostEqual(r_vectors[2][2], 20. - 1./np.sqrt(3.))
 
 
   def test_free_center_of_mass(self):
@@ -128,6 +128,8 @@ class TestFreeTetrahedron(unittest.TestCase):
     
     rot_matrix = tf.calc_free_rot_matrix(r_vectors, location)
 
+    print "size of rot matrix", np.size(rot_matrix)
+    print "size of force array", np.size(force_array)
     correct_torque = np.dot(rot_matrix.T, force_array)
     calculated_torque = tf.free_gravity_torque_calculator([location], [theta])
     for k in range(3):
