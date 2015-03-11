@@ -77,6 +77,16 @@ if __name__ == "__main__":
     print 'Icosohedron parameters:'
     msd_statistics.print_params()
 
+  # HACK, combine 0 and 1 component into parallel.
+  for scheme in msd_statistics.data:
+    for dt in msd_statistics.data[scheme]:
+      for k in range(len(msd_statistics.data[scheme][dt][1])):
+        msd_statistics.data[scheme][dt][1][k][0][0] = (
+          msd_statistics.data[scheme][dt][1][k][0][0] +
+          msd_statistics.data[scheme][dt][1][k][1][1])
+        msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
+          msd_statistics.data[scheme][dt][2][k][0][0]**2 +
+          msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
@@ -86,6 +96,15 @@ if __name__ == "__main__":
     print 'Sphere parameters:'
     sphere_statistics.print_params()
 
+  for scheme in sphere_statistics.data:
+    for dt in sphere_statistics.data[scheme]:
+      for k in range(len(sphere_statistics.data[scheme][dt][1])):
+        sphere_statistics.data[scheme][dt][1][k][0][0] = (
+          sphere_statistics.data[scheme][dt][1][k][0][0] +
+          sphere_statistics.data[scheme][dt][1][k][1][1])
+        sphere_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
+          sphere_statistics.data[scheme][dt][2][k][0][0]**2 +
+          sphere_statistics.data[scheme][dt][2][k][1][1]**2)
     
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
@@ -96,27 +115,41 @@ if __name__ == "__main__":
   zz_msd = calculate_zz_msd_at_equilibrium(20000)
   
   figure_index = [1, 2, 1, 3, 4, 5]
-  label_list = [' Icosohedron xx MSD', ' Icosohedron yy MSD', ' Icosohedron zz MSD', 
-                ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
-  sphere_label_list = [' Sphere xx MSD', ' Sphere yy MSD', ' Sphere zz MSD', 
-                       ' Sphere Rotational MSD', ' Sphere Rotational MSD', ' Sphere Rotational MSD']
+  label_list = [' Icosohedron Parallel MSD', ' Icosohedron yy MSD', 
+                ' Icosohedron Perpendicular MSD', 
+                ' Icosohedron Rotational MSD', ' Icosohedron Rotational MSD', 
+                ' Icosohedron Rotational MSD']
+  sphere_label_list = [' Sphere Parallel MSD', ' Sphere yy MSD', 
+                       ' Sphere perpendicular MSD', 
+                       ' Sphere Rotational MSD', ' Sphere Rotational MSD',
+                       ' Sphere Rotational MSD']
   style_list = ['.', 's', '^', '.', '.', '.']
-  sphere_style_list = ['x', 'o', 'o', 'o', 'o', 'o']
+  sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
   translation_plot_limit = 1100.
   for l in range(6):
     ind = [l, l]
+    if l in [0, 2]:
+      data_name = 'TranslationalMSDComponent.txt'
+      num_err_bars = 30
+    elif l == 3:
+      data_name = 'RotationalMSDComponent.txt'
+      num_err_bars = 60
+    else:
+      data_name = None
     plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
-                            label=label_list[l])
-    plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='r', 
+                            label=label_list[l], num_err_bars=num_err_bars)
+    plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='b', 
                             label=sphere_label_list[l], symbol=sphere_style_list[l],
-                            data_name = "SphereMSDComponent-%s.txt" % l)
+                            data_name = "SphereMSDComponent-%s.txt" % l,
+                            num_err_bars=num_err_bars)
     if l == 0:
-      pyplot.plot([0.0, translation_plot_limit], [0.0, translation_plot_limit*2.*sph.KT*0.0941541889044], 'r:', 
+      pyplot.plot([0.0, translation_plot_limit], 
+                  [0.0, translation_plot_limit*2.*2.*sph.KT*0.0941541889044], 'k:', 
                   label='Slope = Sphere Mobility')
-      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
-                  label='Slope = Icosohedron Mobility')
+#      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
+#                  label='Slope = Icosohedron Mobility')
     if l == 2:
-      pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'b--',  
+      pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
                   label='Asymptotic ZZ MSD')
       pyplot.xlim([0., translation_plot_limit,])
     if l in [3, 4, 5]:

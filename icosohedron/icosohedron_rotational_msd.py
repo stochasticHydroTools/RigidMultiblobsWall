@@ -8,13 +8,16 @@ import numpy as np
 import os
 import sys
 sys.path.append('..')
+import time
 
 import icosohedron as ic
 import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import log_time_progress
 from utils import StreamToLogger
 from utils import MSDStatistics
+
 
 
 def calc_icosohedron_msd_from_equilibrium(initial_orientation,
@@ -50,6 +53,8 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     torque_calculator = ic.icosohedron_torque_calculator
   else:
     torque_calculator = icn.nonuniform_torque_calculator
+  progress_logger.info('Starting MSD runs...')
+  start = time.time()
   for run in range(n_runs):
     integrator = QuaternionIntegrator(ic.icosohedron_mobility,
                                       initial_orientation, 
@@ -96,8 +101,14 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
             lagged_trajectory[k]))
           average_rotational_msd[k] += current_rot_msd
 
-      if (step % print_increment) == 0:
+      if (step % print_increment == 0) and (step > 0  or run > 0):
         progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
+        elapsed_time = time.time() - start
+        elapsed_units = step + run*(burn_in + n_steps)
+        total_units = (burn_in + n_steps)*n_runs
+        
+        log_time_progress(elapsed_time, elapsed_units, total_units)
+        
 
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
@@ -196,7 +207,11 @@ if __name__ == '__main__':
   sys.stderr = sl
 
   height_histogram_run = np.zeros(len(buckets))
-  params = {'M': ic.M, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
+  if args.nonuniform:
+    mass_param = icn.M
+  else:
+    mass_param = ic.M
+  params = {'M': mass_param, 'A': ic.A, 'VERTEX_A': ic.VERTEX_A,
             'REPULSION_STRENGTH': ic.REPULSION_STRENGTH, 
             'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
             'END_TIME': args.end_time}

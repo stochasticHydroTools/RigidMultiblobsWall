@@ -19,26 +19,51 @@ import sys
 sys.path.append('..')
 
 from quaternion_integrator.quaternion import Quaternion
-from translational_diffusion_coefficient import calculate_average_mu_parallel
+from translational_diffusion_coefficient import calculate_average_mu_parallel_and_perpendicular
 import tetrahedron_free as tf
+from tetrahedron_rotational_msd import calc_rotational_msd
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
 
-def calculate_zz_msd_at_equilibrium(n_steps):
+def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   ''' 
-  Calculate the zz at equilibrium by generating pairs of samples
-  and calculating their zz MSD.  We use this to compare to
-  the ZZ MSD from the runs.
+  Calculate the zz (and rot) at equilibrium by generating pairs of samples
+  and calculating their MSD.  We use this to compare to
+  the ZZ and rotational MSD from the runs.
   '''
   zz_msd = 0.0
+  rot_msd = 0.
   for k in range(n_steps):
     sample = tf.generate_free_equilibrium_sample()
     sample_2 = tf.generate_free_equilibrium_sample()
     center_1 = tf.get_free_center_of_mass(sample[0], sample[1])
     center_2 = tf.get_free_center_of_mass(sample_2[0], sample_2[1])
     zz_msd += (center_1[2] - center_2[2])**2.
+    rot_matrix_1 = sample[1].rotation_matrix()
+    rot_matrix_2 = sample_2[1].rotation_matrix()
+    rot_msd += calc_rotational_msd(rot_matrix_1, rot_matrix_2)[0, 0]
   zz_msd /= n_steps
+  rot_msd /= n_steps
+
+  return [zz_msd, rot_msd]
+
+
+def calculate_rot_msd_at_equilibrium(n_steps):
+  ''' 
+  Calculate the rotational (3-3 component) MSD at equilibrium by
+  generating pairs of samples and calculating their rotational MSD.
+  We use this to compare to the rotational MSD from the runs.
+  '''
+  rot_msd = 0.0
+  for k in range(n_steps):
+    sample = tf.generate_free_equilibrium_sample()
+    sample_2 = tf.generate_free_equilibrium_sample()
+    
+#    center_1 = tf.get_free_center_of_mass(sample[0], sample[1])
+#    center_2 = tf.get_free_center_of_mass(sample_2[0], sample_2[1])
+    rot_msd += (center_1[2] - center_2[2])**2.
+  rot_msd /= n_steps
 
   return zz_msd
 
@@ -120,37 +145,66 @@ if __name__ == "__main__":
         else:
           combined_msd_statistics.add_run(scheme, dt, msd_statistics.data[scheme][dt])
 
+  # HACK, add xx and yy to get translational data
+  for scheme in combined_msd_statistics.data:
+    for dt in combined_msd_statistics.data[scheme]:
+      for k in range(len(combined_msd_statistics.data[scheme][dt][1])):
+        combined_msd_statistics.data[scheme][dt][1][k][0][0] = (
+          combined_msd_statistics.data[scheme][dt][1][k][0][0] +
+          combined_msd_statistics.data[scheme][dt][1][k][1][1])
+        combined_msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
+          combined_msd_statistics.data[scheme][dt][2][k][0][0]**2 +
+          combined_msd_statistics.data[scheme][dt][2][k][1][1]**2)
+
   if args.has_location:
-    average_mob_and_friction = calculate_average_mu_parallel(10000)
-    zz_msd = calculate_zz_msd_at_equilibrium(20000)
-  
+    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(4000)
+    [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(4000)
+    #HACK, overwrite to compare to initial condition run.
+#    average_mob_and_friction[0] = tf.free_tetrahedron_mobility([[0., 0., 3.5]],
+#                                                               [Quaternion([1., 0., 0., 0.])])[0, 0]
   # Decide which components go on which figures.
   figure_numbers = [1, 5, 1, 2, 3, 4]
-  labels= [' XX-Msd', ' YY-Msd', ' ZZ-Msd', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
-  styles = ['+', '^', '.', '.', '.', '.']
-  
+  labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
+  styles = ['o', '^', 's', 'o', '.', '.']
+  translation_end = 20.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
-                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l])
+                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
+                            num_err_bars=300)
     pyplot.figure(figure_numbers[l])
     if args.has_location:
       if l in [0]:
         pyplot.rc('text', usetex=True)
-        pyplot.plot([0.0, 500.0], [0.0, 500.*tf.KT*average_mob_and_friction[0]], 'k-',
-                    label=r'Slope=$2k_B T \mu_{xx}$')
+        pyplot.plot([0.0, translation_end], 
+                    [0.0, translation_end*4.*tf.KT*average_mob_and_friction[0]], 'k-',
+                    label=r'Average Mobility')
       elif l == 2:
-        pyplot.plot([0.0, 500.0], [zz_msd, zz_msd], 'b--', label='Asymptotic Perp MSD')
-        pyplot.xlim([0., 500.])
-        pyplot.ylim([0., 10.])
+        pyplot.plot([0.0, translation_end],
+                    [zz_msd, zz_msd], 'b--', label='Asymptotic Perpendicular MSD')
+#        fit_line = np.polyfit([combined_msd_statistics.data['RFD'][1.6][0][_] for _ in range(5)],
+#                              [combined_msd_statistics.data['RFD'][1.6][1][_][2][2] for _ in range(5)],
+#                              1)
+#        print "fit line is ", fit_line
+#        print "ratio for perp is ", fit_line[0]/(2*tf.KT*average_mob_and_friction[2])
+
+        pyplot.plot([0.0, translation_end],
+                    [0.0, translation_end*2.*tf.KT*average_mob_and_friction[2]],
+                    'b:', label='Average Perpendicular Mobility')
+        print "tf.KT is ", tf.KT
+        pyplot.xlim([0., translation_end])
+        #HACK
+        pyplot.ylim([0., 5.0])
     if l == 3:
-      pyplot.xlim([0., 400.])
-    
+      pyplot.plot([0.0, 500.],
+                  [rot_msd, rot_msd], 'k--', label='Asymptotic Rotational MSD')
+      pyplot.xlim([0., 500.])
     pyplot.title('MSD(t) for Tetrahedron')
-    pyplot.legend(loc='best', prop={'size': 9})
+    pyplot.legend(loc='best', prop={'size': 11})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
 
-
-    print "Mu parallel on average is ", average_mob_and_friction[0]
-    print "MSD ZZ asymptotic is ", zz_msd
+  print "Mu parallel on average is ", average_mob_and_friction[0]*2.
+  print "Mu perp on average is ", average_mob_and_friction[2]
+  print "MSD Perpendicular asymptotic is ", zz_msd
+  print "MSD Rotational asymptotic is ", rot_msd

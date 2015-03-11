@@ -149,7 +149,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 50000, 'FIXMAN')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 1000, 'FIXMAN')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
@@ -179,7 +179,7 @@ class TestQuaternionIntegrator(unittest.TestCase):
     test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
                                            zero_torque_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 50000, 'RFD')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.01, 1000, 'RFD')
     self.assertLess(abs(avg_drift[0]), TOL)
     self.assertLess(abs(avg_drift[1] - 0.5), TOL)
     self.assertLess(abs(avg_drift[2]), TOL)
@@ -188,6 +188,42 @@ class TestQuaternionIntegrator(unittest.TestCase):
     
     for j in range(3):
       for k in range(3):
+        self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
+
+
+
+  def test_rfd_covariance_with_location(self):
+    ''' Test that the covariance is correct for the RFD scheme with location.'''
+    TOL = 1e-1    
+    initial_orientation = [Quaternion([1., 0., 0., 0.])]
+    initial_location = [[0., 0., 5.]]
+    def test_mobility(location, orientation):
+      # Constant test mobility. 
+      return np.array([[4., 1., 0., 1., 0., 0.],
+                       [1., 4., 1., 0., 1., 0.],
+                       [0., 1., 4., 0., 1., 0.],
+                       [1., 0., 0., 4., 1., 1.],
+                       [0., 1., 1., 1., 4., 0.],
+                       [0., 0., 0., 1., 0., 4.]])
+
+    def zero_torque_calculator(location, orientation):
+      return np.zeros(3)
+
+    def zero_force_calculator(location, orientation):
+      return np.zeros(3)
+
+    test_integrator = QuaternionIntegrator(test_mobility, initial_orientation,
+                                           zero_torque_calculator,
+                                           has_location=True,
+                                           initial_location=initial_location,
+                                           force_calculator=zero_force_calculator)
+
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.05, 4000, 'RFD')
+    true_covariance = test_mobility(initial_location, initial_orientation)    
+
+    for j in range(6):
+      for k in range(6):
+        print "j is %s, k is %s, mobility is %s" % (j, k, avg_cov[j, k])
         self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
 
 
@@ -214,6 +250,9 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                                  initial_location = initial_location,
                                                  force_calculator = identity_force_calculator)
     quaternion_integrator.check_function = false_check_function
+    raise NotImplementedError('Check Function Test Not Implemented')
+    return
+
     quaternion_integrator.fixman_time_step(1.0)
     self.assertEqual(quaternion_integrator.location, initial_location)
     self.assertEqual(quaternion_integrator.orientation, initial_orientation)
@@ -227,4 +266,3 @@ class TestQuaternionIntegrator(unittest.TestCase):
     
 if __name__ == "__main__":
   unittest.main()      
-
