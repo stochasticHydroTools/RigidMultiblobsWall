@@ -246,7 +246,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
-    lagged_location_trajectory = []  # Locations of center of mass.
+    lagged_location_trajectory = []  # Locations of geometric center
     average_rotational_msd = np.array([np.zeros((dim, dim)) 
                                      for _ in range(trajectory_length)])
     for step in range(n_steps + burn_in):
@@ -260,9 +260,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       if step % data_interval == 0:
         lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
         if has_location:
-          center_of_mass = tf.get_free_center_of_mass(integrator.location[0], 
-                                                      integrator.orientation[0])
-          lagged_location_trajectory.append(center_of_mass)
+          geometric_center = tf.get_free_geometric_center(integrator.location[0], 
+                                                               integrator.orientation[0])
+          lagged_location_trajectory.append(geometric_center)
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]

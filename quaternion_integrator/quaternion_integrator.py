@@ -320,12 +320,15 @@ class QuaternionIntegrator(object):
 
       for k in range(self.dim):
         orientation_increment = self.orientation[k]*initial_orientation[k].inverse()
-        drift_angle = orientation_increment.rotation_angle()
-
-
-      drift_samples.append(drift_angle)
-      covariance_samples.append(np.outer(drift_angle, drift_angle))
+        drift = orientation_increment.rotation_angle()
+        if self.has_location:
+          drift = np.concatenate([drift, self.location[k] - initial_location[k]])
+          
+      drift_samples.append(drift)
+      covariance_samples.append(np.outer(drift, drift))
       self.orientation = initial_orientation
+      if self.has_location:
+        self.location = initial_location
 
     avg_drift = np.mean(drift_samples, axis=0)/dt
     avg_covariance = np.mean(covariance_samples, axis=0)/(2.*dt)

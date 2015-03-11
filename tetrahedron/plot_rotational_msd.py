@@ -166,7 +166,7 @@ if __name__ == "__main__":
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 0.2
+  translation_end = 20.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         print "tf.KT is ", tf.KT
         pyplot.xlim([0., translation_end])
         #HACK
-        pyplot.ylim([0., 0.04])
+        pyplot.ylim([0., 5.0])
     if l == 3:
       pyplot.plot([0.0, 500.],
                   [rot_msd, rot_msd], 'k--', label='Asymptotic Rotational MSD')
