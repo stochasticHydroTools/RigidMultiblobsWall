@@ -322,8 +322,7 @@ class QuaternionIntegrator(object):
         orientation_increment = self.orientation[l]*initial_orientation[l].inverse()
         drift = orientation_increment.rotation_angle()
         if self.has_location:
-          drift = np.concatenate([drift, self.location[l] - initial_location[l]])
-#          print 'drift iwth location is ', drift
+          drift = np.concatenate([self.location[l] - initial_location[l], drift])
       drift_samples.append(drift)
       covariance_samples.append(np.outer(drift, drift))
       self.orientation = initial_orientation
