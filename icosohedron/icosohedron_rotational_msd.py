@@ -193,8 +193,8 @@ if __name__ == '__main__':
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
 
   # Set up logging.
-  log_filename = './logs/icosohedron-rotation-msd-uniform-%s-dt-%f-N-%d-%s.log' % (
-    (not args.nonuniform), dt, n_steps, args.data_name)
+  log_filename = './logs/icosohedron-rotation-msd-uniform-%s-dt-%f-N-%d-scheme-%s-%s.log' % (
+    (not args.nonuniform), dt, n_steps, args.scheme, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -229,8 +229,8 @@ if __name__ == '__main__':
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
 
-  data_name = './data/icosohedron-msd-uniform-%s-dt-%s-N-%d-%s.pkl' % (
-    (not args.nonuniform), dt, n_steps, args.data_name)
+  data_name = './data/icosohedron-msd-uniform-%s-dt-%s-N-%d-scheme-%s-%s.pkl' % (
+    (not args.nonuniform), dt, n_steps, args.scheme, args.data_name)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)

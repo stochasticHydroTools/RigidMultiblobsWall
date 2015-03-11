@@ -18,7 +18,7 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 #Parameters
 ETA = 1.0  # Viscosity.
 A = 0.5    # Radius of sphere.
-M  = 0.1   # Mass*g of sphere.
+M  = 0.5   # Mass*g of sphere.
 H = 3.5    # Initial Distance from Wall.
 KT = 0.2   # Temperature.
 # Parameters for Yukawa potential

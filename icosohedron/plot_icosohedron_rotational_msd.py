@@ -123,14 +123,14 @@ if __name__ == "__main__":
                        ' Sphere perpendicular MSD', 
                        ' Sphere Rotational MSD', ' Sphere Rotational MSD',
                        ' Sphere Rotational MSD']
-  style_list = ['.', 's', '^', '.', '.', '.']
+  style_list = ['*', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 1000.
+  translation_plot_limit = 800.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:
       data_name = 'TranslationalMSDComponent.txt'
-      num_err_bars = 30
+      num_err_bars = 50
     elif l == 3:
       data_name = 'RotationalMSDComponent.txt'
       num_err_bars = 60

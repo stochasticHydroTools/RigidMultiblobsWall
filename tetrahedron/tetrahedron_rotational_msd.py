@@ -43,10 +43,12 @@ def calc_total_msd(initial_location, initial_orientation,
   u_hat = np.zeros(3)
   rot_matrix = orientation.rotation_matrix()
   original_rot_matrix = initial_orientation.rotation_matrix()
-  original_center = tf.get_free_geometric_center(initial_location, 
-                                                 initial_orientation)
-  final_center = tf.get_free_geometric_center(location, 
-                                              orientation)
+  original_center = initial_location
+  # HACKtf.get_free_geometric_center(initial_location, 
+  # initial_orientation)
+  final_center = location
+  #tf.get_free_geometric_center(location, 
+  # orientation)
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
@@ -98,10 +100,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   else:
     mobility = tdn.tetrahedron_mobility
     torque_calculator = tdn.gravity_torque_calculator
-    KT = 0.2
-  
-  r_vectors = tdn.get_r_vectors(initial_orientation[0])
-  print "mobility initially is ", mobility(location, initial_orientation)
+    KT = tdn.KT
   integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
                                     torque_calculator,
@@ -233,9 +232,8 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     integrator.kT = KT
     if has_location:
       integrator.check_function = tf.check_particles_above_wall
-
     trajectory_length = int(end_time/dt)
-
+    
     if trajectory_length > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
@@ -253,9 +251,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 
       lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
       if has_location:
-        geometric_center = tf.get_free_geometric_center(integrator.location[0], 
-                                                        integrator.orientation[0])
-        lagged_location_trajectory.append(geometric_center)
+        lagged_location_trajectory.append(integrator.location[0])
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]
@@ -397,7 +393,6 @@ if __name__ == "__main__":
 
   # Set initial conditions.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  r_vectors = tdn.get_r_vectors(initial_orientation[0])
   initial_location = [[0., 0., 3.5]]
 
   dt = args.dt

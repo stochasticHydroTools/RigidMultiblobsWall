@@ -63,6 +63,16 @@ def free_tetrahedron_mobility(location, orientation):
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   return force_and_torque_mobility(r_vectors, location[0])
 
+def free_tetrahedron_center_mobility(location, orientation):
+  ''' 
+  Wrapper for torque mobility that takes a quaternion and location for
+  use with quaternion_integrator. 
+  This mobility is for movement of the center.
+  '''
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  center = get_free_geometric_center(location[0], orientation[0])
+  return force_and_torque_mobility(r_vectors, center)
+
 
 def force_and_torque_mobility(r_vectors, location):
   '''
@@ -208,7 +218,6 @@ def calc_free_rot_matrix(r_vectors, location):
       rot_matrix = np.concatenate([rot_matrix, block], axis=0)
 
   return rot_matrix
-
 
 def free_gravity_torque_calculator(location, orientation):
   ''' 
