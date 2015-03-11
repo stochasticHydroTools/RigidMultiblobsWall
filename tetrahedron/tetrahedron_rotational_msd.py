@@ -132,8 +132,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
         integrator.additive_em_time_step(dt)
               
       if has_location:
-        raise NotImplementedError('Need to fix calc total msd for initial '
-                                  'position run with location.')
+#        raise NotImplementedError('Need to fix calc total msd for initial '
+#                                  'position run with location.')
         trajectories[run].append(
           calc_total_msd(initial_location[0], initial_orientation[0],
                          integrator.location[0], integrator.orientation[0]))
