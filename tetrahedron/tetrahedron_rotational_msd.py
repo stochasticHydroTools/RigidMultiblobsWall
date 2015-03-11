@@ -43,26 +43,27 @@ def calc_total_msd(initial_location, initial_orientation,
   u_hat = np.zeros(3)
   rot_matrix = orientation.rotation_matrix()
   original_rot_matrix = initial_orientation.rotation_matrix()
-  original_center_of_mass = tf.get_free_center_of_mass(initial_location, 
-                                                       initial_orientation)
-  final_center_of_mass = tf.get_free_center_of_mass(location, 
-                                                    orientation)
+  original_center = tf.get_free_geometric_center(initial_location, 
+                                                 initial_orientation)
+  final_center = tf.get_free_geometric_center(location, 
+                                              orientation)
   for i in range(3):
     e = np.zeros(3)
     e[i] = 1.
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
     
-  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
+  dx = np.array(final_center) - np.array(original_center)
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
 
-def calc_total_msd_from_matrix_and_com(original_center_of_mass, original_rot_matrix, 
-                                       final_center_of_mass, rot_matrix):
+def calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix, 
+                                       final_center, rot_matrix):
   ''' 
-  Calculate 6x6 MSD including orientation and location.  This is calculated from
-  precomputed center of mass and rotation matrix data to avoid repeating computation.
+  Calculate 6x6 MSD including orientation and location.  This is
+  calculated from precomputed center of the tetrahedron and rotation
+  matrix data to avoid repeating computation.
   '''
   u_hat = np.zeros(3)
   for i in range(3):
@@ -71,7 +72,7 @@ def calc_total_msd_from_matrix_and_com(original_center_of_mass, original_rot_mat
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
     
-  dx = np.array(final_center_of_mass) - np.array(original_center_of_mass)
+  dx = np.array(final_center) - np.array(original_center)
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
@@ -100,6 +101,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     KT = 0.2
   
   r_vectors = tdn.get_r_vectors(initial_orientation[0])
+  print "mobility initially is ", mobility(location, initial_orientation)
   integrator = QuaternionIntegrator(mobility,
                                     initial_orientation, 
                                     torque_calculator,
@@ -112,7 +114,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     integrator.check_function = tf.check_particles_above_wall
   n_steps = int(end_time/dt) + 1
   trajectories = []
-  # Why do I have to do this?
   start_time = time.time()
   progress_logger.info('Started runs...')
   for run in range(n_runs):
@@ -233,16 +234,9 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     if has_location:
       integrator.check_function = tf.check_particles_above_wall
 
-    # choose number of steps to take before saving data.
-    # Want 100 points on our plot.
-    #HACK
-    data_interval = int((end_time/dt)/100.)
     trajectory_length = int(end_time/dt)
-    if data_interval == 0:
-      data_interval = 1
-    data_interval = 1
 
-    if trajectory_length*data_interval > n_steps:
+    if trajectory_length > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
@@ -257,12 +251,11 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
-      if step % data_interval == 0:
-        lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
-        if has_location:
-          geometric_center = tf.get_free_geometric_center(integrator.location[0], 
-                                                               integrator.orientation[0])
-          lagged_location_trajectory.append(geometric_center)
+      lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
+      if has_location:
+        geometric_center = tf.get_free_geometric_center(integrator.location[0], 
+                                                        integrator.orientation[0])
+        lagged_location_trajectory.append(geometric_center)
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]
@@ -270,7 +263,7 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
           lagged_location_trajectory = lagged_location_trajectory[1:]
         for k in range(trajectory_length):
           if has_location:
-            current_rot_msd = (calc_total_msd_from_matrix_and_com(
+            current_rot_msd = (calc_total_msd_from_matrix_and_center(
                 lagged_location_trajectory[0],
                 lagged_trajectory[0],
                 lagged_location_trajectory[k],
@@ -293,13 +286,13 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
                           float(integrator.rejections + n_steps)))
-    average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
+    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
-  results[0] = np.arange(0, trajectory_length)*dt*data_interval
+  results[0] = np.arange(0, trajectory_length)*dt
   results[1] = np.mean(rot_msd_list, axis=0)
   results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 

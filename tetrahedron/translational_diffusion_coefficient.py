@@ -83,9 +83,9 @@ def calculate_average_mu_parallel_and_perpendicular(n_samples):
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
   '''
-  initial_location = [np.array([0., 0., tf.H])]
-  initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  sample = [initial_location[0], initial_orientation[0]]
+#  initial_location = [np.array([0., 0., tf.H])]
+#  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+#  sample = [initial_location[0], initial_orientation[0]]
   average_mu_parallel = 0.0
   average_mu_perp = 0.0
   average_gamma_parallel = 0.0
@@ -97,9 +97,9 @@ def calculate_average_mu_parallel_and_perpendicular(n_samples):
     average_gamma_parallel += (1.0/mobility_sample[0, 0] + 
                                1.0/mobility_sample[1, 1])
     
-  average_mu_parallel /= 2*n_samples
+  average_mu_parallel /= (2*n_samples)
   average_mu_perp /= n_samples
-  average_gamma_parallel /= 2*n_samples
+  average_gamma_parallel /= (2*n_samples)
 
   return [average_mu_parallel, average_gamma_parallel, average_mu_perp]
 
@@ -110,11 +110,11 @@ if __name__ == "__main__":
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)  
   
-  n_runs = 8
+  n_runs = 4
   mobilities = []
   frictions = []
   for k in range(n_runs):
-    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(12000)
+    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(4000)
     mobilities.append(average_mob_and_friction[0])
     frictions.append(average_mob_and_friction[1])
 

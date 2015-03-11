@@ -208,7 +208,6 @@ class TestQuaternionIntegrator(unittest.TestCase):
 
     def zero_torque_calculator(location, orientation):
       return np.zeros(3)
-
     def zero_force_calculator(location, orientation):
       return np.zeros(3)
 
@@ -218,12 +217,12 @@ class TestQuaternionIntegrator(unittest.TestCase):
                                            initial_location=initial_location,
                                            force_calculator=zero_force_calculator)
 
-    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.05, 10000, 'RFD')
+    [avg_drift, avg_cov] = test_integrator.estimate_drift_and_covariance(0.003, 10000, 'RFD')
     true_covariance = test_mobility(initial_location, initial_orientation)    
 
     for j in range(6):
       for k in range(6):
-        self.assertLess(abs(avg_cov[j, k] - true_covariance[j, k]), TOL)
+        self.assertTrue(abs(avg_cov[j, k] - true_covariance[j, k]) <  TOL)
 
 
   def test_check_works(self):

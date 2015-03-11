@@ -125,7 +125,7 @@ if __name__ == "__main__":
                        ' Sphere Rotational MSD']
   style_list = ['.', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 1100.
+  translation_plot_limit = 1000.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:
@@ -152,6 +152,7 @@ if __name__ == "__main__":
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
                   label='Asymptotic ZZ MSD')
       pyplot.xlim([0., translation_plot_limit,])
+      pyplot.ylim([0., translation_plot_limit*2.*2.*sph.KT*0.094154])
     if l in [3, 4, 5]:
       pyplot.xlim([0., 150.])
     pyplot.title('MSD(t) for icosohedron')

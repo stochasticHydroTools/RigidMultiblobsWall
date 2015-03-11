@@ -122,7 +122,7 @@ def get_free_r_vectors(location, quaternion):
   r2 = np.dot(rotation_matrix, initial_r2) + np.array(location)
   r3 = np.dot(rotation_matrix, initial_r3) + np.array(location)
   r4 = np.array(location)
-  
+
   return [r1, r2, r3, r4]
 
 
@@ -171,7 +171,7 @@ def get_free_center_of_mass(location, orientation):
     '''
     r_vectors = get_free_r_vectors(location, orientation)
     center_of_mass = (np.array(r_vectors[0])*M1 + np.array(r_vectors[1])*M2 + 
-                      np.array(r_vectors[2])*M3 + np.array(r_vectors[3])*M4)
+                      np.array(r_vectors[2])*M3 + np.array(location)*M4)
     center_of_mass = center_of_mass/(M1 + M2 + M3 + M4)
     return center_of_mass
 
@@ -222,7 +222,7 @@ def free_gravity_torque_calculator(location, orientation):
   # Gravity.
   g = np.array([0., 0., -1.*M1, 
                 0., 0., -1.*M2,
-                0., 0., -1.*M3, 
+                0., 0., -1.*M3,
                 0., 0., -1.*M4])
   # Add repulsion from wall.
   for k in range(3):

@@ -145,7 +145,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
         #HACK line of best fit for Translational MSD.
         fit_line = np.polyfit(msd_statistics.data[scheme][dt][0], msd_entries, 1)
         print 'np.polyfit is ', fit_line
-        slope_ratio = fit_line[0]/(4*0.2*0.0604)
+        slope_ratio = fit_line[0]/(4.*0.2*0.06)
         pyplot.plot(msd_statistics.data[scheme][dt][0], 
                     fit_line[0]*np.array(msd_statistics.data[scheme][dt][0]),
                     'k-.',
