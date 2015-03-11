@@ -133,7 +133,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
          nosymbol_plot_style = scheme_colors[scheme] + nosymbol_style
          err_bar_color = scheme_colors[scheme]
 
-      pyplot.plot(msd_statistics.data[scheme][dt][0][err_idx],
+      pyplot.plot(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
                   msd_entries[err_idx],
                   plot_style,
                   label = plot_label)
@@ -147,7 +147,7 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
         print 'np.polyfit is ', fit_line
         slope_ratio = fit_line[0]/(4*0.2*0.0604)
         pyplot.plot(msd_statistics.data[scheme][dt][0], 
-                    fit_line[0]*msd_statistics.data[scheme][dt][0],
+                    fit_line[0]*np.array(msd_statistics.data[scheme][dt][0]),
                     'k-.',
                     label='%.2f * Average Mobility' % slope_ratio)
 
