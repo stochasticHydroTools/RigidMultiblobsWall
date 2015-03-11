@@ -318,12 +318,12 @@ class QuaternionIntegrator(object):
       else:
         raise Exception('scheme must be FIXMAN or RFD for drift estimation.')
 
-      for k in range(self.dim):
-        orientation_increment = self.orientation[k]*initial_orientation[k].inverse()
+      for l in range(self.dim):
+        orientation_increment = self.orientation[l]*initial_orientation[l].inverse()
         drift = orientation_increment.rotation_angle()
         if self.has_location:
-          drift = np.concatenate([drift, self.location[k] - initial_location[k]])
-          
+          drift = np.concatenate([drift, self.location[l] - initial_location[l]])
+#          print 'drift iwth location is ', drift
       drift_samples.append(drift)
       covariance_samples.append(np.outer(drift, drift))
       self.orientation = initial_orientation
@@ -334,7 +334,9 @@ class QuaternionIntegrator(object):
     avg_covariance = np.mean(covariance_samples, axis=0)/(2.*dt)
 
     # Reset torque calculator
-    self.torque_calculator
+    self.torque_calculator = old_torque
+    if self.has_location:
+      self.force_calculator = old_force
 
     return [avg_drift, avg_covariance]
       
