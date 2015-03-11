@@ -88,8 +88,8 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   to time = end_time.
   Average over these trajectories to get the curve of MSD v. time.
   '''
- progress_logger = logging.getLogger('progress_logger')  
- print_increment = n_runs/20.
+  progress_logger = logging.getLogger('progress_logger')  
+  print_increment = n_runs/20.
   if has_location:
     mobility = tf.free_tetrahedron_mobility
     torque_calculator = tf.free_gravity_torque_calculator
@@ -112,6 +112,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     integrator.check_function = tf.check_particles_above_wall
   n_steps = int(end_time/dt) + 1
   trajectories = []
+  # Why do I have to do this?
   start_time = time.time()
   progress_logger.info('Started runs...')
   for run in range(n_runs):
@@ -146,7 +147,7 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
           calc_rotational_msd_from_likely_position(
             integrator.orientation[0]))
 
-    if (n_runs % print_increment) == 0:
+    if (run % print_increment) == 0 and (run > 0):
       elapsed_time = time.time() - start_time
       progress_logger.info('finished run %s' % run)
       log_time_progress(elapsed_time, run, n_runs)
@@ -155,10 +156,10 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
   results = [[], [], []]
   step = 0
   for step in range(n_steps):
-    time = dt*step
+    current_time = dt*step
     mean_msd = np.mean([trajectories[run][step] for run in range(n_runs)], axis=0)
     std_msd = np.std([trajectories[run][step] for run in range(n_runs)], axis=0)
-    results[0].append(time)
+    results[0].append(current_time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
 
