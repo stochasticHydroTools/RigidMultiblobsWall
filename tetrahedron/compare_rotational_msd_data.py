@@ -23,7 +23,7 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = [' short-end', ' long-end', ' Old', 'new']
+  label_list = ['vertex', ' center of mass', ' Old', 'new']
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
@@ -37,15 +37,17 @@ if __name__ == '__main__':
                                 label=label_list[k-1])
 
 
-  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(1000)
-  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
-  translation_end = 20.0
+  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(100)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(200)
+  translation_end = 300.0
   for l in range(6):
     pyplot.figure(l)
     if l in [0, 1]:
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*average_mob_and_friction[0]], 
-                  'k--', label='mu parallel')
+                  'k--', label='mu parallel vertex')
+      pyplot.xlim([0.0, translation_end])
+      pyplot.ylim([0., translation_end*2.*tf.KT*average_mob_and_friction[0]])
     elif l == 2:
       pyplot.plot([0.0, translation_end], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
       pyplot.xlim([0., translation_end])
