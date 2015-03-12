@@ -23,7 +23,9 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = [' vertex', ' center of mass', ' Old', 'new']
+  label_list = [' Parallel MSD Vertex', ' Parallel MSD CoM', ' Perpendicular MSD Vertex', 
+                ' Perpendicular MSD CoM']
+  symbol_list = ['o', 'd', 's', '^', '.', '+']
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
@@ -31,29 +33,50 @@ if __name__ == '__main__':
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
+      # HACK, add xx and yy to get translational data
+      for scheme in msd_statistics.data:
+        for dt in msd_statistics.data[scheme]:
+          for j in range(len(msd_statistics.data[scheme][dt][1])):
+            msd_statistics.data[scheme][dt][1][j][0][0] = (
+              msd_statistics.data[scheme][dt][1][j][0][0] +
+              msd_statistics.data[scheme][dt][1][j][1][1])
+            msd_statistics.data[scheme][dt][2][j][0][0] = np.sqrt(
+              msd_statistics.data[scheme][dt][2][j][0][0]**2 +
+              msd_statistics.data[scheme][dt][2][j][1][1]**2)
+      figure_indices = [1, 2, 3, 4, 5, 6]
       for l in range(6):
         ind = [l, l]
-        plot_time_dependent_msd(msd_statistics, ind, l, color=colors[k-1],
-                                label=label_list[k-1])
+        if k == 1:
+          plot_time_dependent_msd(msd_statistics, ind, figure_indices[l], color=colors[k-1],
+                                  label=label_list[(k-1) + min(l, 2)], symbol=symbol_list[l], num_err_bars=200)
+        elif k == 2:
+          plot_time_dependent_msd(msd_statistics, ind, figure_indices[l], color=colors[k-1],
+                                  label=label_list[(k-1) + min(l, 2)], symbol=symbol_list[l],
+                                  data_name='COMData-%s-%s.txt' % (l, l),
+                                  num_err_bars=200)
 
-
-  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(100)
-  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(200)
-  translation_end = 300.0
+  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(2000)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
+  print 'mobility parallel vertex: ', average_mob_and_friction[0]*2.
+  translation_end = 360.0
   for l in range(6):
-    pyplot.figure(l)
+    pyplot.figure(figure_indices[l])
     if l in [0, 1]:
+      pyplot.plot([0.0, 150.], 
+                  [0.0, 150.*4.*tf.KT*average_mob_and_friction[0]], 
+                  'k-', label='Mu Parallel Vertex')
+
       pyplot.plot([0.0, translation_end], 
-                  [0.0, translation_end*2.*tf.KT*average_mob_and_friction[0]], 
-                  'k--', label='mu parallel vertex')
+                  [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.
+                  'k:', label='Mu Parallel CoM')
       pyplot.xlim([0.0, translation_end])
-      pyplot.ylim([0., translation_end*2.*tf.KT*average_mob_and_friction[0]])
+      pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
     elif l == 2:
       pyplot.plot([0.0, translation_end], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
       pyplot.xlim([0., translation_end])
-      pyplot.ylim([0., translation_end*2.*tf.KT*average_mob_and_friction[0]])
-    pyplot.title('MSD(t) for Tetrahedron')
-    pyplot.legend(loc='best', prop={'size': 9})
+      pyplot.ylim([0., translation_end*2.*tf.KT*0.0711])
+    pyplot.title('MSD(t) for Free Tetrahedron')
+    pyplot.legend(loc='best', prop={'size': 10})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
   

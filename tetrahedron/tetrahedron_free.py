@@ -61,6 +61,12 @@ def free_tetrahedron_mobility(location, orientation):
   use with quaternion_integrator. 
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
+  com = get_free_geometric_center(location[0], orientation[0])
+  #HACK
+  com_2 = get_free_center_of_mass(location[0], orientation[0])
+  print "distance between geometric center of COM", np.linalg.norm((com - com_2))
+  print "distance between geometric center and vertex", np.linalg.norm((com - location[0]))
+  
   return force_and_torque_mobility(r_vectors, location[0])
 
 def free_tetrahedron_center_mobility(location, orientation):
@@ -82,6 +88,9 @@ def free_tetrahedron_com_mobility(location, orientation):
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
   com = get_free_geometric_center(location[0], orientation[0])
+  #HACK
+  com_2 = get_free_center_of_mass(location[0], orientation[0])
+  print "distance between geometric center of COM", np.linalg.norm((com - com_2))
   return force_and_torque_mobility(r_vectors, com)
 
 
