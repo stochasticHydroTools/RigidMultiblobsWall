@@ -26,7 +26,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                                           end_time,
                                           n_steps,
                                           location=None,
-                                          n_runs=4,
+                                          n_runs=10,
                                           uniform=True):
   ''' 
   Do a few long runs, and along the way gather statistics
@@ -41,7 +41,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     n_steps:  How many total steps to take.
     location: initial location of icosohedron.
     n_runs:  How many separate runs to do in order to get std deviation.  
-             4 should be fine.
+             10 by default.
     uniform: Whether to use a uniform icosohedron, or one with one heavy marker.
   '''
   progress_logger = logging.getLogger('Progress Logger')

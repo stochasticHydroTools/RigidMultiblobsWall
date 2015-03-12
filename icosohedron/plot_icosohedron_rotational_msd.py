@@ -144,7 +144,7 @@ if __name__ == "__main__":
                             num_err_bars=num_err_bars)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
-                  [0.0, translation_plot_limit*2.*2.*sph.KT*0.0941541889044], 'k:', 
+                  [0.0, translation_plot_limit*2.*2.*sph.KT*0.08653], 'k:', 
                   label='Slope = Sphere Mobility')
 #      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
 #                  label='Slope = Icosohedron Mobility')

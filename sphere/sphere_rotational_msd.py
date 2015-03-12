@@ -69,7 +69,7 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
                                      end_time,
                                      n_steps,
                                      location=None,
-                                     n_runs=4):
+                                     n_runs=10):
   ''' 
   Do a few long run, and along the way gather statistics
   about the average rotational Mean Square Displacement 
@@ -83,7 +83,7 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
     n_steps:  How many total steps to take.
     location: initial location of sphere.
     n_runs:  How many separate runs to do in order to get std deviation.  
-             4 should be fine.
+             10 by default.
   '''
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
