@@ -162,7 +162,6 @@ def calculate_msd_from_fixed_initial_condition(initial_orientation,
     results[0].append(current_time)
     results[1].append(mean_msd)
     results[2].append(std_msd/np.sqrt(n_runs))
-
  
   progress_logger.info('Rejection Rate: %s' % 
                        (float(integrator.rejections)/
@@ -257,10 +256,10 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       if (step % data_interval == 0):
         lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
         if has_location:
-#          center = tf.get_free_center_of_mass(integrator.location[0],
-#                                              integrator.orientation[0])
-          center = tf.get_free_geometric_center(integrator.location[0],
-                                                integrator.orientation[0])
+          center = tf.get_free_center_of_mass(integrator.location[0],
+                                              integrator.orientation[0])
+#          center = tf.get_free_geometric_center(integrator.location[0],
+#                                                integrator.orientation[0])
           #HACK: try vertex MSD.
 #          center = integrator.location[0]
           lagged_location_trajectory.append(center)
