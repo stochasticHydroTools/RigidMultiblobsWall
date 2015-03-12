@@ -51,7 +51,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
   dim = 6
   if uniform:
     torque_calculator = ic.icosohedron_torque_calculator
-    force_calculator = ic.force_calculator
+    force_calculator = ic.icosohedron_force_calculator
   else:
     torque_calculator = icn.nonuniform_torque_calculator
     force_calculator = icn.nonuniform_force_calculator

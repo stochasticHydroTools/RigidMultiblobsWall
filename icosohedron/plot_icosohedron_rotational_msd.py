@@ -21,8 +21,8 @@ def calculate_zz_msd_at_equilibrium(n_steps):
   ''' Use MC to calculate asymptotic (t -> inf) zz MSD at equilibrium'''
   zz_msd = 0.
   for k in range(n_steps):
-    sample_1 = ic.generate_icosohedron_equilibrium_sample()
-    sample_2 = ic.generate_icosohedron_equilibrium_sample()
+    sample_1 = icn.generate_nonuniform_icosohedron_equilibrium_sample()
+    sample_2 = icn.generate_nonuniform_icosohedron_equilibrium_sample()
     zz_msd += (sample_2[0][2] - sample_1[0][2])**2
 
   zz_msd /= n_steps
@@ -73,7 +73,10 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
 
 if __name__ == "__main__":
   # Open data file.
-  data_name = os.path.join('data', sys.argv[1])
+  data_name = os.path.join(
+    'data', 
+    'icosohedron-msd-uniform-False-dt-0.5-N-200000-scheme-RFD-'
+    'fixed-long-end-with-force.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosohedron parameters:'
@@ -92,7 +95,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.5-N-100000-heavy-fixed-long-end.pkl')
+                                  'sphere-msd-dt-0.5-N-250000-medium-end-with-force.pkl')
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
     print 'Sphere parameters:'
@@ -111,30 +114,34 @@ if __name__ == "__main__":
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
   height_histogram = np.zeros(len(buckets))
-  average_mob_and_friction = calculate_mu_friction_and_height_distribution(
-    bin_width, height_histogram)
+  # average_mob_and_friction = calculate_mu_friction_and_height_distribution(
+  #    bin_width, height_histogram)
+  # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
+  average_mob_and_friction = [0.08735]
   
-  zz_msd = calculate_zz_msd_at_equilibrium(20000)
+  # zz_msd = calculate_zz_msd_at_equilibrium(10000)
+  # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
+  zz_msd = 0.4557
   
   figure_index = [1, 2, 1, 3, 4, 5]
-  label_list = [' Icosohedron Parallel MSD', ' Icosohedron yy MSD', 
-                ' Icosohedron Perpendicular MSD', 
-                ' Icosohedron Rotational MSD', ' Icosohedron Rotational MSD', 
-                ' Icosohedron Rotational MSD']
-  sphere_label_list = [' Sphere Parallel MSD', ' Sphere yy MSD', 
-                       ' Sphere perpendicular MSD', 
-                       ' Sphere Rotational MSD', ' Sphere Rotational MSD',
-                       ' Sphere Rotational MSD']
+  label_list = [' Icosahedron Parallel MSD', ' Icosahedron yy MSD', 
+                ' Icosahedron Perpendicular MSD', 
+                ' Icosahedron Rotational MSD', ' Icosahedron Rotational MSD', 
+                ' Icosahedron Rotational MSD']
+  sphere_label_list = [' Blob Parallel MSD (a = 0.5)', ' Blob yy MSD', 
+                       ' Blob perpendicular MSD', 
+                       ' Blob Rotational MSD', ' Blob Rotational MSD',
+                       ' Blob Rotational MSD']
   sphere_mobility = 0.08653
   
   style_list = ['*', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 800.
+  translation_plot_limit = 200.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:
       data_name = 'TranslationalMSDComponent.txt'
-      num_err_bars = 50
+      num_err_bars = 200
     elif l == 3:
       data_name = 'RotationalMSDComponent.txt'
       num_err_bars = 60
@@ -148,21 +155,21 @@ if __name__ == "__main__":
                             num_err_bars=num_err_bars)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
-                  [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k:', 
-                  label='Slope = Sphere Mobility')
+                  [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-', 
+                  label='Blob Parallel Mobility')
 #      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
-#                  label='Slope = Icosohedron Mobility')
+#                  label='Slope = Icosahedron Mobility')
     if l == 2:
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
-                  label='Asymptotic ZZ MSD')
+                  label='Icosahedron Asymptotic Perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.*2.*sph.KT*sphere_mobility])
     if l in [3, 4, 5]:
       pyplot.xlim([0., 150.])
-    pyplot.title('MSD(t) for icosohedron')
-    pyplot.legend(loc='best', prop={'size': 9})
-    pyplot.savefig('./figures/IcosohedronTimeDependentMSD-Component-%s-%s.pdf' % 
+    pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
+    pyplot.legend(loc='best', prop={'size': 12})
+    pyplot.savefig('./figures/IcosahedronTimeDependentMSD-Component-%s-%s.pdf' % 
                    (ind[0], ind[1]))
-  print "Sphere mobility is ", sphere_mobility
-  print "Asymptotic zz MSD for Icosohedron is", zz_msd
-  print "Icosohedron mobility is ", average_mob_and_friction[0]
+  print "Blob mobility is ", sphere_mobility
+  print "Asymptotic zz MSD for Icosahedron is", zz_msd
+  print "Icosahedron mobility is ", average_mob_and_friction[0]

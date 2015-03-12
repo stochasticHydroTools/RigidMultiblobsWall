@@ -240,7 +240,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
                  (particle, dts[small_dt_idx]))
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
-  pyplot.legend(loc = 'best', prop={'size': 9})
+  pyplot.legend(loc = 'best', prop={'size': 13})
   # HACK, set limit = 0.5 for fixed.
   pyplot.xlim([0.5, upper_limit])
   if particle == 4:

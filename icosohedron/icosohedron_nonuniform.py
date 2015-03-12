@@ -10,6 +10,7 @@ import sys
 import time
 
 import icosohedron as ic
+import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
@@ -74,6 +75,31 @@ def bin_height_and_theta(location, orientation, bin_width, height_histogram,
     if idx > bin_height_and_theta.max_index:
       bin_height_and_theta.max_index = idx
       print "New maximum Index  %d is beyond histogram length " % idx
+  
+
+def generate_nonuniform_icosohedron_equilibrium_sample():
+  ''' Generate Equilibrium sample for nonuniform Icosahedron.'''
+  while True:
+    theta = np.random.normal(0., 1., 4)
+    orientation = Quaternion(theta/np.linalg.norm(theta))
+    location = [0., 0., np.random.uniform(ic.A, 20.0)]
+    accept_prob = nonuniform_gibbs_boltzmann_distribution(location, orientation)/2.5e-2
+    if accept_prob > 1.:
+      print 'Accept probability %s is greater than 1' % accept_prob
+    
+    if np.random.uniform(0., 1.) < accept_prob:
+      return [location, orientation]
+
+def nonuniform_gibbs_boltzmann_distribution(location, orientation):
+  ''' Return exp(-U/kT) for the given location and orientation.'''
+  r_vectors = ic.get_icosohedron_r_vectors(location, orientation)
+
+  # Add gravity to potential.
+  U = M[11]*r_vectors[11][2]
+  # Add repulsion to potential.
+  U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.A)/ic.DEBYE_LENGTH)/
+        (location[2] - ic.A))
+  return np.exp(-1.*U/ic.KT)
   
 
 if __name__ == '__main__':
