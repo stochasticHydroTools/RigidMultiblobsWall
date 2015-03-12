@@ -230,11 +230,16 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       tf.free_gravity_force_calculator)
     integrator.kT = KT
+    trajectory_length = 200
+    data_interval = int(end_time/dt/trajectory_length)
+
+    if data_interval == 0:
+      data_interval = 1
+
     if has_location:
       integrator.check_function = tf.check_particles_above_wall
-    trajectory_length = int(end_time/dt)
     
-    if trajectory_length > n_steps:
+    if trajectory_length*data_interval > n_steps:
       raise Exception('Trajectory length is greater than number of steps.  '
                       'Do a longer run.')
     lagged_trajectory = []   # Store rotation matrices to avoid re-calculation.
@@ -249,9 +254,12 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
       elif scheme == 'EM':
         integrator.additive_em_time_step(dt)
 
-      lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
-      if has_location:
-        lagged_location_trajectory.append(integrator.location[0])
+      if (step % data_interval == 0):
+        lagged_trajectory.append(integrator.orientation[0].rotation_matrix())
+        if has_location:
+          center = tf.get_free_geometric_center(integrator.location[0],
+                                                integrator.orientation[0])
+          lagged_location_trajectory.append(center)
 
       if len(lagged_trajectory) > trajectory_length:
         lagged_trajectory = lagged_trajectory[1:]
@@ -282,13 +290,13 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
                           float(integrator.rejections + n_steps)))
-    average_rotational_msd = average_rotational_msd/(n_steps - trajectory_length)
+    average_rotational_msd = average_rotational_msd/(n_steps/data_interval - trajectory_length)
     rot_msd_list.append(average_rotational_msd)
   progress_logger.info('Done with Equilibrium MSD runs.')
   # Average results to get time, mean, and std of rotational MSD.
   # For now, std = 0.  Will figure out a good way to calculate this later.
   results = [[], [], []]
-  results[0] = np.arange(0, trajectory_length)*dt
+  results[0] = np.arange(0, trajectory_length)*dt*data_interval
   results[1] = np.mean(rot_msd_list, axis=0)
   results[2] = np.std(rot_msd_list, axis=0)/np.sqrt(n_runs)
 

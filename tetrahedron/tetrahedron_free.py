@@ -74,6 +74,17 @@ def free_tetrahedron_center_mobility(location, orientation):
   return force_and_torque_mobility(r_vectors, center)
 
 
+def free_tetrahedron_com_mobility(location, orientation):
+  ''' 
+  Wrapper for torque mobility that takes a quaternion and location for
+  use with quaternion_integrator. 
+  This mobility is for movement of the center.
+  '''
+  r_vectors = get_free_r_vectors(location[0], orientation[0])
+  com = get_free_geometric_center(location[0], orientation[0])
+  return force_and_torque_mobility(r_vectors, com)
+
+
 def force_and_torque_mobility(r_vectors, location):
   '''
   Calculate the mobility: (torque, force) -> (angular velocity, velocity) at position 

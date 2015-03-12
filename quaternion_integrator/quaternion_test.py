@@ -66,6 +66,7 @@ class TestQuaternion(unittest.TestCase):
                                         theta.s*theta.p[2]))
     self.assertAlmostEqual(R[1][1], 2.*(theta.s**2 + theta.p[1]**2 - 0.5))
     self.assertAlmostEqual(R[2][2], 2.*(theta.s**2 + theta.p[2]**2 - 0.5))
+    self.assertAlmostEqual(R[2][0], 2.*(theta.p[0]*theta.p[2] + theta.s*theta.p[1]))
 
   def test_quaternion_inverse(self):
     '''Test that the quaternion inverse works.'''
@@ -104,7 +105,7 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(phi.p[1], theta.p[1])
     self.assertAlmostEqual(phi.p[2], theta.p[2])
 
-  def test_quaternion_stabiliyt(self):
+  def test_quaternion_stability(self):
     ''' Test numerical stability of quaternion multiplication.'''
     # This test is just to see roughly how bad things are and
     # how quickly the quaternions become un-normalized.  Seems somewhat slow, 
