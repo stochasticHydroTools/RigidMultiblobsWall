@@ -23,7 +23,7 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = ['vertex', ' center of mass', ' Old', 'new']
+  label_list = [' vertex', ' center of mass', ' Old', 'new']
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
