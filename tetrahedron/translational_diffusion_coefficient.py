@@ -91,8 +91,6 @@ def calculate_average_mu_parallel_and_perpendicular(n_samples):
   average_gamma_parallel = 0.0
   for k in range(n_samples):
     sample = tf.generate_free_equilibrium_sample()
-    geom_center = tf.get_free_geometric_center(sample[0], sample[1])
-    com = tf.get_free_center_of_mass(sample[0], sample[1])
     mobility_sample = tf.free_tetrahedron_mobility([sample[0]], [sample[1]])
     average_mu_parallel += mobility_sample[0, 0] + mobility_sample[1, 1]
     average_mu_perp += mobility_sample[2, 2]

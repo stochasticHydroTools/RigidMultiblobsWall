@@ -165,6 +165,8 @@ if __name__ == '__main__':
                       help='Number of steps to take for runs')
   parser.add_argument('-end', dest='end_time', type=float, default = 128.0,
                       help='How far to calculate the time dependent MSD.')
+  parser.add_argument('-scheme', dest='scheme', type=str, default = 'RFD',
+                      help='Which scheme to use. FIXMAN, RFD, or EM.')
   parser.add_argument('-nonuniform', dest='nonuniform', type=bool, default = False,
                       help='Whether to do the Nonuniform Icosohedron.')
   parser.add_argument('--data-name', dest='data_name', type=str,
@@ -184,7 +186,7 @@ if __name__ == '__main__':
   initial_location = [[0., 0., 4.0]]
   
   # Extract parameters from Arguments.
-  scheme = 'RFD'
+  scheme = args.scheme
   dt = args.dt
   end_time = args.end_time
   n_steps = args.n_steps

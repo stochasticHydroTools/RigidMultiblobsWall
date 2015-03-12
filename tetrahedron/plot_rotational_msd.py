@@ -37,8 +37,8 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   for k in range(n_steps):
     sample = tf.generate_free_equilibrium_sample()
     sample_2 = tf.generate_free_equilibrium_sample()
-    center_1 = tf.get_free_center_of_mass(sample[0], sample[1])
-    center_2 = tf.get_free_center_of_mass(sample_2[0], sample_2[1])
+    center_1 = sample[0] #tf.get_free_geometric_center(sample[0], sample[1])
+    center_2 = sample_2[0] #tf.get_free_geometric_center(sample_2[0], sample_2[1])
     zz_msd += (center_1[2] - center_2[2])**2.
     rot_matrix_1 = sample[1].rotation_matrix()
     rot_matrix_2 = sample_2[1].rotation_matrix()
@@ -157,51 +157,68 @@ if __name__ == "__main__":
           combined_msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
   if args.has_location:
-    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(10000)
+#    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(10000)
+    mu_parallel_com = 0.0711/2.
+    mu_perp_com = 0.0263
+    zz_msd_com = 1.633
+    rot_msd_com = 0.167
+    
+    mu_parallel_center = 0.0711/2.
+    mu_perp_center = 0.0263
+    zz_msd_center = 1.52
+    rot_msd_center = 0.169
+
+    mu_parallel_vertex = 0.117/2.
+    mu_perp_vertex = 0.0487
+    zz_msd_vertex = 2.517
+    rot_msd_vertex = 0.167956760304
+    
+
 #    average_mob_and_friction = [0.0740687433/2., 0., 0.027025]
-    geometric_center_mu_parallel = 0.07406/2.
-#    [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(100000)
-    zz_msd = 1.697
-    rot_msd = 0.15387
+#    geometric_center_mu_parallel = 0.07406/2.
+#    [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
     
 
   # Decide which components go on which figures.
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 50.0
+  translation_end = 850.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=200)
+                            num_err_bars=60)
     pyplot.figure(figure_numbers[l])
     if args.has_location:
       if l in [0]:
         pyplot.plot([0.0, translation_end], 
-                    [0.0, translation_end*4.*tf.KT*average_mob_and_friction[0]], 'k-',
-                    label=r'Average Mobility')
+                    [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
+                    label=r'Center of Mass Mobility')
         pyplot.plot([0.0, translation_end], 
-                    [0.0, translation_end*4.*tf.KT*geometric_center_mu_parallel], 'r--',
+                    [0.0, translation_end*4.*tf.KT*mu_parallel_center], 'r--',
                     label=r'Geometric Center Mobility')
+        pyplot.plot([0.0, translation_end], 
+                    [0.0, translation_end*4.*tf.KT*mu_parallel_vertex], 'r:',
+                    label=r'Vertex Mobility')
       elif l == 2:
         pyplot.plot([0.0, translation_end],
-                    [zz_msd, zz_msd], 'b--', label='Asymptotic Perpendicular MSD')
+                    [zz_msd_com, zz_msd_com], 'k--', label='Asymptotic Perpendicular MSD')
         pyplot.plot([0.0, 200.],
-                    [0.0, 200.*2.*tf.KT*average_mob_and_friction[2]],
-                    'b:', label='Average Perpendicular Mobility')
+                    [0.0, 200.*2.*tf.KT*mu_perp_com],
+                    'k:', label='Average Perpendicular Mobility')
         pyplot.xlim([0., translation_end])
-        pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
+        pyplot.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
     if l == 3:
       pyplot.plot([0.0, 350.],
-                  [rot_msd, rot_msd], 'k--', label='Asymptotic Rotational MSD')
+                  [rot_msd_com, rot_msd_com], 'k--', label='Asymptotic Rotational MSD')
       pyplot.xlim([0., 350.])
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 11})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
 
-  print "Mu parallel on average is ", average_mob_and_friction[0]*2.
-  print "Mu perp on average is ", average_mob_and_friction[2]
-  print "MSD Perpendicular asymptotic is ", zz_msd
-  print "MSD Rotational asymptotic is ", rot_msd
+  print "Mu parallel on average is ", mu_parallel_com*2.
+  print "Mu perp on average is ", mu_perp_com
+  print "MSD Perpendicular asymptotic is ", zz_msd_com
+  print "MSD Rotational asymptotic is ", rot_msd_com

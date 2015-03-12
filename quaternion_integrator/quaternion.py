@@ -48,7 +48,6 @@ class Quaternion(object):
     R = 2.*(np.outer(self.p, self.p) + 
             (self.s**2 - 0.5)*np.identity(3)
             + self.s*P)
-
     return R
 
   def __str__(self):
