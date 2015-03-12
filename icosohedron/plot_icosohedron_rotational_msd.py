@@ -36,7 +36,8 @@ def gibbs_boltzmann_distribution(location):
   '''
     # Calculate potential.
   if location[2] > ic.A:
-    U = sum(ic.M)*location[2]
+    # HACK, this is ICN now.
+    U = sum(icn.M)*location[2]
     U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.A)/ic.DEBYE_LENGTH)/
           (location[2] - ic.A))
   else:
@@ -63,7 +64,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   for k in range(len(height_histogram)):
     h = ic.A + bin_width*(k + 0.5)    
-    mobility = icn.icosohedron_mobility([np.array([0., 0., h])], initial_orientation)
+    mobility = ic.icosohedron_mobility([np.array([0., 0., h])], initial_orientation)
     average_mu += mobility[0, 0]*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
 
