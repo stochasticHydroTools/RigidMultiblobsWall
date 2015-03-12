@@ -185,12 +185,12 @@ def plot_heights_and_theta(heights_data):
 if __name__ == '__main__':
 
 
-  data_names = ['nonuniform-icosohedron-dt-0.5-N-400000-heavy-1.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-2.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-3.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-4.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-5.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-heavy-6.pkl']
+  data_names = ['nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-1.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-2.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-3.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-4.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-5.pkl',
+                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-6.pkl']
   
   heights_data = []
   for file_name in data_names:

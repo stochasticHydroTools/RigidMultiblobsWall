@@ -33,9 +33,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
   of accuracy of the schemes.
   '''
   symbols = ['o', '^', 's', '^', 'x']
-  facecolors_list = ['none', 'g']
-  colors_list = ['b', 'g']
-  symbols_idx = range(0, len(buckets), len(buckets)/30)
+  #HACK no face colors
+#  facecolors_list = ['none', 'g', 'r']
+  colors_list = ['b', 'g', 'r']
+  symbols_idx = range(0, len(buckets), len(buckets)/5)
   write_data = True
   error_bars = False  # do we plot error bars?
 
@@ -46,8 +47,8 @@ def check_height_order(heights_list, buckets, names, dts, order):
   # with older free tetrahedron runs!  In those cases, particle must
   # be between 0 and 2.
   # In the free case, particle = 4 indicates the geometric center.
-  particle = 4
-  upper_limit = 8.5  # Upper limit for histogram buckets in plot.
+  particle = 2
+  upper_limit = 4.0  # Upper limit for histogram buckets in plot.
   if write_data:
     if particle == 4:
       with open('./data/EquilibriumDistributionCenter-data.txt',
@@ -135,11 +136,10 @@ def check_height_order(heights_list, buckets, names, dts, order):
       else:
         pyplot.plot(buckets[symbols_idx], scale_factor*(error_means[symbols_idx]), 
                     colors_list[scheme_idx] + symbols[dt_idx],
-                    mfc = facecolors_list[scheme_idx],
+#                    mfc = facecolors_list[scheme_idx],
                     label = names[scheme_idx] + ', dt=%s' % dts[dt_idx])
         pyplot.plot(buckets, scale_factor*(error_means), 
                     colors_list[scheme_idx] + '--')
-
 
       if write_data:
         if particle == 4:
@@ -198,7 +198,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.figure(scheme_idx*3)
     pyplot.title('%s Scheme Height Distribution' % names[scheme_idx])
     pyplot.xlabel('Height')
-    pyplot.xlim([0., upper_limit])
+    pyplot.xlim([0.0, upper_limit])
     pyplot.ylabel('PDF')
     pyplot.legend(loc = 'best', prop={'size': 9})
     if particle == 4:
@@ -241,7 +241,8 @@ def check_height_order(heights_list, buckets, names, dts, order):
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
   pyplot.legend(loc = 'best', prop={'size': 9})
-  pyplot.xlim([0.0, upper_limit])
+  # HACK, set limit = 0.5 for fixed.
+  pyplot.xlim([0.5, upper_limit])
   if particle == 4:
     pyplot.savefig('./figures/EquilibriumDistributionCenter.pdf')
   else:
@@ -254,6 +255,11 @@ if __name__  == '__main__':
   # Check their order.
   # List of lists. Each entry should be a list of names of data
   # files for multiple runs with the same timestep and number of steps.
+  data_files = [['tetrahedron-dt-1.6-N-500000-fixed-1.pkl',
+                 'tetrahedron-dt-1.6-N-500000-fixed-2.pkl',
+                 'tetrahedron-dt-1.6-N-500000-fixed-3.pkl',
+                 'tetrahedron-dt-1.6-N-500000-fixed-4.pkl']]
+                 
   # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
   #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
   #                'tetrahedron-dt-32-N-6000000-run-3-fixed.pkl',
@@ -303,19 +309,19 @@ if __name__  == '__main__':
   #                'tetrahedron-dt-2-N-6000000-run-31.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-32.pkl']]
   
-  # dts = [32., 16., 8., 4., 2.]
+  dts = [1.6]
 
   # Free tetrahedron.
-  data_files = [['free-tetrahedron-dt-6.4-N-500000-run-1.pkl',
-                 'free-tetrahedron-dt-6.4-N-500000-run-2.pkl'],
-                ['free-tetrahedron-dt-3.2-N-1000000-run-1.pkl',
-                 'free-tetrahedron-dt-3.2-N-1000000-run-2.pkl'],
-                ['free-tetrahedron-dt-1.6-N-2000000-run-1.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-run-2.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-run-3.pkl',
-                 'free-tetrahedron-dt-1.6-N-2000000-run-4.pkl']]
+  # data_files = [['free-tetrahedron-dt-6.4-N-500000-run-1.pkl',
+  #                'free-tetrahedron-dt-6.4-N-500000-run-2.pkl'],
+  #               ['free-tetrahedron-dt-3.2-N-1000000-run-1.pkl',
+  #                'free-tetrahedron-dt-3.2-N-1000000-run-2.pkl'],
+  #               ['free-tetrahedron-dt-1.6-N-2000000-run-1.pkl',
+  #                'free-tetrahedron-dt-1.6-N-2000000-run-2.pkl',
+  #                'free-tetrahedron-dt-1.6-N-2000000-run-3.pkl',
+  #                'free-tetrahedron-dt-1.6-N-2000000-run-4.pkl']]
                 
-  dts = [6.4, 3.2, 1.6]
+  # dts = [6.4, 3.2, 1.6]
   
   heights_list = []
   for parameter_set in data_files:

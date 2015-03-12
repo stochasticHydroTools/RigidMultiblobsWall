@@ -183,24 +183,24 @@ if __name__ == "__main__":
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 850.0
+  translation_end = 2300.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=60)
+                            num_err_bars=40)
     pyplot.figure(figure_numbers[l])
     if args.has_location:
       if l in [0]:
         pyplot.plot([0.0, translation_end], 
                     [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
-                    label=r'Center of Mass Mobility')
-        pyplot.plot([0.0, translation_end], 
-                    [0.0, translation_end*4.*tf.KT*mu_parallel_center], 'r--',
-                    label=r'Geometric Center Mobility')
-        pyplot.plot([0.0, translation_end], 
-                    [0.0, translation_end*4.*tf.KT*mu_parallel_vertex], 'r:',
-                    label=r'Vertex Mobility')
+                    label=r'Parallel Mobility')
+        # pyplot.plot([0.0, translation_end], 
+        #             [0.0, translation_end*4.*tf.KT*mu_parallel_center], 'r--',
+        #             label=r'Geometric Center Mobility')
+        # pyplot.plot([0.0, translation_end], 
+        #             [0.0, translation_end*4.*tf.KT*mu_parallel_vertex], 'r:',
+        #             label=r'Vertex Mobility')
       elif l == 2:
         pyplot.plot([0.0, translation_end],
                     [zz_msd_com, zz_msd_com], 'k--', label='Asymptotic Perpendicular MSD')
