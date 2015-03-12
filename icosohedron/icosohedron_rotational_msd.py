@@ -26,7 +26,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                                           end_time,
                                           n_steps,
                                           location=None,
-                                          n_runs=4,
+                                          n_runs=5,
                                           uniform=True):
   ''' 
   Do a few long runs, and along the way gather statistics
@@ -51,8 +51,10 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
   dim = 6
   if uniform:
     torque_calculator = ic.icosohedron_torque_calculator
+    force_calculator = ic.force_calculator
   else:
     torque_calculator = icn.nonuniform_torque_calculator
+    force_calculator = icn.nonuniform_force_calculator
   progress_logger.info('Starting MSD runs...')
   start = time.time()
   for run in range(n_runs):
@@ -62,7 +64,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                                       has_location=True,
                                       initial_location=location,
                                       force_calculator=
-                                      ic.icosohedron_force_calculator)
+                                      force_calculator)
     integrator.kT = ic.KT
     integrator.check_function = ic.icosohedron_check_function
 
