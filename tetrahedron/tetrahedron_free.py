@@ -517,6 +517,10 @@ if __name__ == '__main__':
   em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 
+  fixman_trajectory = []
+  rfd_trajectory = []
+  em_trajectory = []
+
 
   start_time = time.time()
   for k in range(n_steps):
@@ -526,8 +530,14 @@ if __name__ == '__main__':
                               fixman_integrator.orientation[0], 
                               bin_width, 
                               fixman_heights)
+    fixman_trajectory.append([[fixman_integrator.location[0][0],
+                               fixman_integrator.location[0][1],
+                               fixman_integrator.location[0][2]]
+                              [fixman_integrator.orientation[0].s,
+                               fixman_integrator.orientation[0].p[0],
+                               fixman_integrator.orientation[0].p[1],
+                               fixman_integrator.orientation[0].p[2]]])
 
-    # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_free_particle_heights(rfd_integrator.location[0],
                               rfd_integrator.orientation[0], 
@@ -604,13 +614,22 @@ if __name__ == '__main__':
 
   # Optional name for data provided
   if len(args.data_name) > 0:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
+      dt, n_steps, args.data_name)
+    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d-%s.pkl' % (
       dt, n_steps, args.data_name)
   else:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
+    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d.pkl' % (
+      dt, n_steps)
+
+
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
+
+  with open(trajectory_dat_name, 'w') as f:
+    cPickle.dump(fixman_trajectory, f)
   
   if args.profile:
     pr.disable()
