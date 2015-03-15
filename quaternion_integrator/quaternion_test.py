@@ -136,7 +136,7 @@ class TestQuaternion(unittest.TestCase):
     # so that's good.
     orientation = Quaternion([1., 0., 0., 0.])
     max_err = 0.0
-    for k in range(4000):
+    for k in range(100000):
       theta = np.random.normal(0., 1., 4)
       theta = Quaternion(theta/np.linalg.norm(theta))
       orientation = theta*orientation
@@ -152,17 +152,36 @@ class TestQuaternion(unittest.TestCase):
     ''' Test numerical stability of rotation matrices'''
     # This test is just to see roughly how bad things are and
     # how quickly rotation matrices become not orthogonal.
-    max_err = 0.
-    for k in range(4000):
+    max_norm_err = 0.
+    max_orthogonal_err = 0.
+    R = np.identity(3)
+    for k in range(100000):
       phi = np.random.normal(0., 1., 3)
-      theta = Quaternion(theta/np.linalg.norm(theta))
-      orientation = theta*orientation
-      norm_err = abs(orientation.s**2 + np.dot(orientation.p, orientation.p)
-                     - 1.0)
-      if norm_err > max_err:
-        max_err = norm_err 
-    print 'max_err is ', max_err
-    self.assertAlmostEqual(max_err, 0.0)
+      phi = phi/np.linalg.norm(phi)
+      magnitude = np.random.uniform(0., np.pi)
+      omega = np.array([[0., -1.*phi[2], phi[1]],
+                        [phi[2], 0., -1.*phi[0]],
+                        [-1.*phi[1], phi[0], 0.]])
+      R_increment = (np.identity(3) + np.sin(magnitude)*omega +
+                     np.inner(omega, omega.T)*(1. - np.cos(magnitude)))
+      R = np.inner(R_increment, R.T)
+      
+      norm_err = max([abs(np.linalg.norm(R[0]) - 1.0),
+                      abs(np.linalg.norm(R[1]) - 1.0),
+                      abs(np.linalg.norm(R[2]) - 1.0)])
+      if norm_err > max_norm_err:
+        max_norm_err = norm_err 
+      orthogonal_err = max([abs(np.inner(R[0], R[1])),
+                            abs(np.inner(R[0], R[2])),
+                            abs(np.inner(R[1], R[2]))])
+      if orthogonal_err > max_orthogonal_err:
+        max_orthogonal_err = orthogonal_err 
+
+
+    print 'max_norm_err is ', max_norm_err
+    print 'max_orthogonal_err is ', max_orthogonal_err
+    self.assertAlmostEqual(max_norm_err, 0.0)
+    self.assertAlmostEqual(max_orthogonal_err, 0.0)
 
 
     
