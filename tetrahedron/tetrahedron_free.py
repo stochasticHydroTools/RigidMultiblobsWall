@@ -13,6 +13,7 @@ import math
 import numpy as np
 import os
 import pstats
+import pandas as pd
 import StringIO
 import sys
 sys.path.append('..')
@@ -517,9 +518,10 @@ if __name__ == '__main__':
   em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 
-  fixman_trajectory = []
-  rfd_trajectory = []
-  em_trajectory = []
+  # Lists of location and orientation.
+  fixman_trajectory = [[], []]
+  rfd_trajectory = [[], []]
+  em_trajectory = [[], []]
 
 
   start_time = time.time()
@@ -530,25 +532,26 @@ if __name__ == '__main__':
                               fixman_integrator.orientation[0], 
                               bin_width, 
                               fixman_heights)
-    fixman_trajectory.append([[fixman_integrator.location[0][0],
-                               fixman_integrator.location[0][1],
-                               fixman_integrator.location[0][2]]
-                              [fixman_integrator.orientation[0].s,
-                               fixman_integrator.orientation[0].p[0],
-                               fixman_integrator.orientation[0].p[1],
-                               fixman_integrator.orientation[0].p[2]]])
+    fixman_trajectory[0].append(fixman_integrator.location[0])
+    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
 
     rfd_integrator.rfd_time_step(dt)
     bin_free_particle_heights(rfd_integrator.location[0],
                               rfd_integrator.orientation[0], 
                               bin_width, 
                               rfd_heights)
+    rfd_trajectory[0].append(rfd_integrator.location[0])
+    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
+
     # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
     bin_free_particle_heights(em_integrator.location[0],
                               em_integrator.orientation[0], 
                               bin_width, 
                               em_heights)
+    em_trajectory[0].append(em_integrator.location[0])
+    em_trajectory[1].append(em_integrator.orientation[0].entries)
+
 
     # Bin equilibrium sample.
     sample = generate_free_equilibrium_sample_mcmc(sample)
@@ -620,7 +623,7 @@ if __name__ == '__main__':
       dt, n_steps, args.data_name)
   else:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
-    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d.pkl' % (
+    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d' % (
       dt, n_steps)
 
 
@@ -628,8 +631,26 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
 
-  with open(trajectory_dat_name, 'w') as f:
-    cPickle.dump(fixman_trajectory, f)
+  fixman_trajectory_data = pd.DataFrame(
+    {'time': dt*np.arange(1, n_steps+1),
+     'location': fixman_trajectory[0],
+     'orientation': fixman_trajectory[1]})
+
+  rfd_trajectory_data = pd.DataFrame(
+    {'time': dt*np.arange(1, n_steps+1),
+     'location': rfd_trajectory[0],
+     'orientation': rfd_trajectory[1]})
+
+  em_trajectory_data = pd.DataFrame(
+    {'time': dt*np.arange(1, n_steps+1),
+     'location': em_trajectory[0],
+     'orientation': em_trajectory[1]})
+
+
+  fixman_trajectory_data.to_csv('%s-scheme-FIXMAN.csv' % trajectory_dat_name)
+  rfd_trajectory_data.to_csv('%s-scheme-RFD.csv' % trajectory_dat_name)
+  em_trajectory_data.to_csv('%s-scheme-EM.csv' % trajectory_dat_name)
+  
   
   if args.profile:
     pr.disable()
