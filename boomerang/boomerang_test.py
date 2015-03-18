@@ -21,12 +21,41 @@ class TestBoomerang(unittest.TestCase):
     self.assertAlmostEqual(r_vectors[0][0], 1.575)
     self.assertAlmostEqual(r_vectors[0][1], 0.0)
     self.assertAlmostEqual(r_vectors[0][2], 5.0)
-    self.assertAlmostEqual(r_vectors[3][0], 0.0)
-    self.assertAlmostEqual(r_vectors[3][1], 0.0)
-    self.assertAlmostEqual(r_vectors[3][2], 5.525)
-    self.assertAlmostEqual(r_vectors[5][0], 0.0)
-    self.assertAlmostEqual(r_vectors[5][1], 0.0)
-    self.assertAlmostEqual(r_vectors[5][2], 6.575)
+    self.assertAlmostEqual(r_vectors[4][0], 0.0)
+    self.assertAlmostEqual(r_vectors[4][1], 0.0)
+    self.assertAlmostEqual(r_vectors[4][2], 5.525)
+    self.assertAlmostEqual(r_vectors[6][0], 0.0)
+    self.assertAlmostEqual(r_vectors[6][1], 0.0)
+    self.assertAlmostEqual(r_vectors[6][2], 6.575)
+
+
+    # pi/2 rotation around the y axis.
+    theta = Quaternion([np.cos(np.pi/4.), 0., np.sin(np.pi/4.), 0.])
+    r_vectors = bmr.get_boomerang_r_vectors(location, theta)
+
+    self.assertAlmostEqual(r_vectors[0][0], 0.0)
+    self.assertAlmostEqual(r_vectors[0][1], 0.0)
+    self.assertAlmostEqual(r_vectors[0][2], 5.0 - 1.575)
+    self.assertAlmostEqual(r_vectors[4][0], 0.0)
+    self.assertAlmostEqual(r_vectors[4][1], 0.525)
+    self.assertAlmostEqual(r_vectors[4][2], 5.0)
+    self.assertAlmostEqual(r_vectors[6][0], 0.0)
+    self.assertAlmostEqual(r_vectors[6][1], 1.575)
+    self.assertAlmostEqual(r_vectors[6][2], 5.0)
+
+    # pi/2 rotation around the z axis.
+    theta = Quaternion([np.cos(np.pi/4.), 0., 0., np.sin(np.pi/4.)])
+    r_vectors = bmr.get_boomerang_r_vectors(location, theta)
+
+    self.assertAlmostEqual(r_vectors[0][0], 0.0)
+    self.assertAlmostEqual(r_vectors[0][1], 1.575)
+    self.assertAlmostEqual(r_vectors[0][2], 5.0)
+    self.assertAlmostEqual(r_vectors[4][0], -0.525)
+    self.assertAlmostEqual(r_vectors[4][1], 0.0)
+    self.assertAlmostEqual(r_vectors[4][2], 5.0)
+    self.assertAlmostEqual(r_vectors[6][0], -1.575)
+    self.assertAlmostEqual(r_vectors[6][1], 0.0)
+    self.assertAlmostEqual(r_vectors[6][2], 5.0)
 
 
   def test_boomerang_mobility_spd(self):

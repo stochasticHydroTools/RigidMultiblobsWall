@@ -15,6 +15,8 @@ from fluids import mobility as mb
 A = 0.2625  # Radius of blobs in um
 ETA = 1.0  # This needs to be changed to match the paper in um, s, etc.
 
+# M = [??/7. for _ in range(7)]  # Figure out masses.
+
 
 
 def boomerang_mobility(locations, orientations):
@@ -45,7 +47,7 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
   '''  
   mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_rot_matrix(r_vectors, location)
-  J = np.concatenate([np.identity(3) for _ in range(6)])
+  J = np.concatenate([np.identity(3) for _ in range(7)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -55,11 +57,11 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
 def get_boomerang_r_vectors(location, orientation):
   '''Get the vectors of the 7 blobs used to discretize the boomerang.
   
-         1 2 3     
+         1 2 3 4    
          O-O-O-O
-               O 4
                O 5
                O 6
+               O 7
    
   The location is the location of the Blob at the apex.. 
   Initial configuration is in the
@@ -71,6 +73,7 @@ def get_boomerang_r_vectors(location, orientation):
   initial_configuration = [np.array([1.575, 0., 0.]),
                            np.array([1.05, 0., 0.]),
                            np.array([0.525, 0., 0.]),
+                           np.array([0., 0., 0.]),
                            np.array([0., 0.525, 0.]),
                            np.array([0., 1.05, 0.]),
                            np.array([0., 1.575, 0.])]
