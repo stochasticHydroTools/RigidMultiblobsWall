@@ -18,7 +18,6 @@ ETA = 1.0  # This needs to be changed to match the paper in um, s, etc.
 # M = [??/7. for _ in range(7)]  # Figure out masses.
 
 
-
 def boomerang_mobility(locations, orientations):
   ''' 
   Calculate the force and torque mobility for the

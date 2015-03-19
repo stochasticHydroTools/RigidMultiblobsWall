@@ -20,7 +20,7 @@ sys.path.append('..')
 import time
 
 import tetrahedron as tdn
-import tetrahedron_ext as te
+#import tetrahedron_ext as te
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -103,7 +103,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3) for _ in range(4)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -148,41 +148,41 @@ def get_free_r_vectors(location, quaternion):
   return [r1, r2, r3, r4]
 
 
-def boosted_get_free_r_vectors(location, orientation):
-  ''' Calculate r_i from a given quaternion.
-  The initial configuration is hard coded here but can be changed by
-  considering an initial quaternion not equal to the identity rotation.
-  initial configuration (top down view, the top vertex is fixed at the origin):
+# def boosted_get_free_r_vectors(location, orientation):
+#   ''' Calculate r_i from a given quaternion.
+#   The initial configuration is hard coded here but can be changed by
+#   considering an initial quaternion not equal to the identity rotation.
+#   initial configuration (top down view, the top vertex is fixed at the origin):
 
-                         O r_1 = (0, 2/sqrt(3), -(2 sqrt(2))/3)
-                        / \
-                       /   \
-                      /     \
-                     /   O(location, everything else relative to this location)
-                    /          \
-                   /            \
-               -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
-             /
-           r_2 = (-1, -1/sqrt(3),-(2 sqrt(2))/3)
+#                          O r_1 = (0, 2/sqrt(3), -(2 sqrt(2))/3)
+#                         / \
+#                        /   \
+#                       /     \
+#                      /   O(location, everything else relative to this location)
+#                     /          \
+#                    /            \
+#                -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
+#              /
+#            r_2 = (-1, -1/sqrt(3),-(2 sqrt(2))/3)
 
-  Each side of the tetrahedron has length 2.
-  location is a 3-dimensional list giving the location of the "top" vertex.
-  quaternion is a quaternion representing the tetrahedron orientation.
+#   Each side of the tetrahedron has length 2.
+#   location is a 3-dimensional list giving the location of the "top" vertex.
+#   quaternion is a quaternion representing the tetrahedron orientation.
 
-  This function is written in C++ using boost for speed.  This has about a 2x
-  speedup, but doesn't really make a huge difference in MSD scripts 
-  unfortunately after a recent change to call this function much less 
-  frequently.  
-  THIS IS NO LONGER USED.
-  '''
-  r_vectors = [np.zeros(3) for _ in range(3)]
-  location = np.array(location)
-  te.get_free_r_vectors(location, [float(orientation.s), 
-                                   float(orientation.p[0]), 
-                                   float(orientation.p[1]), 
-                                   float(orientation.p[2])],
-                        r_vectors)
-  return r_vectors
+#   This function is written in C++ using boost for speed.  This has about a 2x
+#   speedup, but doesn't really make a huge difference in MSD scripts 
+#   unfortunately after a recent change to call this function much less 
+#   frequently.  
+#   THIS IS NO LONGER USED.
+#   '''
+#   r_vectors = [np.zeros(3) for _ in range(3)]
+#   location = np.array(location)
+#   te.get_free_r_vectors(location, [float(orientation.s), 
+#                                    float(orientation.p[0]), 
+#                                    float(orientation.p[1]), 
+#                                    float(orientation.p[2])],
+#                         r_vectors)
+#   return r_vectors
 
 
 def get_free_center_of_mass(location, orientation):
