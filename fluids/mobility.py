@@ -74,16 +74,16 @@ def doublet_and_dipole(r, h):
   return doublet_and_dipole
 
 
-# def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
-#   ''' 
-#   Same as single wall fluid mobility, but boosted into C++ for 
-#   a speedup. Must compile mobility_ext.cc before this will work 
-#   (use Makefile).
-#   '''
-#   fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
-#   num_particles = len(r_vectors)
-#   me.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
-#   return fluid_mobility
+def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
+  ''' 
+  Same as single wall fluid mobility, but boosted into C++ for 
+  a speedup. Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  '''
+  fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
+  num_particles = len(r_vectors)
+  me.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  return fluid_mobility
 
 
 def single_wall_fluid_mobility(r_vectors, eta, a):

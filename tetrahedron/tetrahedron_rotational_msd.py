@@ -260,7 +260,6 @@ def calc_rotational_msd_from_equilibrium(initial_orientation,
 #                                              integrator.orientation[0])
           center = tf.get_free_geometric_center(integrator.location[0],
                                                 integrator.orientation[0])
-          #HACK: try vertex MSD.
 #          center = integrator.location[0]
           lagged_location_trajectory.append(center)
 

@@ -8,12 +8,12 @@ of the tetrahedron for comparison to equilibrium.
 import argparse
 import cPickle
 import cProfile
+import csv
 import logging
 import math
 import numpy as np
 import os
 import pstats
-import pandas as pd
 import StringIO
 import sys
 sys.path.append('..')
@@ -30,9 +30,10 @@ from utils import StreamToLogger
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
   os.mkdir(os.path.join(os.getcwd(), 'figures'))
-# Make sure data folder exists
+# Make sure data folder exists. THIS IS NO LONGER USED.
 if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
   os.mkdir(os.path.join(os.getcwd(), 'data'))
+DATA_DIR = '/fluct/delong/data/tetrahedron'
 # Make sure logs folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
@@ -103,7 +104,7 @@ def force_and_torque_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = mb.single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_free_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3) for _ in range(4)])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
@@ -432,6 +433,23 @@ def plot_correlation_function_of_mcmc():
   return
 
 
+def create_data_with_parameters(trajectory, dt, n_steps):
+  ''' Create a dictionary to store the data with parameters.'''
+  data_dict = {
+    'dt': dt,
+    'n_steps': n_steps,
+    'location': fixman_trajectory[0],
+    'orientation': fixman_trajectory[1],
+    'masses': [M1, M2, M3, M4],
+    'eta': ETA,
+    'A': A,
+    'REPULSION_STRENGTH': REPULSION_STRENGTH,
+    'DEBYE_LENGTH': DEBYE_LENGTH,
+    'KT': KT}
+
+  return data_dict
+
+
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of free '
@@ -619,11 +637,11 @@ if __name__ == '__main__':
   if len(args.data_name) > 0:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
       dt, n_steps, args.data_name)
-    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d-%s.pkl' % (
+    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-%s' % (
       dt, n_steps, args.data_name)
   else:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
-    trajectory_dat_name = './data/free-tetrahedron-trajectory-dt-%g-N-%d' % (
+    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d' % (
       dt, n_steps)
 
 
@@ -631,26 +649,33 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
 
-  fixman_trajectory_data = pd.DataFrame(
-    {'time': dt*np.arange(1, n_steps+1),
-     'location': fixman_trajectory[0],
-     'orientation': fixman_trajectory[1]})
+  fixman_trajectory_data = create_data_with_parameters(fixman_trajectory, 
+                                                       dt, n_steps)
 
-  rfd_trajectory_data = pd.DataFrame(
-    {'time': dt*np.arange(1, n_steps+1),
-     'location': rfd_trajectory[0],
-     'orientation': rfd_trajectory[1]})
+  rfd_trajectory_data = create_data_with_parameters(rfd_trajectory, 
+                                                    dt, n_steps)
 
-  em_trajectory_data = pd.DataFrame(
-    {'time': dt*np.arange(1, n_steps+1),
-     'location': em_trajectory[0],
-     'orientation': em_trajectory[1]})
+  em_trajectory_data = create_data_with_parameters(em_trajectory, 
+                                                   dt, n_steps)
 
 
-  fixman_trajectory_data.to_csv('%s-scheme-FIXMAN.csv' % trajectory_dat_name)
-  rfd_trajectory_data.to_csv('%s-scheme-RFD.csv' % trajectory_dat_name)
-  em_trajectory_data.to_csv('%s-scheme-EM.csv' % trajectory_dat_name)
-  
+  fixman_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-FIXMAN.csv' % trajectory_dat_name)
+  fixman_writer = csv.writer(open(fixman_data_file, 'wb'))
+  for key, value in fixman_trajectory_data.items():
+    fixman_writer.writerow([key, value])
+
+  em_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-EM.csv' % trajectory_dat_name)
+  em_writer = csv.writer(open(em_data_file, 'wb'))
+  for key, value in em_trajectory_data.items():
+    em_writer.writerow([key, value])
+
+  rfd_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-RFD.csv' % trajectory_dat_name)
+  rfd_writer = csv.writer(open(rfd_data_file, 'wb'))
+  for key, value in rfd_trajectory_data.items():
+    rfd_writer.writerow([key, value])
   
   if args.profile:
     pr.disable()
