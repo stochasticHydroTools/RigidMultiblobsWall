@@ -186,4 +186,8 @@ def log_time_progress(elapsed_time, time_units, total_time_units):
                            float(expected_duration))
 
 
-  
+def calc_msd_data_from_trajectory(trajectory_data, calc_center_function):
+   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
+   trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.'''
+   pass
+   
