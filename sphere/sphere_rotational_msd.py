@@ -27,6 +27,7 @@ from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import sphere as sph
+from utils import log_time_progress
 from utils import static_var
 from utils import MSDStatistics
 from utils import StreamToLogger
@@ -90,6 +91,8 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
   rot_msd_list = []
   print_increment = n_steps/20
   dim = 6
+  progress_logger.info('Starting runs...')
+  start_time = time.time()
   for run in range(n_runs):
     integrator = QuaternionIntegrator(sph.sphere_mobility,
                                       initial_orientation, 
@@ -137,8 +140,12 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
             lagged_trajectory[k]))
           average_rotational_msd[k] += current_rot_msd
 
-      if (step % print_increment) == 0:
+      if (step % print_increment == 0 ) and (step > 0): 
         progress_logger.info('At step: %d in run %d of %d' % (step, run + 1, n_runs))
+        elapsed_time = time.time() - start_time
+        elapsed_units = (n_steps + burn_in)*run + step
+        total_units = (n_steps + burn_in)*n_runs
+        log_time_progress(elapsed_time, elapsed_units, total_units)
 
     progress_logger.info('Integrator Rejection rate: %s' % 
                          (float(integrator.rejections)/
@@ -239,7 +246,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   for k in range(len(height_histogram)):
     h = sph.A + bin_width*(k + 0.5)    
     mobility = sph.sphere_mobility([np.array([0., 0., h])], initial_orientation)
-    average_mu += mobility[0, 0]*height_histogram[k]*bin_width
+    average_mu += (mobility[0, 0] + mobility[1, 1])*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
 
   return [average_mu, average_gamma]

@@ -23,8 +23,9 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = [' Parallel MSD Vertex', ' Parallel MSD CoM', ' Perpendicular MSD Vertex', 
-                ' Perpendicular MSD CoM']
+  label_list = ['bug parallel', 'no bug parallel', 'bug perp', 'no bug perp']
+#  label_list = [' Parallel MSD Vertex', ' Parallel MSD CoM', ' Perpendicular MSD Vertex', 
+#                ' Perpendicular MSD CoM']
   symbol_list = ['o', 'd', 's', '^', '.', '+']
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
