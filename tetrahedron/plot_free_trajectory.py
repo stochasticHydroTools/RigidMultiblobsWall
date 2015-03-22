@@ -29,20 +29,33 @@ if __name__ == '__main__':
   locations = trajectory_data['location']
 
   fig = plt.figure()
-  ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+  ax = Axes3D(fig) #fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
-  ax.set_ylim([-0.5, 8.])
-  ax.set_xlim([-10., 10.])
+  ax.set_xlim3d([-10., 10.])
+  ax.set_ylim3d([-10., 10.])
+  ax.set_zlim3d([-0.5, 8.])
   
-  blobs, = ax.plot([], [], 'bo')
-  wall, = ax.plot(np.linspace(-10., 10., 20), np.zeros(20), 'k-')
-#  connectors, = ax.plot([], [], 'b-', lw=2)
+  wall_x = [-10. + k*20./40. for k in range(40) ]
+  for k in range(39):
+    wall_x += [-10. + k*20./40. for k in range(40) ]
+
+  wall_y = [-10. for _ in range(40)]
+  for k in range(39):
+    wall_y += [-10 + k*20./40. for _ in range(40)]
+
+  blobs, = ax.plot([], [], [], 'bo')
+  wall, = ax.plot(wall_x, wall_y, np.zeros(1600), 'k-')
+  connectors, = ax.plot([], [], 'b-', lw=2)
 
   def init_animation():
     ''' Initialize 3D animation.'''
     r_vectors = tf.get_free_r_vectors([0., 0., tf.H], Quaternion([1., 0., 0., 0.]))
     blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
-                   [r_vectors[k][2] for k in range(len(r_vectors))])
+                   [r_vectors[k][1] for k in range(len(r_vectors))])
+    blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
+    for j in range(len(r_vectors)):
+      for k in range(j+1, len(r_vectors)):
+        
 
     
   def update(n):
@@ -51,8 +64,9 @@ if __name__ == '__main__':
     orientation = orientations[n]
     r_vectors = tf.get_free_r_vectors(location, Quaternion(orientation))
     blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
-                   [r_vectors[k][2] for k in range(len(r_vectors))])
+                   [r_vectors[k][1] for k in range(len(r_vectors))])
+    blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
     
   
-anim = animation.FuncAnimation(fig, update, init_func=init_animation, frames=2000, interval=7, blit=True)
+anim = animation.FuncAnimation(fig, update, init_func=init_animation, frames=500, interval=7, blit=True)
 anim.save('tetrahedron.mp4', writer='ffmpeg')
