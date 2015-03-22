@@ -7,6 +7,6 @@ relevant to your setup.
 '''
 
 # Directory to store data.
-DATA_DIR = /fluct/delong/data
+DATA_DIR = '/fluct/delong/data'
 
 

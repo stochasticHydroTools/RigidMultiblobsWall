@@ -21,8 +21,9 @@ if __name__ == '__main__':
   msd_runs = np.array([])
   for name in trajectory_file_names:
     data_file_name = os.path.join(tf.DATA_DIR, name)
-    reader = csv.reader(data_file_name, 'rb'))
-    trajectory_data = dict(x for x in reader)
+    with open(data_file_name) as f:
+      reader = csv.reader(f, 'rb')
+      trajectory_data = dict(x for x in reader)
     # Check correct timestep.
     if trajectory_data['dt'] != dt:
       raise Exception('Timestep of data does not match specified timestep.')

@@ -26,6 +26,7 @@ from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
 from utils import StreamToLogger
+from config_local import DATA_DIR
 
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
@@ -33,7 +34,6 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 # Make sure data folder exists. THIS IS NO LONGER USED.
 if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
   os.mkdir(os.path.join(os.getcwd(), 'data'))
-DATA_DIR = '/fluct/delong/data/tetrahedron'
 # Make sure logs folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
@@ -660,22 +660,28 @@ if __name__ == '__main__':
 
 
   fixman_data_file = os.path.join(
-    DATA_DIR, '%s-scheme-FIXMAN.csv' % trajectory_dat_name)
-  fixman_writer = csv.writer(open(fixman_data_file, 'wb'))
-  for key, value in fixman_trajectory_data.items():
-    fixman_writer.writerow([key, value])
+    DATA_DIR, 'tetrahedron', '%s-scheme-FIXMAN.pkl' % trajectory_dat_name)
+  with open(fixman_data_file, 'wb') as f:
+    cPickle.dump(fixman_trajectory_data, f)
+  # fixman_writer = csv.writer(open(fixman_data_file, 'wb'))
+  # for key, value in fixman_trajectory_data.items():
+  #   fixman_writer.writerow([key, value])
 
   em_data_file = os.path.join(
-    DATA_DIR, '%s-scheme-EM.csv' % trajectory_dat_name)
-  em_writer = csv.writer(open(em_data_file, 'wb'))
-  for key, value in em_trajectory_data.items():
-    em_writer.writerow([key, value])
+    DATA_DIR, 'tetrahedron', '%s-scheme-EM.pkl' % trajectory_dat_name)
+  with open(em_data_file, 'wb') as f:
+    cPickle.dump(em_trajectory_data, f)
+  # em_writer = csv.writer(open(em_data_file, 'wb'))
+  # for key, value in em_trajectory_data.items():
+  #   em_writer.writerow([key, value])
 
   rfd_data_file = os.path.join(
-    DATA_DIR, '%s-scheme-RFD.csv' % trajectory_dat_name)
-  rfd_writer = csv.writer(open(rfd_data_file, 'wb'))
-  for key, value in rfd_trajectory_data.items():
-    rfd_writer.writerow([key, value])
+    DATA_DIR, 'tetrahedron', '%s-scheme-RFD.pkl' % trajectory_dat_name)
+  with open(rfd_data_file, 'wb') as f:
+    cPickle.dump(rfd_trajectory_data, f)
+  # rfd_writer = csv.writer(open(rfd_data_file, 'wb'))
+  # for key, value in rfd_trajectory_data.items():
+  #   rfd_writer.writerow([key, value])
   
   if args.profile:
     pr.disable()

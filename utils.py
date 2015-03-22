@@ -2,6 +2,7 @@
 import logging
 import matplotlib
 matplotlib.use('Agg')
+from matplotlib import animation
 from matplotlib import pyplot
 import numpy as np
 import os
@@ -183,3 +184,6 @@ def log_time_progress(elapsed_time, time_units, total_time_units):
   else:
       progress_logger.info('Expected Duration: %.2f Seconds' % 
                            float(expected_duration))
+
+
+  
