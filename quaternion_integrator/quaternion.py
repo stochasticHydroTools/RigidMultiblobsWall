@@ -64,3 +64,6 @@ class Quaternion(object):
     ''' Return 3 dimensional rotation angle that the quaternion represents. '''
     phi_norm = 2.*np.arccos(self.s)
     return phi_norm*self.p/(np.linalg.norm(self.p))
+
+
+    

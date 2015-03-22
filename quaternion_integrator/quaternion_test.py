@@ -20,6 +20,7 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(theta.entries[2], np.sin(phi_norm/2.)*phi[1]/phi_norm)
     self.assertAlmostEqual(theta.entries[3], np.sin(phi_norm/2.)*phi[2]/phi_norm)
 
+<<<<<<< HEAD
   def test_quaternion_rot_matrix_det_one(self):
     ''' Test that the determinant of the rotation matrix is 1.'''
     for _ in range(10):
@@ -29,6 +30,9 @@ class TestQuaternion(unittest.TestCase):
       self.assertAlmostEqual(np.linalg.det(R), 1.0)
 
   
+=======
+
+>>>>>>> 9d81c63e9e914c3783b81d215bcfbe1e16011e79
   def test_multiply_quaternions(self):
     ''' Test that quaternion multiplication works '''
     # First construct any random unit quaternion. Not uniform.
@@ -75,6 +79,33 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(R[1][1], 2.*(theta.s**2 + theta.p[1]**2 - 0.5))
     self.assertAlmostEqual(R[2][2], 2.*(theta.s**2 + theta.p[2]**2 - 0.5))
     self.assertAlmostEqual(R[2][0], 2.*(theta.p[0]*theta.p[2] - theta.s*theta.p[1]))
+<<<<<<< HEAD
+=======
+
+
+  def test_rot_matrix_against_rodriguez(self):
+    ''' 
+    Test that given an angle of rotation, the quaternion
+    rotation matrix matches Rodriguez formula.
+    '''
+    # Generate a random rotation, phi.
+    phi = np.random.normal(0., 1., 3)
+    phi = phi/np.linalg.norm(phi)
+    magnitude = np.random.uniform(0., np.pi)
+
+    theta = Quaternion.from_rotation(phi*magnitude)
+    R = theta.rotation_matrix()
+    omega = np.array([[0., -1.*phi[2], phi[1]],
+                     [phi[2], 0., -1.*phi[0]],
+                     [-1.*phi[1], phi[0], 0.]])
+    R_rodriguez = (np.identity(3) + np.sin(magnitude)*omega +
+                   np.inner(omega, omega.T)*(1. - np.cos(magnitude)))
+
+    for j in range(3):
+      for k in range(3):
+        self.assertAlmostEqual(R[j, k], R_rodriguez[j, k])
+                                           
+>>>>>>> 9d81c63e9e914c3783b81d215bcfbe1e16011e79
 
   def test_quaternion_inverse(self):
     '''Test that the quaternion inverse works.'''
@@ -120,7 +151,7 @@ class TestQuaternion(unittest.TestCase):
     # so that's good.
     orientation = Quaternion([1., 0., 0., 0.])
     max_err = 0.0
-    for k in range(4000):
+    for k in range(100000):
       theta = np.random.normal(0., 1., 4)
       theta = Quaternion(theta/np.linalg.norm(theta))
       orientation = theta*orientation
@@ -130,6 +161,42 @@ class TestQuaternion(unittest.TestCase):
         max_err = norm_err 
     print 'max_err is ', max_err
     self.assertAlmostEqual(max_err, 0.0)
+
+
+  def test_rot_matrix_stability(self):
+    ''' Test numerical stability of rotation matrices'''
+    # This test is just to see roughly how bad things are and
+    # how quickly rotation matrices become not orthogonal.
+    max_norm_err = 0.
+    max_orthogonal_err = 0.
+    R = np.identity(3)
+    for k in range(100000):
+      phi = np.random.normal(0., 1., 3)
+      phi = phi/np.linalg.norm(phi)
+      magnitude = np.random.uniform(0., np.pi)
+      omega = np.array([[0., -1.*phi[2], phi[1]],
+                        [phi[2], 0., -1.*phi[0]],
+                        [-1.*phi[1], phi[0], 0.]])
+      R_increment = (np.identity(3) + np.sin(magnitude)*omega +
+                     np.inner(omega, omega.T)*(1. - np.cos(magnitude)))
+      R = np.inner(R_increment, R.T)
+      
+      norm_err = max([abs(np.linalg.norm(R[0]) - 1.0),
+                      abs(np.linalg.norm(R[1]) - 1.0),
+                      abs(np.linalg.norm(R[2]) - 1.0)])
+      if norm_err > max_norm_err:
+        max_norm_err = norm_err 
+      orthogonal_err = max([abs(np.inner(R[0], R[1])),
+                            abs(np.inner(R[0], R[2])),
+                            abs(np.inner(R[1], R[2]))])
+      if orthogonal_err > max_orthogonal_err:
+        max_orthogonal_err = orthogonal_err 
+
+
+    print 'max_norm_err is ', max_norm_err
+    print 'max_orthogonal_err is ', max_orthogonal_err
+    self.assertAlmostEqual(max_norm_err, 0.0)
+    self.assertAlmostEqual(max_orthogonal_err, 0.0)
 
 
     

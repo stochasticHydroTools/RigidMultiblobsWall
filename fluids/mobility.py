@@ -1,8 +1,11 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
-import mobility_ext as me
+#import mobility_ext as me
 import sys
 sys.path.append('..')
+#import pyximport; pyximport.install()
+import mobility_ext as me
+import time
 
 ETA = 1.0 # Viscosity.
 
@@ -210,12 +213,24 @@ def epsilon_tensor(i, j, k):
   
 if __name__ == '__main__':
   # Example of using single wall mobility
-  r_vectors = [np.array([5., 0., 3.]),
-               np.array([2., 0., 2.])]
+  r_vectors = np.array([[5., 0., 3.],
+                       [2., 0., 2.]])
 
   a = 0.2
   eta = 1.0
-  mobility = single_wall_fluid_mobility(r_vectors, eta, a)
-  print "mobility is ", mobility
   
+  start = time.time()
+  for k in range(10000):
+    mobility = single_wall_fluid_mobility(r_vectors, eta, a)
+  elapsed = time.time() - start
+  print "mobility is ", mobility
+  print 'elapsed python is ', elapsed
+  
+  start = time.time()
+  for k in range(10000):
+    mobility = me.single_wall_fluid_mobility(r_vectors, eta, a)
+  elapsed = time.time() - start
+  print "mobility is ", mobility
+  print 'elapsed cython is ', elapsed
+
 

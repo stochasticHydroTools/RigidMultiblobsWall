@@ -8,6 +8,7 @@ of the tetrahedron for comparison to equilibrium.
 import argparse
 import cPickle
 import cProfile
+import csv
 import logging
 import math
 import numpy as np
@@ -19,7 +20,7 @@ sys.path.append('..')
 import time
 
 import tetrahedron as tdn
-import tetrahedron_ext as te
+#import tetrahedron_ext as te
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
@@ -29,9 +30,10 @@ from utils import StreamToLogger
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
   os.mkdir(os.path.join(os.getcwd(), 'figures'))
-# Make sure data folder exists
+# Make sure data folder exists. THIS IS NO LONGER USED.
 if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
   os.mkdir(os.path.join(os.getcwd(), 'data'))
+DATA_DIR = '/fluct/delong/data/tetrahedron'
 # Make sure logs folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
@@ -147,41 +149,41 @@ def get_free_r_vectors(location, quaternion):
   return [r1, r2, r3, r4]
 
 
-def boosted_get_free_r_vectors(location, orientation):
-  ''' Calculate r_i from a given quaternion.
-  The initial configuration is hard coded here but can be changed by
-  considering an initial quaternion not equal to the identity rotation.
-  initial configuration (top down view, the top vertex is fixed at the origin):
+# def boosted_get_free_r_vectors(location, orientation):
+#   ''' Calculate r_i from a given quaternion.
+#   The initial configuration is hard coded here but can be changed by
+#   considering an initial quaternion not equal to the identity rotation.
+#   initial configuration (top down view, the top vertex is fixed at the origin):
 
-                         O r_1 = (0, 2/sqrt(3), -(2 sqrt(2))/3)
-                        / \
-                       /   \
-                      /     \
-                     /   O(location, everything else relative to this location)
-                    /          \
-                   /            \
-               -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
-             /
-           r_2 = (-1, -1/sqrt(3),-(2 sqrt(2))/3)
+#                          O r_1 = (0, 2/sqrt(3), -(2 sqrt(2))/3)
+#                         / \
+#                        /   \
+#                       /     \
+#                      /   O(location, everything else relative to this location)
+#                     /          \
+#                    /            \
+#                -> O--------------O  r_3 = (1, -1/sqrt(3),-(2 sqrt(2))/3)
+#              /
+#            r_2 = (-1, -1/sqrt(3),-(2 sqrt(2))/3)
 
-  Each side of the tetrahedron has length 2.
-  location is a 3-dimensional list giving the location of the "top" vertex.
-  quaternion is a quaternion representing the tetrahedron orientation.
+#   Each side of the tetrahedron has length 2.
+#   location is a 3-dimensional list giving the location of the "top" vertex.
+#   quaternion is a quaternion representing the tetrahedron orientation.
 
-  This function is written in C++ using boost for speed.  This has about a 2x
-  speedup, but doesn't really make a huge difference in MSD scripts 
-  unfortunately after a recent change to call this function much less 
-  frequently.  
-  THIS IS NO LONGER USED.
-  '''
-  r_vectors = [np.zeros(3) for _ in range(3)]
-  location = np.array(location)
-  te.get_free_r_vectors(location, [float(orientation.s), 
-                                   float(orientation.p[0]), 
-                                   float(orientation.p[1]), 
-                                   float(orientation.p[2])],
-                        r_vectors)
-  return r_vectors
+#   This function is written in C++ using boost for speed.  This has about a 2x
+#   speedup, but doesn't really make a huge difference in MSD scripts 
+#   unfortunately after a recent change to call this function much less 
+#   frequently.  
+#   THIS IS NO LONGER USED.
+#   '''
+#   r_vectors = [np.zeros(3) for _ in range(3)]
+#   location = np.array(location)
+#   te.get_free_r_vectors(location, [float(orientation.s), 
+#                                    float(orientation.p[0]), 
+#                                    float(orientation.p[1]), 
+#                                    float(orientation.p[2])],
+#                         r_vectors)
+#   return r_vectors
 
 
 def get_free_center_of_mass(location, orientation):
@@ -431,6 +433,23 @@ def plot_correlation_function_of_mcmc():
   return
 
 
+def create_data_with_parameters(trajectory, dt, n_steps):
+  ''' Create a dictionary to store the data with parameters.'''
+  data_dict = {
+    'dt': dt,
+    'n_steps': n_steps,
+    'location': fixman_trajectory[0],
+    'orientation': fixman_trajectory[1],
+    'masses': [M1, M2, M3, M4],
+    'eta': ETA,
+    'A': A,
+    'REPULSION_STRENGTH': REPULSION_STRENGTH,
+    'DEBYE_LENGTH': DEBYE_LENGTH,
+    'KT': KT}
+
+  return data_dict
+
+
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of free '
@@ -517,6 +536,11 @@ if __name__ == '__main__':
   em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 
+  # Lists of location and orientation.
+  fixman_trajectory = [[], []]
+  rfd_trajectory = [[], []]
+  em_trajectory = [[], []]
+
 
   start_time = time.time()
   for k in range(n_steps):
@@ -526,19 +550,26 @@ if __name__ == '__main__':
                               fixman_integrator.orientation[0], 
                               bin_width, 
                               fixman_heights)
+    fixman_trajectory[0].append(fixman_integrator.location[0])
+    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
 
-    # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_free_particle_heights(rfd_integrator.location[0],
                               rfd_integrator.orientation[0], 
                               bin_width, 
                               rfd_heights)
+    rfd_trajectory[0].append(rfd_integrator.location[0])
+    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
+
     # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
     bin_free_particle_heights(em_integrator.location[0],
                               em_integrator.orientation[0], 
                               bin_width, 
                               em_heights)
+    em_trajectory[0].append(em_integrator.location[0])
+    em_trajectory[1].append(em_integrator.orientation[0].entries)
+
 
     # Bin equilibrium sample.
     sample = generate_free_equilibrium_sample_mcmc(sample)
@@ -604,13 +635,47 @@ if __name__ == '__main__':
 
   # Optional name for data provided
   if len(args.data_name) > 0:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d-%s.pkl' % (
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
+      dt, n_steps, args.data_name)
+    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-%s' % (
       dt, n_steps, args.data_name)
   else:
-    data_name = './data/free-tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
+    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d' % (
+      dt, n_steps)
+
+
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
+
+  fixman_trajectory_data = create_data_with_parameters(fixman_trajectory, 
+                                                       dt, n_steps)
+
+  rfd_trajectory_data = create_data_with_parameters(rfd_trajectory, 
+                                                    dt, n_steps)
+
+  em_trajectory_data = create_data_with_parameters(em_trajectory, 
+                                                   dt, n_steps)
+
+
+  fixman_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-FIXMAN.csv' % trajectory_dat_name)
+  fixman_writer = csv.writer(open(fixman_data_file, 'wb'))
+  for key, value in fixman_trajectory_data.items():
+    fixman_writer.writerow([key, value])
+
+  em_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-EM.csv' % trajectory_dat_name)
+  em_writer = csv.writer(open(em_data_file, 'wb'))
+  for key, value in em_trajectory_data.items():
+    em_writer.writerow([key, value])
+
+  rfd_data_file = os.path.join(
+    DATA_DIR, '%s-scheme-RFD.csv' % trajectory_dat_name)
+  rfd_writer = csv.writer(open(rfd_data_file, 'wb'))
+  for key, value in rfd_trajectory_data.items():
+    rfd_writer.writerow([key, value])
   
   if args.profile:
     pr.disable()
