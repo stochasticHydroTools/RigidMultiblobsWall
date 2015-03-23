@@ -496,8 +496,9 @@ if __name__ == '__main__':
   sys.stderr = sl
 
   # Script to run the various integrators on the quaternion.
-  initial_location = [[0., 0., H]]
-  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  sample = generate_free_equilibrium_sample()
+  initial_location = [sample[0]]
+  initial_orientation = [sample[1]]
   fixman_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
                                            initial_orientation, 
                                            free_gravity_torque_calculator, 

@@ -35,17 +35,21 @@ if __name__ == '__main__':
   ax.set_ylim3d([-10., 10.])
   ax.set_zlim3d([-0.5, 8.])
   
-  wall_x = [-10. + k*20./40. for k in range(40) ]
-  for k in range(39):
-    wall_x += [-10. + k*20./40. for k in range(40) ]
+  wall_x = [-10. + k*20./20. for k in range(20) ]
+  for k in range(19):
+    wall_x += [-10. + k*20./20. for k in range(20) ]
 
-  wall_y = [-10. for _ in range(40)]
-  for k in range(39):
-    wall_y += [-10 + k*20./40. for _ in range(40)]
+  wall_y = [-10. for _ in range(20)]
+  for k in range(19):
+    wall_y += [-10 + k*20./20. for _ in range(20)]
 
-  blobs, = ax.plot([], [], [], 'bo')
-  wall, = ax.plot(wall_x, wall_y, np.zeros(1600), 'k-')
-  connectors, = ax.plot([], [], 'b-', lw=2)
+  blobs, = ax.plot([], [], [], 'bo', ms=24)
+  wall, = ax.plot(wall_x, wall_y, np.zeros(400), 'k.')
+  connectors = [0]*12
+  for j in range(4):
+    for k in range(j+1, 4):
+      connector, = ax.plot([], [], [], 'b-', lw=2)
+      connectors[j*3 + k] = connector
 
   def init_animation():
     ''' Initialize 3D animation.'''
@@ -55,7 +59,9 @@ if __name__ == '__main__':
     blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
     for j in range(len(r_vectors)):
       for k in range(j+1, len(r_vectors)):
-        
+        connectors[j*3 + k].set_data([r_vectors[j][0],r_vectors[k][0]], 
+                                     [r_vectors[j][1],r_vectors[k][1]])
+        connectors[j*3 + k].set_3d_properties([r_vectors[j][2], r_vectors[k][2]])
 
     
   def update(n):
@@ -66,7 +72,12 @@ if __name__ == '__main__':
     blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
                    [r_vectors[k][1] for k in range(len(r_vectors))])
     blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
+    for j in range(len(r_vectors)):
+      for k in range(j+1, len(r_vectors)):
+        connectors[j*3 + k].set_data([r_vectors[j][0],r_vectors[k][0]], 
+                                     [r_vectors[j][1],r_vectors[k][1]])
+        connectors[j*3 + k].set_3d_properties([r_vectors[j][2], r_vectors[k][2]])
     
   
-anim = animation.FuncAnimation(fig, update, init_func=init_animation, frames=500, interval=7, blit=True)
+anim = animation.FuncAnimation(fig, update, init_func=init_animation, frames=500, interval=4, blit=True)
 anim.save('tetrahedron.mp4', writer='ffmpeg')

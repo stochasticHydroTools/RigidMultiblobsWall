@@ -186,8 +186,60 @@ def log_time_progress(elapsed_time, time_units, total_time_units):
                            float(expected_duration))
 
 
-def calc_msd_data_from_trajectory(trajectory_data, calc_center_function):
-   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
-   trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.'''
-   pass
+def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix, 
+                                       final_center, rot_matrix):
+  ''' 
+  Calculate 6x6 MSD including orientation and location.  This is
+  calculated from precomputed center of the tetrahedron and rotation
+  matrix data to avoid repeating computation.
+  '''
+  u_hat = np.zeros(3)
+  for i in range(3):
+    e = np.zeros(3)
+    e[i] = 1.
+    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
+                          np.inner(rot_matrix, e))
+    
+  dx = np.array(final_center) - np.array(original_center)
+  displacement = np.concatenate([dx, u_hat])
+  return np.outer(displacement, displacement)
+
+def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, end):
+  ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
+  trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.'''
+
+  burn_in = 0  # We start from an equilibrium sample, so we don't need burn_in.
+  orientations = trajectory_data['orientation']
+  locations = trajectory_data['location']
+  average_rotational_msd = np.array([np.zeros((6, 6)) 
+                                     for _ in range(trajectory_length)])
+  lagged_rotation_trajectory = []
+  lagged_location_trajectory = []
+  for k in range(len(locations)):
+    if k > burn_in: 
+       orientation = Quaternion(orientations[k])
+       lagged_rotation_trajectory.append(orientation.rotation_matrix())
+       lagged_location_trajectory.append(calc_center_function(locations[k], orientation))
+    if len(lagged_location_trajectory) > trajectory_length:
+      lagged_location_trajectory = lagged_location_trajectory[1:]
+      lagged_rotation_trajectory = lagged_rotation_trajectory[1:]
+      for l in range(trajectory_length):
+        current_rot_msd = (calc_total_msd_from_matrix_and_center(
+           lagged_location_trajectory[0],
+           lagged_trajectory[0],
+           lagged_location_trajectory[l],
+           lagged_trajectory[l]))
+        average_rotational_msd[l] += current_rot_msd
+
+  average_rotational_msd = (average_rotational_msd/
+                            (n_steps - trajectory_length - burn_in))
+  
+  return average_rotational_msd
+   
+   
+      
+      
+   
+   
+
    

@@ -36,7 +36,7 @@ if __name__ == '__main__':
       raise Exception('Timestep of data does not match specified timestep.')
 
     # Calculate MSD data (just an array of MSD at each time.)
-    msd_data = calc_msd_data_from_trajectory(trajectory_data, calc_tetrahedron_center)
+    msd_data = calc_msd_data_from_trajectory(trajectory_data, calc_tetrahedron_center, 300)
     # append to calculate Mean and Std.
     msd_runs.append(msd)
 
