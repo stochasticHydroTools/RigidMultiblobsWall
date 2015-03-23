@@ -17,7 +17,7 @@ from config_local import DATA_DIR
 
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
-  data_file_name = 'free-tetrahedron-trajectory-dt-0.1-N-3000-testing-scheme-FIXMAN.pkl'
+  data_file_name = 'free-tetrahedron-trajectory-dt-0.5-N-5000-testing-scheme-RFD.pkl'
 
   #######
   trajectory_data = dict()

@@ -6,9 +6,12 @@ import cPickle
 import logging
 import numpy as np
 import math
+import os
 import sys
+sys.path.append('..')
 import time
 
+from config_local import DATA_DIR
 import icosohedron as ic
 import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
@@ -100,7 +103,24 @@ def nonuniform_gibbs_boltzmann_distribution(location, orientation):
   U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.A)/ic.DEBYE_LENGTH)/
         (location[2] - ic.A))
   return np.exp(-1.*U/ic.KT)
-  
+
+
+def create_data_with_parameters(trajectory, dt, n_steps):
+  ''' Create a dictionary to store the data with parameters.'''
+  data_dict = {
+    'dt': dt,
+    'n_steps': n_steps,
+    'location': trajectory[0],
+    'orientation': trajectory[1],
+    'masses': M,
+    'eta': ic.ETA,
+    'A': ic.A,
+    'VERTEX_A': ic.VERTEX_A,
+    'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
+    'DEBYE_LENGTH': ic.DEBYE_LENGTH,
+    'KT': ic.KT}
+
+  return data_dict  
 
 if __name__ == '__main__':
   # Get command line arguments.
@@ -146,8 +166,9 @@ if __name__ == '__main__':
   sys.stderr = sl
 
   # Script to run the various integrators on the quaternion.
-  initial_location = [[0., 0., 1.5]]
-  initial_orientation = [Quaternion([1., 0., 0., 0.])]
+  sample = generate_nonuniform_icosohedron_equilibrium_sample()
+  initial_location = [sample[0]]
+  initial_orientation = [sample[1]]
   fixman_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
                                            initial_orientation, 
                                            nonuniform_torque_calculator, 
@@ -188,6 +209,11 @@ if __name__ == '__main__':
   fixman_thetas = np.zeros(int(np.pi/theta_bin_width))
   rfd_thetas = np.zeros(int(np.pi/theta_bin_width))
   em_thetas = np.zeros(int(np.pi/theta_bin_width))
+
+  # Lists of location and orientation.
+  fixman_trajectory = [[], []]
+  rfd_trajectory = [[], []]
+  em_trajectory = [[], []]
   
   start_time = time.time()
   progress_logger.info('Starting run...')
@@ -200,6 +226,8 @@ if __name__ == '__main__':
                          fixman_heights,
                          theta_bin_width,
                          fixman_thetas)
+    fixman_trajectory[0].append(fixman_integrator.location[0])
+    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_height_and_theta(rfd_integrator.location[0],
@@ -208,6 +236,8 @@ if __name__ == '__main__':
                          rfd_heights,
                          theta_bin_width,
                          rfd_thetas)
+    rfd_trajectory[0].append(rfd_integrator.location[0])
+    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
     # em step and bin result.
     em_integrator.additive_em_time_step(dt)
     bin_height_and_theta(em_integrator.location[0],
@@ -216,6 +246,8 @@ if __name__ == '__main__':
                          em_heights,
                          theta_bin_width,
                          em_thetas)
+    em_trajectory[0].append(em_integrator.location[0])
+    em_trajectory[1].append(em_integrator.orientation[0].entries)
 
     if k % print_increment == 0 and k > 0:
       elapsed_time = time.time() - start_time
@@ -257,14 +289,45 @@ if __name__ == '__main__':
                             + 0.5*theta_bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'EM']
 
+  # Create Trajectory data with parameters.
+  fixman_trajectory_data = create_data_with_parameters(fixman_trajectory, 
+                                                       dt, n_steps)
+  rfd_trajectory_data = create_data_with_parameters(rfd_trajectory, 
+                                                    dt, n_steps)
+  em_trajectory_data = create_data_with_parameters(em_trajectory, 
+                                                   dt, n_steps)
+
   # Optional name for data provided    
   if len(args.data_name) > 0:
-    data_name = './data/nonuniform-icosohedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+    data_name = './data/nonuniform-icosahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.pkl' % (
+        dt, n_steps, scheme, args.data_name)
+      return trajectory_dat_name
   else:
     data_name = './data/nonuniform-icosohedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s.pkl' % (
+        dt, n_steps, scheme)
+      return trajectory_dat_name
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
+
+  fixman_data_file = os.path.join(
+    DATA_DIR, 'icosahedron', generate_trajectory_name('FIXMAN'))
+  with open(fixman_data_file, 'wb') as f:
+    cPickle.dump(fixman_trajectory_data, f)
+
+  em_data_file = os.path.join(
+    DATA_DIR, 'icosahedron', generate_trajectory_name('EM'))
+  with open(em_data_file, 'wb') as f:
+    cPickle.dump(em_trajectory_data, f)
+
+  rfd_data_file = os.path.join(
+    DATA_DIR, 'icosahedron', generate_trajectory_name('RFD'))
+  with open(rfd_data_file, 'wb') as f:
+    cPickle.dump(rfd_trajectory_data, f)
   
   if args.profile:
     pr.disable()

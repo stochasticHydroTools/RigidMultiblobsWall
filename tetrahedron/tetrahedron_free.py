@@ -438,8 +438,8 @@ def create_data_with_parameters(trajectory, dt, n_steps):
   data_dict = {
     'dt': dt,
     'n_steps': n_steps,
-    'location': fixman_trajectory[0],
-    'orientation': fixman_trajectory[1],
+    'location': trajectory[0],
+    'orientation': trajectory[1],
     'masses': [M1, M2, M3, M4],
     'eta': ETA,
     'A': A,
@@ -571,7 +571,6 @@ if __name__ == '__main__':
     em_trajectory[0].append(em_integrator.location[0])
     em_trajectory[1].append(em_integrator.orientation[0].entries)
 
-
     # Bin equilibrium sample.
     sample = generate_free_equilibrium_sample_mcmc(sample)
     bin_free_particle_heights(sample[0], 
@@ -638,14 +637,16 @@ if __name__ == '__main__':
   if len(args.data_name) > 0:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
       dt, n_steps, args.data_name)
-    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-%s' % (
-      dt, n_steps, args.data_name)
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.pkl' % (
+        dt, n_steps, scheme, args.data_name)
+      return trajectory_dat_name
   else:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
-    trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d' % (
-      dt, n_steps)
-
-
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.pkl' % (
+        dt, n_steps, scheme)
+      return trajectory_dat_name
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
@@ -661,28 +662,19 @@ if __name__ == '__main__':
 
 
   fixman_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', '%s-scheme-FIXMAN.pkl' % trajectory_dat_name)
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('FIXMAN'))
   with open(fixman_data_file, 'wb') as f:
     cPickle.dump(fixman_trajectory_data, f)
-  # fixman_writer = csv.writer(open(fixman_data_file, 'wb'))
-  # for key, value in fixman_trajectory_data.items():
-  #   fixman_writer.writerow([key, value])
 
   em_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', '%s-scheme-EM.pkl' % trajectory_dat_name)
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
   with open(em_data_file, 'wb') as f:
     cPickle.dump(em_trajectory_data, f)
-  # em_writer = csv.writer(open(em_data_file, 'wb'))
-  # for key, value in em_trajectory_data.items():
-  #   em_writer.writerow([key, value])
 
   rfd_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', '%s-scheme-RFD.pkl' % trajectory_dat_name)
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
   with open(rfd_data_file, 'wb') as f:
     cPickle.dump(rfd_trajectory_data, f)
-  # rfd_writer = csv.writer(open(rfd_data_file, 'wb'))
-  # for key, value in rfd_trajectory_data.items():
-  #   rfd_writer.writerow([key, value])
   
   if args.profile:
     pr.disable()

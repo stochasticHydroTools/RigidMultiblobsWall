@@ -2,11 +2,11 @@
 import logging
 import matplotlib
 matplotlib.use('Agg')
-from matplotlib import animation
 from matplotlib import pyplot
 import numpy as np
 import os
 
+from quaternion_integrator.quaternion import Quaternion
 
 DT_STYLES = {}  # Used for plotting different timesteps of MSD.
 
@@ -204,13 +204,27 @@ def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix,
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
-def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, end):
+def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end):
   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
-  trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.'''
+  trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.
+  params:
+    trajectory-data: dict with orientation (a list of length 3 lists for location)
+         and orientation (a list of length 4 lists representing quaternions)
+
+    calc_center_function: a function that given location and orientation
+                 (as a quaternion) computes the center of the body (or the point
+                 that we use to track location MSD).
+
+    dt:  timestep used in this simulation.
+    end:  end time to which we calculate MSD.
+ '''
 
   burn_in = 0  # We start from an equilibrium sample, so we don't need burn_in.
+
   orientations = trajectory_data['orientation']
+  trajectory_length = int(end/dt)
   locations = trajectory_data['location']
+  n_steps = len(locations)
   average_rotational_msd = np.array([np.zeros((6, 6)) 
                                      for _ in range(trajectory_length)])
   lagged_rotation_trajectory = []
@@ -224,11 +238,11 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, end):
       lagged_location_trajectory = lagged_location_trajectory[1:]
       lagged_rotation_trajectory = lagged_rotation_trajectory[1:]
       for l in range(trajectory_length):
-        current_rot_msd = (calc_total_msd_from_matrix_and_center(
+        current_rot_msd = (_calc_total_msd_from_matrix_and_center(
            lagged_location_trajectory[0],
-           lagged_trajectory[0],
+           lagged_rotation_trajectory[0],
            lagged_location_trajectory[l],
-           lagged_trajectory[l]))
+           lagged_rotation_trajectory[l]))
         average_rotational_msd[l] += current_rot_msd
 
   average_rotational_msd = (average_rotational_msd/

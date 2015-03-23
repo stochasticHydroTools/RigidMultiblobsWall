@@ -30,7 +30,7 @@ if __name__ == '__main__':
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
-    data_name = os.path.join('data', data_file)
+    data_name = os.path.join(tf.DATA_DIR, 'tetrahedron', data_file)
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
@@ -55,10 +55,9 @@ if __name__ == '__main__':
                                   label=label_list[(k-1) + min(l, 2)], symbol=symbol_list[l],
                                   data_name='COMData-%s-%s.txt' % (l, l),
                                   num_err_bars=200)
-
+ 
   average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(2000)
   [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
-  print 'mobility parallel vertex: ', average_mob_and_friction[0]*2.
   translation_end = 360.0
   for l in range(6):
     pyplot.figure(figure_indices[l])
