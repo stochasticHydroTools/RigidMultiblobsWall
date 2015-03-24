@@ -607,7 +607,7 @@ if __name__ == '__main__':
              equilibrium_heights/(n_steps*bin_width)]
 
   height_data = dict()
-  # Save parameters just in case they're useful in the future.
+gen  # Save parameters just in case they're useful in the future.
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
   params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 

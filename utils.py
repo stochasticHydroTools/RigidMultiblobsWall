@@ -251,7 +251,7 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end
   return average_rotational_msd
    
       
-def write_trajectory_to_txt(file_name, trajectory, params):
+def write_trajectory_to_txt(file_name, trajectory, params, location=True):
   '''  Write parameters and data to a text file. '''
   # First check that the directory exists.
   dir_name = os.path.dirname(file_name)
@@ -264,16 +264,21 @@ def write_trajectory_to_txt(file_name, trajectory, params):
     for key, value in params.items():
       f.write('%s: %s \n' % (key, value))
     f.write('Trajectory data:\n')
-    f.write('Location:\n')
-    for x in trajectory[0]:
-      f.write('%s, %s, %s \n' % (x[0], x[1], x[2]))
-    f.write('\n')
-    f.write('Orientation:\n')
-    for x in trajectory[1]:
-      f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
+    if location:
+       f.write('Location:\n')
+       for x in trajectory[0]:
+          f.write('%s, %s, %s \n' % (x[0], x[1], x[2]))
+       f.write('\n')
+       f.write('Orientation:\n')
+       for x in trajectory[1]:
+          f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
+    else:
+       f.write('Orientation:\n')
+       for x in trajectory:
+          f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
 
 
-def read_trajectory_from_txt(file_name):
+def read_trajectory_from_txt(file_name, location=True):
   ''' Read a trajectory and parameters from a text file.'''
   params = {}
   locations = []

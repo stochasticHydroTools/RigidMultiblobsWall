@@ -27,10 +27,12 @@ import sys
 sys.path.append('..')
 import time
 
+from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from fluids import mobility as mb
 from utils import StreamToLogger
+from utils import write_trajectory_to_txt
 import uniform_analyzer as ua
 
 
@@ -338,6 +340,11 @@ if __name__ == "__main__":
   em_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
   equilibrium_heights = np.array([np.zeros(int(4./bin_width)) for _ in range(3)])
 
+  # Lists of orientation.
+  fixman_trajectory = []
+  rfd_trajectory = []
+  em_trajectory = []
+
   start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
@@ -345,16 +352,22 @@ if __name__ == "__main__":
     bin_particle_heights(fixman_integrator.orientation[0], 
                          bin_width, 
                          fixman_heights)
+    fixman_trajectory.append(fixman_integrator.orientation[0].entries)
+
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
     bin_particle_heights(rfd_integrator.orientation[0],
                          bin_width, 
                          rfd_heights)    
+    rfd_trajectory.append(rfd_integrator.orientation[0].entries)
+
     # EM step and bin result.
     em_integrator.additive_em_time_step(dt)
     bin_particle_heights(em_integrator.orientation[0],
                          bin_width, 
                          em_heights)
+    em_trajectory.append(em_integrator.orientation[0].entries)
+
     # Bin equilibrium sample.
     bin_particle_heights(generate_equilibrium_sample(), 
                          bin_width, 
@@ -391,18 +404,42 @@ if __name__ == "__main__":
   # Optional name for data provided    
   if len(args.data_name) > 0:
     data_name = './data/tetrahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'fixed-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
+        dt, n_steps, scheme, args.data_name)
+      return trajectory_dat_name
   else:
     data_name = './data/tetrahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'fixed-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
+        dt, n_steps, scheme)
+      return trajectory_dat_name
 
   height_data = dict()
-  height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
-                           'M3': M3}
+  params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
+            'M3': M3, 'dt': dt, 'n_steps': n_steps}
+  height_data['params'] = params
   height_data['heights'] = heights
   height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
   height_data['buckets'] = H + np.linspace(-2., 2., len(heights[0][0]))
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
+
+  fixman_data_file = os.path.join(
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('FIXMAN'))
+  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params,
+                          location=False)
+
+  em_data_file = os.path.join(
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
+  write_trajectory_to_txt(em_data_file, em_trajectory, params,
+                          location=False)
+
+  rfd_data_file = os.path.join(
+    DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
+  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params,
+                          location=False)
   
   if args.profile:
     pr.disable()
