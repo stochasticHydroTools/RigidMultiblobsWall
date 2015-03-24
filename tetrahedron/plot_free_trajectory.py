@@ -82,5 +82,5 @@ if __name__ == '__main__':
     
   
 anim = animation.FuncAnimation(fig, update, init_func=init_animation, 
-                               frames=500, interval=20, blit=True)
+                               frames=700, interval=20, blit=True)
 anim.save('tetrahedron.mp4', writer='ffmpeg')
