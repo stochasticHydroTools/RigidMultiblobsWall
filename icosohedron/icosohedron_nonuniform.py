@@ -16,9 +16,10 @@ import icosohedron as ic
 import icosohedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import log_time_progress
 from utils import static_var
 from utils import StreamToLogger
-from utils import log_time_progress
+from utils import write_trajectory_to_txt
 
 
 M = [0.0 for _ in range(12)]
@@ -277,10 +278,11 @@ if __name__ == '__main__':
   # Save parameters just in case they're useful in the future.
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
-  height_data['params'] = {'A': ic.A, 'ETA': ic.ETA, 'VERTEX_A': ic.VERTEX_A, 'M': M, 
-                           'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
-                           'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
-                           'DT': dt}
+  params = {'A': ic.A, 'ETA': ic.ETA, 'VERTEX_A': ic.VERTEX_A, 'M': M, 
+            'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
+            'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
+            'DT': dt, 'n_steps': n_steps}
+  height_data['params'] = params
   height_data['heights'] = heights
   height_data['thetas'] = thetas
   height_data['buckets'] = (bin_width*np.array(range(len(fixman_heights)))
@@ -288,14 +290,6 @@ if __name__ == '__main__':
   height_data['theta_buckets'] = (theta_bin_width*np.array(range(len(fixman_thetas)))
                             + 0.5*theta_bin_width)
   height_data['names'] = ['Fixman', 'RFD', 'EM']
-
-  # Create Trajectory data with parameters.
-  fixman_trajectory_data = create_data_with_parameters(fixman_trajectory, 
-                                                       dt, n_steps)
-  rfd_trajectory_data = create_data_with_parameters(rfd_trajectory, 
-                                                    dt, n_steps)
-  em_trajectory_data = create_data_with_parameters(em_trajectory, 
-                                                   dt, n_steps)
 
   # Optional name for data provided    
   if len(args.data_name) > 0:
@@ -316,18 +310,15 @@ if __name__ == '__main__':
 
   fixman_data_file = os.path.join(
     DATA_DIR, 'icosahedron', generate_trajectory_name('FIXMAN'))
-  with open(fixman_data_file, 'wb') as f:
-    cPickle.dump(fixman_trajectory_data, f)
+  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params)
 
   em_data_file = os.path.join(
     DATA_DIR, 'icosahedron', generate_trajectory_name('EM'))
-  with open(em_data_file, 'wb') as f:
-    cPickle.dump(em_trajectory_data, f)
+  write_trajectory_to_txt(em_data_file, em_trajectory, params)
 
   rfd_data_file = os.path.join(
     DATA_DIR, 'icosahedron', generate_trajectory_name('RFD'))
-  with open(rfd_data_file, 'wb') as f:
-    cPickle.dump(rfd_trajectory_data, f)
+  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
   
   if args.profile:
     pr.disable()

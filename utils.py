@@ -253,6 +253,12 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end
       
 def write_trajectory_to_txt(file_name, trajectory, params):
   '''  Write parameters and data to a text file. '''
+  # First check that the directory exists.
+  dir_name = os.path.dirname(file_name)
+  if not os.path.isdir(dir_name):
+     os.mkdir(dir_name)
+
+  # Write data to file, parameters first then trajectory.
   with open(file_name, 'w') as f:
     f.write('Parameters:\n')
     for key, value in params.items():
