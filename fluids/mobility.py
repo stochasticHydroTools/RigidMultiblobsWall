@@ -1,11 +1,10 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
-#import mobility_ext as me
 import sys
 sys.path.append('..')
-#import pyximport; pyximport.install()
-import mobility_ext as me
 import time
+
+import mobility_ext as me
 
 ETA = 1.0 # Viscosity.
 

@@ -2,6 +2,7 @@
 import cPickle
 import csv
 import matplotlib
+matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import animation
@@ -17,7 +18,7 @@ from config_local import DATA_DIR
 
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
-  data_file_name = 'free-tetrahedron-trajectory-dt-0.5-N-5000-testing-scheme-RFD.pkl'
+  data_file_name = 'free-tetrahedron-trajectory-dt-1.6-N-15000-scheme-RFD-testing.pkl'
 
   #######
   trajectory_data = dict()
@@ -43,8 +44,9 @@ if __name__ == '__main__':
   for k in range(19):
     wall_y += [-10 + k*20./20. for _ in range(20)]
 
-  blobs, = ax.plot([], [], [], 'bo', ms=24)
+
   wall, = ax.plot(wall_x, wall_y, np.zeros(400), 'k.')
+  blobs, = ax.plot([], [], [], 'bo', ms=24)
   connectors = [0]*12
   for j in range(4):
     for k in range(j+1, 4):
@@ -79,5 +81,6 @@ if __name__ == '__main__':
         connectors[j*3 + k].set_3d_properties([r_vectors[j][2], r_vectors[k][2]])
     
   
-anim = animation.FuncAnimation(fig, update, init_func=init_animation, frames=500, interval=4, blit=True)
+anim = animation.FuncAnimation(fig, update, init_func=init_animation, 
+                               frames=500, interval=20, blit=True)
 anim.save('tetrahedron.mp4', writer='ffmpeg')
