@@ -22,31 +22,37 @@ def read_trajectory_from_csv(file_name):
   with open(file_name, 'r') as f:
     # First line should be "Parameters:"
     line = f.readline()
+    line = f.readline()
     while line != 'Location:\n':
-      line = f.readline()
       items = line.split(':')
       params[items[0]] = items[1]
-    
-    while line != 'Orientation:\n':
       line = f.readline()
+
+    # Read next line after 'Location'
+    line = f.readline()
+    while line != '\n':
       loc = line.split(',')
       locations.append([float(x) for x in loc])
-
-    while line != '':
       line = f.readline()
+      
+    # These two lines are '\n', and 'Orientation' 
+    line = f.readline()
+    line = f.readline()
+    while line != '':
       quaternion_entries = line.split(',')
-      orienations.append(Quaternion([float(x) for x in quaternion_entries]))
+      orientations.append([float(x) for x in quaternion_entries])
+      line = f.readline()
       
   return params, locations, orientations
   
 
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
-  data_name = 'free-tetrahedron-trajectory-dt-0.1-N-1000-scheme-FIXMAN.csv'
+  data_name = 'free-tetrahedron-trajectory-dt-0.1-N-2000-scheme-FIXMAN-tesing.csv'
 
 
   #######
-  data_file_name = os.path.join(DATA_DIR, 'tetrahedron', data_file_name)
+  data_file_name = os.path.join(DATA_DIR, 'tetrahedron', data_name)
   
   params, locations, orientations = read_trajectory_from_csv(data_file_name)
 
