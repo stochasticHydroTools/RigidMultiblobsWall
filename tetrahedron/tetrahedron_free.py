@@ -641,13 +641,13 @@ if __name__ == '__main__':
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
       dt, n_steps, args.data_name)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.csv' % (
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
         dt, n_steps, scheme, args.data_name)
       return trajectory_dat_name
   else:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.csv' % (
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
         dt, n_steps, scheme)
       return trajectory_dat_name
 
