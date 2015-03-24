@@ -7,8 +7,8 @@ from matplotlib import pyplot
 import os
 import sys
 
-import icosohedron as ic
-import icosohedron_nonuniform as icn
+import icosahedron as ic
+import icosahedron_nonuniform as icn
 
 
 def generate_equilibrium_heights(buckets):

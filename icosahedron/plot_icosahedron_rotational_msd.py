@@ -10,8 +10,8 @@ import os
 import cPickle
 import sys
 
-import icosohedron as ic
-import icosohedron_nonuniform as icn
+import icosahedron as ic
+import icosahedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 import sphere.sphere as sph
 from utils import MSDStatistics

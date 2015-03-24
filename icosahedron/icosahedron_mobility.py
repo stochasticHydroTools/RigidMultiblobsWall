@@ -7,7 +7,7 @@ with a scatter plot.
 from matplotlib import pyplot
 import numpy as np
 
-import icosohedron as ic
+import icosahedron as ic
 import sphere.sphere as sph
 from quaternion_integrator.quaternion import Quaternion
 

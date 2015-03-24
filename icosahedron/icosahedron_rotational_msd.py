@@ -10,8 +10,8 @@ import sys
 sys.path.append('..')
 import time
 
-import icosohedron as ic
-import icosohedron_nonuniform as icn
+import icosahedron as ic
+import icosahedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import log_time_progress

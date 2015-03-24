@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 
-import icosohedron as ic
+import icosahedron as ic
 from quaternion_integrator.quaternion import Quaternion
 
 # All of these quantities are in units of h, their meshwidth.

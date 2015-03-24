@@ -3,8 +3,8 @@
 import unittest
 import numpy as np
 
-import icosohedron as ic
-import icosohedron_nonuniform as icn
+import icosahedron as ic
+import icosahedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 
 class TestIcosohedron(unittest.TestCase):

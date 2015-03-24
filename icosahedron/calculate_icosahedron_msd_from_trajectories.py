@@ -12,7 +12,7 @@ import sys
 sys.path.append('..')
 
 from quaternion_integrator.quaternion import Quaternion
-import icosohedron_nonuniform as icn
+import icosahedron_nonuniform as icn
 from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
 

@@ -12,8 +12,7 @@ sys.path.append('..')
 import time
 
 from config_local import DATA_DIR
-import icosohedron as ic
-import icosohedron_nonuniform as icn
+import icosahedron as ic
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import log_time_progress
