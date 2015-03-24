@@ -250,10 +250,52 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end
   
   return average_rotational_msd
    
-   
       
-      
-   
-   
+def write_trajectory_to_txt(file_name, trajectory, params):
+  '''  Write parameters and data to a text file. '''
+  with open(file_name, 'w') as f:
+    f.write('Parameters:\n')
+    for key, value in params.items():
+      f.write('%s: %s \n' % (key, value))
+    f.write('Trajectory data:\n')
+    f.write('Location:\n')
+    for x in trajectory[0]:
+      f.write('%s, %s, %s \n' % (x[0], x[1], x[2]))
+    f.write('\n')
+    f.write('Orientation:\n')
+    for x in trajectory[1]:
+      f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
 
-   
+
+def read_trajectory_from_txt(file_name):
+  ''' Read a trajectory and parameters from a text file.'''
+  params = {}
+  locations = []
+  orientations = []
+  with open(file_name, 'r') as f:
+    # First line should be "Parameters:"
+    line = f.readline()
+    line = f.readline()
+    while line != 'Location:\n':
+      items = line.split(':')
+      params[items[0]] = items[1]
+      line = f.readline()
+
+    # Read next line after 'Location'
+    line = f.readline()
+    while line != '\n':
+      loc = line.split(',')
+      locations.append([float(x) for x in loc])
+      line = f.readline()
+      
+    # These two lines are '\n', and 'Orientation' 
+    line = f.readline()
+    line = f.readline()
+    while line != '':
+      quaternion_entries = line.split(',')
+      orientations.append([float(x) for x in quaternion_entries])
+      line = f.readline()
+      
+  return params, locations, orientations
+  
+

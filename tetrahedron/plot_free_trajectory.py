@@ -10,51 +10,22 @@ import os
 import sys
 sys.path.append('..')
 
-import tetrahedron_free as tf
-from quaternion_integrator.quaternion import Quaternion
+
 from config_local import DATA_DIR
+from quaternion_integrator.quaternion import Quaternion
+import tetrahedron_free as tf
+from utils import read_trajectory_from_txt
 
-def read_trajectory_from_csv(file_name):
-  ''' Read a trajectory and parameters from a CSV file.'''
-  params = {}
-  locations = []
-  orientations = []
-  with open(file_name, 'r') as f:
-    # First line should be "Parameters:"
-    line = f.readline()
-    line = f.readline()
-    while line != 'Location:\n':
-      items = line.split(':')
-      params[items[0]] = items[1]
-      line = f.readline()
-
-    # Read next line after 'Location'
-    line = f.readline()
-    while line != '\n':
-      loc = line.split(',')
-      locations.append([float(x) for x in loc])
-      line = f.readline()
-      
-    # These two lines are '\n', and 'Orientation' 
-    line = f.readline()
-    line = f.readline()
-    while line != '':
-      quaternion_entries = line.split(',')
-      orientations.append([float(x) for x in quaternion_entries])
-      line = f.readline()
-      
-  return params, locations, orientations
-  
 
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
-  data_name = 'free-tetrahedron-trajectory-dt-0.1-N-2000-scheme-FIXMAN-tesing.csv'
+  data_name = sys.argv[1]
 
 
   #######
   data_file_name = os.path.join(DATA_DIR, 'tetrahedron', data_name)
   
-  params, locations, orientations = read_trajectory_from_csv(data_file_name)
+  params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
   fig = plt.figure()
   ax = Axes3D(fig) #fig.add_axes([0.1, 0.1, 0.8, 0.8])

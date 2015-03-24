@@ -28,6 +28,7 @@ from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import static_var
 from utils import StreamToLogger
+from utils import write_trajectory_to_txt
 from config_local import DATA_DIR
 
 # Make sure figures folder exists
@@ -435,21 +436,6 @@ def plot_correlation_function_of_mcmc():
   return
 
 
-def write_trajectory_to_csv(file_name, trajectory, params):
-  '''  Write parameters and data to a CSV file. '''
-  with open(file_name, 'w') as f:
-    f.write('Parameters:\n')
-    for key, value in params.items():
-      f.write('%s: %s \n' % (key, value))
-    f.write('Trajectory data:\n')
-    f.write('Location:\n')
-    for x in trajectory[0]:
-      f.write('%s, %s, %s \n' % (x[0], x[1], x[2]))
-    f.write('\n')
-    f.write('Orientation:\n')
-    for x in trajectory[1]:
-      f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
-    
 
 
 if __name__ == '__main__':
@@ -658,15 +644,15 @@ if __name__ == '__main__':
 
   fixman_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('FIXMAN'))
-  write_trajectory_to_csv(fixman_data_file, fixman_trajectory, params)
+  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params)
 
   em_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
-  write_trajectory_to_csv(em_data_file, em_trajectory, params)
+  write_trajectory_to_txt(em_data_file, em_trajectory, params)
 
   rfd_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
-  write_trajectory_to_csv(rfd_data_file, rfd_trajectory, params)
+  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
   
   if args.profile:
     pr.disable()
