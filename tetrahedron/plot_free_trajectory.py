@@ -1,6 +1,5 @@
 ''' Plot animation of the free tetrahedron trajectory. '''
 import cPickle
-import csv
 import matplotlib
 matplotlib.use('TKAgg')
 from matplotlib import pyplot as plt
@@ -15,19 +14,41 @@ import tetrahedron_free as tf
 from quaternion_integrator.quaternion import Quaternion
 from config_local import DATA_DIR
 
+def read_trajectory_from_csv(file_name):
+  ''' Read a trajectory and parameters from a CSV file.'''
+  params = {}
+  locations = []
+  orientations = []
+  with open(file_name, 'r') as f:
+    # First line should be "Parameters:"
+    line = f.readline()
+    while line != 'Location:\n':
+      line = f.readline()
+      items = line.split(':')
+      params[items[0]] = items[1]
+    
+    while line != 'Orientation:\n':
+      line = f.readline()
+      loc = line.split(',')
+      locations.append([float(x) for x in loc])
+
+    while line != '':
+      line = f.readline()
+      quaternion_entries = line.split(',')
+      orienations.append(Quaternion([float(x) for x in quaternion_entries]))
+      
+  return params, locations, orientations
+  
 
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
-  data_file_name = 'free-tetrahedron-trajectory-dt-1.6-N-15000-scheme-RFD-testing.pkl'
+  data_name = 'free-tetrahedron-trajectory-dt-0.1-N-1000-scheme-FIXMAN.csv'
+
 
   #######
-  trajectory_data = dict()
-  with open(os.path.join(
-      DATA_DIR, 'tetrahedron', data_file_name), 'rb') as f:
-    trajectory_data = cPickle.load(f)
-
-  orientations = trajectory_data['orientation']
-  locations = trajectory_data['location']
+  data_file_name = os.path.join(DATA_DIR, 'tetrahedron', data_file_name)
+  
+  params, locations, orientations = read_trajectory_from_csv(data_file_name)
 
   fig = plt.figure()
   ax = Axes3D(fig) #fig.add_axes([0.1, 0.1, 0.8, 0.8])

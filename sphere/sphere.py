@@ -50,3 +50,4 @@ def sphere_mobility(location, orientation):
   fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, ETA, A)
   return fluid_mobility
 
+

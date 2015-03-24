@@ -2,7 +2,9 @@
 A free tetrahedron is allowed to diffuse in a domain with a single
 wall (below the tetrahedron) in the presence of gravity and a quadratic potential
 repelling from the wall.  This script bins the heights of the vertices
-of the tetrahedron for comparison to equilibrium.
+of the tetrahedron for comparison to equilibrium.  It also saves the trajectory
+(3 floats for location, 4 floats for orientation) in a csv file in the 
+DATA_DIR directory from config_local.py.
 '''
 
 import argparse
@@ -433,21 +435,21 @@ def plot_correlation_function_of_mcmc():
   return
 
 
-def create_data_with_parameters(trajectory, dt, n_steps):
-  ''' Create a dictionary to store the data with parameters.'''
-  data_dict = {
-    'dt': dt,
-    'n_steps': n_steps,
-    'location': trajectory[0],
-    'orientation': trajectory[1],
-    'masses': [M1, M2, M3, M4],
-    'eta': ETA,
-    'A': A,
-    'REPULSION_STRENGTH': REPULSION_STRENGTH,
-    'DEBYE_LENGTH': DEBYE_LENGTH,
-    'KT': KT}
-
-  return data_dict
+def write_trajectory_to_csv(file_name, trajectory, params):
+  '''  Write parameters and data to a CSV file. '''
+  with open(file_name, 'w') as f:
+    f.write('Parameters:\n')
+    for key, value in params.items():
+      f.write('%s: %s \n' % (key, value))
+    f.write('Trajectory data:\n')
+    f.write('Location:\n')
+    for x in trajectory[0]:
+      f.write('%s, %s, %s \n' % (x[0], x[1], x[2]))
+    f.write('\n')
+    f.write('Orientation:\n')
+    for x in trajectory[1]:
+      f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
+    
 
 
 if __name__ == '__main__':
@@ -622,9 +624,10 @@ if __name__ == '__main__':
   # Save parameters just in case they're useful in the future.
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
-  height_data['params'] = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
-                           'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
-                           'DEBYE_LENGTH': DEBYE_LENGTH}
+  params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
+             'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
+             'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
+  height_data['params'] = params
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
                         for k in range(len(fixman_heights))])
@@ -638,43 +641,32 @@ if __name__ == '__main__':
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
       dt, n_steps, args.data_name)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.pkl' % (
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.csv' % (
         dt, n_steps, scheme, args.data_name)
       return trajectory_dat_name
   else:
     data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.pkl' % (
+      trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.csv' % (
         dt, n_steps, scheme)
       return trajectory_dat_name
 
+  # Dump height data in a python-specific format to be read by 
+  # Plotting script.
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
 
-  fixman_trajectory_data = create_data_with_parameters(fixman_trajectory, 
-                                                       dt, n_steps)
-
-  rfd_trajectory_data = create_data_with_parameters(rfd_trajectory, 
-                                                    dt, n_steps)
-
-  em_trajectory_data = create_data_with_parameters(em_trajectory, 
-                                                   dt, n_steps)
-
-
   fixman_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('FIXMAN'))
-  with open(fixman_data_file, 'wb') as f:
-    cPickle.dump(fixman_trajectory_data, f)
+  write_trajectory_to_csv(fixman_data_file, fixman_trajectory, params)
 
   em_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
-  with open(em_data_file, 'wb') as f:
-    cPickle.dump(em_trajectory_data, f)
+  write_trajectory_to_csv(em_data_file, em_trajectory, params)
 
   rfd_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
-  with open(rfd_data_file, 'wb') as f:
-    cPickle.dump(rfd_trajectory_data, f)
+  write_trajectory_to_csv(rfd_data_file, rfd_trajectory, params)
   
   if args.profile:
     pr.disable()
