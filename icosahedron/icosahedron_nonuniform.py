@@ -294,13 +294,13 @@ if __name__ == '__main__':
   if len(args.data_name) > 0:
     data_name = './data/nonuniform-icosahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.pkl' % (
+      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
         dt, n_steps, scheme, args.data_name)
       return trajectory_dat_name
   else:
     data_name = './data/nonuniform-icosohedron-dt-%g-N-%d.pkl' % (dt, n_steps)
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s.pkl' % (
+      trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
         dt, n_steps, scheme)
       return trajectory_dat_name
 
