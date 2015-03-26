@@ -204,12 +204,15 @@ def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix,
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
-def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end):
+def calc_msd_data_from_trajectory(locations, orientations, calc_center_function, dt, end,
+                                  burn_in = 0):
   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
   trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.
   params:
-    trajectory-data: dict with orientation (a list of length 3 lists for location)
-         and orientation (a list of length 4 lists representing quaternions)
+    locations: a list of length 3 lists, indication location of the rigid body
+               at each timestep.
+    orientations: a list of length 4 lists, indication entries of a quaternion
+               representing orientation of the rigid body at each timestep.
 
     calc_center_function: a function that given location and orientation
                  (as a quaternion) computes the center of the body (or the point
@@ -217,19 +220,18 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end
 
     dt:  timestep used in this simulation.
     end:  end time to which we calculate MSD.
+    burn_in: how many steps to skip before calculating MSD.  This is 0 by default
+          because we assume that the simulation starts from a sample from the 
+          Gibbs Boltzman distribution.
  '''
-
-  burn_in = 0  # We start from an equilibrium sample, so we don't need burn_in.
-
-  orientations = trajectory_data['orientation']
   trajectory_length = int(end/dt)
-  locations = trajectory_data['location']
   n_steps = len(locations)
+  print_increment = int(n_steps/20)
   average_rotational_msd = np.array([np.zeros((6, 6)) 
                                      for _ in range(trajectory_length)])
   lagged_rotation_trajectory = []
   lagged_location_trajectory = []
-  for k in range(len(locations)):
+  for k in range(n_steps):
     if k > burn_in: 
        orientation = Quaternion(orientations[k])
        lagged_rotation_trajectory.append(orientation.rotation_matrix())
@@ -244,6 +246,8 @@ def calc_msd_data_from_trajectory(trajectory_data, calc_center_function, dt, end
            lagged_location_trajectory[l],
            lagged_rotation_trajectory[l]))
         average_rotational_msd[l] += current_rot_msd
+    if (k % print_increment) == 0:
+       print 'At step %s of %s' % (k, n_steps)
 
   average_rotational_msd = (average_rotational_msd/
                             (n_steps - trajectory_length - burn_in))

@@ -2,7 +2,6 @@
 the free tetrahedron.'''
 
 import argparse
-import cPickle
 import cProfile
 import numpy as np
 import os
@@ -15,6 +14,7 @@ from quaternion_integrator.quaternion import Quaternion
 import tetrahedron_free as tf
 from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
+from utils import read_trajectory_from_txt
 
 def calc_tetrahedron_com(location, orientation):
   ''' Function to get tetrahedron center of mass.'''
@@ -41,25 +41,32 @@ if __name__ == '__main__':
 
   # List files here to process.  They must have the same timestep.
   trajectory_file_names = [
-    'free-tetrahedron-trajectory-dt-1.6-N-10000-scheme-RFD-testing-1.pkl',
-    'free-tetrahedron-trajectory-dt-1.6-N-10000-scheme-RFD-testing-2.pkl',]
+    'free-tetrahedron-trajectory-dt-1.6-N-1000000-scheme-RFD-final-1.txt',
+    'free-tetrahedron-trajectory-dt-1.6-N-1000000-scheme-RFD-final-2.txt',
+    'free-tetrahedron-trajectory-dt-1.6-N-1000000-scheme-RFD-final-3.txt',
+    'free-tetrahedron-trajectory-dt-1.6-N-1000000-scheme-RFD-final-4.txt']
+
   scheme = 'RFD'
   dt = 1.6
-  end = 1000.
-  N = 10000
+  end = 1200.
+  N = 1000000
+  data_name = 'final'
 
   ##########
   msd_runs = []
   for name in trajectory_file_names:
     data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', name)
-    with open(data_file_name) as f:
-      trajectory_data = cPickle.load(f)
     # Check correct timestep.
-    if trajectory_data['dt'] != dt:
+    params, locations, orientations = read_trajectory_from_txt(data_file_name)
+    if (abs(float(params['dt']) - dt) > 1e-7):
       raise Exception('Timestep of data does not match specified timestep.')
-
+    if params['n_steps'] != N:
+      raise Exception('Number of steps in data does not match specified '
+                      'Number of steps.')
+    
     # Calculate MSD data (just an array of MSD at each time.)
-    msd_data = calc_msd_data_from_trajectory(trajectory_data, calc_tetrahedron_com, dt, end)
+    msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                             calc_tetrahedron_com, dt, end)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 
@@ -76,9 +83,10 @@ if __name__ == '__main__':
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])
 
   # Save MSD data with pickle.
-  msd_data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', 
-                                    'tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s.pkl' %
-                                    (dt, N, end, scheme))
+  msd_data_file_name = os.path.join(
+                         tf.DATA_DIR, 'tetrahedron', 
+                         'tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
+                         (dt, N, end, scheme, len(trajectory_file_names), data_name))
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 

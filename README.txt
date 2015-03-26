@@ -17,6 +17,9 @@ and functions used to simulate specific rigid bodies, along with
 scripts to create trajectory data, analyze it, plot results, and
 several tests for each body.
 
+The utils.py file has some functions that are shard among all of the
+different rigid bodies (mostly for analyzing data, etc).
+
 The constrained_integrator and constrained_integrator_test files and
 the files in the cosine_curve folder define objects used for more
 general constrained diffusion, and are somewhat orthogonal to the

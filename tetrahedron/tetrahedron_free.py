@@ -607,12 +607,12 @@ if __name__ == '__main__':
              equilibrium_heights/(n_steps*bin_width)]
 
   height_data = dict()
-gen  # Save parameters just in case they're useful in the future.
+  # Save parameters just in case they're useful in the future.
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
   params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
-             'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
-             'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
+            'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
+            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
   height_data['params'] = params
   height_data['heights'] = heights
   fixman_lengths = max([len(fixman_heights[k]) 
