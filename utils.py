@@ -204,6 +204,7 @@ def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix,
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 
+
 def calc_msd_data_from_trajectory(locations, orientations, calc_center_function, dt, end,
                                   burn_in = 0):
   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
@@ -254,6 +255,39 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
   
   return average_rotational_msd
    
+
+def fft_msd(x, y, end):
+  ''' Calculate scalar MSD between x and yusing FFT. 
+  We want D(tau) = sum(  (x(t+tau) -x(t))*(y(t+tau) - y(t)) )
+  This is computed with
+
+  D(tau) = sum(x(t)y(t)) + sum(x(t+tau)y(t+tau) - sum(x(t)*x(t+tau)
+           - sum(y(t)x(t+tau))
+ 
+  Where the last 2 sums are performed using an FFT.
+  We expect that x and y are the same length.
+
+  THIS IS NOT CURRENTLY USED OR TESTED THOROUGHLY'''
+
+  if len(x) not eq len(y):
+    raise Exception('Length of X and Y are not the same, aborting MSD '
+                    'FFT calculation.')
+  xy_sum_tau = np.cumsum(x[::-1]*y[::-1])[::-1]/np.arange(len(x), 0, -1)
+  xy_sum_t   = np.cumsum(x*y)[::-1]/np.arange(len(x), 0, -1)
+
+  x_fft = np.fft.fft(x)
+  y_fft = np.fft.fft(y)
+  x_fft_xy = np.zeros(len(x))
+  x_fft_yx = np.zeros(len(x))
+  x_fft_xy[1:] = (x_fft[1:])*(y_fft[:0:-1])
+  x_fft_xy[0] = x_fft[0]*y_fft[0]
+  x_fft_yx[1:] = (y_fft[1:])*(x_fft[:0:-1])
+  x_fft_yx[0] = x_fft[0]*y_fft[0]
+  x_ifft_xy = np.fft.ifft(x_fft_xy)/np.arange(len(x), 0, -1)
+  x_ifft_yx = np.fft.ifft(x_fft_yx)/np.arange(len(x), 0, -1)
+  
+  return (xy_sum_tau + xy_sum_t - x_ifft_yx - x_ifft_xy)[:end]
+
       
 def write_trajectory_to_txt(file_name, trajectory, params, location=True):
   '''  Write parameters and data to a text file. '''
