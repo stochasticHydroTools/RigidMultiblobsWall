@@ -269,7 +269,7 @@ def fft_msd(x, y, end):
 
   THIS IS NOT CURRENTLY USED OR TESTED THOROUGHLY'''
 
-  if len(x) not eq len(y):
+  if len(x) != len(y):
     raise Exception('Length of X and Y are not the same, aborting MSD '
                     'FFT calculation.')
   xy_sum_tau = np.cumsum(x[::-1]*y[::-1])[::-1]/np.arange(len(x), 0, -1)

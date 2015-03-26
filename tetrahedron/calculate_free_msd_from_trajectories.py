@@ -1,7 +1,8 @@
 ''' Script to calculate equilibrium MSD from a given trajectory (or trajectories) for
-the free tetrahedron.'''
+the free tetrahedron. Produces a pkl file which can be read by plotting scripts.'''
 
 import argparse
+import cPickle
 import cProfile
 import numpy as np
 import os
@@ -10,6 +11,7 @@ import StringIO
 import sys
 sys.path.append('..')
 
+from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 import tetrahedron_free as tf
 from utils import MSDStatistics
@@ -74,19 +76,14 @@ if __name__ == '__main__':
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
   time = np.arange(0, end, dt)
 
-  params = {}
-  for x in ['masses', 'KT', 'DEBYE_LENGTH', 'REPULSION_STRENGTH',
-    'n_steps', 'dt', 'A', 'eta']:
-    params[x] = trajectory_data[x]
-
   msd_statistics = MSDStatistics(params)
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])
 
   # Save MSD data with pickle.
   msd_data_file_name = os.path.join(
-                         tf.DATA_DIR, 'tetrahedron', 
-                         'tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
-                         (dt, N, end, scheme, len(trajectory_file_names), data_name))
+    '.', 'data'
+    'tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
+    (dt, N, end, scheme, len(trajectory_file_names), data_name))
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
 

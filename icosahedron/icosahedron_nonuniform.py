@@ -280,7 +280,7 @@ if __name__ == '__main__':
   params = {'A': ic.A, 'ETA': ic.ETA, 'VERTEX_A': ic.VERTEX_A, 'M': M, 
             'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
             'DEBYE_LENGTH': ic.DEBYE_LENGTH, 'KT': ic.KT,
-            'DT': dt, 'n_steps': n_steps}
+            'dt': dt, 'n_steps': n_steps}
   height_data['params'] = params
   height_data['heights'] = heights
   height_data['thetas'] = thetas
