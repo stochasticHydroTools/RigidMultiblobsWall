@@ -66,10 +66,13 @@ will be saved in ./tetrahedron/data, ./icosahedron/data, etc. as a
 python specific .pkl file which can be read by corresponding plotting
 scripts.
 
-4)  One now analyzes the scripts to calculate the MSD (new scripts can
+4) One now analyzes the scripts to calculate the MSD (new scripts can
 be made to calculate other quantities of interest from trajectory
-data.)  These scripts are not yet finished, I will update this
-documentation when they are.
+data.) For now, these scripts have hardcoded data files in them to
+analyze, but I will change this in the future.
+
+5) Plotting the analyzed data is done with individual plotting scripts
+located in each folder.   
 
 
 
