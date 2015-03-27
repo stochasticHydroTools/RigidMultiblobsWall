@@ -36,11 +36,16 @@ if __name__ == '__main__':
 
   # List files here to process.  They must have the same timestep.
   trajectory_file_names = [
-    'icosahedron-nonuniform-trajectory-dt-0.5-N-5000-testing-scheme-RFD.pkl']
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-1.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-2.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-3.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-4.pkl']
+    
+
   scheme = 'FIXMAN'
   dt = 0.1
-  end = 1500.
-  N = 2000
+  end = 1200.
+  N = 1000000
 
 
   ##########
