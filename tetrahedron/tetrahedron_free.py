@@ -22,7 +22,6 @@ sys.path.append('..')
 import time
 
 import tetrahedron as tdn
-#import tetrahedron_ext as te
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator

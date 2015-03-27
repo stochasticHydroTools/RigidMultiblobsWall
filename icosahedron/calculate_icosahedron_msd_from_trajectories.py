@@ -1,5 +1,5 @@
 ''' Script to calculate equilibrium MSD from a given trajectory (or trajectories) for
-the nonuniform Icosahedron.'''
+the nonuniform Icosahedron.  Produces a PKL file which is read by plotting scripts.'''
 
 import argparse
 import cPickle
@@ -11,10 +11,12 @@ import StringIO
 import sys
 sys.path.append('..')
 
+from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 import icosahedron_nonuniform as icn
 from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
+from utils import read_trajectory_from_txt
 
 def calc_icosahedron_center(location, orientation):
   ''' Function to get icosahedron center.'''
@@ -36,30 +38,33 @@ if __name__ == '__main__':
 
   # List files here to process.  They must have the same timestep.
   trajectory_file_names = [
-    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-1.pkl',
-    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-2.pkl',
-    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-3.pkl',
-    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-FIXMAN-final-4.pkl']
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-RFD-final-1.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-RFD-final-2.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-RFD-final-3.pkl',
+    'nonuniform-icosahedron-trajectory-dt-0.1-N-1000000-scheme-RFD-final-4.pkl']
     
 
-  scheme = 'FIXMAN'
+  scheme = 'RFD'
   dt = 0.1
   end = 1200.
   N = 1000000
-
+  data_name = 'final'
 
   ##########
   msd_runs = []
   for name in trajectory_file_names:
-    data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', name)
-    with open(data_file_name) as f:
-      trajectory_data = cPickle.load(f)
+    data_file_name = os.path.join(DATA_DIR, 'icosahedron', name)
     # Check correct timestep.
-    if trajectory_data['dt'] != dt:
+    params, locations, orientations = read_trajectory_from_txt(data_file_name)
+    if (abs(float(params['dt']) - dt) > 1e-7):
       raise Exception('Timestep of data does not match specified timestep.')
-
+    if float(params['n_steps']) != N:
+      raise Exception('Number of steps in data does not match specified '
+                      'Number of steps.')
+    
     # Calculate MSD data (just an array of MSD at each time.)
-    msd_data = calc_msd_data_from_trajectory(trajectory_data, calc_tetrahedron_com, dt, end)
+    msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                             calc_icosahedron_center, dt, end)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 
@@ -67,21 +72,17 @@ if __name__ == '__main__':
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
   time = np.arange(0, end, dt)
 
-  params = {}
-  for x in ['masses', 'KT', 'DEBYE_LENGTH', 'REPULSION_STRENGTH',
-    'n_steps', 'dt', 'A', 'eta']:
-    params[x] = trajectory_data[x]
-
   msd_statistics = MSDStatistics(params)
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])
 
   # Save MSD data with pickle.
-  msd_data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', 
-                                    'tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s.pkl' %
-                                    (dt, N, end, scheme))
+  msd_data_file_name = os.path.join(
+    '.', 'data',
+    'icosahedron-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
+    (dt, N, end, scheme, len(trajectory_file_names), data_name))
+
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
-
   
   if args.profile:
     pr.disable()

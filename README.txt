@@ -30,7 +30,7 @@ To use:
 
 1) Define the data where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
-liking. (In the future, any configuration variables will be set in
+liking. (In the future, any additional configuration variables will be set in
 this file.)
 
 2) Some code uses c++ through the Boost Python library for speedup.
@@ -50,8 +50,8 @@ data.  To test this, cd into ./tetrahedron/, and try to run:
    python tetrahedron_free.py -dt 1.0 -N 500 --data-name=testing
 
 You should see a log tracking the progress of this run in
-./tetrahedron/logs, and after it's conclusion, you should have a .txt
-trajectory data file in <DATA_DIR>/tetrahedron.  
+./tetrahedron/logs/, and after its conclusion, you should have a few .txt
+trajectory data file in <DATA_DIR>/tetrahedron/.  
 
 Trajectory data is saved as a list of locations, each of which is 3
 floats printed on a separate line, and orientations, each of which is
@@ -66,10 +66,13 @@ will be saved in ./tetrahedron/data, ./icosahedron/data, etc. as a
 python specific .pkl file which can be read by corresponding plotting
 scripts.
 
-4)  One now analyzes the scripts to calculate the MSD (new scripts can
+4) One now analyzes the scripts to calculate the MSD (new scripts can
 be made to calculate other quantities of interest from trajectory
-data.)  These scripts are not yet finished, I will update this
-documentation when they are.
+data.) For now, these scripts have hardcoded data files in them to
+analyze, but I will change this in the future.
+
+5) Plotting the analyzed data is done with individual plotting scripts
+located in each folder.   
 
 
 
@@ -82,7 +85,10 @@ function which is identical to "boosted_single_wall_fluid_mobility"
 but doesn't use boost (and is somewhat slower).  Replace calls to the
 boosted version with calls to the python version wherever mobility of
 a rigid body is calculated (for example in "force_and_torque_mobility"
-in ./tetrahedron/tetrahedron_free.py)
+in ./tetrahedron/tetrahedron_free.py).  Then remove the 
+"import mobility_ext as me" 
+line from ./fluids/mobility.py and everything should run without having 
+to compile any of the c++ code.
 
 
 
