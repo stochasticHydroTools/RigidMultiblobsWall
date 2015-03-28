@@ -1,5 +1,5 @@
-''' Plot heights data for Icosohedron (and Theta if it exists from
-a nonuniform Icosohedron run). '''
+''' Plot heights data for Icosahedron (and Theta if it exists from
+a nonuniform Icosahedron run). '''
 
 import cPickle
 import numpy as np
@@ -18,7 +18,7 @@ def generate_equilibrium_heights(buckets):
     if x < ic.A:
       distribution.append(0.)
       continue
-    # WARNING: This assumes uniform and nonuniform icosohedrons
+    # WARNING: This assumes uniform and nonuniform icosahedrons
     # have the *same* total mass!!  This must be changed for uniform.
     potential = x*sum(icn.M) + (ic.REPULSION_STRENGTH*np.exp(-1.*(x - ic.A)/
                                                               ic.DEBYE_LENGTH)/
@@ -32,7 +32,7 @@ def generate_equilibrium_heights(buckets):
 def generate_equilibrium_thetas(theta_buckets):
   ''' 
   Generate the equilibrium theta distribution for nonuniform 
-  Icosohedron distribution.
+  Icosahedron distribution.
   '''
   distribution = []
   for theta in theta_buckets:
@@ -47,7 +47,7 @@ def generate_equilibrium_thetas(theta_buckets):
 def plot_heights_and_theta(heights_data):
   ''' Plot height histogram and also theta histogram if the data exists.
   heights_data is a list of height_data dictionaries produced by 
-  the icosohedron.py or icosohedron_nonuniform.py scripts.
+  the icosahedron.py or icosahedron_nonuniform.py scripts.
   It is assumed that the same schemes exist in each of the 
   runs, and the same buckets are used.
   '''
@@ -114,8 +114,8 @@ def plot_heights_and_theta(heights_data):
   pyplot.savefig('./figures/IcosahedronHeightError.pdf')
     
   if write_data:
-    with open('./data/IcosohedronHeightDistribution-data.txt', 'w') as f:
-      f.write('Icosohedron Height PDF data\n')
+    with open('./data/IcosahedronHeightDistribution-data.txt', 'w') as f:
+      f.write('Icosahedron Height PDF data\n')
       f.write('Height Buckets:\n')
       f.write('%s \n' % buckets)
       for k in range(len(average_heights)):
@@ -166,8 +166,8 @@ def plot_heights_and_theta(heights_data):
 
 
   if write_data:
-    with open('./data/IcosohedronThetaDistribution-data.txt', 'w') as f:
-      f.write('Icosohedron Theta PDF data\n')
+    with open('./data/IcosahedronThetaDistribution-data.txt', 'w') as f:
+      f.write('Icosahedron Theta PDF data\n')
       f.write('Theta Buckets:\n')
       #HACK, negated to fix bad bucketing.
       f.write('%s \n' % theta_buckets)
@@ -185,12 +185,12 @@ def plot_heights_and_theta(heights_data):
 if __name__ == '__main__':
 
 
-  data_names = ['nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-1.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-2.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-3.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-4.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-5.pkl',
-                'nonuniform-icosohedron-dt-0.5-N-400000-fixed-heavy-6.pkl']
+  data_names = ['nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-1.pkl',
+                'nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-2.pkl',
+                'nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-3.pkl',
+                'nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-4.pkl',
+                'nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-5.pkl',
+                'nonuniform-icosahedron-dt-0.5-N-400000-fixed-heavy-6.pkl']
   
   heights_data = []
   for file_name in data_names:

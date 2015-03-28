@@ -51,8 +51,9 @@ if __name__ == '__main__':
       connector, = ax.plot([], [], [], 'b-', lw=2)
       connectors[j*3 + k] = connector
 
+
   def init_animation():
-    ''' Initialize 3D animation.'''
+    ''' Initialize 3D animation. '''
     r_vectors = tf.get_free_r_vectors([0., 0., tf.H], Quaternion([1., 0., 0., 0.]))
     blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
                    [r_vectors[k][1] for k in range(len(r_vectors))])

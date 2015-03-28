@@ -1,4 +1,4 @@
-'''  Overwrite masses and make a torque calculator for a non-uniform icosohedron.
+'''  Overwrite masses and make a torque calculator for a non-uniform icosahedron.
 Running this as a script will bin equilibrium heights and theta for plotting.'''
 
 import argparse
@@ -25,16 +25,16 @@ M = [0.0 for _ in range(12)]
 M[11] += 0.5
 
 def nonuniform_torque_calculator(location, orientation):
-  ''' Calculate torque based on a nonuniform icosohedron. '''
-  r_vectors = ic.get_icosohedron_r_vectors(location[0], orientation[0])
+  ''' Calculate torque based on a nonuniform icosahedron. '''
+  r_vectors = ic.get_icosahedron_r_vectors(location[0], orientation[0])
   forces = []
   for mass in M:
     forces += [0., 0., -1.*mass]
-  R = ic.calc_icosohedron_rot_matrix(r_vectors, location[0])
+  R = ic.calc_icosahedron_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
 
 def nonuniform_force_calculator(location, orientation):
-  ''' Force on the Icosohedron center. 
+  ''' Force on the Icosahedron center. 
   args: 
   location:   list of length 1, only entry is a list of
               length 3 with coordinates of tetrahedon "top" vertex.
@@ -54,11 +54,11 @@ def nonuniform_force_calculator(location, orientation):
 @static_var('max_theta_index', 0)
 def bin_height_and_theta(location, orientation, bin_width, height_histogram, 
                          theta_width, theta_hist):
-  ''' Bin the height (of the geometric center) of the icosohedron, and 
+  ''' Bin the height (of the geometric center) of the icosahedron, and 
   theta, the angle between the vector to the heavy blob (last r_vector) 
   and the negative z axis.'''
   # Bin Theta.
-  r_vectors  = ic.get_icosohedron_r_vectors(location, orientation)
+  r_vectors  = ic.get_icosahedron_r_vectors(location, orientation)
   heavy_blob_vector =  (location - r_vectors[-1])
   heavy_blob_vector /= np.linalg.norm(heavy_blob_vector)
   theta = np.arccos(heavy_blob_vector[2])
@@ -80,7 +80,7 @@ def bin_height_and_theta(location, orientation, bin_width, height_histogram,
       print "New maximum Index  %d is beyond histogram length " % idx
   
 
-def generate_nonuniform_icosohedron_equilibrium_sample():
+def generate_nonuniform_icosahedron_equilibrium_sample():
   ''' Generate Equilibrium sample for nonuniform Icosahedron.'''
   while True:
     theta = np.random.normal(0., 1., 4)
@@ -95,7 +95,7 @@ def generate_nonuniform_icosohedron_equilibrium_sample():
 
 def nonuniform_gibbs_boltzmann_distribution(location, orientation):
   ''' Return exp(-U/kT) for the given location and orientation.'''
-  r_vectors = ic.get_icosohedron_r_vectors(location, orientation)
+  r_vectors = ic.get_icosahedron_r_vectors(location, orientation)
 
   # Add gravity to potential.
   U = M[11]*r_vectors[11][2]
@@ -125,7 +125,7 @@ def create_data_with_parameters(trajectory, dt, n_steps):
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of nonuniform '
-                                   'icosohedron with Fixman and RFD '
+                                   'icosahedron with Fixman and RFD '
                                    'schemes, and bin the resulting '
                                    'height and theta distribution.')
   parser.add_argument('-dt', dest='dt', type=float,
@@ -155,7 +155,7 @@ if __name__ == '__main__':
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/nonuniform-icosohedron-dt-%f-N-%d-%s.log' % (
+  log_filename = './logs/nonuniform-icosahedron-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
@@ -169,10 +169,10 @@ if __name__ == '__main__':
   sys.stderr = sl
 
   # Script to run the various integrators on the quaternion.
-  sample = generate_nonuniform_icosohedron_equilibrium_sample()
+  sample = generate_nonuniform_icosahedron_equilibrium_sample()
   initial_location = [sample[0]]
   initial_orientation = [sample[1]]
-  fixman_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
+  fixman_integrator = QuaternionIntegrator(ic.icosahedron_mobility,
                                            initial_orientation, 
                                            nonuniform_torque_calculator, 
                                            has_location=True,
@@ -180,8 +180,8 @@ if __name__ == '__main__':
                                            force_calculator=
                                            nonuniform_force_calculator)
   fixman_integrator.kT = ic.KT
-  fixman_integrator.check_function = ic.icosohedron_check_function
-  rfd_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
+  fixman_integrator.check_function = ic.icosahedron_check_function
+  rfd_integrator = QuaternionIntegrator(ic.icosahedron_mobility,
                                         initial_orientation, 
                                         nonuniform_torque_calculator,
                                         has_location=True,
@@ -189,9 +189,9 @@ if __name__ == '__main__':
                                         force_calculator=
                                         nonuniform_force_calculator)
   rfd_integrator.kT = ic.KT
-  rfd_integrator.check_function = ic.icosohedron_check_function
+  rfd_integrator.check_function = ic.icosahedron_check_function
 
-  em_integrator = QuaternionIntegrator(ic.icosohedron_mobility,
+  em_integrator = QuaternionIntegrator(ic.icosahedron_mobility,
                                        initial_orientation, 
                                        nonuniform_torque_calculator,
                                        has_location=True,
@@ -199,7 +199,7 @@ if __name__ == '__main__':
                                        force_calculator=
                                        nonuniform_force_calculator)
   em_integrator.kT = ic.KT
-  em_integrator.check_function = ic.icosohedron_check_function
+  em_integrator.check_function = ic.icosahedron_check_function
 
   
   # Set up histogram for heights.
@@ -301,7 +301,7 @@ if __name__ == '__main__':
         dt, n_steps, scheme, args.data_name)
       return trajectory_dat_name
   else:
-    data_name = './data/nonuniform-icosohedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    data_name = './data/nonuniform-icosahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
     def generate_trajectory_name(scheme):
       trajectory_dat_name = 'nonuniform-icosahedron-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
         dt, n_steps, scheme)

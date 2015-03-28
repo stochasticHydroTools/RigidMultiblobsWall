@@ -21,8 +21,8 @@ def calculate_zz_msd_at_equilibrium(n_steps):
   ''' Use MC to calculate asymptotic (t -> inf) zz MSD at equilibrium'''
   zz_msd = 0.
   for k in range(n_steps):
-    sample_1 = icn.generate_nonuniform_icosohedron_equilibrium_sample()
-    sample_2 = icn.generate_nonuniform_icosohedron_equilibrium_sample()
+    sample_1 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
+    sample_2 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
     zz_msd += (sample_2[0][2] - sample_1[0][2])**2
 
   zz_msd /= n_steps
@@ -32,7 +32,7 @@ def calculate_zz_msd_at_equilibrium(n_steps):
 def gibbs_boltzmann_distribution(location):
   ''' 
   Return gibbs boltzmann distribution (without normalization)
-  for the icosohedron when center of mass at location. 
+  for the icosahedron when center of mass at location. 
   '''
     # Calculate potential.
   if location[2] > ic.A:
@@ -64,7 +64,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   for k in range(len(height_histogram)):
     h = ic.A + bin_width*(k + 0.5)    
-    mobility = ic.icosohedron_mobility([np.array([0., 0., h])], initial_orientation)
+    mobility = ic.icosahedron_mobility([np.array([0., 0., h])], initial_orientation)
     average_mu += mobility[0, 0]*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     'icosahedron-msd-dt-0.1-N-2000-end-20.0-scheme-RFD-runs-2-tesing.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
-    print 'Icosohedron parameters:'
+    print 'Icosahedron parameters:'
     msd_statistics.print_params()
 
   # HACK, combine 0 and 1 component into parallel.

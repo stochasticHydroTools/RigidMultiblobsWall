@@ -1,4 +1,10 @@
-''' Script to run the Icosohedron and calculate the MSD. '''
+''' Script to run the Icosahedron and calculate the MSD. 
+
+NOTE: This script is deprecated.  It will still generate a
+pkl file with MSD data, but the approach we now prefer is
+to generate a trajectory with icosahedron_nonuniform.py and
+then analyze it with calculate_icosahedron_msd_from_trajectories.py
+'''
 
 import argparse
 import cPickle
@@ -20,7 +26,7 @@ from utils import MSDStatistics
 
 
 
-def calc_icosohedron_msd_from_equilibrium(initial_orientation,
+def calc_icosahedron_msd_from_equilibrium(initial_orientation,
                                           scheme,
                                           dt,
                                           end_time,
@@ -31,7 +37,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
   ''' 
   Do a few long runs, and along the way gather statistics
   about the average rotational Mean Square Displacement 
-  by calculating it from time lagged data.  This is icosohedron specific.
+  by calculating it from time lagged data.  This is icosahedron specific.
   args:
     initial_orientation: list of length 1 quaternion where 
                  the run starts.  This shouldn't effect results.
@@ -39,10 +45,10 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
     dt:  float, timestep used by the integrator.
     end_time: float, how much time to track the evolution of the MSD.
     n_steps:  How many total steps to take.
-    location: initial location of icosohedron.
+    location: initial location of icosahedron.
     n_runs:  How many separate runs to do in order to get std deviation.  
              8 by default.
-    uniform: Whether to use a uniform icosohedron, or one with one heavy marker.
+    uniform: Whether to use a uniform icosahedron, or one with one heavy marker.
   '''
   progress_logger = logging.getLogger('Progress Logger')
   burn_in = int(end_time*4./dt)
@@ -50,15 +56,15 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
   print_increment = n_steps/20
   dim = 6
   if uniform:
-    torque_calculator = ic.icosohedron_torque_calculator
-    force_calculator = ic.icosohedron_force_calculator
+    torque_calculator = ic.icosahedron_torque_calculator
+    force_calculator = ic.icosahedron_force_calculator
   else:
     torque_calculator = icn.nonuniform_torque_calculator
     force_calculator = icn.nonuniform_force_calculator
   progress_logger.info('Starting MSD runs...')
   start = time.time()
   for run in range(n_runs):
-    integrator = QuaternionIntegrator(ic.icosohedron_mobility,
+    integrator = QuaternionIntegrator(ic.icosahedron_mobility,
                                       initial_orientation, 
                                       torque_calculator,
                                       has_location=True,
@@ -66,7 +72,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
                                       force_calculator=
                                       force_calculator)
     integrator.kT = ic.KT
-    integrator.check_function = ic.icosohedron_check_function
+    integrator.check_function = ic.icosahedron_check_function
 
     data_interval = int((end_time/dt)/200.)
     if data_interval == 0:
@@ -96,7 +102,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
         lagged_trajectory = lagged_trajectory[1:]
         lagged_location_trajectory = lagged_location_trajectory[1:]
         for k in range(trajectory_length):
-          current_rot_msd = (calc_total_icosohedron_msd(
+          current_rot_msd = (calc_total_icosahedron_msd(
             lagged_location_trajectory[0],
             lagged_trajectory[0],
             lagged_location_trajectory[k],
@@ -134,7 +140,7 @@ def calc_icosohedron_msd_from_equilibrium(initial_orientation,
   return results
 
 
-def calc_total_icosohedron_msd(initial_location, initial_rotation, 
+def calc_total_icosahedron_msd(initial_location, initial_rotation, 
                                location, rotation):
   ''' 
   Calculate 6x6 MSD from initial location and rotation matrix, 
@@ -156,7 +162,7 @@ def calc_total_icosohedron_msd(initial_location, initial_rotation,
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulations to calculate '
-                                   'icosohedron rotational MSD using the '
+                                   'icosahedron rotational MSD using the '
                                    'Fixman, Random Finite Difference, and '
                                    'Euler-Maruyama schemes at a given '
                                    'timestep')
@@ -170,7 +176,7 @@ if __name__ == '__main__':
   parser.add_argument('-scheme', dest='scheme', type=str, default = 'RFD',
                       help='Which scheme to use. FIXMAN, RFD, or EM.')
   parser.add_argument('-nonuniform', dest='nonuniform', type=bool, default = False,
-                      help='Whether to do the Nonuniform Icosohedron.')
+                      help='Whether to do the Nonuniform Icosahedron.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -197,7 +203,7 @@ if __name__ == '__main__':
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
 
   # Set up logging.
-  log_filename = './logs/icosohedron-rotation-msd-uniform-%s-dt-%f-N-%d-scheme-%s-%s.log' % (
+  log_filename = './logs/icosahedron-rotation-msd-uniform-%s-dt-%f-N-%d-scheme-%s-%s.log' % (
     (not args.nonuniform), dt, n_steps, args.scheme, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
@@ -221,7 +227,7 @@ if __name__ == '__main__':
             'END_TIME': args.end_time}
   msd_statistics = MSDStatistics(params)
 
-  run_data = calc_icosohedron_msd_from_equilibrium(
+  run_data = calc_icosahedron_msd_from_equilibrium(
     initial_orientation,
     scheme,
     dt, 
@@ -233,7 +239,7 @@ if __name__ == '__main__':
   progress_logger.info('Completed equilibrium runs.')
   msd_statistics.add_run(scheme, dt, run_data)
 
-  data_name = './data/icosohedron-msd-uniform-%s-dt-%s-N-%d-scheme-%s-%s.pkl' % (
+  data_name = './data/icosahedron-msd-uniform-%s-dt-%s-N-%d-scheme-%s-%s.pkl' % (
     (not args.nonuniform), dt, n_steps, args.scheme, args.data_name)
 
   with open(data_name, 'wb') as f:

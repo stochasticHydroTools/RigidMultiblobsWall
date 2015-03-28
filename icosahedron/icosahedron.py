@@ -1,4 +1,4 @@
-''' Functions used for the Icosohedron structure near a wall. '''
+''' Functions used for the Icosahedron structure near a wall. '''
 
 import argparse
 import cPickle
@@ -20,7 +20,7 @@ from utils import log_time_progress
 # Parameters
 ETA = 1.0             # Viscosity.
 VERTEX_A = 0.175     # radius of individual vertices
-A = 2.5*VERTEX_A               # 'Radius' of entire Icosohedron.
+A = 2.5*VERTEX_A               # 'Radius' of entire Icosahedron.
 M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 
@@ -38,24 +38,24 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
   os.mkdir(os.path.join(os.getcwd(), 'data'))
 
-def icosohedron_mobility(location, orientation):
+def icosahedron_mobility(location, orientation):
   ''' 
-  Mobility for the rigid icosohedron, return a 6x6 matrix
+  Mobility for the rigid icosahedron, return a 6x6 matrix
   that takes Force + Torque and returns velocity and angular velocity.
   '''
-  r_vectors = get_icosohedron_r_vectors(location[0], orientation[0])
-  return force_and_torque_icosohedron_mobility(r_vectors, location[0])
+  r_vectors = get_icosahedron_r_vectors(location[0], orientation[0])
+  return force_and_torque_icosahedron_mobility(r_vectors, location[0])
 
-def icosohedron_center_mobility(location, orientation):
+def icosahedron_center_mobility(location, orientation):
   ''' 
-  Mobility for the rigid icosohedron, return a 6x6 matrix
+  Mobility for the rigid icosahedron, return a 6x6 matrix
   that takes Force + Torque and returns velocity and angular velocity.
   '''
-  r_vectors = get_icosohedron_center_r_vectors(location[0], orientation[0])
-  return force_and_torque_icosohedron_mobility(r_vectors, location[0])
+  r_vectors = get_icosahedron_center_r_vectors(location[0], orientation[0])
+  return force_and_torque_icosahedron_mobility(r_vectors, location[0])
 
 
-def force_and_torque_icosohedron_mobility(r_vectors, location):
+def force_and_torque_icosahedron_mobility(r_vectors, location):
   '''
   Calculate the mobility: (torque, force) -> (angular velocity, velocity) at position 
   The mobility is equal to the inverse of: 
@@ -63,7 +63,7 @@ def force_and_torque_icosohedron_mobility(r_vectors, location):
     [ R^T M^-1 J,   R^T M^-1 R ]
   where R is 3N x 3 (36 x 3) Rx = r cross x and J is a 3N x 3 matrix with 
   each 3x3 block being the identity.
-  r is the distance from the center vertex of the icosohedron to
+  r is the distance from the center vertex of the icosahedron to
   each other vertex (a length 3N vector).
   M (3N x 3N) is the finite size single wall mobility taken from the
   Swan and Brady paper:
@@ -72,7 +72,7 @@ def force_and_torque_icosohedron_mobility(r_vectors, location):
   Here location is the dereferenced list with 3 entries.
   '''  
   mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, VERTEX_A)
-  rotation_matrix = calc_icosohedron_rot_matrix(r_vectors, location)
+  rotation_matrix = calc_icosahedron_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3) for _ in range(len(r_vectors))])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
@@ -81,8 +81,8 @@ def force_and_torque_icosohedron_mobility(r_vectors, location):
   return total_mobility
 
 
-def get_icosohedron_r_vectors(location, orientation):
-  ''' Get the locations of each individual vertex of the icosohedron. '''
+def get_icosahedron_r_vectors(location, orientation):
+  ''' Get the locations of each individual vertex of the icosahedron. '''
   # These values taken from an IBAMR vertex file. 'Radius' of 
   # Entire structure is ~1.
   initial_setup = [np.array([0.276393, 0.850651, 0.447214]),
@@ -111,8 +111,8 @@ def get_icosohedron_r_vectors(location, orientation):
   return rotated_setup
 
 
-def get_icosohedron_center_r_vectors(location, orientation):
-  ''' Get the locations of each individual vertex of the icosohedron. 
+def get_icosahedron_center_r_vectors(location, orientation):
+  ''' Get the locations of each individual vertex of the icosahedron. 
   Same as above, but now we have a blob in the center '''
   # These values
   # taken from an IBAMR vertex file. 'Radius' of 
@@ -144,12 +144,12 @@ def get_icosohedron_center_r_vectors(location, orientation):
   return rotated_setup
 
 
-def calc_icosohedron_rot_matrix(r_vectors, location):
+def calc_icosahedron_rot_matrix(r_vectors, location):
   ''' 
   Calculate the matrix R, where the i-th 3x3 block of R gives
   (R_i x) = r_i cross x.
   R will be 3N by 3 (36 x 3). The r vectors point from the center
-  of the icosohedron to the other vertices.
+  of the icosahedron to the other vertices.
   '''
   rot_matrix = None
   for k in range(len(r_vectors)):
@@ -166,8 +166,8 @@ def calc_icosohedron_rot_matrix(r_vectors, location):
   return -1.*rot_matrix
 
 
-def icosohedron_force_calculator(location, orientation):
-  ''' Force on the Icosohedron center. 
+def icosahedron_force_calculator(location, orientation):
+  ''' Force on the Icosahedron center. 
   args: 
   location:   list of length 1, only entry is a list of
               length 3 with coordinates of tetrahedon "top" vertex.
@@ -183,20 +183,20 @@ def icosohedron_force_calculator(location, orientation):
   return repulsion + gravity
 
 
-def icosohedron_torque_calculator(location, orientation):
+def icosahedron_torque_calculator(location, orientation):
   ''' For now, approximate torque as zero, which is true for the sphere.'''
   return [0., 0., 0.]
 
 
-def icosohedron_check_function(location, orientation):
-  ''' Check that the Icosohedron is not overlapping the wall. '''
+def icosahedron_check_function(location, orientation):
+  ''' Check that the Icosahedron is not overlapping the wall. '''
   if location[0][2] < A + VERTEX_A:
     return False
   else:
     return True
 
-def generate_icosohedron_equilibrium_sample():
-  '''Generate a sample icosohedron location and orientation according to the 
+def generate_icosahedron_equilibrium_sample():
+  '''Generate a sample icosahedron location and orientation according to the 
   Gibbs Boltzmann distribution.'''
   while True:
     theta = np.random.normal(0., 1., 4)
@@ -222,23 +222,23 @@ def gibbs_boltzmann_distribution(location, orientation):
   return np.exp(-1.*U/KT)
   
 @static_var('max_index', 0)
-def bin_icosohedron_height(location, bin_width, height_histogram):
+def bin_icosahedron_height(location, bin_width, height_histogram):
   ''' Bin the z coordinate of location and add to height_histogram.'''
   idx = int(math.floor((location[2])/bin_width))
   if idx < len(height_histogram):
     height_histogram[idx] += 1
   else:
-    if idx > bin_icosohedron_height.max_index:
-      bin_icosohedron_height.max_index = idx
+    if idx > bin_icosahedron_height.max_index:
+      bin_icosahedron_height.max_index = idx
       print "New maximum Index  %d is beyond histogram length " % idx
 
 
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of Uniform '
-                                   'Icosohedron with Fixman and RFD '
+                                   'Icosahedron with Fixman and RFD '
                                    'schemes, and bin the resulting '
-                                   'height distribution.  Icosohedron is '
+                                   'height distribution.  Icosahedron is '
                                    'affected by gravity, and repulsed from '
                                    'the wall gently.')
   parser.add_argument('-dt', dest='dt', type=float,
@@ -268,7 +268,7 @@ if __name__ == '__main__':
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/icosohedron-dt-%f-N-%d-%s.log' % (
+  log_filename = './logs/icosahedron-dt-%f-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
@@ -284,24 +284,24 @@ if __name__ == '__main__':
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., 1.5]]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
-  fixman_integrator = QuaternionIntegrator(icosohedron_mobility,
+  fixman_integrator = QuaternionIntegrator(icosahedron_mobility,
                                            initial_orientation, 
-                                           icosohedron_torque_calculator, 
+                                           icosahedron_torque_calculator, 
                                            has_location=True,
                                            initial_location=initial_location,
                                            force_calculator=
-                                           icosohedron_force_calculator)
+                                           icosahedron_force_calculator)
   fixman_integrator.kT = KT
-  fixman_integrator.check_function = icosohedron_check_function
-  rfd_integrator = QuaternionIntegrator(icosohedron_mobility,
+  fixman_integrator.check_function = icosahedron_check_function
+  rfd_integrator = QuaternionIntegrator(icosahedron_mobility,
                                            initial_orientation, 
-                                           icosohedron_torque_calculator, 
+                                           icosahedron_torque_calculator, 
                                            has_location=True,
                                            initial_location=initial_location,
                                            force_calculator=
-                                           icosohedron_force_calculator)
+                                           icosahedron_force_calculator)
   rfd_integrator.kT = KT
-  rfd_integrator.check_function = icosohedron_check_function
+  rfd_integrator.check_function = icosahedron_check_function
   
   # Set up histogram for heights.
   bin_width = 1./5.
@@ -313,13 +313,13 @@ if __name__ == '__main__':
   for k in range(n_steps):
     # Fixman step and bin result.
     fixman_integrator.fixman_time_step(dt)
-    bin_icosohedron_height(fixman_integrator.location[0],
+    bin_icosahedron_height(fixman_integrator.location[0],
                            bin_width, 
                            fixman_heights)
 
     # RFD step and bin result.
     rfd_integrator.rfd_time_step(dt)
-    bin_icosohedron_height(rfd_integrator.location[0],
+    bin_icosahedron_height(rfd_integrator.location[0],
                            bin_width, 
                            rfd_heights)
 
@@ -347,9 +347,9 @@ if __name__ == '__main__':
 
   # Optional name for data provided    
   if len(args.data_name) > 0:
-    data_name = './data/icosohedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
+    data_name = './data/icosahedron-dt-%g-N-%d-%s.pkl' % (dt, n_steps, args.data_name)
   else:
-    data_name = './data/icosohedron-dt-%g-N-%d.pkl' % (dt, n_steps)
+    data_name = './data/icosahedron-dt-%g-N-%d.pkl' % (dt, n_steps)
 
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)

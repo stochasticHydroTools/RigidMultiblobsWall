@@ -12,7 +12,14 @@ Evaluate mobility at point with no torque, and take several steps to
 get a curve of MSD(t).  Alternatively calculate the time dependent MSD 
 at equilibrium by doing a long run and calculating MSD from the time 
 lagged trajectory, then average.
+
+
+NOTE: This script is deprecated.  It will still generate a
+pkl file with MSD data, but the approach we now prefer is
+to generate a trajectory with tetrahedron_free.py and
+then analyze it with calculate_free_msd_from_trajectories.py
 '''
+
 import argparse
 import cPickle
 import cProfile
