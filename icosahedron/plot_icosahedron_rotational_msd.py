@@ -75,7 +75,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join(
     'data', 
-    'icosahedron-msd-dt-0.1-N-3000-end-1000.0-scheme-FIXMAN-runs-1-final.pkl')
+    'icosahedron-msd-dt-0.1-N-2000-end-20.0-scheme-RFD-runs-2-tesing.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosohedron parameters:'

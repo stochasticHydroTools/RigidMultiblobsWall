@@ -3,6 +3,9 @@ Quick script to plot rotational msd data from specified pkl files.
 usage: 
   python compare_rotational_msd_data.py rot-msd-data-file-1.pkl
     rot-msd-data-file-2.pkl etc.
+
+Currently configured to compare two different MSD series, one tracking
+Center of Mass, one tracking a single vertex.
 ''' 
 
 import cPickle
@@ -30,7 +33,7 @@ if __name__ == '__main__':
   colors = ['b', 'g', 'r', 'c']
   for k in range(1, len(sys.argv)):
     data_file = sys.argv[k]
-    data_name = os.path.join(tf.DATA_DIR, 'tetrahedron', data_file)
+    data_name = os.path.join('.', 'data', data_file)
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
@@ -68,7 +71,7 @@ if __name__ == '__main__':
 
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.
-                  'k:', label='Mu Parallel CoM')
+                  'k--', label='Mu Parallel CoM')
       pyplot.xlim([0.0, translation_end])
       pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
     elif l == 2:

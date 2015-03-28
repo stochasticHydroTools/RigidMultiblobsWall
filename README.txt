@@ -53,11 +53,18 @@ You should see a log tracking the progress of this run in
 ./tetrahedron/logs/, and after its conclusion, you should have a few .txt
 trajectory data file in <DATA_DIR>/tetrahedron/.  
 
+Note that when running multiple runs to be analyzed for MSD, you
+*MUST* end data-name with a hyphen and an integer, starting at 1 and 
+increasing successively.  e.g. --data-name=heavy-masses-1, 
+--data-name=heavy-masses-2, etc.
+			 
+
 Trajectory data is saved as a list of locations, each of which is 3
 floats printed on a separate line, and orientations, each of which is
 4 floats printed on a separate line.  The timestep 'dt' and number of
 steps is also saved in the data file, to recreate the time for each 
-point in the trajectory.
+point in the trajectory.  This is human readable and could be analyzed
+by other codes if this is convenient.
 
 NOTE: My current approach is to also bin the equilibrium distribution while
 saving the trajectory, since it requires little extra computation and
@@ -68,8 +75,12 @@ scripts.
 
 4) One now analyzes the scripts to calculate the MSD (new scripts can
 be made to calculate other quantities of interest from trajectory
-data.) For now, these scripts have hardcoded data files in them to
-analyze, but I will change this in the future.
+data.)  For now there is a script in ./icosahedron and ./tetrahedron
+which take command line arguments to specify which files to analyze.
+run:
+	python ./icosahedron/calculate_icosahedron_msd_from_trajectories.py --help
+for more details.
+
 
 5) Plotting the analyzed data is done with individual plotting scripts
 located in each folder.   

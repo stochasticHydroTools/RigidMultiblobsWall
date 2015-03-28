@@ -135,8 +135,11 @@ if __name__ == '__main__':
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
-                      'data file.  Useful for multiple runs '
-                      '(--data_name=run-1).')
+                      'data file.  Useful for multiple runs. '
+                      'To analyze multiple runs and compute MSD, you must '
+                      'specify this, and it must end with "-#" '
+                      ' for # starting at 1 and increasing successively. e.g. '
+                      'heavy-masses-1, heavy-masses-2, heavy-masses-3 etc.')
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
                       help='True or False: Do we profile this run or not.')
 

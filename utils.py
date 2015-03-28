@@ -227,6 +227,9 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
  '''
   trajectory_length = int(end/dt)
   n_steps = len(locations)
+  if trajectory_length > n_steps:
+    raise Exception('Trajectory length is longer than the total run. '
+                    'Perform a longer run, or choose a shorter end time.')
   print_increment = int(n_steps/20)
   average_rotational_msd = np.array([np.zeros((6, 6)) 
                                      for _ in range(trajectory_length)])
