@@ -200,7 +200,7 @@ def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix,
     u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
                           np.inner(rot_matrix, e))
     
-  dx = np.array(final_center) - np.array(original_center)
+  dx = final_center - original_center
   displacement = np.concatenate([dx, u_hat])
   return np.outer(displacement, displacement)
 

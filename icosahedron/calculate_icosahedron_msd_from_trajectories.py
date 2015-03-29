@@ -9,6 +9,7 @@ scheme, dt, number of steps, and data-name provided as command line arguments.
 import argparse
 import cPickle
 import cProfile
+import logging
 import numpy as np
 import os
 import pstats
@@ -19,13 +20,15 @@ sys.path.append('..')
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 import icosahedron_nonuniform as icn
-from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
+from utils import log_time_progress
+from utils import MSDStatistics
 from utils import read_trajectory_from_txt
+from utils import StreamToLogger
 
 def calc_icosahedron_center(location, orientation):
   ''' Function to get icosahedron center.'''
-  return location
+  return np.array(location)
 
 
 if __name__ == '__main__':
@@ -69,6 +72,21 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
+
+  # Set up logging
+  # Set up logging.
+  log_filename = './logs/icosahedron-msd-calculation-dt-%f-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
   
   trajectory_file_names = []
   for k in range(1, args.n_runs+1):
@@ -102,6 +120,7 @@ if __name__ == '__main__':
                                              calc_icosahedron_center, dt, end)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
+    print 'Analyzed run ', k, ' of ', args.n_runs
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
