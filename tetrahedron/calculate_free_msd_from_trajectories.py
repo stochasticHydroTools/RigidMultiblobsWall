@@ -4,6 +4,7 @@ the free tetrahedron. Produces a pkl file which can be read by plotting scripts.
 import argparse
 import cPickle
 import cProfile
+import logging
 import numpy as np
 import os
 import pstats
@@ -17,6 +18,7 @@ import tetrahedron_free as tf
 from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
 from utils import read_trajectory_from_txt
+from utils import StreamToLogger
 
 def calc_tetrahedron_com(location, orientation):
   ''' Function to get tetrahedron center of mass.'''
@@ -69,7 +71,22 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
+  trajectory_length = 150
   
+  # Set up logging
+  log_filename = './logs/tetrahedron-msd-calculation-dt-%f-N-%d-%s.log' % (
+    dt, N, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
   trajectory_file_names = []
   for k in range(1, args.n_runs+1):
     if data_name:
@@ -95,13 +112,15 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_tetrahedron_com, dt, end)
+                                             calc_tetrahedron_com, dt, end,
+                                             trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
-  time = np.arange(0, end, dt)
+  data_interval = int(end/dt/trajectory_length)
+  time = np.arange(0, end, dt*data_interval)
 
   msd_statistics = MSDStatistics(params)
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])

@@ -72,9 +72,9 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
+  trajectory_length = 200 # TODO: Make this an input with default = 100
 
   # Set up logging
-  # Set up logging.
   log_filename = './logs/icosahedron-msd-calculation-dt-%f-N-%d-%s.log' % (
     dt, N, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
@@ -101,7 +101,9 @@ if __name__ == '__main__':
 
   # Now read trajectories and calculate MSD.
   msd_runs = []
+  ctr = 0
   for name in trajectory_file_names:
+    ctr += 1
     data_file_name = os.path.join(DATA_DIR, 'icosahedron', name)
     # Check correct timestep.
     params, locations, orientations = read_trajectory_from_txt(data_file_name)
@@ -117,15 +119,18 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_icosahedron_center, dt, end)
+                                             calc_icosahedron_center, dt, end,
+                                             trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
-    print 'Analyzed run ', k, ' of ', args.n_runs
+    print 'Analyzed run ', ctr, ' of ', args.n_runs
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
-  time = np.arange(0, end, dt)
-
+  data_interval = int(end/dt/trajectory_length)
+  if data_interval == 0:
+    data_interval = 1
+  time = np.arange(0, end, dt*data_interval)
   msd_statistics = MSDStatistics(params)
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])
 

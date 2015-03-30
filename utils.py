@@ -204,7 +204,7 @@ def _calc_total_msd_from_matrix_and_center(original_center, original_rotated_e,
 
 
 def calc_msd_data_from_trajectory(locations, orientations, calc_center_function, dt, end,
-                                  burn_in = 0):
+                                  burn_in = 0, trajectory_length = 100):
   ''' Calculate rotational and translational (6x6) MSD matrix given a dictionary of
   trajectory data.  Return a numpy array of 6x6 MSD matrices, one for each time.
   params:
@@ -222,14 +222,20 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
     burn_in: how many steps to skip before calculating MSD.  This is 0 by default
           because we assume that the simulation starts from a sample from the 
           Gibbs Boltzman distribution.
+    trajectory_length:  How many points to keep in the window 0 to end.
+              The code will process every n steps to make the total 
+              number of analyzed points roughly this value.
  '''
-  trajectory_length = int(end/dt)
+  data_interval = int(end/dt/trajectory_length)
+  if data_interval == 0:
+    data_interval = 1
+  print 'data_interval while calculating is', data_interval
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])
   e_3 = np.array([0., 0., 1.])
 
-  if trajectory_length > n_steps:
+  if trajectory_length*data_interval > n_steps:
     raise Exception('Trajectory length is longer than the total run. '
                     'Perform a longer run, or choose a shorter end time.')
   print_increment = int(n_steps/20)
@@ -238,7 +244,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
   lagged_rotation_trajectory = []
   lagged_location_trajectory = []
   for k in range(n_steps):
-    if k > burn_in: 
+    if k > burn_in and (k % data_interval == 0):
        orientation = Quaternion(orientations[k])
        R = orientation.rotation_matrix()
        u_hat = [np.inner(R, e_1),
@@ -260,7 +266,8 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
        print 'At step %s of %s' % (k, n_steps)
 
   average_rotational_msd = (average_rotational_msd/
-                            (n_steps - trajectory_length - burn_in))
+                            (n_steps/data_interval - trajectory_length - 
+                             burn_in/data_interval))
   
   return average_rotational_msd
    

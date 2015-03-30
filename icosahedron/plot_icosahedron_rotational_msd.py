@@ -75,7 +75,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join(
     'data', 
-    'icosahedron-msd-dt-0.1-N-40000-end-200.0-scheme-RFD-runs-2-testing.pkl')
+    'icosahedron-msd-dt-0.1-N-1000000-end-800.0-scheme-RFD-runs-4-final.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosahedron parameters:'
@@ -141,10 +141,10 @@ if __name__ == "__main__":
     ind = [l, l]
     if l in [0, 2]:
       data_name = 'TranslationalMSDComponent.txt'
-      num_err_bars = 60
+      num_err_bars = 120
     elif l == 3:
       data_name = 'RotationalMSDComponent.txt'
-      num_err_bars = 60
+      num_err_bars = 120
     else:
       data_name = None
     plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
