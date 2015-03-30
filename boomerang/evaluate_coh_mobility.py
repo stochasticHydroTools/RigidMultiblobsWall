@@ -15,7 +15,8 @@ def boomerang_coh_mobility(locations, orientations):
   the mobility is calculated using the CoH as the tracking point.
   '''
   r_vectors = bm.get_boomerang_r_vectors(locations[0], orientations[0])
-  dist = 0.707070707
+  #  dist = 0.707070707 # This is from a numerical calculation.
+  dist = 1.16# From the PDF plots.
   coh = (locations[0] + np.cos(np.pi/4.)*(dist/1.575)*r_vectors[0] +
          np.sin(np.pi/4.)*(dist/1.575)*r_vectors[6])
   return bm.force_and_torque_boomerang_mobility(r_vectors, coh)
