@@ -88,7 +88,7 @@ def plot_heights_and_theta(heights_data):
                     yerr=2.*std_heights[k][error_indices])
 
   equilibrium_heights = generate_equilibrium_heights(buckets)
-  pyplot.plot(buckets, equilibrium_heights, 'k-', linewidth=2, 
+  pyplot.plot(buckets, equilibrium_heights, 'k-', linewidth=3, 
               label='Gibbs Boltzmann')
   pyplot.legend(loc='best', prop={'size': 13})
   pyplot.title('PDF of Height distribution of Icosahedron')

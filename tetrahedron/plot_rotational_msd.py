@@ -203,15 +203,17 @@ if __name__ == "__main__":
         #             label=r'Vertex Mobility')
       elif l == 2:
         pyplot.plot([0.0, translation_end],
-                    [zz_msd_com, zz_msd_com], 'k--', label='Asymptotic Perpendicular MSD')
+                    [zz_msd_com, zz_msd_com], 'k--', 
+                    lw=2, label='Asymptotic Perpendicular MSD')
         pyplot.plot([0.0, 200.],
                     [0.0, 200.*2.*tf.KT*mu_perp_com],
-                    'k:', label='Average Perpendicular Mobility')
+                    'k-', label='Average Perpendicular Mobility', lw=2)
         pyplot.xlim([0., translation_end])
         pyplot.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
     if l == 3:
       pyplot.plot([0.0, 350.],
-                  [rot_msd_com, rot_msd_com], 'k--', label='Asymptotic Rotational MSD')
+                  [rot_msd_com, rot_msd_com], 'k--', lw=2, 
+                  label='Asymptotic Rotational MSD')
       pyplot.xlim([0., 350.])
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 11})

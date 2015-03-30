@@ -76,7 +76,7 @@ if __name__ == '__main__':
   # Set up logging
   # Set up logging.
   log_filename = './logs/icosahedron-msd-calculation-dt-%f-N-%d-%s.log' % (
-    dt, n_steps, args.data_name)
+    dt, N, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger

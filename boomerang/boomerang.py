@@ -10,18 +10,23 @@ import sys
 sys.path.append('..')
 
 from fluids import mobility as mb
+from quaternion_integrator.quaternion import Quaternion
 
 # Parameters
 A = 0.2625  # Radius of blobs in um
 ETA = 1.0  # This needs to be changed to match the paper in um, s, etc.
 
-# M = [??/7. for _ in range(7)]  # Figure out masses.
+# Made these up for now.
+M = [0.1/7. for _ in range(7)] 
+KT = 0.2
+REPULSION_STRENGTH = 2.0
+DEBYE_LENGTH = 0.15
 
 
 def boomerang_mobility(locations, orientations):
   ''' 
   Calculate the force and torque mobility for the
-  boomerang.
+  boomerang.  Here location is the cross point.
   '''
   r_vectors = get_boomerang_r_vectors(locations[0], orientations[0])
   return force_and_torque_boomerang_mobility(r_vectors, locations[0])
@@ -52,6 +57,7 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
                                         np.dot(np.linalg.inv(mobility),
                                                J_rot_combined)))
   return total_mobility
+
 
 def get_boomerang_r_vectors(location, orientation):
   '''Get the vectors of the 7 blobs used to discretize the boomerang.
@@ -106,3 +112,75 @@ def calc_rot_matrix(r_vectors, location):
     else:
       rot_matrix = np.concatenate([rot_matrix, block], axis=0)
   return rot_matrix
+
+
+def boomerang_force_calculator(location, orientation):
+  ''' 
+  Calculate force exerted on the boomerang given 
+  it's location and orientation.
+  location - list of length 1 with location of tracking point of 
+             boomerang.
+  orientation - list of length 1 with orientation (as a Quaternion)
+                of boomerang.
+  '''
+  gravity = [0., 0., -1.*sum(M)]
+  h = location[0][2]
+  repulsion = np.array([0., 0., 
+                        (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                         np.exp(-1.*(h - A)/DEBYE_LENGTH)/
+                         ((h - A)**2))])
+  return repulsion + gravity
+
+
+def boomerang_torque_calculator(location, orientation):
+  ''' 
+  Calculate torque based on Boomerang location and orientation.
+  location - list of length 1 with location of tracking point of 
+             boomerang.
+  orientation - list of length 1 with orientation (as a Quaternion)
+                of boomerang.
+  '''
+  r_vectors = get_boomerang_r_vectors(location[0], orientation[0])
+  forces = []
+  for mass in M:
+    forces += [0., 0., -1.*mass]
+  R = calc_rot_matrix(r_vectors, location[0])
+  return np.dot(R.T, forces)
+
+def generate_boomerang_equilibrium_sample():
+  ''' 
+  Use accept-reject to generate a sample
+  with location and orientation from the Gibbs Boltzmann 
+  distribution for the Boomerang.
+  '''
+  while True:
+    theta = np.random.normal(0., 1., 4)
+    orientation = Quaternion(theta/np.linalg.norm(theta))
+    location = [0., 0., np.random.uniform(A, 10.0)]
+    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/7.7e-1
+    if accept_prob > 1.:
+      print 'Accept probability %s is greater than 1' % accept_prob
+    
+    if np.random.uniform(0., 1.) < accept_prob:
+      return [location, orientation]
+
+
+def boomerang_gibbs_boltzmann_distribution(location, orientation):
+  ''' Return exp(-U/kT) for the given location and orientation.'''
+  r_vectors = get_boomerang_r_vectors(location, orientation)
+  # Add gravity to potential.
+  U = 0
+  for k in range(7):
+    U += M[k]*r_vectors[k][2]
+  # Add repulsion to potential.
+  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] -A)/DEBYE_LENGTH)/
+        (location[2] - A))
+
+  return np.exp(-1.*U/KT)
+  
+  
+  
+  
+
+
+  

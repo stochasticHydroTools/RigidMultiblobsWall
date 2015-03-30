@@ -155,13 +155,13 @@ if __name__ == "__main__":
                             num_err_bars=num_err_bars)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
-                  [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-', 
-                  label='Blob Parallel Mobility')
+                  [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-',
+                  lw=2, label='Blob Parallel Mobility')
 #      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
 #                  label='Slope = Icosahedron Mobility')
     if l == 2:
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
-                  label='Icosahedron Asymptotic Perp MSD')
+                  lw=2, label='Icosahedron Asymptotic Perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.*2.*sph.KT*sphere_mobility])
     if l in [3, 4, 5]:
