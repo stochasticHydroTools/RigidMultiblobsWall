@@ -186,22 +186,20 @@ def log_time_progress(elapsed_time, time_units, total_time_units):
                            float(expected_duration))
 
 
-def _calc_total_msd_from_matrix_and_center(original_center, original_rot_matrix, 
-                                       final_center, rot_matrix):
+def _calc_total_msd_from_matrix_and_center(original_center, original_rotated_e, 
+                                       final_center, rotated_e):
   ''' 
   Calculate 6x6 MSD including orientation and location.  This is
   calculated from precomputed center of the tetrahedron and rotation
   matrix data to avoid repeating computation.
   '''
-  u_hat = np.zeros(3)
+  du_hat = np.zeros(3)
   for i in range(3):
-    e = np.zeros(3)
-    e[i] = 1.
-    u_hat += 0.5*np.cross(np.inner(original_rot_matrix, e),
-                          np.inner(rot_matrix, e))
+    du_hat += 0.5*np.cross(original_rotated_e[i],
+                           rotated_e[i])
     
   dx = final_center - original_center
-  displacement = np.concatenate([dx, u_hat])
+  displacement = np.concatenate([dx, du_hat])
   return np.outer(displacement, displacement)
 
 
@@ -227,6 +225,10 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
  '''
   trajectory_length = int(end/dt)
   n_steps = len(locations)
+  e_1 = np.array([1., 0., 0.])
+  e_2 = np.array([0., 1., 0.])
+  e_3 = np.array([0., 0., 1.])
+
   if trajectory_length > n_steps:
     raise Exception('Trajectory length is longer than the total run. '
                     'Perform a longer run, or choose a shorter end time.')
@@ -238,7 +240,11 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
   for k in range(n_steps):
     if k > burn_in: 
        orientation = Quaternion(orientations[k])
-       lagged_rotation_trajectory.append(orientation.rotation_matrix())
+       R = orientation.rotation_matrix()
+       u_hat = [np.inner(R, e_1),
+                np.inner(R, e_2),
+                np.inner(R,e_3)]
+       lagged_rotation_trajectory.append(u_hat)
        lagged_location_trajectory.append(calc_center_function(locations[k], orientation))
     if len(lagged_location_trajectory) > trajectory_length:
       lagged_location_trajectory = lagged_location_trajectory[1:]
