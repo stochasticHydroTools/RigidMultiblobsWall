@@ -47,7 +47,8 @@ H = 3.5     # Initial Distance to wall.
 KT = 0.2    # Temperature
 
 # Masses of particles. g = 1.
-# These below are consistent with Floren's masses.
+# These below are consistent order-wise with Floren's masses 
+# (with the factor of x4 now).
 M4 = 0.005*4.
 M1 = 0.015*4.
 M2 = 0.01*4.

@@ -321,7 +321,7 @@ if __name__ == "__main__":
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/tetrahedron-dt-%d-N-%d-%s.log' % (
+  log_filename = './logs/tetrahedron-dt-%s-N-%d-%s.log' % (
     dt, n_steps, args.data_name)
   progress_logger = logging.getLogger('progress_logger')
   progress_logger.setLevel(logging.INFO)

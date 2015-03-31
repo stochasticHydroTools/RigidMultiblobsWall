@@ -38,7 +38,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
   colors_list = ['b', 'g', 'r']
   symbols_idx = range(0, len(buckets), len(buckets)/5)
   write_data = True
-  error_bars = False  # do we plot error bars?
+  error_bars = True  # do we plot error bars?
 
   # assume smallest dt is last dt.
   small_dt_idx = len(heights_list) - 1
@@ -236,13 +236,14 @@ def check_height_order(heights_list, buckets, names, dts, order):
     pyplot.title('Equilibrium distribution for geometric center, dt=%s' % 
                  (dts[small_dt_idx]))
   else:
-    pyplot.title('Equilibrium Distribution for Particle %s, dt=%s' % 
-                 (particle, dts[small_dt_idx]))
+    pyplot.title('Equilibrium Distribution for Particle %s' % 
+                 (particle))
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
   pyplot.legend(loc = 'best', prop={'size': 13})
   # HACK, set limit = 0.5 for fixed.
   pyplot.xlim([0.5, upper_limit])
+  pyplot.ylim([0., 0.55])
   if particle == 4:
     pyplot.savefig('./figures/EquilibriumDistributionCenter.pdf')
   else:
@@ -255,10 +256,10 @@ if __name__  == '__main__':
   # Check their order.
   # List of lists. Each entry should be a list of names of data
   # files for multiple runs with the same timestep and number of steps.
-  data_files = [['tetrahedron-dt-1.6-N-500000-fixed-1.pkl',
-                 'tetrahedron-dt-1.6-N-500000-fixed-2.pkl',
-                 'tetrahedron-dt-1.6-N-500000-fixed-3.pkl',
-                 'tetrahedron-dt-1.6-N-500000-fixed-4.pkl']]
+  data_files = [['tetrahedron-dt-0.1-N-1000000-final-1.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-2.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-3.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-4.pkl']]
                  
   # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
   #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
@@ -309,7 +310,7 @@ if __name__  == '__main__':
   #                'tetrahedron-dt-2-N-6000000-run-31.pkl',
   #                'tetrahedron-dt-2-N-6000000-run-32.pkl']]
   
-  dts = [1.6]
+  dts = [0.1]
 
   # Free tetrahedron.
   # data_files = [['free-tetrahedron-dt-6.4-N-500000-run-1.pkl',
