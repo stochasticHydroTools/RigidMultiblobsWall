@@ -172,19 +172,22 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
 def log_time_progress(elapsed_time, time_units, total_time_units):
   ''' Write elapsed time and expected duration to progress log.'''
   progress_logger = logging.getLogger('progress_logger')  
-  expected_duration = elapsed_time*total_time_units/time_units
   if elapsed_time > 60.0:
     progress_logger.info('Elapsed Time: %.2f Minutes.' % 
                          (float(elapsed_time/60.)))
   else:
     progress_logger.info('Elapsed Time: %.2f Seconds' % float(elapsed_time))
-  if expected_duration > 60.0:
-    progress_logger.info('Expected Duration: %.2f Minutes.' % 
-                         (float(expected_duration/60.)))
-  else:
+
+  # Report estimated duration.
+  if time_units > 0:
+    expected_duration = elapsed_time*total_time_units/time_units
+    if expected_duration > 60.0:
+      progress_logger.info('Expected Duration: %.2f Minutes.' % 
+                           (float(expected_duration/60.)))
+    else:
       progress_logger.info('Expected Duration: %.2f Seconds' % 
                            float(expected_duration))
-
+      
 
 def _calc_total_msd_from_matrix_and_center(original_center, original_rotated_e, 
                                        final_center, rotated_e):

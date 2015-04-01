@@ -466,7 +466,6 @@ if __name__ == '__main__':
     pr = cProfile.Profile()
     pr.enable()
 
-
   # Get command line parameters
   dt = args.dt
   n_steps = args.n_steps

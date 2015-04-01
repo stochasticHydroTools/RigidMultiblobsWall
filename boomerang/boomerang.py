@@ -3,24 +3,51 @@ Set up the mobility, torque, and force functions for the Boomerang
 from:
 "Chakrabarty et. al - Brownian Motion of Boomerang Colloidal
 Particles"
+
+This file defines several functions needed to simulate
+the boomerang, and contains several parameters for the run.
+
+Running this script will generate a boomerang trajectory
+which can be analyzed with other python scripts in this folder.
 '''
 
+import argparse
+import cProfile
 import numpy as np
+import logging
+import os
+import pstats
+import StringIO
 import sys
 sys.path.append('..')
+import time
 
+
+from config_local import DATA_DIR
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
+from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
+from utils import log_time_progress
+from utils import StreamToLogger
+from utils import write_trajectory_to_txt
+
+# Make sure figures folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
+  os.mkdir(os.path.join(os.getcwd(), 'figures'))
+# Make sure logs folder exists
+if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
+  os.mkdir(os.path.join(os.getcwd(), 'logs'))
+
 
 # Parameters
-A = 0.2625  # Radius of blobs in um
+A = 0.275   # Radius of individual blobs
 ETA = 1.0  # This needs to be changed to match the paper in um, s, etc.
 
 # Made these up for now.
 M = [0.1/7. for _ in range(7)] 
-KT = 0.2
-REPULSION_STRENGTH = 2.0
-DEBYE_LENGTH = 0.15
+KT = 0.3
+REPULSION_STRENGTH = 3.0
+DEBYE_LENGTH = 0.25
 
 
 def boomerang_mobility(locations, orientations):
@@ -178,9 +205,175 @@ def boomerang_gibbs_boltzmann_distribution(location, orientation):
 
   return np.exp(-1.*U/KT)
   
+
+def boomerang_check_function(location, orientation):
+  ''' 
+  Function called after timesteps to check that the boomerang
+  is in a viable location (not through the wall).
+  '''
+  r_vectors = get_boomerang_r_vectors(location[0], orientation[0])
+  for k in range(7):
+    if r_vectors[k][2] < (A + 0.05): 
+      return False
+  return True
   
   
-  
+if __name__ == '__main__':
+  # Get command line arguments.
+  parser = argparse.ArgumentParser(description='Run Simulation of Boomerang '
+                                   'particle with Fixman, EM, and RFD '
+                                   'schemes, and save trajectory.  Boomerang '
+                                   'is affected by gravity and repulsed from '
+                                   'the wall gently.')
+  parser.add_argument('-dt', dest='dt', type=float,
+                      help='Timestep to use for runs.')
+  parser.add_argument('-N', dest='n_steps', type=int,
+                      help='Number of steps to take for runs.')
+  parser.add_argument('--data-name', dest='data_name', type=str,
+                      default='',
+                      help='Optional name added to the end of the '
+                      'data file.  Useful for multiple runs. '
+                      'To analyze multiple runs and compute MSD, you must '
+                      'specify this, and it must end with "-#" '
+                      ' for # starting at 1 and increasing successively. e.g. '
+                      'heavy-masses-1, heavy-masses-2, heavy-masses-3 etc.')
+  parser.add_argument('--profile', dest='profile', type=bool, default=False,
+                      help='True or False: Profile this run or not.')
+
+  args=parser.parse_args()
+  if args.profile:
+    pr = cProfile.Profile()
+    pr.enable()
+
+  # Get command line parameters
+  dt = args.dt
+  n_steps = args.n_steps
+  print_increment = max(int(n_steps/20.), 1)
+
+  # Set up logging.
+  log_filename = './logs/boomerang-dt-%f-N-%d-%s.log' % (
+    dt, n_steps, args.data_name)
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+
+  # Script to run the various integrators on the quaternion.
+  sample = generate_boomerang_equilibrium_sample()
+  initial_location = [sample[0]]
+  initial_orientation = [sample[1]]
+  fixman_integrator = QuaternionIntegrator(boomerang_mobility,
+                                           initial_orientation, 
+                                           boomerang_torque_calculator, 
+                                           has_location=True,
+                                           initial_location=initial_location,
+                                           force_calculator=
+                                           boomerang_force_calculator)
+  fixman_integrator.kT = KT
+  fixman_integrator.check_function = boomerang_check_function
+  rfd_integrator = QuaternionIntegrator(boomerang_mobility,
+                                        initial_orientation, 
+                                        boomerang_torque_calculator, 
+                                        has_location=True,
+                                        initial_location=initial_location,
+                                        force_calculator=
+                                        boomerang_force_calculator)
+  rfd_integrator.kT = KT
+  rfd_integrator.check_function = boomerang_check_function
+  em_integrator = QuaternionIntegrator(boomerang_mobility,
+                                        initial_orientation, 
+                                        boomerang_torque_calculator, 
+                                        has_location=True,
+                                        initial_location=initial_location,
+                                        force_calculator=
+                                        boomerang_force_calculator)
+  em_integrator.kT = KT
+  em_integrator.check_function = boomerang_check_function
+
+  # Lists of location and orientation.
+  fixman_trajectory = [[], []]
+  rfd_trajectory = [[], []]
+  em_trajectory = [[], []]
 
 
-  
+
+  start_time = time.time()
+  for k in range(n_steps):
+    # Fixman step and bin result.
+    fixman_integrator.fixman_time_step(dt)
+    fixman_trajectory[0].append(fixman_integrator.location[0])
+    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
+
+    rfd_integrator.rfd_time_step(dt)
+    rfd_trajectory[0].append(rfd_integrator.location[0])
+    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
+
+    # EM step and bin result.
+    em_integrator.additive_em_time_step(dt)
+    em_trajectory[0].append(em_integrator.location[0])
+    em_trajectory[1].append(em_integrator.orientation[0].entries)
+
+    if k % print_increment == 0:
+      elapsed_time = time.time() - start_time
+      print 'At step %s out of %s' % (k, n_steps)
+      log_time_progress(elapsed_time, k, n_steps)
+      
+
+  elapsed_time = time.time() - start_time
+  if elapsed_time > 60:
+    progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
+                         (float(elapsed_time)/60.))
+  else:
+    progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
+                         float(elapsed_time))
+  progress_logger.info('Fixman Rejection rate: %s' % 
+                       (float(fixman_integrator.rejections)/
+                        float(fixman_integrator.rejections + n_steps)))
+  progress_logger.info('RFD Rejection rate: %s' % 
+                       (float(rfd_integrator.rejections)/
+                        float(rfd_integrator.rejections + n_steps)))
+
+  # Gather parameters to save
+  params = {'A': A, 'ETA': ETA, 'M': M,
+            'REPULSION_STRENGTH': REPULSION_STRENGTH,
+            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
+
+  # Set up naming for data files for trajectories.
+  if len(args.data_name) > 0:
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
+        dt, n_steps, scheme, args.data_name)
+      return trajectory_dat_name
+  else:
+    def generate_trajectory_name(scheme):
+      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
+        dt, n_steps, scheme)
+      return trajectory_dat_name
+
+  fixman_data_file = os.path.join(
+    DATA_DIR, 'boomerang', generate_trajectory_name('FIXMAN'))
+  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params)
+
+  rfd_data_file = os.path.join(
+    DATA_DIR, 'boomerang', generate_trajectory_name('RFD'))
+  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
+
+  em_data_file = os.path.join(
+    DATA_DIR, 'boomerang', generate_trajectory_name('EM'))
+  write_trajectory_to_txt(em_data_file, em_trajectory, params)
+
+  if args.profile:
+    pr.disable()
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()
+
+ 
