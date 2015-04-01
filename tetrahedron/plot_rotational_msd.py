@@ -37,8 +37,8 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   for k in range(n_steps):
     sample = tf.generate_free_equilibrium_sample()
     sample_2 = tf.generate_free_equilibrium_sample()
-    center_1 = sample[0] #tf.get_free_geometric_center(sample[0], sample[1])
-    center_2 = sample_2[0] #tf.get_free_geometric_center(sample_2[0], sample_2[1])
+    center_1 = tf.get_free_geometric_center(sample[0], sample[1])
+    center_2 = tf.get_free_geometric_center(sample_2[0], sample_2[1])
     zz_msd += (center_1[2] - center_2[2])**2.
     rot_matrix_1 = sample[1].rotation_matrix()
     rot_matrix_2 = sample_2[1].rotation_matrix()

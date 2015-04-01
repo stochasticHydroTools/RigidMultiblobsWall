@@ -26,7 +26,7 @@ from utils import plot_time_dependent_msd
 if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
-  label_list = ['bug parallel', 'no bug parallel', 'bug perp', 'no bug perp']
+  label_list = [' bug parallel', ' no bug parallel', ' bug perp', ' no bug perp']
 #  label_list = [' Parallel MSD Vertex', ' Parallel MSD CoM', ' Perpendicular MSD Vertex', 
 #                ' Perpendicular MSD CoM']
   symbol_list = ['o', 'd', 's', '^', '.', '+']
@@ -47,7 +47,7 @@ if __name__ == '__main__':
             msd_statistics.data[scheme][dt][2][j][0][0] = np.sqrt(
               msd_statistics.data[scheme][dt][2][j][0][0]**2 +
               msd_statistics.data[scheme][dt][2][j][1][1]**2)
-      figure_indices = [1, 2, 3, 4, 5, 6]
+      figure_indices = [1, 2, 1, 4, 5, 6]
       for l in range(6):
         ind = [l, l]
         if k == 1:
@@ -65,9 +65,9 @@ if __name__ == '__main__':
   for l in range(6):
     pyplot.figure(figure_indices[l])
     if l in [0, 1]:
-      pyplot.plot([0.0, 150.], 
-                  [0.0, 150.*4.*tf.KT*average_mob_and_friction[0]], 
-                  'k-', label='Mu Parallel Vertex')
+      # pyplot.plot([0.0, 150.], 
+      #             [0.0, 150.*4.*tf.KT*average_mob_and_friction[0]], 
+      #             'k-', label='Mu Parallel Vertex')
 
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.

@@ -1,6 +1,9 @@
 ''' 
 Script to check order of accuracy of a scheme by looking
-at the error in height distribution.  Use data produced by tetrahedron.py.
+at the error in height distribution.  Use data produced by tetrahedron.py
+or tetrahedron_free.py.  For now the data to use is hard coded in this script.
+
+This also produces the Equilibrium distribution plot.
 '''
 import os
 import cPickle
@@ -33,8 +36,6 @@ def check_height_order(heights_list, buckets, names, dts, order):
   of accuracy of the schemes.
   '''
   symbols = ['o', '^', 's', '^', 'x']
-  #HACK no face colors
-#  facecolors_list = ['none', 'g', 'r']
   colors_list = ['b', 'g', 'r']
   symbols_idx = range(0, len(buckets), len(buckets)/5)
   write_data = True
@@ -259,7 +260,11 @@ if __name__  == '__main__':
   data_files = [['tetrahedron-dt-0.1-N-1000000-final-1.pkl',
                  'tetrahedron-dt-0.1-N-1000000-final-2.pkl',
                  'tetrahedron-dt-0.1-N-1000000-final-3.pkl',
-                 'tetrahedron-dt-0.1-N-1000000-final-4.pkl']]
+                 'tetrahedron-dt-0.1-N-1000000-final-4.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-5.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-6.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-7.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-8.pkl']]
                  
   # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
   #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',
