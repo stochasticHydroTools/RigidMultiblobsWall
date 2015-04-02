@@ -5,7 +5,6 @@ Evaluate how the CoH changes with the GB distribution in
 
 import numpy as np
 
-
 import boomerang as bm
 from quaternion_integrator.quaternion import Quaternion
 
@@ -24,6 +23,27 @@ def boomerang_coh_mobility(locations, orientations):
   return bm.force_and_torque_boomerang_mobility(r_vectors, coh)
 
 
+def newtons_method(f, x):
+  ''' 
+  minimize function f by newtons method with
+  initial guess x.
+  '''  
+  tol = 1e-6
+  delta = 1e-7
+  magnitude = 1
+  while magnitude > tol:
+    df_dx = (f(x + delta) - f(x-delta))/(2.*delta)
+    df_2 = (f(x + delta) + f(x-delta) - 2*f(x))/(delta**2)
+    x_new = x - df_dx/df_2
+    magnitude = abs(x - x_new)
+    x = x_new
+
+  print "norm at x is ", f(x)
+  print 'cross norm', f(0.)
+  return x
+  
+  
+
 def find_boomerang_coh():
   '''
   Script to test different lengths for the boomerang and find the CoH
@@ -34,22 +54,47 @@ def find_boomerang_coh():
   Running this gives CoH = 0.70707 from tracking point along
   45 degree line.
   '''
-  location = [0., 0., 1000000.]
+  location = [0., 0., 90000000.]
   orientation = Quaternion([1., 0., 0., 0.])
-  min_norm = 9999999.
-  min_dist = 0.
-  for dist in np.linspace(0.0, 2.0, 1000):
+  def coupling_function(dist):
+    ''' 
+    Calculate norm of coupling at distance dist 
+    from cross point.
+    '''
+    location = [0., 0., 90000000.]
+    orientation = Quaternion([1., 0., 0., 0.])
     r_vectors = bm.get_boomerang_r_vectors(location, orientation)
     tracking_point = location + np.array([np.cos(np.pi/4.)*dist,
                                           np.sin(np.pi/4.)*dist,
                                           0.])
     mobility = bm.force_and_torque_boomerang_mobility(r_vectors, tracking_point)
-    off_diag_norm = np.linalg.norm(mobility[0:2, 5:6])
-    if (off_diag_norm < min_norm):
-      min_norm = off_diag_norm
-      min_dist = dist
-  print 'Norm of coupling at CoH', min_norm
-  return min_dist
+    coupling_norm = np.linalg.norm(mobility[0:2, 5:6])**2
+    return coupling_norm
+
+  coh_dist = newtons_method(coupling_function, 0.0)
+
+  print "coh_dist is ", coh_dist
+  # Compare to theory from Bernal and De La Torre 'Transport Properties and Hydrodynamic Centers
+  # of Rigid Macromolecules with Arbitrary Shapes'
+  r_vectors = bm.get_boomerang_r_vectors(location, orientation)
+  # tracking_point = location + np.array([np.cos(np.pi/4.)*coh_dist,
+  #                                       np.sin(np.pi/4.)*coh_dist,
+  #                                       0.])
+  mobility = bm.force_and_torque_boomerang_mobility(r_vectors, location)
+  resistance = np.linalg.inv(mobility)
+
+  # 2D system. Want coupling between Force_x, Force_y and Torque_z to be 0.
+  # Solve the relevant part of hte system in equation 2 of that paper.
+  rhs = np.array([resistance[5, 0], resistance[5, 1]])
+  coupling_matrix = np.array([[-1.*resistance[1, 0], resistance[0, 0]],
+                              [-1.*resistance[1, 1], resistance[0, 1]]])
+  r_xy = np.dot(np.linalg.inv(coupling_matrix),
+                rhs)
+  print 'r_xy is ', r_xy
+  print 'norm of r_xy is ', np.linalg.norm(r_xy)
+
+
+  return coh_dist
 
 
 
@@ -58,7 +103,7 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 20000
+  n_samples = 100000
 
   cross_norm = 0.
   coh_norm = 0.

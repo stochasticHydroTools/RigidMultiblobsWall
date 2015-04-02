@@ -39,15 +39,23 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
 
-# Parameters
-A = 0.275   # Radius of individual blobs
-ETA = 1.0  # This needs to be changed to match the paper in um, s, etc.
+# Parameters.  Units are um, s, mg.
+A = 0.275   # Radius of individual blobs in um
+ETA = 8.9e-4  # Pa s = kg/(m s) = mg/(um s)
 
+# 0.2 g/cm^3 = 0.0000000002 mg/um^3.  Volume is ~1.0238 um^3.  Include gravity in this.
+TOTAL_MASS = 1.023825*0.0000000002*(9.8*1.e6)
+# Here we have 3 different sets of parameters for mass.  
+#  One is the approximate mass of the boomerang in earth's gravity.
+#  The second is 3 times earth gravity.  The third is 5 times.
+M = [TOTAL_MASS/7. for _ in range(7)] 
+# M = [3*TOTAL_MASS/7. for _ in range(7)]
+# M = [5*TOTAL_MASS/7. for _ in range(7)]
+
+KT = 300.*1.3806488e-5  # T = 300K
 # Made these up for now.
-M = [0.1/7. for _ in range(7)] 
-KT = 0.3
-REPULSION_STRENGTH = 3.0
-DEBYE_LENGTH = 0.25
+REPULSION_STRENGTH = 1.0
+DEBYE_LENGTH = 0.13
 
 
 def boomerang_mobility(locations, orientations):
@@ -89,11 +97,11 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
 def get_boomerang_r_vectors(location, orientation):
   '''Get the vectors of the 7 blobs used to discretize the boomerang.
   
-         1 2 3 4    
-         O-O-O-O
-               O 5
-               O 6
-               O 7
+         7 O  
+         6 O  
+         5 O
+           O-O-O-O
+           4 3 2 1
    
   The location is the location of the Blob at the apex.. 
   Initial configuration is in the
@@ -180,11 +188,13 @@ def generate_boomerang_equilibrium_sample():
   with location and orientation from the Gibbs Boltzmann 
   distribution for the Boomerang.
   '''
+  # Get a rough upper bound on max height.
+  max_height = (KT/sum(M))*6.
   while True:
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion(theta/np.linalg.norm(theta))
-    location = [0., 0., np.random.uniform(A, 10.0)]
-    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/7.7e-1
+    location = [0., 0., np.random.uniform(A, max_height)]
+    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(7.0e-1)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
     

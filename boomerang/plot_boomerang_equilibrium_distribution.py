@@ -4,7 +4,6 @@ distribution and plot it.  This is mostly useful for
 choosing parameters.
 '''
 
-
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
@@ -40,7 +39,7 @@ def bin_arm_tip_difference(location, orientation, heights, bucket_width):
   flat the boomerang stays as it diffuses.
   '''
   r_vectors = bm.get_boomerang_r_vectors(location, orientation)
-  diff = r_vectors[6][2] - location[2]
+  diff = r_vectors[0][2] - location[2]
   idx = int((diff + 1.575)/bucket_width)
   if idx < len(heights):
     heights[idx] += 1
@@ -53,32 +52,47 @@ def bin_arm_tip_difference(location, orientation, heights, bucket_width):
 if __name__ == '__main__':
 
   n_steps = int(sys.argv[1])
+  
+  # Plot different multiples of earth's gravity.
+  factor_list = [1., 3., 7.]
+  original_m = np.array(bm.M)
 
   bin_width = 0.1
-  cross_heights = np.zeros(int(10/bin_width))
-  diff_heights = np.zeros(int(3.15/bin_width))
-  
-  for k in range(n_steps):
-    sample = bm.generate_boomerang_equilibrium_sample()
-    bin_cross_height(sample[0], cross_heights, bin_width)
-    bin_arm_tip_difference(sample[0], sample[1], diff_heights, bin_width)
-
-  cross_heights = cross_heights/n_steps/bin_width
-  diff_heights = diff_heights/n_steps/bin_width
-
+  cross_heights = np.zeros(int(20./bin_width))
+  diff_heights = np.zeros(int(3.3/bin_width))
   buckets_cross = np.arange(0, len(cross_heights))*bin_width
   buckets_diff = np.arange(0, len(diff_heights))*bin_width - 1.575
-  
+  avg_height = 0.
+
+  for factor in factor_list:
+    bm.M = original_m*factor
+    for k in range(n_steps):
+      sample = bm.generate_boomerang_equilibrium_sample()
+      bin_cross_height(sample[0], cross_heights, bin_width)
+      bin_arm_tip_difference(sample[0], sample[1], diff_heights, bin_width)
+      avg_height += sample[0][2]
+    
+    avg_height /= float(n_steps)
+    print 'average height: %s for factor: %s ' % (avg_height, factor)
+    cross_heights = cross_heights/n_steps/bin_width
+    diff_heights = diff_heights/n_steps/bin_width
+
+    plt.figure(1)
+    plt.plot(buckets_cross, cross_heights, label="Earth Mass * %s" % factor)
+    plt.savefig('./figures/BoomerangCrossHeightDistribution.pdf')
+
+    plt.figure(2)
+    plt.plot(buckets_diff, diff_heights,  label="Earth Mass * %s" % factor)
+    plt.savefig('./figures/BoomerangTipDifferenceDistribution.pdf')
+
+    
   plt.figure(1)
-  plt.plot(buckets_cross, cross_heights)
-  plt.savefig('./figures/BoomerangCrossHeightDistribution.pdf')
+  plt.title('PDF of Height of Cross Point of Boomerang')
+  plt.legend(loc='best', prop={'size': 9})
 
   plt.figure(2)
-  plt.plot(buckets_diff, diff_heights)
-  plt.savefig('./figures/BoomerangTipDifferenceDistribution.pdf')
-
-    
-    
+  plt.title('PDF of Height difference btw cross Point and tip')
+  plt.legend(loc='best', prop={'size': 9})
   
   
   
