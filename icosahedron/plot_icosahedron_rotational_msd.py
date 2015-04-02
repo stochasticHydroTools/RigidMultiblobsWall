@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.2-N-700000-sphere-end-1000.pkl')
+                                  'sphere-msd-dt-0.1-N-500000-final.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)

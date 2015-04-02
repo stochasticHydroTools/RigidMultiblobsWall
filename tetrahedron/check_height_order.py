@@ -39,7 +39,7 @@ def check_height_order(heights_list, buckets, names, dts, order):
   colors_list = ['b', 'g', 'r']
   symbols_idx = range(0, len(buckets), len(buckets)/5)
   write_data = True
-  error_bars = True  # do we plot error bars?
+  error_bars = False  # do we plot error bars?
 
   # assume smallest dt is last dt.
   small_dt_idx = len(heights_list) - 1
@@ -264,7 +264,11 @@ if __name__  == '__main__':
                  'tetrahedron-dt-0.1-N-1000000-final-5.pkl',
                  'tetrahedron-dt-0.1-N-1000000-final-6.pkl',
                  'tetrahedron-dt-0.1-N-1000000-final-7.pkl',
-                 'tetrahedron-dt-0.1-N-1000000-final-8.pkl']]
+                 'tetrahedron-dt-0.1-N-1000000-final-8.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-9.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-10.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-11.pkl',
+                 'tetrahedron-dt-0.1-N-1000000-final-12.pkl']]
                  
   # data_files = [['tetrahedron-dt-32-N-6000000-run-1-fixed.pkl',
   #                'tetrahedron-dt-32-N-6000000-run-2-fixed.pkl',

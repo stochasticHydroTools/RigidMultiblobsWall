@@ -15,6 +15,7 @@ def boomerang_coh_mobility(locations, orientations):
   the mobility is calculated using the CoH as the tracking point.
   '''
   r_vectors = bm.get_boomerang_r_vectors(locations[0], orientations[0])
+  #TODO: Read the paper and see how this is calculated.
   dist = 1.16 # From the PDF plots.
   dist = 0.7127 # From numerical calculation
   coh = (locations[0] + 
@@ -33,7 +34,7 @@ def find_boomerang_coh():
   Running this gives CoH = 0.70707 from tracking point along
   45 degree line.
   '''
-  location = [0., 0., 10000.]
+  location = [0., 0., 1000000.]
   orientation = Quaternion([1., 0., 0., 0.])
   min_norm = 9999999.
   min_dist = 0.
@@ -43,11 +44,11 @@ def find_boomerang_coh():
                                           np.sin(np.pi/4.)*dist,
                                           0.])
     mobility = bm.force_and_torque_boomerang_mobility(r_vectors, tracking_point)
-    off_diag_norm = np.linalg.norm(mobility[0:3, 3:6])
+    off_diag_norm = np.linalg.norm(mobility[0:2, 5:6])
     if (off_diag_norm < min_norm):
       min_norm = off_diag_norm
       min_dist = dist
-      
+  print 'Norm of coupling at CoH', min_norm
   return min_dist
 
 
@@ -64,9 +65,9 @@ if __name__ == '__main__':
   for k in range(n_samples):
     sample = bm.generate_boomerang_equilibrium_sample()
     mobility_cross = bm.boomerang_mobility([sample[0]], [sample[1]])
-    cross_norm += np.linalg.norm(mobility_cross[0:3, 3:6])
+    cross_norm += np.linalg.norm(mobility_cross[0:2, 5:6])
     mobility_coh = boomerang_coh_mobility([sample[0]], [sample[1]])
-    coh_norm += np.linalg.norm(mobility_coh[0:3, 3:6])
+    coh_norm += np.linalg.norm(mobility_coh[0:2, 5:6])
     
   coh_norm /= float(n_samples)
   cross_norm /= float(n_samples)
