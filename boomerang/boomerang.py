@@ -223,7 +223,7 @@ def boomerang_check_function(location, orientation):
   '''
   r_vectors = get_boomerang_r_vectors(location[0], orientation[0])
   for k in range(7):
-    if r_vectors[k][2] < (A + 0.05): 
+    if r_vectors[k][2] < (A + 0.02): 
       return False
   return True
   
@@ -239,6 +239,8 @@ if __name__ == '__main__':
                       help='Timestep to use for runs.')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs.')
+  parser.add_argument('-gfactor', dest='gravity_factor', type=float, default=1.0,
+                      help='Factor to increase gravity by.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -255,14 +257,17 @@ if __name__ == '__main__':
     pr = cProfile.Profile()
     pr.enable()
 
+  # Increase gravity
+  M = M*args.gravity_factor
+
   # Get command line parameters
   dt = args.dt
   n_steps = args.n_steps
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/boomerang-dt-%f-N-%d-%s.log' % (
-    dt, n_steps, args.data_name)
+  log_filename = './logs/boomerang-dt-%f-N-%d-g-%s-%s.log' % (
+    dt, n_steps, args.gravity_factor, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -352,18 +357,19 @@ if __name__ == '__main__':
   # Gather parameters to save
   params = {'A': A, 'ETA': ETA, 'M': M,
             'REPULSION_STRENGTH': REPULSION_STRENGTH,
-            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
+            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps,
+            'gfactor': args.gravity_factor}
 
   # Set up naming for data files for trajectories.
   if len(args.data_name) > 0:
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
-        dt, n_steps, scheme, args.data_name)
+      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s-g-%s-%s.txt' % (
+        dt, n_steps, scheme, args.gravity_factor, args.data_name)
       return trajectory_dat_name
   else:
     def generate_trajectory_name(scheme):
-      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
-        dt, n_steps, scheme)
+      trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s-g-%s.txt' % (
+        dt, n_steps, scheme, args.gravity_factor)
       return trajectory_dat_name
 
   fixman_data_file = os.path.join(

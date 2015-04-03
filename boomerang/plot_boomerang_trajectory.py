@@ -77,6 +77,6 @@ if __name__ == '__main__':
     
   
 anim = animation.FuncAnimation(fig, update, init_func=init_animation, 
-                               frames=300, interval=2, blit=True)
-anim.save(os.path.join('figures','boomerang.mp4'), writer='ffmpeg')
+                               frames=800, interval=2, blit=True)
+anim.save(os.path.join('figures','boomerang.mp4'), fps=30, writer='ffmpeg')
 
