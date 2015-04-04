@@ -319,7 +319,7 @@ def write_trajectory_to_txt(file_name, trajectory, params, location=True):
   with open(file_name, 'w') as f:
     f.write('Parameters:\n')
     for key, value in params.items():
-      f.write('%s: %s \n' % (key, value))
+      f.writelines(['%s: %s \n' % (key, value)])
     f.write('Trajectory data:\n')
     if location:
        f.write('Location:\n')
@@ -344,12 +344,23 @@ def read_trajectory_from_txt(file_name, location=True):
     # First line should be "Parameters:"
     line = f.readline()
     line = f.readline()
-    while line != 'Location:\n':
+    while line != 'Trajectory data:\n':
       items = line.split(':')
-      params[items[0]] = items[1]
-      line = f.readline()
+      if items[1].strip()[0] == '[':
+        last_token = items[1].strip()[-1]
+        list_items = items[1].strip()[1:].split('  ')
+        params[items[0]] = list_items
+        while last_token != ']':
+          line = f.readline()
+          list_items = line.strip().split('  ')
+          last_token = list_items[-1].strip()[-1]
+          if last_token == ']':
+            list_items[-1]  = list_items[-1].strip()[:-1]
+          params[items[0]] += list_items
 
-    # Read next line after 'Location'
+      line = f.readline()
+    # Read next line after 'Trajectory data' 'Location'
+    line = f.readline()
     line = f.readline()
     while line != '\n':
       loc = line.split(',')

@@ -258,7 +258,7 @@ if __name__ == '__main__':
     pr.enable()
 
   # Increase gravity
-  M = M*args.gravity_factor
+  M = np.array(M)*args.gravity_factor
 
   # Get command line parameters
   dt = args.dt

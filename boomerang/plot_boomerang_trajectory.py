@@ -30,6 +30,8 @@ if __name__ == '__main__':
   
   params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
+  print 'Parameters are : ', params
+
   fig = plt.figure()
   ax = Axes3D(fig)
   ax.set_xlim3d(x_lim)
