@@ -53,9 +53,10 @@ M = [TOTAL_MASS/7. for _ in range(7)]
 # M = [5*TOTAL_MASS/7. for _ in range(7)]
 
 KT = 300.*1.3806488e-5  # T = 300K
-# Made these up for now.
-REPULSION_STRENGTH = 1.0
-DEBYE_LENGTH = 0.13
+
+# Made these up somewhat arbitrarily
+REPULSION_STRENGTH = 0.75
+DEBYE_LENGTH = 0.2
 
 
 def boomerang_mobility(locations, orientations):
@@ -188,13 +189,14 @@ def generate_boomerang_equilibrium_sample():
   with location and orientation from the Gibbs Boltzmann 
   distribution for the Boomerang.
   '''
+  # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
-  max_height = (KT/sum(M))*6.
+  max_height = (KT/sum(M))*6. + A
   while True:
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion(theta/np.linalg.norm(theta))
     location = [0., 0., np.random.uniform(A, max_height)]
-    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(7.0e-1)
+    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(6.5e-1)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
     
@@ -206,6 +208,10 @@ def boomerang_gibbs_boltzmann_distribution(location, orientation):
   ''' Return exp(-U/kT) for the given location and orientation.'''
   r_vectors = get_boomerang_r_vectors(location, orientation)
   # Add gravity to potential.
+  for k in range(7):
+    if r_vectors[k][2] < A:
+      return 0.0
+
   U = 0
   for k in range(7):
     U += M[k]*r_vectors[k][2]

@@ -54,18 +54,18 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1., 3., 7.]
+  factor_list = [1., 2., 7.]
   original_m = np.array(bm.M)
 
   bin_width = 0.1
-  cross_heights = np.zeros(int(20./bin_width))
+  cross_heights = np.zeros(int(14./bin_width))
   diff_heights = np.zeros(int(3.3/bin_width))
   buckets_cross = np.arange(0, len(cross_heights))*bin_width
   buckets_diff = np.arange(0, len(diff_heights))*bin_width - 1.575
-  avg_height = 0.
 
   for factor in factor_list:
     bm.M = original_m*factor
+    avg_height = 0.
     for k in range(n_steps):
       sample = bm.generate_boomerang_equilibrium_sample()
       bin_cross_height(sample[0], cross_heights, bin_width)
@@ -79,20 +79,21 @@ if __name__ == '__main__':
 
     plt.figure(1)
     plt.plot(buckets_cross, cross_heights, label="Earth Mass * %s" % factor)
-    plt.savefig('./figures/BoomerangCrossHeightDistribution.pdf')
+
 
     plt.figure(2)
     plt.plot(buckets_diff, diff_heights,  label="Earth Mass * %s" % factor)
-    plt.savefig('./figures/BoomerangTipDifferenceDistribution.pdf')
 
     
   plt.figure(1)
   plt.title('PDF of Height of Cross Point of Boomerang')
   plt.legend(loc='best', prop={'size': 9})
+  plt.savefig('./figures/BoomerangCrossHeightDistribution.pdf')
 
   plt.figure(2)
   plt.title('PDF of Height difference btw cross Point and tip')
   plt.legend(loc='best', prop={'size': 9})
+  plt.savefig('./figures/BoomerangTipDifferenceDistribution.pdf')
   
   
   

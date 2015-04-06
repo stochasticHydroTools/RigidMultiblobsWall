@@ -357,7 +357,8 @@ def read_trajectory_from_txt(file_name, location=True):
           if last_token == ']':
             list_items[-1]  = list_items[-1].strip()[:-1]
           params[items[0]] += list_items
-
+      else:
+        params[items[0]] = items[1]
       line = f.readline()
     # Read next line after 'Trajectory data' 'Location'
     line = f.readline()
