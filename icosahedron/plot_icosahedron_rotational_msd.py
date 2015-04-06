@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.1-N-500000-final.pkl')
+                                  'sphere-msd-dt-0.05-N-1000000-final.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -114,14 +114,14 @@ if __name__ == "__main__":
   bin_width = 1./10.
   buckets = np.arange(0, int(20./bin_width))*bin_width + bin_width/2.
   height_histogram = np.zeros(len(buckets))
-  # average_mob_and_friction = calculate_mu_friction_and_height_distribution(
-  #    bin_width, height_histogram)
+  average_mob_and_friction = calculate_mu_friction_and_height_distribution(
+    bin_width, height_histogram)
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
-  average_mob_and_friction = [0.08735]
+#  average_mob_and_friction = [0.08735]
   
-  # zz_msd = calculate_zz_msd_at_equilibrium(10000)
+  zz_msd = calculate_zz_msd_at_equilibrium(10000)
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
-  zz_msd = 0.4557
+  #zz_msd = 0.4557
   
   figure_index = [1, 2, 1, 3, 4, 5]
   label_list = [' Icosahedron Parallel MSD', ' Icosahedron yy MSD', 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='b', 
                             label=sphere_label_list[l], symbol=sphere_style_list[l],
                             data_name = "SphereMSDComponent-%s.txt" % l,
-                            num_err_bars=num_err_bars)
+                            num_err_bars=num_err_bars/4)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
                   [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-',

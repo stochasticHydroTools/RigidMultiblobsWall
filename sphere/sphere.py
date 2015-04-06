@@ -23,7 +23,7 @@ H = 3.5    # Initial Distance from Wall.
 KT = 0.2   # Temperature.
 # Parameters for Yukawa potential
 REPULSION_STRENGTH = 2.0
-DEBYE_LENGTH = 0.25  
+DEBYE_LENGTH = 0.5
 
 def sphere_check_function(location, orientation):
   ''' Check that sphere is not overlapping the wall. '''
