@@ -28,6 +28,7 @@ from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import log_time_progress
+from utils import static_var
 from utils import StreamToLogger
 from utils import write_trajectory_to_txt
 
@@ -41,17 +42,11 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 
 # Parameters.  Units are um, s, mg.
 A = 0.275   # Radius of individual blobs in um
-ETA = 8.9e-4  # Pa s = kg/(m s) = mg/(um s)
+ETA = 8.9e-4  # Water. Pa s = kg/(m s) = mg/(um s)
 
 # 0.2 g/cm^3 = 0.0000000002 mg/um^3.  Volume is ~1.0238 um^3.  Include gravity in this.
 TOTAL_MASS = 1.023825*0.0000000002*(9.8*1.e6)
-# Here we have 3 different sets of parameters for mass.  
-#  One is the approximate mass of the boomerang in earth's gravity.
-#  The second is 3 times earth gravity.  The third is 5 times.
 M = [TOTAL_MASS/7. for _ in range(7)] 
-# M = [3*TOTAL_MASS/7. for _ in range(7)]
-# M = [5*TOTAL_MASS/7. for _ in range(7)]
-
 KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
@@ -183,20 +178,44 @@ def boomerang_torque_calculator(location, orientation):
   R = calc_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
 
+@static_var('normalization_constants', {})
 def generate_boomerang_equilibrium_sample():
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
   distribution for the Boomerang.
+
+  normalization_constants is a dictionary that stores an
+  estimated normalization constant for each value of the sum of mass.
+  
   '''
+  max_height = KT/sum(M)*6.
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
-  max_height = (KT/sum(M))*6. + A
+  norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
+  if sum(M) in norm_constants.keys():
+    normalization_factor = norm_constants[sum(M)]
+  else:
+    # Estimate normalization constant from random samples
+    # and store it.
+    max_normalization = 0.
+    for k in range(500):
+      theta = np.random.normal(0., 1., 4)
+      orientation = Quaternion(theta/np.linalg.norm(theta))
+      location = [0., 0., np.random.uniform(A, max_height)]
+      accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)
+      if accept_prob > max_normalization:
+        max_normalization = accept_prob
+    
+    norm_constants[sum(M)] = max_normalization
+    normalization_factor = max_normalization
+
   while True:
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion(theta/np.linalg.norm(theta))
     location = [0., 0., np.random.uniform(A, max_height)]
-    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(6.5e-1)
+    accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(
+      3.0*normalization_factor)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
     

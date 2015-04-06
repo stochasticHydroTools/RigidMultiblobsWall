@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import sys
 sys.path.append('..')
+import time
 
 import boomerang as bm
 from utils import static_var
@@ -54,15 +55,15 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1., 2., 7.]
+  factor_list = [1., 5., 10.]
   original_m = np.array(bm.M)
 
   bin_width = 0.1
-  cross_heights = np.zeros(int(14./bin_width))
+  cross_heights = np.zeros(int(15./bin_width))
   diff_heights = np.zeros(int(3.3/bin_width))
   buckets_cross = np.arange(0, len(cross_heights))*bin_width
   buckets_diff = np.arange(0, len(diff_heights))*bin_width - 1.575
-
+  start_time = time.time()
   for factor in factor_list:
     bm.M = original_m*factor
     avg_height = 0.
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     plt.figure(2)
     plt.plot(buckets_diff, diff_heights,  label="Earth Mass * %s" % factor)
 
-    
+  print 'time elapsed is ', time.time() - start_time
   plt.figure(1)
   plt.title('PDF of Height of Cross Point of Boomerang')
   plt.legend(loc='best', prop={'size': 9})

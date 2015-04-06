@@ -14,9 +14,8 @@ def boomerang_coh_mobility(locations, orientations):
   the mobility is calculated using the CoH as the tracking point.
   '''
   r_vectors = bm.get_boomerang_r_vectors(locations[0], orientations[0])
-  #TODO: Read the paper and see how this is calculated.
-  dist = 1.16 # From the PDF plots.
-  dist = 0.7127 # From numerical calculation
+  dist = 1.16 # From the PDF plots, but maybe this is to the Corner?
+  dist = 0.80943
   coh = (locations[0] + 
          np.cos(np.pi/4.)*(dist/1.575)*(r_vectors[0] - locations[0]) +
          np.sin(np.pi/4.)*(dist/1.575)*(r_vectors[6] - locations[0]))
@@ -42,7 +41,6 @@ def newtons_method(f, x):
   print 'cross norm', f(0.)
   return x
   
-  
 
 def find_boomerang_coh():
   '''
@@ -51,7 +49,7 @@ def find_boomerang_coh():
   This is just used to find the CoH, and should not be
   used in any of the actual calculations or scripts.
   
-  Running this gives CoH = 0.70707 from tracking point along
+  Running this gives CoH = 0.809431 from tracking point along
   45 degree line.
   '''
   location = [0., 0., 90000000.]
@@ -93,9 +91,7 @@ def find_boomerang_coh():
   print 'r_xy is ', r_xy
   print 'norm of r_xy is ', np.linalg.norm(r_xy)
 
-
   return coh_dist
-
 
 
 if __name__ == '__main__':
@@ -103,7 +99,7 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 100000
+  n_samples = 10000
 
   cross_norm = 0.
   coh_norm = 0.
