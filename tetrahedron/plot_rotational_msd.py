@@ -7,6 +7,9 @@ data-name with increasing numbers, e.g. *-run-1.pkl, *-run-2.pkl
 run:
   python plot_rotational_msd.py -h
 for usage.
+
+THIS SCRIPT IS DEPRECATED SINCE USING TRAJECTORIES TO 
+CALCULATE MSD.
 '''
 import argparse
 import cPickle
@@ -86,6 +89,9 @@ if __name__ == "__main__":
                       help='If true, plot runs that start at one fixed initial '
                       'condition.  If False, plot runs that give equilibrium '
                       'MSD.')
+  parser.add_argument('-end', dest='end', type=float, default=0.0,
+                      help='How far MSD was calculated. Used to grab the correct '
+                      'data file.')
   parser.add_argument('-free', dest='has_location', type=bool,
                       default=True,
                       help='If true, plot runs where Tetrahedron is allowed '
@@ -108,7 +114,7 @@ if __name__ == "__main__":
         average_msd = None
         std_msd = None
         for k in range(args.n_files):
-          data_file = ('rot-msd-initial-%s-location-%s-scheme-%s'
+          data_file = ('tetrahedron-msd-dt-%s-location-%s-scheme-%s'
                        '-dt-%s-N-%s-%s-%s.pkl' % (
                          args.initial, args.has_location, scheme, dt, args.n_steps,
                          args.data_name, k+1))

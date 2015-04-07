@@ -99,7 +99,7 @@ def get_boomerang_r_vectors(location, orientation):
            O-O-O-O
            4 3 2 1
    
-  The location is the location of the Blob at the apex.. 
+  The location is the location of the Blob at the apex.
   Initial configuration is in the
   x-y plane, with  arm 1-2-3  pointing in the positive x direction, and arm
   4-5-6 pointing in the positive y direction.
@@ -179,7 +179,7 @@ def boomerang_torque_calculator(location, orientation):
   return np.dot(R.T, forces)
 
 @static_var('normalization_constants', {})
-def generate_boomerang_equilibrium_sample():
+def generate_boomerang_equilibrium_sample(n_precompute=2000):
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
@@ -199,7 +199,7 @@ def generate_boomerang_equilibrium_sample():
     # Estimate normalization constant from random samples
     # and store it.
     max_normalization = 0.
-    for k in range(500):
+    for k in range(n_precompute):
       theta = np.random.normal(0., 1., 4)
       orientation = Quaternion(theta/np.linalg.norm(theta))
       location = [0., 0., np.random.uniform(A, max_height)]
@@ -215,7 +215,7 @@ def generate_boomerang_equilibrium_sample():
     orientation = Quaternion(theta/np.linalg.norm(theta))
     location = [0., 0., np.random.uniform(A, max_height)]
     accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(
-      3.0*normalization_factor)
+      2.0*normalization_factor)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
     

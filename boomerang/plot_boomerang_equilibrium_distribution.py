@@ -48,6 +48,22 @@ def bin_arm_tip_difference(location, orientation, heights, bucket_width):
     if idx > bin_arm_tip_difference.max_index:
       bin_arm_tip_difference.max_index = idx
       print 'New max index for arm tip difference, %s ' % idx
+
+
+@static_var('max_index', 0)  
+def bin_arm_tip(location, orientation, heights, bucket_width):
+  ''' 
+  Bin the height of the blob at the end of one of the arms.
+  We would like this to stay under 2 for our highest gravity.
+  '''
+  r_vectors = bm.get_boomerang_r_vectors(location, orientation)
+  idx = int((r_vectors[0][2])/bucket_width)
+  if idx < len(heights):
+    heights[idx] += 1
+  else:
+    if idx > bin_arm_tip.max_index:
+      bin_arm_tip.max_index = idx
+      print 'New max index for arm tip: %s ' % idx
   
   
 if __name__ == '__main__':
@@ -55,13 +71,14 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1., 5., 10.]
+  factor_list = [1., 3., 5., 7., 10.]
   original_m = np.array(bm.M)
 
   bin_width = 0.1
   cross_heights = np.zeros(int(15./bin_width))
+  tip_heights = np.zeros(int(15./bin_width))
   diff_heights = np.zeros(int(3.3/bin_width))
-  buckets_cross = np.arange(0, len(cross_heights))*bin_width
+  buckets_cross = np.arange(0, len(cross_heights))*bin_width  # Also for tip.
   buckets_diff = np.arange(0, len(diff_heights))*bin_width - 1.575
   start_time = time.time()
   for factor in factor_list:
@@ -70,12 +87,14 @@ if __name__ == '__main__':
     for k in range(n_steps):
       sample = bm.generate_boomerang_equilibrium_sample()
       bin_cross_height(sample[0], cross_heights, bin_width)
+      bin_arm_tip(sample[0], sample[1], tip_heights, bin_width)
       bin_arm_tip_difference(sample[0], sample[1], diff_heights, bin_width)
       avg_height += sample[0][2]
     
     avg_height /= float(n_steps)
     print 'average height: %s for factor: %s ' % (avg_height, factor)
     cross_heights = cross_heights/n_steps/bin_width
+    tip_heights = tip_heights/n_steps/bin_width
     diff_heights = diff_heights/n_steps/bin_width
 
     plt.figure(1)
@@ -84,6 +103,9 @@ if __name__ == '__main__':
 
     plt.figure(2)
     plt.plot(buckets_diff, diff_heights,  label="Earth Mass * %s" % factor)
+
+    plt.figure(3)
+    plt.plot(buckets_cross, tip_heights,  label="Earth Mass * %s" % factor)
 
   print 'time elapsed is ', time.time() - start_time
   plt.figure(1)
@@ -95,6 +117,11 @@ if __name__ == '__main__':
   plt.title('PDF of Height difference btw cross Point and tip')
   plt.legend(loc='best', prop={'size': 9})
   plt.savefig('./figures/BoomerangTipDifferenceDistribution.pdf')
+
+  plt.figure(3)
+  plt.title('PDF of Height of arm tip of Boomerang')
+  plt.legend(loc='best', prop={'size': 9})
+  plt.savefig('./figures/BoomerangTipHeightDistribution.pdf')
   
   
   
