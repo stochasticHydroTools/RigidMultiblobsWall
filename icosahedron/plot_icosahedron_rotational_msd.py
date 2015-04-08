@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.1-N-1000000-final.pkl')
+                                  'sphere-msd-dt-0.025-N-2000000-final.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
   
   style_list = ['*', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 130.
+  translation_plot_limit = 90.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     plot_time_dependent_msd(sphere_statistics, ind, figure_index[l], color='b', 
                             label=sphere_label_list[l], symbol=sphere_style_list[l],
                             data_name = "SphereMSDComponent-%s.txt" % l,
-                            num_err_bars=num_err_bars/4)
+                            num_err_bars=num_err_bars)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
                   [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-',

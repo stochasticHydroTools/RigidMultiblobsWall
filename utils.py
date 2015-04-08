@@ -5,6 +5,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import os
+import time
 
 from quaternion_integrator.quaternion import Quaternion
 
@@ -229,10 +230,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
               The code will process every n steps to make the total 
               number of analyzed points roughly this value.
  '''
-  data_interval = int(end/dt/trajectory_length)
-  if data_interval == 0:
-    data_interval = 1
-  print 'data_interval while calculating is', data_interval
+  data_interval = int(end/dt/trajectory_length) + 1
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])
@@ -246,6 +244,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
                                      for _ in range(trajectory_length)])
   lagged_rotation_trajectory = []
   lagged_location_trajectory = []
+  start_time = time.time()
   for k in range(n_steps):
     if k > burn_in and (k % data_interval == 0):
        orientation = Quaternion(orientations[k])
@@ -267,6 +266,9 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
         average_rotational_msd[l] += current_rot_msd
     if (k % print_increment) == 0:
        print 'At step %s of %s' % (k, n_steps)
+       print 'For this run, time status is:'
+       elapsed = time.time() - start_time
+       log_time_progress(elapsed, k+1, n_steps)
 
   average_rotational_msd = (average_rotational_msd/
                             (n_steps/data_interval - trajectory_length - 

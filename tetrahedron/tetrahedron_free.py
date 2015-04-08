@@ -608,6 +608,9 @@ if __name__ == '__main__':
              em_heights/(n_steps*bin_width),
              equilibrium_heights/(n_steps*bin_width)]
 
+  print "average fixman velocity", fixman_integrator.avg_velocity/float(n_steps)
+  print "average rfd velocity", rfd_integrator.avg_velocity/float(n_steps)
+
   height_data = dict()
   # Save parameters just in case they're useful in the future.
   # TODO: Make sure you check all parameters when plotting to avoid

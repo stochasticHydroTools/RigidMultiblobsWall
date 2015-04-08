@@ -79,24 +79,11 @@ if __name__ == "__main__":
                       help='Timesteps to plot')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps taken.')
-  parser.add_argument('-files', dest='n_files', type=int, default = None,
-                      help='Number of data files at each step to combine. '
-                      'This assumes that the data files are named *-1.pkl, '
-                      '*-2.pkl, etc.')
   parser.add_argument('-schemes', dest='schemes', type=str, nargs='+',
                       help='Schemes to plot')
-  parser.add_argument('-initial', dest='initial', type=bool, default=False,
-                      help='If true, plot runs that start at one fixed initial '
-                      'condition.  If False, plot runs that give equilibrium '
-                      'MSD.')
   parser.add_argument('-end', dest='end', type=float, default=0.0,
                       help='How far MSD was calculated. Used to grab the correct '
                       'data file.')
-  parser.add_argument('-free', dest='has_location', type=bool,
-                      default=True,
-                      help='If true, plot runs where Tetrahedron is allowed '
-                      'to move.  If False, plot runs where Tetrahedron '
-                      'is fixed.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       help='Name of data runs to plot.  All runs must have '
                       'the same name specified when running '

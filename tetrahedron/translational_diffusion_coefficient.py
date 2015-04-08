@@ -83,15 +83,12 @@ def calculate_average_mu_parallel_and_perpendicular(n_samples):
   calculate the average parallel mobility and friction. 
   Do this with masses equal for comparison to MSD data.
   '''
-#  initial_location = [np.array([0., 0., tf.H])]
-#  initial_orientation = [Quaternion([1., 0., 0., 0.])]
-#  sample = [initial_location[0], initial_orientation[0]]
   average_mu_parallel = 0.0
   average_mu_perp = 0.0
   average_gamma_parallel = 0.0
   for k in range(n_samples):
     sample = tf.generate_free_equilibrium_sample()
-    mobility_sample = tf.free_tetrahedron_mobility([sample[0]], [sample[1]])
+    mobility_sample = tf.free_tetrahedron_com_mobility([sample[0]], [sample[1]])
     average_mu_parallel += mobility_sample[0, 0] + mobility_sample[1, 1]
     average_mu_perp += mobility_sample[2, 2]
     average_gamma_parallel += (1.0/mobility_sample[0, 0] + 

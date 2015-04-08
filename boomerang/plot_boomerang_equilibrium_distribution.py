@@ -71,7 +71,7 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1., 3., 5., 7., 10.]
+  factor_list = [1.,  5., 10.]
   original_m = np.array(bm.M)
 
   bin_width = 0.1
