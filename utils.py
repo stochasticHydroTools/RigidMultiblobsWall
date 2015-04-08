@@ -381,3 +381,10 @@ def read_trajectory_from_txt(file_name, location=True):
   return params, locations, orientations
   
 
+def transfer_mobility(mobility_1, point_1, point_2):
+   '''
+   Calculate mobility at point 2 based on mobility
+   at point_1 of the body.  This calculates the entire 
+   force and torque mobility. 
+   '''
+   pass

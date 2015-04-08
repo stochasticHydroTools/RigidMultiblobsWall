@@ -81,6 +81,9 @@ if __name__ == "__main__":
                       help='Number of steps taken.')
   parser.add_argument('-schemes', dest='schemes', type=str, nargs='+',
                       help='Schemes to plot')
+  parser.add_argument('-n_runs', dest='n_runs', type=str,
+                      help='Number of runs used to calculate MSD. This is '
+                      'used to grab the correct data file.')
   parser.add_argument('-end', dest='end', type=float, default=0.0,
                       help='How far MSD was calculated. Used to grab the correct '
                       'data file.')
@@ -96,39 +99,38 @@ if __name__ == "__main__":
   data_path = os.path.join(os.getcwd(), 'data')
   for dt in args.dts:
     for scheme in args.schemes:
-      if args.n_files:
-        time = None
-        average_msd = None
-        std_msd = None
-        for k in range(args.n_files):
-          data_file = ('tetrahedron-msd-dt-%s-location-%s-scheme-%s'
-                       '-dt-%s-N-%s-%s-%s.pkl' % (
-                         args.initial, args.has_location, scheme, dt, args.n_steps,
-                         args.data_name, k+1))
-          data_name = os.path.join('data', data_file)
-          with open(data_name, 'rb') as f:
-            msd_statistics = cPickle.load(f)
-            msd_statistics.print_params()
-          if time is None:
-            time = msd_statistics.data[scheme][dt][0]
-            average_msd = msd_statistics.data[scheme][dt][1]
-            std_msd = msd_statistics.data[scheme][dt][2]**2
-          else:
-            average_msd += msd_statistics.data[scheme][dt][1]
-            std_msd += msd_statistics.data[scheme][dt][2]**2
+      # if args.n_files:
+      #   time = None
+      #   average_msd = None
+      #   std_msd = None
+      #   for k in range(args.n_files):
+      #     data_file = ('tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s'
+      #                  '-runs-%s-%s.pkl' % (
+      #                    dt, args.n_steps, scheme, dt, args.n_steps,
+      #                    args.data_name, k+1))
+      #     data_name = os.path.join('data', data_file)
+      #     with open(data_name, 'rb') as f:
+      #       msd_statistics = cPickle.load(f)
+      #       msd_statistics.print_params()
+      #     if time is None:
+      #       time = msd_statistics.data[scheme][dt][0]
+      #       average_msd = msd_statistics.data[scheme][dt][1]
+      #       std_msd = msd_statistics.data[scheme][dt][2]**2
+      #     else:
+      #       average_msd += msd_statistics.data[scheme][dt][1]
+      #       std_msd += msd_statistics.data[scheme][dt][2]**2
         
-        average_msd /= float(args.n_files)
-        std_msd = np.sqrt(std_msd)/float(args.n_files)
-        run_data = [time, average_msd, std_msd]
-        if not combined_msd_statistics:
-          combined_msd_statistics = MSDStatistics(msd_statistics.params)
-        print "adding run for dt = %s, scheme = %s" % (dt, scheme)
-        combined_msd_statistics.add_run(scheme, dt, run_data)
-      else:
-        data_file = ('rot-msd-initial-%s-location-%s-scheme-%s'
-                     '-dt-%s-N-%s-%s.pkl' % (
-                       args.initial, args.has_location, scheme, dt, args.n_steps,
-                       args.data_name))
+      #   average_msd /= float(args.n_files)
+      #   std_msd = np.sqrt(std_msd)/float(args.n_files)
+      #   run_data = [time, average_msd, std_msd]
+      #   if not combined_msd_statistics:
+      #     combined_msd_statistics = MSDStatistics(msd_statistics.params)
+      #   print "adding run for dt = %s, scheme = %s" % (dt, scheme)
+      #   combined_msd_statistics.add_run(scheme, dt, run_data)
+      data_file = ('tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s'
+                   'runs-%s-%s.pkl' % (
+          dt, args.n_steps, args.end, scheme,
+          args.n_runs, args.data_name))
         data_name = os.path.join('data', data_file)
         with open(data_name, 'rb') as f:
           msd_statistics = cPickle.load(f)
@@ -149,22 +151,23 @@ if __name__ == "__main__":
           combined_msd_statistics.data[scheme][dt][2][k][0][0]**2 +
           combined_msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
-  if args.has_location:
-#    average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(10000)
-    mu_parallel_com = 0.0711/2.
-    mu_perp_com = 0.0263
-    zz_msd_com = 1.633
-    rot_msd_com = 0.167
+#  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(10000)
+  # Pre computed values for the current tetrahedron free parameters.
+  # Hard coded here to avoid re-calculation every time we change the plot.
+  mu_parallel_com = 0.0711/2.
+  mu_perp_com = 0.0263
+  zz_msd_com = 1.633
+  rot_msd_com = 0.167
     
-    mu_parallel_center = 0.0711/2.
-    mu_perp_center = 0.0263
-    zz_msd_center = 1.52
-    rot_msd_center = 0.169
+  mu_parallel_center = 0.0711/2.
+  mu_perp_center = 0.0263
+  zz_msd_center = 1.52
+  rot_msd_center = 0.169
 
-    mu_parallel_vertex = 0.117/2.
-    mu_perp_vertex = 0.0487
-    zz_msd_vertex = 2.517
-    rot_msd_vertex = 0.167956760304
+  mu_parallel_vertex = 0.117/2.
+  mu_perp_vertex = 0.0487
+  zz_msd_vertex = 2.517
+  rot_msd_vertex = 0.167956760304
     
 
 #    average_mob_and_friction = [0.0740687433/2., 0., 0.027025]

@@ -41,17 +41,17 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 
 
 # Parameters.  Units are um, s, mg.
-A = 0.275   # Radius of individual blobs in um
+A = 0.2625   # Radius of blobs in um
 ETA = 8.9e-4  # Water. Pa s = kg/(m s) = mg/(um s)
 
 # 0.2 g/cm^3 = 0.0000000002 mg/um^3.  Volume is ~1.0238 um^3.  Include gravity in this.
 TOTAL_MASS = 1.023825*0.0000000002*(9.8*1.e6)
-M = [TOTAL_MASS/7. for _ in range(7)] 
+M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH = 0.75
-DEBYE_LENGTH = 0.2
+REPULSION_STRENGTH = 0.03
+DEBYE_LENGTH = 0.15
 
 
 def boomerang_mobility(locations, orientations):
@@ -59,7 +59,7 @@ def boomerang_mobility(locations, orientations):
   Calculate the force and torque mobility for the
   boomerang.  Here location is the cross point.
   '''
-  r_vectors = get_boomerang_r_vectors(locations[0], orientations[0])
+  r_vectors = get_boomerang_r_vectors_15(locations[0], orientations[0])
   return force_and_torque_boomerang_mobility(r_vectors, locations[0])
 
 
@@ -82,7 +82,7 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
   '''  
   mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_rot_matrix(r_vectors, location)
-  J = np.concatenate([np.identity(3) for _ in range(7)])
+  J = np.concatenate([np.identity(3) for _ in range(len(r_vectors))])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
   total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
                                         np.dot(np.linalg.inv(mobility),
@@ -113,6 +113,91 @@ def get_boomerang_r_vectors(location, orientation):
                            np.array([0., 0.525, 0.]),
                            np.array([0., 1.05, 0.]),
                            np.array([0., 1.575, 0.])]
+
+  rotation_matrix = orientation.rotation_matrix()
+  rotated_configuration = []
+  for vec in initial_configuration:
+    rotated_configuration.append(np.dot(rotation_matrix, vec)
+                                 + np.array(location))
+
+  return rotated_configuration
+
+def get_boomerang_r_vectors_15(location, orientation):
+  '''Get the vectors of the 15 blobs used to discretize the boomerang.
+ 
+        14 O
+        13 O
+        12 O
+        11 O
+        10 O  
+         9 O  
+         8 O
+           O-O-O-O-O-O-O-O
+           7 6 5 4 3 2 1 0
+   
+  The location is the location of the Blob at the apex.
+  Initial configuration is in the
+  x-y plane, with  arm 0-1-2-3-4-5-6  pointing in the positive x direction, and 
+  arm 8-9-10-11-12-13-14 pointing in the positive y direction.
+  Seperation between blobs is currently hard coded at 0.3, which
+  gives a distance of 2.1 from the tip (last blob + 0.25) to the edge of 
+  the cross point blob. (2.1)/7. = 0.3
+  '''
+  initial_configuration = [np.array([2.1, 0., 0.]),
+                           np.array([1.8, 0., 0.]),
+                           np.array([1.5, 0., 0.]),
+                           np.array([1.2, 0., 0.]),
+                           np.array([0.9, 0., 0.]),
+                           np.array([0.6, 0., 0.]),
+                           np.array([0.3, 0., 0.]),
+                           np.array([0., 0., 0.]),
+                           np.array([0., 0.3, 0.]),
+                           np.array([0., 0.6, 0.]),
+                           np.array([0., 0.9, 0.]),
+                           np.array([0., 1.2, 0.]),
+                           np.array([0., 1.5, 0.]),
+                           np.array([0., 1.8, 0.]),
+                           np.array([0., 2.1, 0.])]
+
+  rotation_matrix = orientation.rotation_matrix()
+  rotated_configuration = []
+  for vec in initial_configuration:
+    rotated_configuration.append(np.dot(rotation_matrix, vec)
+                                 + np.array(location))
+
+  return rotated_configuration
+
+
+def get_boomerang_r_vectors_11(location, orientation):
+  '''Get the vectors of the 11 blobs used to discretize the boomerang.
+ 
+        10 O  
+         9 O  
+         8 O
+         7 O
+         6 O
+           O-O-O-O-O-O
+           5 4 3 2 1 0
+   
+  The location is the location of the Blob at the apex.
+  Initial configuration is in the
+  x-y plane, with  arm 0-1-2-3-4  pointing in the positive x direction, and 
+  arm 6-7-8-9-10 pointing in the positive y direction.
+  Seperation between blobs is currently hard coded at 0.42, which
+  gives a distance of 2.1 from the tip (last blob + 0.25) to the edge of 
+  the cross point blob. (2.1)/5. = 0.42
+  '''
+  initial_configuration = [np.array([2.1, 0., 0.]),
+                           np.array([1.68, 0., 0.]),
+                           np.array([1.26, 0., 0.]),
+                           np.array([0.84, 0., 0.]),
+                           np.array([0.42, 0., 0.]),
+                           np.array([0., 0., 0.]),
+                           np.array([0., 0.42, 0.]),
+                           np.array([0., 0.84, 0.]),
+                           np.array([0., 1.26, 0.]),
+                           np.array([0., 1.68, 0.]),
+                           np.array([0., 2.1, 0.])]
 
   rotation_matrix = orientation.rotation_matrix()
   rotated_configuration = []
@@ -155,8 +240,11 @@ def boomerang_force_calculator(location, orientation):
                 of boomerang.
   '''
   gravity = [0., 0., -1.*sum(M)]
-  h = location[0][2]
-  repulsion = np.array([0., 0., 
+  r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
+  repulsion = 0.
+  for k in range(len(r_vectors)):
+    h = r_vectors[k][2]    
+    repulsion += np.array([0., 0., 
                         (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
                          np.exp(-1.*(h - A)/DEBYE_LENGTH)/
                          ((h - A)**2))])
@@ -171,15 +259,24 @@ def boomerang_torque_calculator(location, orientation):
   orientation - list of length 1 with orientation (as a Quaternion)
                 of boomerang.
   '''
-  r_vectors = get_boomerang_r_vectors(location[0], orientation[0])
+  r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
   forces = []
-  for mass in M:
-    forces += [0., 0., -1.*mass]
+  for k in range(len(r_vectors)):
+    gravity = -1.*M[k]
+    h = r_vectors[k][2]
+    repulsion = (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
+                 np.exp(-1.*(h - A)/DEBYE_LENGTH)/
+                 ((h - A)**2))
+    forces += [0., 0., repulsion + gravity]
+
   R = calc_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
 
+
+
+
 @static_var('normalization_constants', {})
-def generate_boomerang_equilibrium_sample(n_precompute=2000):
+def generate_boomerang_equilibrium_sample(g=1, n_precompute=50000):
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
@@ -189,7 +286,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=2000):
   estimated normalization constant for each value of the sum of mass.
   
   '''
-  max_height = KT/sum(M)*6.
+  max_height = KT/sum(M)*8.
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
   norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
@@ -215,7 +312,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=2000):
     orientation = Quaternion(theta/np.linalg.norm(theta))
     location = [0., 0., np.random.uniform(A, max_height)]
     accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(
-      2.0*normalization_factor)
+      2.5*normalization_factor)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
     
@@ -225,18 +322,18 @@ def generate_boomerang_equilibrium_sample(n_precompute=2000):
 
 def boomerang_gibbs_boltzmann_distribution(location, orientation):
   ''' Return exp(-U/kT) for the given location and orientation.'''
-  r_vectors = get_boomerang_r_vectors(location, orientation)
+  r_vectors = get_boomerang_r_vectors_15(location, orientation)
   # Add gravity to potential.
-  for k in range(7):
+  for k in range(len(r_vectors)):
     if r_vectors[k][2] < A:
       return 0.0
-
   U = 0
-  for k in range(7):
+  for k in range(len(r_vectors)):
     U += M[k]*r_vectors[k][2]
-  # Add repulsion to potential.
-  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] -A)/DEBYE_LENGTH)/
-        (location[2] - A))
+    h = r_vectors[k][2]
+    # Add repulsion to potential.
+    U += (REPULSION_STRENGTH*np.exp(-1.*(h -A)/DEBYE_LENGTH)/
+          (h-A))
 
   return np.exp(-1.*U/KT)
   
@@ -246,8 +343,8 @@ def boomerang_check_function(location, orientation):
   Function called after timesteps to check that the boomerang
   is in a viable location (not through the wall).
   '''
-  r_vectors = get_boomerang_r_vectors(location[0], orientation[0])
-  for k in range(7):
+  r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
+  for k in range(len(r_vectors)):
     if r_vectors[k][2] < (A + 0.02): 
       return False
   return True
