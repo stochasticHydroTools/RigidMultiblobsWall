@@ -24,6 +24,9 @@ A = 2.5*VERTEX_A               # 'Radius' of entire Icosahedron.
 M = [0.1/12. for _ in range(12)]  #Masses of particles
 KT = 0.2              # Temperature
 
+# Effective hydrodynamic radius.
+EFFECTIVE_A = 0.5
+
 # Repulsion potential paramters.  Using Yukawa potential.
 REPULSION_STRENGTH = 2.0
 DEBYE_LENGTH = 0.5

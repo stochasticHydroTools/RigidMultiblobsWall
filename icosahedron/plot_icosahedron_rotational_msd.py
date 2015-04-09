@@ -35,11 +35,11 @@ def gibbs_boltzmann_distribution(location):
   for the icosahedron when center of mass at location. 
   '''
     # Calculate potential.
-  if location[2] > ic.A:
+  if location[2] > ic.EFFECTIVE_A:
     # HACK, this is ICN now.
     U = sum(icn.M)*location[2]
-    U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.A)/ic.DEBYE_LENGTH)/
-          (location[2] - ic.A))
+    U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.EFFECTIVE_A)/ic.DEBYE_LENGTH)/
+          (location[2] - ic.EFFECTIVE_A))
   else:
     return 0.0
   return np.exp(-1.*U/ic.KT)  
@@ -51,7 +51,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   TODO: Make this use trapezoidal rule.
   '''
   for k in range(len(height_histogram)):
-    h = ic.A + bin_width*(k + 0.5)
+    h = ic.EFFECTIVE_A + bin_width*(k + 0.5)
     height_histogram[k] = gibbs_boltzmann_distribution([0., 0., h])
   
   # Normalize to get ~PDF.
@@ -63,7 +63,7 @@ def calculate_mu_friction_and_height_distribution(bin_width, height_histogram):
   # distribution.
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   for k in range(len(height_histogram)):
-    h = ic.A + bin_width*(k + 0.5)    
+    h = ic.EFFECTIVE_A + bin_width*(k + 0.5)    
     mobility = ic.icosahedron_mobility([np.array([0., 0., h])], initial_orientation)
     average_mu += mobility[0, 0]*height_histogram[k]*bin_width
     average_gamma += height_histogram[k]*bin_width/mobility[0, 0]
@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.025-N-2000000-final.pkl')
+                                  'sphere-msd-dt-0.01-N-3000000-final.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -132,11 +132,11 @@ if __name__ == "__main__":
                        ' Blob perpendicular MSD', 
                        ' Blob Rotational MSD', ' Blob Rotational MSD',
                        ' Blob Rotational MSD']
-  sphere_mobility = 0.08653
+  sphere_mobility = 0.17963
   
   style_list = ['*', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 90.
+  translation_plot_limit = 120.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:
@@ -155,15 +155,15 @@ if __name__ == "__main__":
                             num_err_bars=num_err_bars)
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
-                  [0.0, translation_plot_limit*2.*2.*sph.KT*sphere_mobility], 'k-',
+                  [0.0, translation_plot_limit*2.*sph.KT*sphere_mobility], 'k-',
                   lw=2, label='Blob Parallel Mobility')
-#      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*ic.KT], 'k--',
+#      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*2.*ic.KT], 'k--', lw=2,
 #                  label='Slope = Icosahedron Mobility')
     if l == 2:
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
                   lw=2, label='Icosahedron Asymptotic Perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
-      pyplot.ylim([0., translation_plot_limit*2.*2.*sph.KT*sphere_mobility])
+      pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
     if l in [3, 4, 5]:
       pyplot.xlim([0., 150.])
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')

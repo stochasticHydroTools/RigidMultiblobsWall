@@ -23,6 +23,7 @@ from utils import write_trajectory_to_txt
 
 M = [0.0 for _ in range(12)]
 M[11] += 0.5
+EFFECTIVE_A = 0.5
 
 def nonuniform_torque_calculator(location, orientation):
   ''' Calculate torque based on a nonuniform icosahedron. '''
@@ -44,9 +45,9 @@ def nonuniform_force_calculator(location, orientation):
   gravity = [0., 0., -1.*sum(M)]
   h = location[0][2]
   repulsion = np.array([0., 0., 
-                        (ic.REPULSION_STRENGTH*((h - ic.A)/ic.DEBYE_LENGTH + 1)*
-                         np.exp(-1.*(h - ic.A)/ic.DEBYE_LENGTH)/
-                         ((h - ic.A)**2))])
+                        (ic.REPULSION_STRENGTH*((h - EFFECTIVE_A)/ic.DEBYE_LENGTH + 1)*
+                         np.exp(-1.*(h - EFFECTIVE_A)/ic.DEBYE_LENGTH)/
+                         ((h - EFFECTIVE_A)**2))])
   return repulsion + gravity
 
 
@@ -85,7 +86,7 @@ def generate_nonuniform_icosahedron_equilibrium_sample():
   while True:
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion(theta/np.linalg.norm(theta))
-    location = [0., 0., np.random.uniform(ic.A, 20.0)]
+    location = [0., 0., np.random.uniform(EFFECTIVE_A, 20.0)]
     accept_prob = nonuniform_gibbs_boltzmann_distribution(location, orientation)/2.5e-2
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
@@ -100,8 +101,8 @@ def nonuniform_gibbs_boltzmann_distribution(location, orientation):
   # Add gravity to potential.
   U = M[11]*r_vectors[11][2]
   # Add repulsion to potential.
-  U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - ic.A)/ic.DEBYE_LENGTH)/
-        (location[2] - ic.A))
+  U += (ic.REPULSION_STRENGTH*np.exp(-1.*(location[2] - EFFECTIVE_A)/ic.DEBYE_LENGTH)/
+        (location[2] - EFFECTIVE_A))
   return np.exp(-1.*U/ic.KT)
 
 
@@ -118,6 +119,7 @@ def create_data_with_parameters(trajectory, dt, n_steps):
     'VERTEX_A': ic.VERTEX_A,
     'REPULSION_STRENGTH': ic.REPULSION_STRENGTH,
     'DEBYE_LENGTH': ic.DEBYE_LENGTH,
+    'EFFECTIVE_A': EFFECTIVE_A,
     'KT': ic.KT}
 
   return data_dict  
