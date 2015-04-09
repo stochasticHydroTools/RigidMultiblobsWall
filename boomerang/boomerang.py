@@ -63,6 +63,20 @@ def boomerang_mobility(locations, orientations):
   return force_and_torque_boomerang_mobility(r_vectors, locations[0])
 
 
+def boomerang_mobility_at_arbitrary_point(locations, orientations, point):
+  '''
+  Calculate the force and torque mobility for the
+  boomerang.  Here location is the cross point, but point is 
+  some other arbitrary point.  
+
+  The returned mobility is the (force, torque) -> (velocity, angular
+  velocity) mobility for forces applied to <point>, torques about
+  <point>, and the resulting velocity of <point>
+  '''
+  r_vectors = get_boomerang_r_vectors_15(locations[0], orientations[0])
+  return force_and_torque_boomerang_mobility(r_vectors, point)
+
+
 def force_and_torque_boomerang_mobility(r_vectors, location):
   '''
   Calculate the mobility: (torque, force) -> (angular velocity, velocity) at position 

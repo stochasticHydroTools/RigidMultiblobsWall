@@ -382,9 +382,71 @@ def read_trajectory_from_txt(file_name, location=True):
   
 
 def transfer_mobility(mobility_1, point_1, point_2):
-   '''
-   Calculate mobility at point 2 based on mobility
-   at point_1 of the body.  This calculates the entire 
-   force and torque mobility. 
-   '''
-   pass
+  '''
+  Calculate mobility at point 2 based on mobility
+  at point_1 of the body.  This calculates the entire 
+  force and torque mobility. 
+  args:
+    mobility_1:  mobility matrix (force, torque) -> 
+            (velocity, angular velocity) evaluated at point_1.
+    point_1:  3 dimensional point where mobility_1 is evaluated.
+    point_2:  3 dimensional point where we want to know the mobility
+  returns:
+    mobility_2: The mobility matrix evaluated at point_2.
+
+   This uses formula (10) and (11) from:
+  "Bernal, De La Torre - Transport Properties and Hydrodynamic Centers 
+   of Rigid Macromolecules with Arbitrary Shapes"
+  '''
+  r = np.array(point_1) - np.array(point_2)
+  mobility_2 = np.zeros([6, 6])
+  # Rotational mobility is the same.
+  mobility_2[3:6, 3:6] = mobility_1[3:6, 3:6]
+  
+  mobility_2[3:6, 0:3] = mobility_1[3:6, 0:3]
+  mobility_2[3:6, 0:3] += tensor_cross_vector(mobility_1[3:6, 3:6], r)
+
+  mobility_2[0:3, 3:6] = mobility_2[3:6, 0:3].T
+
+  # Start with point 1 translation.
+  mobility_2[0:3, 0:3] = mobility_1[0:3, 0:3]
+
+  # Add coupling block transpose cross r.
+  mobility_2[0:3, 0:3] += tensor_cross_vector(mobility_1[0:3, 3:6 ], r)
+
+  # Subtract r cross coupling block.
+  mobility_2[0:3, 0:3] -= vector_cross_tensor(r, mobility_1[3:6, 0:3])
+
+  # Subtract r cross D_r cross r
+  mobility_2[0:3, 0:3] -= vector_cross_tensor(
+    r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
+
+  return mobility_2
+
+
+def tensor_cross_vector(T, v):
+  ''' 
+  Tensor cross vector from De La Torre paper.
+  Assume T is 3x3 and v is length 3
+  '''
+  result = np.zeros([3,  3])
+  
+  for k in range(3):
+    for l in range(3):
+      result[k, l] = (T[k, (l+1) % 3]*v[(l - 1) % 3] - 
+                      T[k, (l-1) % 3]*v[(l + 1) % 3])
+  return result
+   
+   
+def vector_cross_tensor(v, T):
+  ''' 
+  vector cross trensor from De La Torre paper.
+  Assume T is 3x3 and v is length 3
+  '''
+  result = np.zeros([3,  3])
+  for k in range(3):
+    for l in range(3):
+      result[k, l] = (T[(k-1) % 3, l]*v[(k + 1) % 3] - 
+                      T[(k+1) % 3, l]*v[(k - 1) % 3])
+  return result
+   
