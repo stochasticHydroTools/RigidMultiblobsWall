@@ -18,7 +18,7 @@ from quaternion_integrator.quaternion import Quaternion
 import tetrahedron_free as tf
 from utils import MSDStatistics
 from utils import calc_msd_data_from_trajectory
-from utils import read_trajectory_from_txt
+from utils import read_trajectory_from_txt_old
 from utils import StreamToLogger
 
 def calc_tetrahedron_com(location, orientation):
@@ -116,7 +116,7 @@ if __name__ == '__main__':
   for name in trajectory_file_names:
     data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', name)
     # Check correct timestep.
-    params, locations, orientations = read_trajectory_from_txt(data_file_name)
+    params, locations, orientations = read_trajectory_from_txt_old(data_file_name)
     if (abs(float(params['dt']) - dt) > 1e-7):
       raise Exception('Timestep of data does not match specified timestep.')
     if int(params['n_steps']) != N:

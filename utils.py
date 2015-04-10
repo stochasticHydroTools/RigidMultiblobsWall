@@ -264,11 +264,11 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
            lagged_location_trajectory[l],
            lagged_rotation_trajectory[l]))
         average_rotational_msd[l] += current_rot_msd
-    if (k % print_increment) == 0:
+    if (k % print_increment) == 0 and k > 0:
        print 'At step %s of %s' % (k, n_steps)
        print 'For this run, time status is:'
        elapsed = time.time() - start_time
-       log_time_progress(elapsed, k+1, n_steps)
+       log_time_progress(elapsed, k, n_steps)
 
   average_rotational_msd = (average_rotational_msd/
                             (n_steps/data_interval - trajectory_length - 

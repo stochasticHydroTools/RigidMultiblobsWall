@@ -87,6 +87,11 @@ if __name__ == "__main__":
   parser.add_argument('-end', dest='end', type=float, default=0.0,
                       help='How far MSD was calculated. Used to grab the correct '
                       'data file.')
+  parser.add_argument('-location', dest='has_location', type=bool, default=True,
+                      help='Is this MSD a 6x6 (including location).  If false, '
+                      'specify -location "".  This '
+                      'indicates that the MSD is 3x3 (just roational). '
+                      'WARNING: FALSE IS CURRENTLY UNUSED AND UNTESTED.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       help='Name of data runs to plot.  All runs must have '
                       'the same name specified when running '
@@ -127,20 +132,20 @@ if __name__ == "__main__":
       #     combined_msd_statistics = MSDStatistics(msd_statistics.params)
       #   print "adding run for dt = %s, scheme = %s" % (dt, scheme)
       #   combined_msd_statistics.add_run(scheme, dt, run_data)
-      data_file = ('tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s'
+      data_file = ('tetrahedron-msd-dt-%s-N-%s-end-%s-scheme-%s-'
                    'runs-%s-%s.pkl' % (
           dt, args.n_steps, args.end, scheme,
           args.n_runs, args.data_name))
-        data_name = os.path.join('data', data_file)
-        with open(data_name, 'rb') as f:
-          msd_statistics = cPickle.load(f)
-          msd_statistics.print_params()
-        if not combined_msd_statistics:
-          combined_msd_statistics = msd_statistics
-        else:
-          combined_msd_statistics.add_run(scheme, dt, msd_statistics.data[scheme][dt])
+      data_name = os.path.join('data', data_file)
+      with open(data_name, 'rb') as f:
+        msd_statistics = cPickle.load(f)
+        msd_statistics.print_params()
+      if not combined_msd_statistics:
+        combined_msd_statistics = msd_statistics
+      else:
+        combined_msd_statistics.add_run(scheme, dt, msd_statistics.data[scheme][dt])
 
-  # HACK, add xx and yy to get translational data
+  # Add xx and yy to get translational data (D parallel).
   for scheme in combined_msd_statistics.data:
     for dt in combined_msd_statistics.data[scheme]:
       for k in range(len(combined_msd_statistics.data[scheme][dt][1])):
@@ -180,10 +185,12 @@ if __name__ == "__main__":
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
   translation_end = 2300.0
+  rotation_end = 500.
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(combined_msd_statistics, ind, figure_numbers[l],
-                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
+                            error_indices=[0, 2, 3], 
+                            # label=labels[l], symbol=styles[l],
                             num_err_bars=40)
     pyplot.figure(figure_numbers[l])
     if args.has_location:
@@ -207,10 +214,10 @@ if __name__ == "__main__":
         pyplot.xlim([0., translation_end])
         pyplot.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
     if l == 3:
-      pyplot.plot([0.0, 350.],
+      pyplot.plot([0.0, rotation_end],
                   [rot_msd_com, rot_msd_com], 'k--', lw=2, 
                   label='Asymptotic Rotational MSD')
-      pyplot.xlim([0., 350.])
+      pyplot.xlim([0., rotation_end])
     pyplot.title('MSD(t) for Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 11})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
