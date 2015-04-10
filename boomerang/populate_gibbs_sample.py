@@ -14,20 +14,29 @@ from utils import write_trajectory_to_txt
 
 if __name__ == '__main__':
 
+  gfactor = 1.0  # multiple of 'earth's gravity'
+
+  original_mass = np.array(bm.M)
+  bm.M = original_mass*gfactor
   # Store parameters to write to file, so we know which 
   # parameters this distribution corresponds to.
   params = {'M': bm.M, 'REPULSION_STRENGTH': bm.REPULSION_STRENGTH,
             'ETA': bm.ETA, 'A': bm.A, 'KT': bm.KT,
-            'DEBYE_LENGTH': bm.DEBYE_LENGTH}
+            'DEBYE_LENGTH': bm.DEBYE_LENGTH,
+            'G': gfactor, 'N_BLOBS': len(bm.M)}
 
-  n_samples = int(sys.argv[0])
+  n_samples = int(sys.argv[1])
   trajectory = [[], []]
   for k in range(n_samples):
-    sample = bm.generate_equilibrium_sample()
+    sample = bm.generate_boomerang_equilibrium_sample()
     trajectory[0].append(sample[0])
-    trajectory[1].append(sample[1])
+    trajectory[1].append(sample[1].entries)
 
-  file_name = os.path.join()
+
+  file_name = 'boomerang-samples-g-%s.txt' % gfactor
+  file_name = os.path.join('.', 'data', file_name)
+  write_trajectory_to_txt(file_name, trajectory, params)
+  
 
     
 

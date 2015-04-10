@@ -310,9 +310,13 @@ def fft_msd(x, y, end):
   return (xy_sum_tau + xy_sum_t - x_ifft_yx - x_ifft_xy)[:end]
 
       
-def write_trajectory_to_txt(file_name, trajectory, params, location=True):
-  '''  Write parameters and data to a text file. '''
-  # First check that the directory exists.
+def write_trajectory_to_txt_old(file_name, trajectory, params, location=True):
+  '''  
+  Write parameters and data to a text file. 
+  This is the old way of doing it.  New way keeps 
+  orientation and location together.
+  '''
+  # First check that the directory exists.  If not, create it.
   dir_name = os.path.dirname(file_name)
   if not os.path.isdir(dir_name):
      os.mkdir(dir_name)
@@ -337,8 +341,42 @@ def write_trajectory_to_txt(file_name, trajectory, params, location=True):
           f.write('%s, %s, %s, %s \n' % (x[0], x[1], x[2], x[3]))
 
 
-def read_trajectory_from_txt(file_name, location=True):
-  ''' Read a trajectory and parameters from a text file.'''
+def write_trajectory_to_txt(file_name, trajectory, params, location=True):
+  '''  
+  Write parameters and data to a text file. Parameters first, then the trajectory
+  one step at a time.
+  '''
+  # First check that the directory exists.  If not, create it.
+  dir_name = os.path.dirname(file_name)
+  if not os.path.isdir(dir_name):
+     os.mkdir(dir_name)
+
+  # Write data to file, parameters first then trajectory.
+  with open(file_name, 'w') as f:
+    f.write('Parameters:\n')
+    for key, value in params.items():
+      f.writelines(['%s: %s \n' % (key, value)])
+    f.write('Trajectory data:\n')
+    if location:
+      f.write('Location, Orientation:\n')
+      for k in range(len(trajectory[0])):
+        x = trajectory[0][k]
+        theta = trajectory[1][k]
+        f.write('%s, %s, %s, %s, %s, %s, %s \n' % (
+          x[0], x[1], x[2], theta[0], theta[1], theta[2], theta[3]))
+    else:
+      f.write('Orientation:\n')
+      for k in range(len(trajectory[0])):
+        theta = trajectory[0][k]
+        f.write('%s, %s, %s, %s \n' % (
+          theta[0], theta[1], theta[2], theta[3]))
+
+
+def read_trajectory_from_txt_old(file_name, location=True):
+  ''' 
+  Read a trajectory and parameters from a text file.
+  This reads the old format where location is first, 
+  then orientation separate.'''
   params = {}
   locations = []
   orientations = []
@@ -379,6 +417,56 @@ def read_trajectory_from_txt(file_name, location=True):
       line = f.readline()
       
   return params, locations, orientations
+
+
+def read_trajectory_from_txt(file_name, location=True):
+  ''' 
+  Read a trajectory and parameters from a text file.
+  '''
+  params = {}
+  locations = []
+  orientations = []
+  with open(file_name, 'r') as f:
+    # First line should be "Parameters:"
+    line = f.readline()
+    line = f.readline()
+    while line != 'Trajectory data:\n':
+      items = line.split(':')
+      if items[1].strip()[0] == '[':
+        last_token = items[1].strip()[-1]
+        list_items = items[1].strip()[1:].split('  ')
+        params[items[0]] = list_items
+        while last_token != ']':
+          line = f.readline()
+          list_items = line.strip().split('  ')
+          last_token = list_items[-1].strip()[-1]
+          if last_token == ']':
+            list_items[-1]  = list_items[-1].strip()[:-1]
+          params[items[0]] += list_items
+      else:
+        params[items[0]] = items[1]
+      line = f.readline()
+    # Read next line after 'Trajectory data' 'Location, Orientation'
+    line = f.readline()
+    line = f.readline()
+    if location:
+      while line != '':
+        loc = line.split(',')
+        locations.append([float(x) for x in loc[0:3]])
+        orientations.append([float(x) for x in loc[3:7]])
+        line = f.readline()
+        
+    else:
+      # These two lines are '\n', and 'Orientation' 
+      line = f.readline()
+      line = f.readline()
+      while line != '':
+        quaternion_entries = line.split(',')
+        orientations.append(Quaternion([float(x) for x in quaternion_entries]))
+        line = f.readline()
+      
+  return params, locations, orientations
+
   
 
 def transfer_mobility(mobility_1, point_1, point_2):

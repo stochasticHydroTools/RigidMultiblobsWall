@@ -290,7 +290,7 @@ def boomerang_torque_calculator(location, orientation):
 
 
 @static_var('normalization_constants', {})
-def generate_boomerang_equilibrium_sample(g=1, n_precompute=50000):
+def generate_boomerang_equilibrium_sample(n_precompute=6000):
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
