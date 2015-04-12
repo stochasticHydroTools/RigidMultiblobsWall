@@ -132,7 +132,7 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 400
+  n_samples = 2000
 
   cross_norm = 0.
   coh_norm = 0.
