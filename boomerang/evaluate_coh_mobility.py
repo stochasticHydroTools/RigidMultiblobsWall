@@ -2,8 +2,11 @@
 Evaluate how the CoH changes with the GB distribution in
 3D.
 '''
-
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
+from matplotlib import pyplot as plt
+import os
 
 import boomerang as bm
 from quaternion_integrator.quaternion import Quaternion
@@ -99,15 +102,29 @@ def calculate_coupling_norm(distance, n_samples, gfactor):
   Calculate the norm of the coupling tensor averaged over the GB
   distribution at gfactor times "earth gravity."
   '''
-  coupling_norm = 
-  for k in range(n_samples):
-    sample = bm.load_equilibrium_sample(gfactor=gfactor)
-    mobility = bm.boomerang_mobility([sample[0]], [sample[1]])
-    
-    
-  
-  
+  file_name = 'boomerang-samples-g-%s.txt' % gfactor
+  file_name = os.path.join('.', 'data', file_name)
+  print "file name is ", file_name
+  with open(file_name, 'r') as f:
+    line = f.readline()
+    # Print parameters and skip past them.
+    while line != 'Location, Orientation:\n':
+      print line
+      line = f.readline()
 
+    coupling_norm = 0.
+    for k in range(n_samples):
+      sample = bm.load_equilibrium_sample(f)
+      rotation_matrix = sample[1].rotation_matrix()
+      tracking_point = np.dot(rotation_matrix,
+                              np.array([distance/np.sqrt(2.),
+                                        distance/np.sqrt(2), 0.]))
+      mobility = bm.boomerang_mobility_at_arbitrary_point(
+        [sample[0]], [sample[1]], tracking_point)
+      coupling_norm += np.linalg.norm(mobility[0:2, 5:6])
+      
+  coupling_norm /= float(n_samples)
+  return coupling_norm
 
 
 if __name__ == '__main__':
@@ -115,8 +132,7 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 10000
-  
+  n_samples = 400
 
   cross_norm = 0.
   coh_norm = 0.
@@ -130,10 +146,22 @@ if __name__ == '__main__':
   coh_norm /= float(n_samples)
   cross_norm /= float(n_samples)
 
-  prin
-
-  t 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
+  print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
 
   # plot distance v. coupling norm for various gravities.
+  gfactors = [1., 5., 10.]
+  distances = np.linspace(0., 2., 30)
+  cross_point_norm = calculate_coupling_norm(0., 500, 1.0)
+  for g in gfactors:
+    coupling_norms = []
+    for distance in distances:
+      coupling_norms.append(calculate_coupling_norm(distance, n_samples, g))
+      
 
-  
+    plt.plot(distances, coupling_norms/cross_point_norm, label='gravity=%s' % g)
+    
+  plt.title('XY velocity to Z torque Coupling norms')
+  plt.xlabel('Distance from cross point')
+  plt.ylabel('Norm of coupling')
+  plt.legend(loc='best', prop={'size': 9})
+  plt.savefig(os.path.join('.', 'figures', 'BoomerangCouplingNorm.pdf'))

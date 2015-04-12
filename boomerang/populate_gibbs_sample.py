@@ -14,7 +14,7 @@ from utils import write_trajectory_to_txt
 
 if __name__ == '__main__':
 
-  gfactor = int(sys.argv[2])  # multiple of 'earth's gravity'
+  gfactor = float(sys.argv[2])  # multiple of 'earth's gravity'
 
   original_mass = np.array(bm.M)
   bm.M = original_mass*gfactor
