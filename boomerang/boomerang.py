@@ -350,7 +350,12 @@ def boomerang_gibbs_boltzmann_distribution(location, orientation):
           (h-A))
 
   return np.exp(-1.*U/KT)
+
+
+def load_equilibrium_sample(gfactor=1):
+  ''' Load an equilibrium sample from a given file. '''
   
+
 
 def boomerang_check_function(location, orientation):
   ''' 

@@ -94,12 +94,29 @@ def find_boomerang_coh():
   return coh_dist
 
 
+def calculate_coupling_norm(distance, n_samples, gfactor):
+  '''
+  Calculate the norm of the coupling tensor averaged over the GB
+  distribution at gfactor times "earth gravity."
+  '''
+  coupling_norm = 
+  for k in range(n_samples):
+    sample = bm.load_equilibrium_sample(gfactor=gfactor)
+    mobility = bm.boomerang_mobility([sample[0]], [sample[1]])
+    
+    
+  
+  
+
+
+
 if __name__ == '__main__':
   # First, find CoH
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
   n_samples = 10000
+  
 
   cross_norm = 0.
   coh_norm = 0.
@@ -113,6 +130,10 @@ if __name__ == '__main__':
   coh_norm /= float(n_samples)
   cross_norm /= float(n_samples)
 
-  print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
+  prin
+
+  t 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
+
+  # plot distance v. coupling norm for various gravities.
 
   
