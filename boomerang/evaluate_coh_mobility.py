@@ -104,12 +104,10 @@ def calculate_coupling_norm(distance, n_samples, gfactor):
   '''
   file_name = 'boomerang-samples-g-%s.txt' % gfactor
   file_name = os.path.join('.', 'data', file_name)
-  print "file name is ", file_name
   with open(file_name, 'r') as f:
     line = f.readline()
-    # Print parameters and skip past them.
+    # Skip parameters. 
     while line != 'Location, Orientation:\n':
-      print line
       line = f.readline()
 
     coupling_norm = 0.
@@ -149,7 +147,7 @@ if __name__ == '__main__':
   print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
 
   # plot distance v. coupling norm for various gravities.
-  gfactors = [1., 5., 10.]
+  gfactors = [1., 3., 5., 7., 10., 12.]
   distances = np.linspace(0., 2., 30)
   cross_point_norm = calculate_coupling_norm(0., 500, 1.0)
   for g in gfactors:
