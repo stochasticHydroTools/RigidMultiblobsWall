@@ -41,11 +41,13 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 
 
 # Parameters.  Units are um, s, mg.
-A = 0.2625   # Radius of blobs in um
+A = 0.265*np.sqrt(3./2.)   # Radius of blobs in um
 ETA = 8.9e-4  # Water. Pa s = kg/(m s) = mg/(um s)
 
 # 0.2 g/cm^3 = 0.0000000002 mg/um^3.  Volume is ~1.0238 um^3.  Include gravity in this.
-TOTAL_MASS = 1.023825*0.0000000002*(9.8*1.e6)
+# density of particle = 0.2 g/cm^3 = 0.0000000002 mg/um^3.  
+# Volume is ~1.1781 um^3.  Include gravity in this.
+TOTAL_MASS = 1.1781*0.0000000002*(9.8*1.e6)
 M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
