@@ -7,6 +7,7 @@ matplotlib.use('Agg')
 import numpy as np
 from matplotlib import pyplot as plt
 import os
+import time
 
 import boomerang as bm
 from quaternion_integrator.quaternion import Quaternion
@@ -104,12 +105,10 @@ def calculate_coupling_norm(distance, n_samples, gfactor):
   '''
   file_name = 'boomerang-samples-g-%s.txt' % gfactor
   file_name = os.path.join('.', 'data', file_name)
-  print "file name is ", file_name
   with open(file_name, 'r') as f:
     line = f.readline()
-    # Print parameters and skip past them.
+    # Skip parameters. 
     while line != 'Location, Orientation:\n':
-      print line
       line = f.readline()
 
     coupling_norm = 0.
@@ -132,7 +131,7 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 400
+  n_samples = 500
 
   cross_norm = 0.
   coh_norm = 0.
@@ -149,16 +148,27 @@ if __name__ == '__main__':
   print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
 
   # plot distance v. coupling norm for various gravities.
-  gfactors = [1., 5., 10.]
-  distances = np.linspace(0., 2., 30)
+  gfactors = [1., 5., 10., 15.]
+  distances = np.linspace(0., 2., 25)
   cross_point_norm = calculate_coupling_norm(0., 500, 1.0)
-  for g in gfactors:
-    coupling_norms = []
-    for distance in distances:
-      coupling_norms.append(calculate_coupling_norm(distance, n_samples, g))
-      
 
-    plt.plot(distances, coupling_norms/cross_point_norm, label='gravity=%s' % g)
+  data_file_name = os.path.join('.', 'data', 'BoomerangCouplingData.txt')
+
+  start_time = time.time()
+  with open(data_file_name, 'w') as f:
+    f.write('Distance from cross point (um):\n')
+    f.write('%s \n' % distances)
+    for g in gfactors:
+      coupling_norms = []
+      for distance in distances:
+        coupling_norms.append(calculate_coupling_norm(distance, n_samples, g))
+
+      plt.plot(distances, coupling_norms/cross_point_norm, label='gravity=%s' % g)
+      f.write('Normalized Coupling Norm, g = %s: \n' % g)
+      f.write('%s \n' % (coupling_norms/cross_point_norm))
+      print 'Completed g = %s' % g
+      print 'Elapsed time is %s' % (time.time() - start_time)
+
     
   plt.title('XY velocity to Z torque Coupling norms')
   plt.xlabel('Distance from cross point')

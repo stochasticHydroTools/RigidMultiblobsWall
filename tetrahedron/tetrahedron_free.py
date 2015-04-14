@@ -376,15 +376,13 @@ def gibbs_boltzmann_distribution(location, orientation):
   if ((r_vectors[0][2] < 0.5) or
       (r_vectors[1][2] < 0.5) or
       (r_vectors[2][2] < 0.5) or
-      location[2] < 0.5):
+      (r_vectors[3][2] < 0.5)):
     gibbs_boltzmann_distribution.low_rejections += 1
     return 0.0
   # Calculate potential.
   U = (M1*(r_vectors[0][2]) + M2*(r_vectors[1][2]) +
        M3*(r_vectors[2][2]) + M4*(location[2]))
-  U += (REPULSION_STRENGTH*np.exp(-1.*(location[2] - A)/DEBYE_LENGTH)/
-        (location[2] - A))
-  for k in range(3):
+  for k in range(4):
     h = r_vectors[k][2]
     U += (REPULSION_STRENGTH*np.exp(-1.*(h - A)/DEBYE_LENGTH)/
           (h - A))

@@ -20,7 +20,6 @@ if __name__ == '__main__':
   # Data file name where trajectory data is stored.
   data_name = sys.argv[1]
 
-
   x_lim = [-5., 5.]
   y_lim = [-5., 5.]
   z_lim = [-0.5, 9.5]

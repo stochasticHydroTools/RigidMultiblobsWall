@@ -41,11 +41,13 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 
 
 # Parameters.  Units are um, s, mg.
-A = 0.2625   # Radius of blobs in um
+A = 0.265*np.sqrt(3./2.)   # Radius of blobs in um
 ETA = 8.9e-4  # Water. Pa s = kg/(m s) = mg/(um s)
 
 # 0.2 g/cm^3 = 0.0000000002 mg/um^3.  Volume is ~1.0238 um^3.  Include gravity in this.
-TOTAL_MASS = 1.023825*0.0000000002*(9.8*1.e6)
+# density of particle = 0.2 g/cm^3 = 0.0000000002 mg/um^3.  
+# Volume is ~1.1781 um^3.  Include gravity in this.
+TOTAL_MASS = 1.1781*0.0000000002*(9.8*1.e6)
 M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
@@ -290,7 +292,7 @@ def boomerang_torque_calculator(location, orientation):
 
 
 @static_var('normalization_constants', {})
-def generate_boomerang_equilibrium_sample(n_precompute=6000):
+def generate_boomerang_equilibrium_sample(n_precompute=20000):
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
@@ -300,7 +302,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=6000):
   estimated normalization constant for each value of the sum of mass.
   
   '''
-  max_height = KT/sum(M)*8.
+  max_height = KT/sum(M)*7 + A + DEBYE_LENGTH
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
   norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
