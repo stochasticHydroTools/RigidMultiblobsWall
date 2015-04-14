@@ -18,6 +18,7 @@ from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
 
+# IBAMR data taken from Floren's .agr file
 IBAMR_TIME = np.array([0 , 16 , 32 , 48 , 64 , 80 , 96 , 112, 128, 
                        144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304])
 
@@ -49,8 +50,8 @@ IBAMR_PERP_STD = np.array(
 
 
 if __name__ == '__main__':
-  data_name = ('tetrahedron-msd-dt-0.2-N-1000000-end-800.0-scheme-RFD-'
-               'runs-4-final-com.pkl')
+  data_name = ('tetrahedron-msd-dt-0.05-N-300000-end-500.0-scheme-RFD-'
+               'runs-4-checkingdt.pkl')
 
   data_file = os.path.join('.', 'data', 
                             data_name)
@@ -91,12 +92,12 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 200.0
+  translation_end = 300.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=40)
+                            num_err_bars=60)
     plt.figure(figure_numbers[l])
     if l in [0]:
       plt.plot([0.0, translation_end], 
