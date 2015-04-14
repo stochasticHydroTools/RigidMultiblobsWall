@@ -50,8 +50,7 @@ IBAMR_PERP_STD = np.array(
 
 
 if __name__ == '__main__':
-  data_name = ('tetrahedron-msd-dt-0.05-N-300000-end-500.0-scheme-RFD-'
-               'runs-4-checkingdt.pkl')
+  data_name = ('tetrahedron-msd-dt-1.6-N-1000000-end-1000.0-scheme-RFD-runs-2-final.pkl')
 
   data_file = os.path.join('.', 'data', 
                             data_name)
@@ -92,7 +91,7 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 300.0
+  translation_end = 350.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, figure_numbers[l],
