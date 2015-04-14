@@ -292,7 +292,7 @@ def boomerang_torque_calculator(location, orientation):
 
 
 @static_var('normalization_constants', {})
-def generate_boomerang_equilibrium_sample(n_precompute=6000):
+def generate_boomerang_equilibrium_sample(n_precompute=20000):
   ''' 
   Use accept-reject to generate a sample
   with location and orientation from the Gibbs Boltzmann 
@@ -302,7 +302,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=6000):
   estimated normalization constant for each value of the sum of mass.
   
   '''
-  max_height = KT/sum(M)*8.
+  max_height = KT/sum(M)*7 + A + DEBYE_LENGTH
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
   norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
