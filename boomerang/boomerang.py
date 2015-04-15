@@ -52,8 +52,8 @@ M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH = 0.03
-DEBYE_LENGTH = 0.15
+REPULSION_STRENGTH = 7.5*KT
+DEBYE_LENGTH = 0.5*A
 
 
 def boomerang_mobility(locations, orientations):
