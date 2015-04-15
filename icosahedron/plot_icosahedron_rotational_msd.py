@@ -136,7 +136,7 @@ if __name__ == "__main__":
   
   style_list = ['*', 's', '^', '.', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
-  translation_plot_limit = 120.
+  translation_plot_limit = 110.
   for l in range(6):
     ind = [l, l]
     if l in [0, 2]:

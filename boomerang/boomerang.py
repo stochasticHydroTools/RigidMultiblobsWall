@@ -52,8 +52,8 @@ M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH = 0.03
-DEBYE_LENGTH = 0.15
+REPULSION_STRENGTH = 0.05
+DEBYE_LENGTH = 0.20
 
 
 def boomerang_mobility(locations, orientations):
@@ -391,6 +391,8 @@ if __name__ == '__main__':
                       help='Number of steps to take for runs.')
   parser.add_argument('-gfactor', dest='gravity_factor', type=float, default=1.0,
                       help='Factor to increase gravity by.')
+  parser.add_argument('-scheme', dest='scheme', type=str, default='RFD',
+                      help='Numerical Scheme to use: RFD, FIXMAN, or EM.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -416,8 +418,8 @@ if __name__ == '__main__':
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/boomerang-dt-%f-N-%d-g-%s-%s.log' % (
-    dt, n_steps, args.gravity_factor, args.data_name)
+  log_filename = './logs/boomerang-dt-%f-N-%d-scheme-%s-g-%s-%s.log' % (
+    dt, n_steps, args.scheme, args.gravity_factor, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -429,60 +431,71 @@ if __name__ == '__main__':
   sl = StreamToLogger(progress_logger, logging.ERROR)
   sys.stderr = sl
 
+  # Gather parameters to save
+  params = {'A': A, 'ETA': ETA, 'M': M,
+            'REPULSION_STRENGTH': REPULSION_STRENGTH,
+            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps,
+            'gfactor': args.gravity_factor, 'scheme': args.scheme}
+
+  print "Parameters for this run are: ", params
+
   # Script to run the various integrators on the quaternion.
   sample = generate_boomerang_equilibrium_sample()
   initial_location = [sample[0]]
   initial_orientation = [sample[1]]
-  fixman_integrator = QuaternionIntegrator(boomerang_mobility,
+  quaternion_integrator = QuaternionIntegrator(boomerang_mobility,
                                            initial_orientation, 
                                            boomerang_torque_calculator, 
                                            has_location=True,
                                            initial_location=initial_location,
                                            force_calculator=
                                            boomerang_force_calculator)
-  fixman_integrator.kT = KT
-  fixman_integrator.check_function = boomerang_check_function
-  rfd_integrator = QuaternionIntegrator(boomerang_mobility,
-                                        initial_orientation, 
-                                        boomerang_torque_calculator, 
-                                        has_location=True,
-                                        initial_location=initial_location,
-                                        force_calculator=
-                                        boomerang_force_calculator)
-  rfd_integrator.kT = KT
-  rfd_integrator.check_function = boomerang_check_function
-  em_integrator = QuaternionIntegrator(boomerang_mobility,
-                                        initial_orientation, 
-                                        boomerang_torque_calculator, 
-                                        has_location=True,
-                                        initial_location=initial_location,
-                                        force_calculator=
-                                        boomerang_force_calculator)
-  em_integrator.kT = KT
-  em_integrator.check_function = boomerang_check_function
+  quaternion_integrator.kT = KT
+  quaternion_integrator.check_function = boomerang_check_function
+  # rfd_integrator = QuaternionIntegrator(boomerang_mobility,
+  #                                       initial_orientation, 
+  #                                       boomerang_torque_calculator, 
+  #                                       has_location=True,
+  #                                       initial_location=initial_location,
+  #                                       force_calculator=
+  #                                       boomerang_force_calculator)
+  # rfd_integrator.kT = KT
+  # rfd_integrator.check_function = boomerang_check_function
+  # em_integrator = QuaternionIntegrator(boomerang_mobility,
+  #                                       initial_orientation, 
+  #                                       boomerang_torque_calculator, 
+  #                                       has_location=True,
+  #                                       initial_location=initial_location,
+  #                                       force_calculator=
+  #                                       boomerang_force_calculator)
+  # em_integrator.kT = KT
+  # em_integrator.check_function = boomerang_check_function
 
   # Lists of location and orientation.
-  fixman_trajectory = [[], []]
-  rfd_trajectory = [[], []]
-  em_trajectory = [[], []]
+  trajectory = [[], []]
+  # rfd_trajectory = [[], []]
+  # em_trajectory = [[], []]
 
 
 
   start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
-    fixman_integrator.fixman_time_step(dt)
-    fixman_trajectory[0].append(fixman_integrator.location[0])
-    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
-
-    rfd_integrator.rfd_time_step(dt)
-    rfd_trajectory[0].append(rfd_integrator.location[0])
-    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
-
-    # EM step and bin result.
-    em_integrator.additive_em_time_step(dt)
-    em_trajectory[0].append(em_integrator.location[0])
-    em_trajectory[1].append(em_integrator.orientation[0].entries)
+    if args.scheme == 'FIXMAN':
+      quaternion_integrator.fixman_time_step(dt)
+      trajectory[0].append(quaternion_integrator.location[0])
+      trajectory[1].append(quaternion_integrator.orientation[0].entries)
+    elif args.scheme == 'RFD':
+      quaternion_integrator.rfd_time_step(dt)
+      trajectory[0].append(quaternion_integrator.location[0])
+      trajectory[1].append(quaternion_integrator.orientation[0].entries)
+    elif args.scheme == 'EM':
+      # EM step and bin result.
+      quaternion_integrator.additive_em_time_step(dt)
+      trajectory[0].append(quaternion_integrator.location[0])
+      trajectory[1].append(quaternion_integrator.orientation[0].entries)
+    else:
+      raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
 
     if k % print_increment == 0:
       elapsed_time = time.time() - start_time
@@ -497,18 +510,15 @@ if __name__ == '__main__':
   else:
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
-  progress_logger.info('Fixman Rejection rate: %s' % 
-                       (float(fixman_integrator.rejections)/
-                        float(fixman_integrator.rejections + n_steps)))
-  progress_logger.info('RFD Rejection rate: %s' % 
-                       (float(rfd_integrator.rejections)/
-                        float(rfd_integrator.rejections + n_steps)))
 
-  # Gather parameters to save
-  params = {'A': A, 'ETA': ETA, 'M': M,
-            'REPULSION_STRENGTH': REPULSION_STRENGTH,
-            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps,
-            'gfactor': args.gravity_factor}
+  progress_logger.info('Integrator Rejection rate: %s' % 
+                       (float(quaternion_integrator.rejections)/
+                        float(quaternion_integrator.rejections + n_steps)))
+  # progress_logger.info('RFD Rejection rate: %s' % 
+  #                      (float(rfd_integrator.rejections)/
+  #                       float(rfd_integrator.rejections + n_steps)))
+
+
 
   # Set up naming for data files for trajectories.
   if len(args.data_name) > 0:
@@ -522,17 +532,17 @@ if __name__ == '__main__':
         dt, n_steps, scheme, args.gravity_factor)
       return trajectory_dat_name
 
-  fixman_data_file = os.path.join(
-    DATA_DIR, 'boomerang', generate_trajectory_name('FIXMAN'))
-  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params)
+  data_file = os.path.join(
+    DATA_DIR, 'boomerang', generate_trajectory_name(args.scheme))
+  write_trajectory_to_txt(data_file, trajectory, params)
 
-  rfd_data_file = os.path.join(
-    DATA_DIR, 'boomerang', generate_trajectory_name('RFD'))
-  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
+  # rfd_data_file = os.path.join(
+  #   DATA_DIR, 'boomerang', generate_trajectory_name('RFD'))
+  # write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
 
-  em_data_file = os.path.join(
-    DATA_DIR, 'boomerang', generate_trajectory_name('EM'))
-  write_trajectory_to_txt(em_data_file, em_trajectory, params)
+  # em_data_file = os.path.join(
+  #   DATA_DIR, 'boomerang', generate_trajectory_name('EM'))
+  # write_trajectory_to_txt(em_data_file, em_trajectory, params)
 
   if args.profile:
     pr.disable()
