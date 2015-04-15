@@ -8,7 +8,9 @@ import numpy as np
 import os
 import sys
 
+
 import boomerang as bm
+from config_local import DATA_DIR
 from utils import write_trajectory_to_txt
 
 
@@ -33,8 +35,8 @@ if __name__ == '__main__':
     trajectory[1].append(sample[1].entries)
 
 
-  file_name = 'boomerang-samples-g-%s.txt' % gfactor
-  file_name = os.path.join('.', 'data', file_name)
+  file_name = os.path.join(DATA_DIR, 'boomerang', 
+                           'boomerang-samples-g-%s.txt' % gfactor)
   write_trajectory_to_txt(file_name, trajectory, params)
   
 

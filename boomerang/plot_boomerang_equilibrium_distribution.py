@@ -14,6 +14,7 @@ sys.path.append('..')
 import time
 
 import boomerang as bm
+from config_local import DATA_DIR
 from utils import static_var
 
 
@@ -140,7 +141,7 @@ if __name__ == '__main__':
       f_out.write('Gravity = %s Earths Gravity\n' % factor)
       avg_height = 0.
       file_name = 'boomerang-samples-g-%s.txt' % factor
-      file_name = os.path.join('.', 'data', file_name)
+      file_name = os.path.join(DATA_DIR, 'boomerang', file_name)
       with open(file_name, 'r') as f:
         line = f.readline()
         # Skip parameters. 
