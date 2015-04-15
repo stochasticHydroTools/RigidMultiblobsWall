@@ -10,6 +10,7 @@ import os
 import time
 
 import boomerang as bm
+from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 
 def boomerang_coh_mobility(locations, orientations):
@@ -104,7 +105,7 @@ def calculate_coupling_norm(distance, n_samples, gfactor):
   distribution at gfactor times "earth gravity."
   '''
   file_name = 'boomerang-samples-g-%s.txt' % gfactor
-  file_name = os.path.join('.', 'data', file_name)
+  file_name = os.path.join(DATA_DIR, 'boomerang', file_name)
   with open(file_name, 'r') as f:
     line = f.readline()
     # Skip parameters. 
@@ -148,7 +149,7 @@ if __name__ == '__main__':
   print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
 
   # plot distance v. coupling norm for various gravities.
-  gfactors = [1., 5., 10., 15.]
+  gfactors = [1., 5., 10., 15., 20., 30.]
   distances = np.linspace(0., 2., 25)
   cross_point_norm = calculate_coupling_norm(0., 500, 1.0)
 
