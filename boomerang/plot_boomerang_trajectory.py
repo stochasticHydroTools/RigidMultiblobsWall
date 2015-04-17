@@ -93,7 +93,7 @@ if __name__ == '__main__':
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
+  wall_actor.GetProperty().SetColor(0.4, 0.9, 0.4)
 
   # Create camera
   camera = vtk.vtkCamera()
