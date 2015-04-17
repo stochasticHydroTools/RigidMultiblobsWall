@@ -28,6 +28,7 @@ if __name__ == '__main__':
             'G': gfactor, 'N_BLOBS': len(bm.M)}
 
   n_samples = int(sys.argv[1])
+  name = sys.argv[3]
   trajectory = [[], []]
   for k in range(n_samples):
     sample = bm.generate_boomerang_equilibrium_sample()
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 
 
   file_name = os.path.join(DATA_DIR, 'boomerang', 
-                           'boomerang-samples-g-%s.txt' % gfactor)
+                           'boomerang-samples-g-%s-%s.txt' % gfactor, name)
   write_trajectory_to_txt(file_name, trajectory, params)
   
 
