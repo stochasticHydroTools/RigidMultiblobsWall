@@ -119,7 +119,8 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1.,  5., 10., 15., 20., 30.]
+  factor_list = [1.]
+  names_list = ['old', ]
 
   bin_width = 0.05
   cross_heights = np.zeros(int(11./bin_width))
@@ -140,7 +141,7 @@ if __name__ == '__main__':
     for factor in factor_list:
       f_out.write('Gravity = %s Earths Gravity\n' % factor)
       avg_height = 0.
-      file_name = 'boomerang-samples-g-%s.txt' % factor
+      file_name = 'boomerang-samples-g-%s-%s.txt' % (factor, data_name)
       file_name = os.path.join(DATA_DIR, 'boomerang', file_name)
       with open(file_name, 'r') as f:
         line = f.readline()

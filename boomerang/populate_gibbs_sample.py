@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
   file_name = os.path.join(DATA_DIR, 'boomerang', 
                            'boomerang-samples-g-%s-%s.txt' % 
-                           (gfactor, args.data_name))
+                           (args.gravity_factor, args.data_name))
   write_trajectory_to_txt(file_name, trajectory, params)
   
 
