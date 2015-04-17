@@ -52,7 +52,7 @@ M = [TOTAL_MASS/15. for _ in range(15)]
 KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH = 7.5*KT
+REPULSION_STRENGTH = 10.*KT
 DEBYE_LENGTH = 1.0*A
 
 
@@ -373,7 +373,8 @@ def boomerang_check_function(location, orientation):
   '''
   r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
   for k in range(len(r_vectors)):
-    if r_vectors[k][2] < (A + 0.02): 
+    #HACK
+    if r_vectors[k][2] < (0.265): 
       return False
   return True
   
