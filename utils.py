@@ -5,6 +5,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
 import os
+import sys
 import time
 
 from quaternion_integrator.quaternion import Quaternion
@@ -32,6 +33,22 @@ def static_var(varname, value):
         setattr(func, varname, value)
         return func
     return decorate
+
+def set_up_logger(file_name):
+  ''' Set up logging info, write all print statements and errors to
+  file_name.'''
+  progress_logger = logging.getLogger('Progress Logger')
+  progress_logger.setLevel(logging.INFO)
+  # Add the log message handler to the logger
+  logging.basicConfig(filename=file_name,
+                      level=logging.INFO,
+                      filemode='w')
+  sl = StreamToLogger(progress_logger, logging.INFO)
+  sys.stdout = sl
+  sl = StreamToLogger(progress_logger, logging.ERROR)
+  sys.stderr = sl
+  return progress_logger
+
 
 class MSDStatistics(object):
   '''

@@ -373,8 +373,7 @@ def boomerang_check_function(location, orientation):
   '''
   r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
   for k in range(len(r_vectors)):
-    #HACK
-    if r_vectors[k][2] < (0.265): 
+    if r_vectors[k][2] < A: 
       return False
   return True
   
