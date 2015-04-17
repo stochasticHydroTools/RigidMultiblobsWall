@@ -150,7 +150,7 @@ def get_icosahedron_center_r_vectors(location, orientation):
 def calc_icosahedron_rot_matrix(r_vectors, location):
   ''' 
   Calculate the matrix R, where the i-th 3x3 block of R gives
-  (R_i x) = r_i cross x.
+  (R_i x) = -1(r_i cross x).
   R will be 3N by 3 (36 x 3). The r vectors point from the center
   of the icosahedron to the other vertices.
   '''

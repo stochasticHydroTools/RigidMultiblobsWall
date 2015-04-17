@@ -227,7 +227,7 @@ def get_boomerang_r_vectors_11(location, orientation):
 def calc_rot_matrix(r_vectors, location):
   ''' 
   Calculate the matrix R, where the i-th 3x3 block of R gives
-  (R_i x) = r_i cross x.
+  (R_i x) = -1 (r_i cross x).
   R will be 3N by 3 (18 x 3). The r vectors point from the center
   of the icosohedron to the other vertices.
   '''
@@ -236,9 +236,9 @@ def calc_rot_matrix(r_vectors, location):
     # Here the cross is relative to the center.
     adjusted_r_vector = r_vectors[k] - location
     block = np.array(
-        [[0.0, -1.*adjusted_r_vector[2], adjusted_r_vector[1]],
-        [adjusted_r_vector[2], 0.0, -1.*adjusted_r_vector[0]],
-        [-1.*adjusted_r_vector[1], adjusted_r_vector[0], 0.0]])
+        [[0.0, adjusted_r_vector[2], -1.*adjusted_r_vector[1]],
+        [-1.*adjusted_r_vector[2], 0.0, adjusted_r_vector[0]],
+        [adjusted_r_vector[1], -1.*adjusted_r_vector[0], 0.0]])
     if rot_matrix is None:
       rot_matrix = block
     else:
@@ -255,7 +255,7 @@ def boomerang_force_calculator(location, orientation):
   orientation - list of length 1 with orientation (as a Quaternion)
                 of boomerang.
   '''
-  gravity = [0., 0., -1.*sum(M)]
+  gravity = np.array([0., 0., -1.*sum(M)])
   r_vectors = get_boomerang_r_vectors_15(location[0], orientation[0])
   repulsion = 0.
   for k in range(len(r_vectors)):
@@ -283,12 +283,11 @@ def boomerang_torque_calculator(location, orientation):
     repulsion = (REPULSION_STRENGTH*((h - A)/DEBYE_LENGTH + 1)*
                  np.exp(-1.*(h - A)/DEBYE_LENGTH)/
                  ((h - A)**2))
+    # Concatenate forces from particle k.
     forces += [0., 0., repulsion + gravity]
 
   R = calc_rot_matrix(r_vectors, location[0])
   return np.dot(R.T, forces)
-
-
 
 
 @static_var('normalization_constants', {})
@@ -300,7 +299,6 @@ def generate_boomerang_equilibrium_sample(n_precompute=20000):
 
   normalization_constants is a dictionary that stores an
   estimated normalization constant for each value of the sum of mass.
-  
   '''
   max_height = KT/sum(M)*7 + A + DEBYE_LENGTH
   # TODO: Figure this out a better way that includes repulsion.
