@@ -452,75 +452,9 @@ if __name__ == '__main__':
                                            boomerang_force_calculator)
   quaternion_integrator.kT = KT
   quaternion_integrator.check_function = boomerang_check_function
-  # rfd_integrator = QuaternionIntegrator(boomerang_mobility,
-  #                                       initial_orientation, 
-  #                                       boomerang_torque_calculator, 
-  #                                       has_location=True,
-  #                                       initial_location=initial_location,
-  #                                       force_calculator=
-  #                                       boomerang_force_calculator)
-  # rfd_integrator.kT = KT
-  # rfd_integrator.check_function = boomerang_check_function
-  # em_integrator = QuaternionIntegrator(boomerang_mobility,
-  #                                       initial_orientation, 
-  #                                       boomerang_torque_calculator, 
-  #                                       has_location=True,
-  #                                       initial_location=initial_location,
-  #                                       force_calculator=
-  #                                       boomerang_force_calculator)
-  # em_integrator.kT = KT
-  # em_integrator.check_function = boomerang_check_function
 
-  # Lists of location and orientation.
   trajectory = [[], []]
-  # rfd_trajectory = [[], []]
-  # em_trajectory = [[], []]
 
-
-
-  start_time = time.time()
-  for k in range(n_steps):
-    # Fixman step and bin result.
-    if args.scheme == 'FIXMAN':
-      quaternion_integrator.fixman_time_step(dt)
-      trajectory[0].append(quaternion_integrator.location[0])
-      trajectory[1].append(quaternion_integrator.orientation[0].entries)
-    elif args.scheme == 'RFD':
-      quaternion_integrator.rfd_time_step(dt)
-      trajectory[0].append(quaternion_integrator.location[0])
-      trajectory[1].append(quaternion_integrator.orientation[0].entries)
-    elif args.scheme == 'EM':
-      # EM step and bin result.
-      quaternion_integrator.additive_em_time_step(dt)
-      trajectory[0].append(quaternion_integrator.location[0])
-      trajectory[1].append(quaternion_integrator.orientation[0].entries)
-    else:
-      raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
-
-    if k % print_increment == 0:
-      elapsed_time = time.time() - start_time
-      print 'At step %s out of %s' % (k, n_steps)
-      log_time_progress(elapsed_time, k, n_steps)
-      
-
-  elapsed_time = time.time() - start_time
-  if elapsed_time > 60:
-    progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
-                         (float(elapsed_time)/60.))
-  else:
-    progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
-                         float(elapsed_time))
-
-  progress_logger.info('Integrator Rejection rate: %s' % 
-                       (float(quaternion_integrator.rejections)/
-                        float(quaternion_integrator.rejections + n_steps)))
-  # progress_logger.info('RFD Rejection rate: %s' % 
-  #                      (float(rfd_integrator.rejections)/
-  #                       float(rfd_integrator.rejections + n_steps)))
-
-
-
-  # Set up naming for data files for trajectories.
   if len(args.data_name) > 0:
     def generate_trajectory_name(scheme):
       trajectory_dat_name = 'boomerang-trajectory-dt-%g-N-%d-scheme-%s-g-%s-%s.txt' % (
@@ -536,13 +470,59 @@ if __name__ == '__main__':
     DATA_DIR, 'boomerang', generate_trajectory_name(args.scheme))
   write_trajectory_to_txt(data_file, trajectory, params)
 
-  # rfd_data_file = os.path.join(
-  #   DATA_DIR, 'boomerang', generate_trajectory_name('RFD'))
-  # write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
 
-  # em_data_file = os.path.join(
-  #   DATA_DIR, 'boomerang', generate_trajectory_name('EM'))
-  # write_trajectory_to_txt(em_data_file, em_trajectory, params)
+  # First check that the directory exists.  If not, create it.
+  dir_name = os.path.dirname(data_file)
+  if not os.path.isdir(dir_name):
+     os.mkdir(dir_name)
+
+  # Write data to file, parameters first then trajectory.
+  with open(data_file, 'w', 1) as f:
+    f.write('Parameters:\n')
+    for key, value in params.items():
+      f.writelines(['%s: %s \n' % (key, value)])
+    f.write('Trajectory data:\n')
+    f.write('Location, Orientation:\n')
+
+    start_time = time.time()
+    for k in range(n_steps):
+      # Fixman step and bin result.
+      if args.scheme == 'FIXMAN':
+        quaternion_integrator.fixman_time_step(dt)
+      elif args.scheme == 'RFD':
+        quaternion_integrator.rfd_time_step(dt)
+      elif args.scheme == 'EM':
+        # EM step and bin result.
+        quaternion_integrator.additive_em_time_step(dt)
+      else:
+        raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
+
+#      trajectory[0].append(quaternion_integrator.location[0])
+#      trajectory[1].append(quaternion_integrator.orientation[0].entries)
+      location = quaternion_integrator.location[0]
+      orientation = quaternion_integrator.orientation[0].entries
+      f.write('%s, %s, %s, %s, %s, %s, %s \n' % (
+        location[0], location[1], location[2], 
+        orientation[0], orientation[1], orientation[2], orientation[3]))
+
+
+      if k % print_increment == 0:
+        elapsed_time = time.time() - start_time
+        print 'At step %s out of %s' % (k, n_steps)
+        log_time_progress(elapsed_time, k, n_steps)
+      
+
+  elapsed_time = time.time() - start_time
+  if elapsed_time > 60:
+    progress_logger.info('Finished timestepping. Total Time: %.2f minutes.' % 
+                         (float(elapsed_time)/60.))
+  else:
+    progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
+                         float(elapsed_time))
+
+  progress_logger.info('Integrator Rejection rate: %s' % 
+                       (float(quaternion_integrator.rejections)/
+                        float(quaternion_integrator.rejections + n_steps)))
 
   if args.profile:
     pr.disable()
