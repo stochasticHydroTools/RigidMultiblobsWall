@@ -119,8 +119,8 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1.]
-  names_list = ['old', ]
+  factor_list = [1., 1.]
+  names_list = ['old', 'increased-rep']
 
   bin_width = 0.05
   cross_heights = np.zeros(int(11./bin_width))
@@ -138,7 +138,9 @@ if __name__ == '__main__':
   data_name = os.path.join('.', 'data', data_name)
   start_time = time.time()
   with open(data_name, 'w') as f_out:
-    for factor in factor_list:
+    for k in range(len(factor_list)):
+      factor = factor_list[k]
+      data_name = names_list[k]
       f_out.write('Gravity = %s Earths Gravity\n' % factor)
       avg_height = 0.
       file_name = 'boomerang-samples-g-%s-%s.txt' % (factor, data_name)
@@ -164,28 +166,32 @@ if __name__ == '__main__':
       diff_heights = diff_heights/n_steps/bin_width
     
       plt.figure(1)
-      plt.plot(buckets_cross, cross_heights, label="Earth Mass * %s" % factor)
+      plt.plot(buckets_cross, cross_heights, label='Earth Mass * %s, %s' % (
+          factor, data_name))
       f_out.write('Buckets: \n')
       f_out.write('%s \n' % buckets_cross)
       f_out.write('Cross Point Heights PDF:\n')
       f_out.write('%s \n' % cross_heights)    
     
       plt.figure(2)
-      plt.plot(buckets_cross, max_heights,  label="Earth Mass * %s" % factor)
+      plt.plot(buckets_cross, max_heights,  label='Earth Mass * %s, %s' % (
+          factor, data_name))
       f_out.write('Buckets: \n')
       f_out.write('%s \n' % buckets_cross)
       f_out.write('Max Blob Heights PDF:\n')
       f_out.write('%s \n' % max_heights)    
     
       plt.figure(3)
-      plt.plot(buckets_cross, min_heights,  label="Earth Mass * %s" % factor)
+      plt.plot(buckets_cross, min_heights,  label='Earth Mass * %s, %s' % (
+          factor, data_name))
       f_out.write('Buckets: \n')
       f_out.write('%s \n' % buckets_cross)
       f_out.write('Min Blob Heights PDF:\n')
       f_out.write('%s \n' % min_heights)    
     
       plt.figure(4)
-      plt.plot(buckets_diff, diff_heights,  label="Earth Mass * %s" % factor)
+      plt.plot(buckets_diff, diff_heights,  label='Earth Mass * %s, %s' % (
+          factor, data_name))
       f_out.write('Buckets: \n')
       f_out.write('%s \n' % buckets_diff)
       f_out.write('Max Difference in Blob Heights PDF:\n')
