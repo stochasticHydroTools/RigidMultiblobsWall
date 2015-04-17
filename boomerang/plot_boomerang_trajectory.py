@@ -15,7 +15,8 @@ from utils import read_trajectory_from_txt
 
 
 N_SPHERES = len(bm.M)
-TIME_SKIP = 1
+TIME_SKIP = 5
+WRITE = True
 
 class vtkTimerCallback():
   def __init__(self):
@@ -33,9 +34,12 @@ class vtkTimerCallback():
                                 r_vectors[k][2])
     iren = obj
     iren.GetRenderWindow().Render()
-#    self.w2if.Modified()
-#    self.lwr.SetFileName("frame"+ ('%03d' % self.n)+".png")
-#    self.lwr.Write()
+    if WRITE:
+      self.w2if.Modified()
+      self.lwr.SetFileName(os.path.join(
+          '.', 'figures',
+          'frame'+ ('%03d' % self.n)+'.png'))
+      self.lwr.Write()
     self.timer_count += 0.1
     self.n += 1
 
@@ -65,7 +69,7 @@ if __name__ == '__main__':
     blob_sources[k].SetCenter(initial_r_vectors[0][0],
                               initial_r_vectors[0][1],
                               initial_r_vectors[0][2])
-    blob_sources[k].SetRadius(bm.A/(np.sqrt(3./2.)))
+    blob_sources[k].SetRadius(bm.A)
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
