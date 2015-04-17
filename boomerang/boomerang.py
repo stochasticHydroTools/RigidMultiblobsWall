@@ -53,7 +53,7 @@ KT = 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
 REPULSION_STRENGTH = 7.5*KT
-DEBYE_LENGTH = 0.5*A
+DEBYE_LENGTH = 1.0*A
 
 
 def boomerang_mobility(locations, orientations):
