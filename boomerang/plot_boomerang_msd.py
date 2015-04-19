@@ -1,7 +1,10 @@
 ''' Plot the MSD of a boomerang. '''
 
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import sys
+import os
 
 from utils import plot_time_dependent_msd
 
