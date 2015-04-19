@@ -1,7 +1,9 @@
 ''' Plot the MSD of a boomerang. '''
 
+import cPickle
 import matplotlib
 matplotlib.use('Agg')
+import numpy as np
 from matplotlib import pyplot as plt
 import sys
 sys.path.append('..')
@@ -14,6 +16,7 @@ if __name__ == '__main__':
   
   data_files = sys.argv[1:]
   labels = ['G = 1', 'G = 10', 'G = 20']
+  symbols = ['d', 'o', 's', '^']
 
   ctr = 0
   for name in data_files:
@@ -32,6 +35,7 @@ if __name__ == '__main__':
           msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
             msd_statistics.data[scheme][dt][2][k][0][0]**2 +
             msd_statistics.data[scheme][dt][2][k][1][1]**2)
+
     plot_time_dependent_msd(msd_statistics, [0, 0], 1, num_err_bars=40,
                             label=labels[ctr], symbol=symbols[ctr])
     plot_time_dependent_msd(msd_statistics, [2, 2], 1, num_err_bars=40,
