@@ -16,7 +16,7 @@ if __name__ == '__main__':
   labels = ['G = 1', 'G = 10', 'G = 20']
 
   ctr = 0
-  for file_name in range(data_files):
+  for file_name in data_files:
     with open(file_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
