@@ -37,9 +37,10 @@ def calculate_boomerang_parallel_mobility(n_samples, sample_file):
 if __name__ == '__main__':
   
   data_files = sys.argv[1:]
-  labels = [' G = 1', ' G = 10', ' G = 20']
+  labels = [' G = 1 Parallel', ' G = 10 Parallel', ' G = 20 Parallel',
+            ' G=1 Perp', ' G = 10 Perp', ' G = 20 Perp']
   symbols = ['d', 'o', 's', '^']
-  translation_limit = 10.
+  translation_limit = 8.
 
   ctr = 0
   for name in data_files:
@@ -59,10 +60,10 @@ if __name__ == '__main__':
             msd_statistics.data[scheme][dt][2][k][0][0]**2 +
             msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
-    plot_time_dependent_msd(msd_statistics, [0, 0], 1, num_err_bars=80,
+    plot_time_dependent_msd(msd_statistics, [0, 0], 1, num_err_bars=120,
                             label=labels[ctr], symbol=symbols[ctr])
-    plot_time_dependent_msd(msd_statistics, [2, 2], 1, num_err_bars=80,
-                            label=None, symbol=symbols[ctr])
+    plot_time_dependent_msd(msd_statistics, [2, 2], 1, num_err_bars=120,
+                            label=labels[ctr + 3], symbol=symbols[ctr])
     ctr += 1
 
 
@@ -73,7 +74,7 @@ if __name__ == '__main__':
     mu_parallel = calculate_boomerang_parallel_mobility(100, sample_file)
     print "mu parallel for g = %s is %s" % (gfactor, mu_parallel)
     plt.figure(1)
-    plt.plot([0., translation_limit], [0., 2.*0.2*mu_parallel], 'k--')
+    plt.plot([0., translation_limit], [0., 2.*bm.KT*mu_parallel], 'k--')
     
   plt.legend(loc='best', prop={'size': 10})
   plt.xlim([0., translation_limit])

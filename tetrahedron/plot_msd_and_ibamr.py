@@ -50,7 +50,7 @@ IBAMR_PERP_STD = np.array(
 
 
 if __name__ == '__main__':
-  data_name = ('tetrahedron-msd-dt-1.6-N-1000000-end-1000.0-scheme-RFD-runs-2-final.pkl')
+  data_name = ('tetrahedron-msd-dt-0.2-N-1000000-end-800.0-scheme-RFD-runs-4-final-com.pkl')
 
   data_file = os.path.join('.', 'data', 
                             data_name)
@@ -103,13 +103,13 @@ if __name__ == '__main__':
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
                lw=2, label=r'Parallel Mobility')
       plt.errorbar(IBAMR_TIME, 2.*IBAMR_PARALLEL, yerr = 4.*IBAMR_PARALLEL_STD,
-                   c='red', label='IBAMR Parallel')
+                   c='blue', marker='o', label='IBAMR Parallel')
     elif l == 2:
       plt.plot([0.0, translation_end],
                [zz_msd_com, zz_msd_com], 'k--',
                lw=2, label='Asymptotic Perpendicular MSD')
       plt.errorbar(IBAMR_TIME, IBAMR_PERP, yerr = 2.*IBAMR_PERP_STD,
-                   c='red', label='IBAMR Perpendicular')
+                   c='blue', marker='s', label='IBAMR Perpendicular')
       plt.xlim([0., translation_end])
       plt.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
 
