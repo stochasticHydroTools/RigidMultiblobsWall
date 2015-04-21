@@ -50,7 +50,7 @@ IBAMR_PERP_STD = np.array(
 
 
 if __name__ == '__main__':
-  data_name = ('tetrahedron-msd-dt-0.2-N-1000000-end-800.0-scheme-RFD-runs-4-final-com.pkl')
+  data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-800.0-scheme-RFD-runs-4-final.pkl')
 
   data_file = os.path.join('.', 'data', 
                             data_name)
@@ -62,6 +62,8 @@ if __name__ == '__main__':
   # Combine 0,0 and 1,1 into msd_parallel
   for scheme in msd_statistics.data:
     for dt in msd_statistics.data[scheme]:
+      num_obs = len(msd_statistics.data[scheme][dt][1])
+      msd_statistics.data[scheme][dt][0] = msd_statistics.data[scheme][dt][0][0:num_obs]
       for k in range(len(msd_statistics.data[scheme][dt][1])):
         msd_statistics.data[scheme][dt][1][k][0][0] = (
           msd_statistics.data[scheme][dt][1][k][0][0] +
@@ -71,7 +73,7 @@ if __name__ == '__main__':
           msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
 
-  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(20000)
+  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(500)
   mu_parallel_com =  average_mob_and_friction[0] # 0.0711/2.
   print "average parallel mob ", mu_parallel_com
   mu_perp_com = 0.0263
@@ -91,25 +93,25 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 350.0
+  translation_end = 450.0
   for l in range(6):
     ind = [l, l]
     plot_time_dependent_msd(msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=60)
+                            num_err_bars=200)
     plt.figure(figure_numbers[l])
     if l in [0]:
       plt.plot([0.0, translation_end], 
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
                lw=2, label=r'Parallel Mobility')
       plt.errorbar(IBAMR_TIME, 2.*IBAMR_PARALLEL, yerr = 4.*IBAMR_PARALLEL_STD,
-                   c='blue', marker='o', label='IBAMR Parallel')
+                   c='blue', marker='o', linestyle='--', label='IBAMR Parallel')
     elif l == 2:
       plt.plot([0.0, translation_end],
                [zz_msd_com, zz_msd_com], 'k--',
                lw=2, label='Asymptotic Perpendicular MSD')
       plt.errorbar(IBAMR_TIME, IBAMR_PERP, yerr = 2.*IBAMR_PERP_STD,
-                   c='blue', marker='s', label='IBAMR Perpendicular')
+                   c='blue', marker='s', linestyle='--', label='IBAMR Perpendicular')
       plt.xlim([0., translation_end])
       plt.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
 

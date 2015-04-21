@@ -448,6 +448,8 @@ if __name__ == '__main__':
                       help='Timestep to use for runs.')
   parser.add_argument('-N', dest='n_steps', type=int,
                       help='Number of steps to take for runs.')
+  parser.add_argument('-scheme', dest='scheme', type=str, default='RFD',
+                      help='Scheme to use, must be: RFD, FIXMAN, or EM.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -470,8 +472,8 @@ if __name__ == '__main__':
   print_increment = max(int(n_steps/20.), 1)
 
   # Set up logging.
-  log_filename = './logs/free-tetrahedron-dt-%f-N-%d-%s.log' % (
-    dt, n_steps, args.data_name)
+  log_filename = './logs/free-tetrahedron-dt-%f-N-%d-scheme-%s-%s.log' % (
+    dt, n_steps, args.scheme, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -487,77 +489,73 @@ if __name__ == '__main__':
   sample = generate_free_equilibrium_sample()
   initial_location = [sample[0]]
   initial_orientation = [sample[1]]
-  fixman_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
-                                           initial_orientation, 
-                                           free_gravity_torque_calculator, 
-                                           has_location=True,
-                                           initial_location=initial_location,
-                                           force_calculator=
-                                           free_gravity_force_calculator)
-  fixman_integrator.kT = KT
-  fixman_integrator.check_function = check_particles_above_wall
-  rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
-                                        initial_orientation, 
-                                        free_gravity_torque_calculator, 
-                                        has_location=True,
-                                        initial_location=initial_location,
-                                        force_calculator=
-                                        free_gravity_force_calculator)
-  rfd_integrator.kT = KT
-  rfd_integrator.check_function = check_particles_above_wall
-  em_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
-                                       initial_orientation, 
-                                       free_gravity_torque_calculator, 
-                                       has_location=True,
-                                       initial_location=initial_location,
-                                       force_calculator=
-                                       free_gravity_force_calculator)
-  em_integrator.kT = KT
-  em_integrator.check_function = check_particles_above_wall
+  quaternion_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+                                               initial_orientation, 
+                                               free_gravity_torque_calculator, 
+                                               has_location=True,
+                                               initial_location=initial_location,
+                                               force_calculator=
+                                               free_gravity_force_calculator)
+  quaternion_integrator.kT = KT
+  quaternion_integrator.check_function = check_particles_above_wall
+  # rfd_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+  #                                       initial_orientation, 
+  #                                       free_gravity_torque_calculator, 
+  #                                       has_location=True,
+  #                                       initial_location=initial_location,
+  #                                       force_calculator=
+  #                                       free_gravity_force_calculator)
+  # rfd_integrator.kT = KT
+  # rfd_integrator.check_function = check_particles_above_wall
+  # em_integrator = QuaternionIntegrator(free_tetrahedron_mobility,
+  #                                      initial_orientation, 
+  #                                      free_gravity_torque_calculator, 
+  #                                      has_location=True,
+  #                                      initial_location=initial_location,
+  #                                      force_calculator=
+  #                                      free_gravity_force_calculator)
+  # em_integrator.kT = KT
+  # em_integrator.check_function = check_particles_above_wall
 
   sample = [initial_location[0], initial_orientation[0]]
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
   bin_width = 1./5.
-  fixman_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
-  rfd_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
-  em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+  heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+#  rfd_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
+#  em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
   equilibrium_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 
   # Lists of location and orientation.
-  fixman_trajectory = [[], []]
-  rfd_trajectory = [[], []]
-  em_trajectory = [[], []]
+  trajectory = [[], []]
+  #rfd_trajectory = [[], []]
+#  em_trajectory = [[], []]
 
 
   start_time = time.time()
   for k in range(n_steps):
     # Fixman step and bin result.
-    fixman_integrator.fixman_time_step(dt)
-    bin_free_particle_heights(fixman_integrator.location[0],
-                              fixman_integrator.orientation[0], 
+    if args.scheme == 'FIXMAN':
+      fixman_integrator.fixman_time_step(dt)
+#      bin_free_particle_heights(fixman_integrator.location[0],
+#                                fixman_integrator.orientation[0], 
+#                                bin_width, 
+#                                fixman_heights)
+#      fixman_trajectory[0].append(fixman_integrator.location[0])
+#      fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
+    elif args.scheme == 'RFD':
+      quaternion_integrator.rfd_time_step(dt)
+    elif args.scheme == 'EM':
+      quaternion_integrator.additive_em_time_step(dt)
+    else:
+      raise Exception('Scheme must be FIXMAN, RFD, or EM')
+    bin_free_particle_heights(quaternion_integrator.location[0],
+                              quaternion_integrator.orientation[0], 
                               bin_width, 
-                              fixman_heights)
-    fixman_trajectory[0].append(fixman_integrator.location[0])
-    fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
-
-    rfd_integrator.rfd_time_step(dt)
-    bin_free_particle_heights(rfd_integrator.location[0],
-                              rfd_integrator.orientation[0], 
-                              bin_width, 
-                              rfd_heights)
-    rfd_trajectory[0].append(rfd_integrator.location[0])
-    rfd_trajectory[1].append(rfd_integrator.orientation[0].entries)
-
-    # EM step and bin result.
-    em_integrator.additive_em_time_step(dt)
-    bin_free_particle_heights(em_integrator.location[0],
-                              em_integrator.orientation[0], 
-                              bin_width, 
-                              em_heights)
-    em_trajectory[0].append(em_integrator.location[0])
-    em_trajectory[1].append(em_integrator.orientation[0].entries)
+                              heights)
+    trajectory[0].append(quaternion_integrator.location[0])
+    trajectory[1].append(quaternion_integrator.orientation[0].entries)
 
     # Bin equilibrium sample.
     sample = generate_free_equilibrium_sample_mcmc(sample)
@@ -589,25 +587,18 @@ if __name__ == '__main__':
     progress_logger.info('Finished timestepping. Total Time: %.2f seconds.' % 
                          float(elapsed_time))
 
-  progress_logger.info('Fixman Rejection rate: %s' % 
-                       (float(fixman_integrator.rejections)/
-                        float(fixman_integrator.rejections + n_steps)))
-  progress_logger.info('RFD Rejection rate: %s' % 
-                       (float(rfd_integrator.rejections)/
-                        float(rfd_integrator.rejections + n_steps)))
+  progress_logger.info('Integrator Rejection rate: %s' % 
+                       (float(quaternion_integrator.rejections)/
+                        float(quaternion_integrator.rejections + n_steps)))
   progress_logger.info('Equilibrium Acceptance Rate: %s' % 
                        (float(generate_free_equilibrium_sample_mcmc.accepts)/
                        float(generate_free_equilibrium_sample_mcmc.samples)))
 
-
   # Gather data to save.
-  heights = [fixman_heights/(n_steps*bin_width),
-             rfd_heights/(n_steps*bin_width),
-             em_heights/(n_steps*bin_width),
+  heights = [heights/(n_steps*bin_width),
              equilibrium_heights/(n_steps*bin_width)]
 
-  print "average fixman velocity", fixman_integrator.avg_velocity/float(n_steps)
-  print "average rfd velocity", rfd_integrator.avg_velocity/float(n_steps)
+  print "average velocity", quaternion_integrator.avg_velocity/float(n_steps)
 
   height_data = dict()
   # Save parameters just in case they're useful in the future.
@@ -615,26 +606,29 @@ if __name__ == '__main__':
   # issues there.
   params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
             'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
-            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps}
+            'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps,
+            'KT': KT}
   height_data['params'] = params
   height_data['heights'] = heights
-  fixman_lengths = max([len(fixman_heights[k]) 
-                        for k in range(len(fixman_heights))])
+  lengths = max([len(heights[k]) 
+                 for k in range(len(heights))])
 
-  height_data['buckets'] = (bin_width*np.array(range(fixman_lengths))
+  height_data['buckets'] = (bin_width*np.array(range(lengths))
                             + 0.5*bin_width)
-  height_data['names'] = ['Fixman', 'RFD', 'EM', 'Gibbs-Boltzmann']
+
+  height_data['names'] = [args.scheme, 'Gibbs-Boltzmann']
 
   # Optional name for data provided
   if len(args.data_name) > 0:
-    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-%s.pkl' % (
-      dt, n_steps, args.data_name)
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-scheme-%s-%s.pkl' % (
+      dt, n_steps, args.scheme, args.data_name)
     def generate_trajectory_name(scheme):
       trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s-%s.txt' % (
         dt, n_steps, scheme, args.data_name)
       return trajectory_dat_name
   else:
-    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d.pkl' % (dt, n_steps)
+    data_name = './data/free-tetrahedron-heights-dt-%g-N-%d-scheme-%s.pkl' % (
+      dt, n_steps, args.scheme)
     def generate_trajectory_name(scheme):
       trajectory_dat_name = 'free-tetrahedron-trajectory-dt-%g-N-%d-scheme-%s.txt' % (
         dt, n_steps, scheme)
@@ -645,17 +639,17 @@ if __name__ == '__main__':
   with open(data_name, 'wb') as f:
     cPickle.dump(height_data, f)
 
-  fixman_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', generate_trajectory_name('FIXMAN'))
-  write_trajectory_to_txt(fixman_data_file, fixman_trajectory, params)
-
-  em_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
-  write_trajectory_to_txt(em_data_file, em_trajectory, params)
-
-  rfd_data_file = os.path.join(
+  trajectory_data_file = os.path.join(
     DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
-  write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
+  write_trajectory_to_txt(trajectory_data_file, trajectory, params)
+
+  # em_data_file = os.path.join(
+  #   DATA_DIR, 'tetrahedron', generate_trajectory_name('EM'))
+  # write_trajectory_to_txt(em_data_file, em_trajectory, params)
+
+  # rfd_data_file = os.path.join(
+  #   DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
+  # write_trajectory_to_txt(rfd_data_file, rfd_trajectory, params)
   
   if args.profile:
     pr.disable()

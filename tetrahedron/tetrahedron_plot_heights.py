@@ -1,3 +1,6 @@
+''' WARNING: tetrahedron_free.py script was changed to store heights differently, and 
+this script doesn't work now. TODO: FIX THIS!'''
+
 import os
 import sys
 import numpy as np
