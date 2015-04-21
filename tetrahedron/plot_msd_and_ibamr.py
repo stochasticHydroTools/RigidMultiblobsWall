@@ -48,34 +48,78 @@ IBAMR_PERP_STD = np.array(
    0.033308575, 0.036714922, 0.039723968, 0.043054832, 0.046361506, 
    0.049286502, 0.052712193, 0.055929978, 0.059303183])
 
+IBAMR_ROT = np.array(
+  [
+
+IBAMR_ROT_STD = 
+
 
 if __name__ == '__main__':
-  data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-800.0-scheme-RFD-runs-4-final.pkl')
 
-  data_file = os.path.join('.', 'data', 
-                            data_name)
+  rfd_data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-final.pkl')
+  fixman_data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-500.0-scheme-FIXMAN'
+                      '-runs-4-final.pkl')
+
+  rfd_data_file = os.path.join('.', 'data', 
+                               rfd_data_name)
   
-  with open(data_file, 'rb') as f:
-    msd_statistics = cPickle.load(f)
-    msd_statistics.print_params()
+  with open(rfd_data_file, 'rb') as f:
+    rfd_msd_statistics = cPickle.load(f)
+    rfd_msd_statistics.print_params()
 
   # Combine 0,0 and 1,1 into msd_parallel
-  for scheme in msd_statistics.data:
-    for dt in msd_statistics.data[scheme]:
-      num_obs = len(msd_statistics.data[scheme][dt][1])
-      msd_statistics.data[scheme][dt][0] = msd_statistics.data[scheme][dt][0][0:num_obs]
-      for k in range(len(msd_statistics.data[scheme][dt][1])):
-        msd_statistics.data[scheme][dt][1][k][0][0] = (
-          msd_statistics.data[scheme][dt][1][k][0][0] +
-          msd_statistics.data[scheme][dt][1][k][1][1])
-        msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
-          msd_statistics.data[scheme][dt][2][k][0][0]**2 +
-          msd_statistics.data[scheme][dt][2][k][1][1]**2)
+  for scheme in rfd_msd_statistics.data:
+    for dt in rfd_msd_statistics.data[scheme]:
+      num_obs = len(rfd_msd_statistics.data[scheme][dt][1])
+      rfd_msd_statistics.data[scheme][dt][0] = (
+        rfd_msd_statistics.data[scheme][dt][0][0:num_obs])
+      for k in range(len(rfd_msd_statistics.data[scheme][dt][1])):
+        rfd_msd_statistics.data[scheme][dt][1][k][0][0] = (
+          rfd_msd_statistics.data[scheme][dt][1][k][0][0] +
+          rfd_msd_statistics.data[scheme][dt][1][k][1][1])
+        rfd_msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
+          rfd_msd_statistics.data[scheme][dt][2][k][0][0]**2 +
+          rfd_msd_statistics.data[scheme][dt][2][k][1][1]**2)
+
+
+  fixman_data_file = os.path.join('.', 'data', 
+                                  fixman_data_name)
+  
+  with open(fixman_data_file, 'rb') as f:
+    fixman_msd_statistics = cPickle.load(f)
+    fixman_msd_statistics.print_params()
+
+  # Combine 0,0 and 1,1 into msd_parallel
+  for scheme in fixman_msd_statistics.data:
+    for dt in fixman_msd_statistics.data[scheme]:
+      num_obs = len(fixman_msd_statistics.data[scheme][dt][1])
+      fixman_msd_statistics.data[scheme][dt][0] = (
+        fixman_msd_statistics.data[scheme][dt][0][0:num_obs])
+      for k in range(len(fixman_msd_statistics.data[scheme][dt][1])):
+        fixman_msd_statistics.data[scheme][dt][1][k][0][0] = (
+          fixman_msd_statistics.data[scheme][dt][1][k][0][0] +
+          fixman_msd_statistics.data[scheme][dt][1][k][1][1])
+        fixman_msd_statistics.data[scheme][dt][2][k][0][0] = np.sqrt(
+          fixman_msd_statistics.data[scheme][dt][2][k][0][0]**2 +
+          fixman_msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
 
   average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(500)
   mu_parallel_com =  average_mob_and_friction[0] # 0.0711/2.
-  print "average parallel mob ", mu_parallel_com
+
+  # PRE COMPUTED VALUES:
+  # These use parameters:
+  # ETA = 1.0   # Fluid viscosity.
+  # A = 0.5     # Particle Radius.
+  # H = 3.5     # Initial Distance to wall.
+  # KT = 0.2    # Temperature
+  # M4 = 0.005*4.
+  # M1 = 0.015*4.
+  # M2 = 0.01*4.
+  # M3 = 0.03*4.
+  # REPULSION_STRENGTH = 2.0
+  # DEBYE_LENGTH = 0.25 
+
   mu_perp_com = 0.0263
   zz_msd_com = 1.633
   rot_msd_com = 0.167
@@ -93,25 +137,28 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' Parallel MSD', ' YY-MSD', ' Perpendicular MSD', ' Rotational MSD', ' Rotational MSD', ' Rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 450.0
+  translation_end = 100.
   for l in range(6):
     ind = [l, l]
-    plot_time_dependent_msd(msd_statistics, ind, figure_numbers[l],
+    plot_time_dependent_msd(rfd_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=200)
+                            num_err_bars=140)
+    plot_time_dependent_msd(fixman_msd_statistics, ind, figure_numbers[l],
+                            error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
+                            num_err_bars=140, data_name='FixmanMSDComponent-%s.txt' % l)
     plt.figure(figure_numbers[l])
     if l in [0]:
       plt.plot([0.0, translation_end], 
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
-               lw=2, label=r'Parallel Mobility')
+               lw=2, label=r'Theory')
       plt.errorbar(IBAMR_TIME, 2.*IBAMR_PARALLEL, yerr = 4.*IBAMR_PARALLEL_STD,
-                   c='blue', marker='o', linestyle='--', label='IBAMR Parallel')
+                   c='red', marker='o', linestyle='--', label='FIB Parallel')
     elif l == 2:
       plt.plot([0.0, translation_end],
                [zz_msd_com, zz_msd_com], 'k--',
-               lw=2, label='Asymptotic Perpendicular MSD')
+               lw=2, label='Asymptotic Perpendicular Theory')
       plt.errorbar(IBAMR_TIME, IBAMR_PERP, yerr = 2.*IBAMR_PERP_STD,
-                   c='blue', marker='s', linestyle='--', label='IBAMR Perpendicular')
+                   c='red', marker='s', linestyle='--', label='FIB Perpendicular')
       plt.xlim([0., translation_end])
       plt.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
 

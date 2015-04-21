@@ -60,6 +60,7 @@ class TestFreeTetrahedron(unittest.TestCase):
     configurations. 
     '''
     # Set masses.
+    old_masses = [tf.M1, tf.M2, tf.M3, tf.M4]
     tf.M1 = 1.0
     tf.M2 = 1.0
     tf.M3 = 1.0
@@ -71,6 +72,11 @@ class TestFreeTetrahedron(unittest.TestCase):
     self.assertAlmostEqual(com[0], 0.0)    
     self.assertAlmostEqual(com[1], 0.0)
     self.assertAlmostEqual(com[2], 3.5 - np.sqrt(6.)/2.)
+
+    tf.M1 = old_masses[0]
+    tf.M2 = old_masses[1]
+    tf.M3 = old_masses[2]
+    tf.M4 = old_masses[3]
 
   
   def test_calc_free_rot_matrix(self):

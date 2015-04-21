@@ -207,8 +207,8 @@ def log_time_progress(elapsed_time, time_units, total_time_units):
                            float(expected_duration))
       
 
-def _calc_total_msd_from_matrix_and_center(original_center, original_rotated_e, 
-                                       final_center, rotated_e):
+def calc_total_msd_from_matrix_and_center(original_center, original_rotated_e, 
+                                          final_center, rotated_e):
   ''' 
   Calculate 6x6 MSD including orientation and location.  This is
   calculated from precomputed center of the tetrahedron and rotation
@@ -275,7 +275,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
       lagged_location_trajectory = lagged_location_trajectory[1:]
       lagged_rotation_trajectory = lagged_rotation_trajectory[1:]
       for l in range(trajectory_length):
-        current_rot_msd = (_calc_total_msd_from_matrix_and_center(
+        current_rot_msd = (calc_total_msd_from_matrix_and_center(
            lagged_location_trajectory[0],
            lagged_rotation_trajectory[0],
            lagged_location_trajectory[l],

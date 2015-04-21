@@ -1,5 +1,12 @@
-''' WARNING: tetrahedron_free.py script was changed to store heights differently, and 
-this script doesn't work now. TODO: FIX THIS!'''
+''' 
+Quick script to plot heights from a single run and compare to
+equilibrium distribution.  Call with:
+
+python tetrahedron_plot_heights name-of-height-data.pkl
+
+The data file will be produced automatically by tetrahedron.py
+or tetrahedron_free.py in the data subfolder.
+'''
 
 import os
 import sys

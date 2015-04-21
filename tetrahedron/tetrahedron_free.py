@@ -86,7 +86,7 @@ def free_tetrahedron_com_mobility(location, orientation):
   This mobility is for movement of the center.
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  com = get_free_geometric_center(location[0], orientation[0])
+  com = get_free_center_of_mass(location[0], orientation[0])
   return force_and_torque_mobility(r_vectors, com)
 
 
@@ -319,7 +319,7 @@ def generate_free_equilibrium_sample():
   while True:
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion(theta/np.linalg.norm(theta))
-    location = [0., 0., np.random.uniform(A, 14.0)]
+    location = [0., 0., np.random.uniform(A, 16.0)]
     accept_prob = gibbs_boltzmann_distribution(location, orientation)/(1.1e-1)
     if accept_prob > 1.:
       print 'Accept probability %s is greater than 1' % accept_prob
@@ -373,10 +373,10 @@ def gibbs_boltzmann_distribution(location, orientation):
   and orientation.
   '''
   r_vectors = get_free_r_vectors(location, orientation)
-  if ((r_vectors[0][2] < 0.5) or
-      (r_vectors[1][2] < 0.5) or
-      (r_vectors[2][2] < 0.5) or
-      (r_vectors[3][2] < 0.5)):
+  if ((r_vectors[0][2] < A) or
+      (r_vectors[1][2] < A) or
+      (r_vectors[2][2] < A) or
+      (r_vectors[3][2] < A)):
     gibbs_boltzmann_distribution.low_rejections += 1
     return 0.0
   # Calculate potential.
@@ -396,10 +396,10 @@ def check_particles_above_wall(location, orientation):
   pushing the particles very far from the wall.
   '''
   r_vectors = get_free_r_vectors(location[0], orientation[0])
-  if location[0][2] < (A + 0.1):
+  if location[0][2] < (A):
     return False
   for k in range(3):
-    if r_vectors[k][2] < (A + 0.1): 
+    if r_vectors[k][2] < (A): 
       return False
   return True
 
@@ -537,13 +537,7 @@ if __name__ == '__main__':
   for k in range(n_steps):
     # Fixman step and bin result.
     if args.scheme == 'FIXMAN':
-      fixman_integrator.fixman_time_step(dt)
-#      bin_free_particle_heights(fixman_integrator.location[0],
-#                                fixman_integrator.orientation[0], 
-#                                bin_width, 
-#                                fixman_heights)
-#      fixman_trajectory[0].append(fixman_integrator.location[0])
-#      fixman_trajectory[1].append(fixman_integrator.orientation[0].entries)
+      quaternion_integrator.fixman_time_step(dt)
     elif args.scheme == 'RFD':
       quaternion_integrator.rfd_time_step(dt)
     elif args.scheme == 'EM':
@@ -605,14 +599,13 @@ if __name__ == '__main__':
   # TODO: Make sure you check all parameters when plotting to avoid
   # issues there.
   params = {'A': A, 'ETA': ETA, 'H': H, 'M1': M1, 'M2': M2, 
-            'M3': M3, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
+            'M3': M3, 'M4': M4, 'REPULSION_STRENGTH': REPULSION_STRENGTH,
             'DEBYE_LENGTH': DEBYE_LENGTH, 'dt': dt, 'n_steps': n_steps,
             'KT': KT}
   height_data['params'] = params
   height_data['heights'] = heights
-  lengths = max([len(heights[k]) 
+  lengths = max([len(heights[0][k]) 
                  for k in range(len(heights))])
-
   height_data['buckets'] = (bin_width*np.array(range(lengths))
                             + 0.5*bin_width)
 
@@ -640,7 +633,7 @@ if __name__ == '__main__':
     cPickle.dump(height_data, f)
 
   trajectory_data_file = os.path.join(
-    DATA_DIR, 'tetrahedron', generate_trajectory_name('RFD'))
+    DATA_DIR, 'tetrahedron', generate_trajectory_name(args.scheme))
   write_trajectory_to_txt(trajectory_data_file, trajectory, params)
 
   # em_data_file = os.path.join(
