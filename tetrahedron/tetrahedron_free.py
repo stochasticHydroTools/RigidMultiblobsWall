@@ -521,7 +521,7 @@ if __name__ == '__main__':
   # For now hard code bin width.  Number of bins is equal to 6./bin_width.
   # Here we allow for a large range because the tetrahedron is free to drift away 
   # from the wall a bit.
-  bin_width = 1./5.
+  bin_width = 1./10.
   heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 #  rfd_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])
 #  em_heights = np.array([np.zeros(int(28./bin_width)) for _ in range(5)])

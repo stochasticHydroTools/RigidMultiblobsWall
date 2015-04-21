@@ -174,9 +174,9 @@ if __name__ == "__main__":
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
     if l == 3:
-      pyplot.plot([0., 150.], [rot_msd, rot_msd], 'k--', 
+      pyplot.plot([0., 300.], [rot_msd, rot_msd], 'k--', 
                   lw=2, label='blob asymptotic rotational MSD')
-      pyplot.xlim([0., 150.])
+      pyplot.xlim([0., 300.])
 
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
     pyplot.legend(loc='best', prop={'size': 12})
