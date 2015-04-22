@@ -289,7 +289,7 @@ def bin_free_particle_heights(location, orientation, bin_width,
   Heights are binned relative to the geometric center of the tetrahedron.
   '''
   r_vectors = get_free_r_vectors(location, orientation)
-  center_of_tet = get_free_geometric_center(location, orientation)
+  center_of_tet = get_free_center_of_mass(location, orientation)
   for k in range(4):
     # Bin each particle height.
     idx = (int(math.floor((r_vectors[k][2])/bin_width)))
