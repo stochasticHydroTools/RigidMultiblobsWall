@@ -70,7 +70,7 @@ if __name__ == '__main__':
                       help='How far to analyze MSD (how large of a time window '
                       'to use).  This is in the same time units as dt.')
   parser.add_argument('--out-name', dest='out_name', type=str, default='',
-                      help='Optinoal output name to add to the output Pkl '
+                      help='Optional output name to add to the output Pkl '
                       'file for organization.  For example could denote '
                       'analysis using center of mass v. vertex.')
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
