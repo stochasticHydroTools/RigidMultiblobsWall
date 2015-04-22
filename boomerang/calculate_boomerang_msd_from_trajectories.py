@@ -25,6 +25,24 @@ def calc_boomerang_cp(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.'''
   return location
 
+def calc_boomerang_coh(location, orientation):
+  ''' Function to get boomerang cross point, which is tracked as location.
+  this is for the 15 blob boomerang.'''
+  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
+  dist = 0.80943
+  coh = (location + 
+         np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
+         np.sin(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
+  
+  return location
+
+
+def calc_boomerang_tip(location, orientation):
+  ''' Function to get boomerang cross point, which is tracked as location.'''
+  r_vectors = bm.get_boomerang_r_vectors(location, orientation)
+  tip = r_vectors[0]
+  return tip
+
 
 
 
@@ -124,7 +142,7 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_boomerang_cp, dt, end,
+                                             calc_boomerang_coh, dt, end,
                                              trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
@@ -148,7 +166,7 @@ if __name__ == '__main__':
     msd_data_file_name = os.path.join(
       '.', 'data',
       'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
-      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))p
+      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
 
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
