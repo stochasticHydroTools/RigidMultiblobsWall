@@ -157,7 +157,8 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' parallel MSD', ' yy-MSD', ' perpendicular MSD', ' rotational MSD', ' rotational MSD', ' rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 1000.
+  translation_end = 100.
+  fib_skip = 1
   
   print "mu_parallel: ", mu_parallel_center
   print "msd_rot", rot_msd_center
@@ -168,20 +169,22 @@ if __name__ == '__main__':
     ind = [l, l]
     plot_time_dependent_msd(rfd_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=40)
+                            num_err_bars=60)
     plot_time_dependent_msd(fixman_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=40, data_name='FixmanMSDComponent-%s.txt' % l)
+                            num_err_bars=60, data_name='FixmanMSDComponent-%s.txt' % l)
     plt.figure(figure_numbers[l])
     if l in [0]:
 
-      plt.errorbar(IBAMR_TIME[::2], 2.*IBAMR_PARALLEL[::2], yerr = 4.*IBAMR_PARALLEL_STD[::2],
+      plt.errorbar(IBAMR_TIME[::fib_skip], 2.*IBAMR_PARALLEL[::fib_skip], 
+                   yerr = 2.*IBAMR_PARALLEL_STD[::fib_skip],
                    c='red', marker='o', linestyle='--', label='FIB parallel')
       plt.plot([0.0, translation_end], 
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
                lw=2, label=r'parallel theory')
     elif l == 2:
-      plt.errorbar(IBAMR_TIME[::2], IBAMR_PERP[::2], yerr = 2.*IBAMR_PERP_STD[::2],
+      plt.errorbar(IBAMR_TIME[::fib_skip], IBAMR_PERP[::fib_skip], 
+                   yerr = IBAMR_PERP_STD[::fib_skip],
                    c='red', marker='s', linestyle='--', label='FIB perpendicular')
       if translation_end > 200.:
         plt.plot([0.0, translation_end],
@@ -191,7 +194,7 @@ if __name__ == '__main__':
       plt.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
 
     if l == 3:
-      plt.errorbar(IBAMR_ROT_TIME[0::2], IBAMR_ROT[0::2], yerr=2.*IBAMR_ROT_STD[0::2], 
+      plt.errorbar(IBAMR_ROT_TIME[0::3], IBAMR_ROT[0::3], yerr=IBAMR_ROT_STD[0::3], 
                    c='red', marker='s', label='FIB rotation')
       plt.plot([0.0, 550.],
                   [rot_msd_com, rot_msd_com], 'k--', lw=2, 

@@ -26,8 +26,8 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   for k in range(n_steps):
     sample_1 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
     sample_2 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
-    rot_mat_1 = sample_1[1].rotation_matrix()
-    rot_mat_2 = sample_2[1].rotation_matrix()
+    rot_mat_1 = sample_1[1].rotation_matrix().T
+    rot_mat_2 = sample_2[1].rotation_matrix().T
     total_msd = calc_total_msd_from_matrix_and_center(sample_1[0], rot_mat_1,
                                                       sample_2[0], rot_mat_2)
     zz_msd += total_msd[2, 2]
@@ -128,7 +128,7 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
   #zz_msd = 0.4557
   
@@ -174,9 +174,9 @@ if __name__ == "__main__":
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
     if l == 3:
-      pyplot.plot([0., 300.], [rot_msd, rot_msd], 'k--', 
+      pyplot.plot([0., 120.], [rot_msd, rot_msd], 'k--', 
                   lw=2, label='blob asymptotic rotational MSD')
-      pyplot.xlim([0., 300.])
+      pyplot.xlim([0., 120.])
 
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
     pyplot.legend(loc='best', prop={'size': 12})
