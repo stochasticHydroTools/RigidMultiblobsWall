@@ -157,8 +157,10 @@ if __name__ == '__main__':
   figure_numbers = [1, 5, 1, 2, 3, 4]
   labels= [' parallel MSD', ' yy-MSD', ' perpendicular MSD', ' rotational MSD', ' rotational MSD', ' rotational MSD']
   styles = ['o', '^', 's', 'o', '.', '.']
-  translation_end = 100.
-  fib_skip = 1
+  translation_end = 1000.
+  fib_skip = 2
+  fib_end = 28
+
   
   print "mu_parallel: ", mu_parallel_center
   print "msd_rot", rot_msd_center
@@ -169,22 +171,24 @@ if __name__ == '__main__':
     ind = [l, l]
     plot_time_dependent_msd(rfd_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=60)
+                            num_err_bars=40)
     plot_time_dependent_msd(fixman_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
-                            num_err_bars=60, data_name='FixmanMSDComponent-%s.txt' % l)
+                            num_err_bars=40, data_name='FixmanMSDComponent-%s.txt' % l)
     plt.figure(figure_numbers[l])
     if l in [0]:
 
-      plt.errorbar(IBAMR_TIME[::fib_skip], 2.*IBAMR_PARALLEL[::fib_skip], 
-                   yerr = 2.*IBAMR_PARALLEL_STD[::fib_skip],
+      plt.errorbar(IBAMR_TIME[:fib_end:fib_skip], 
+                   2.*IBAMR_PARALLEL[:fib_end:fib_skip], 
+                   yerr = 2.*IBAMR_PARALLEL_STD[:fib_end:fib_skip],
                    c='red', marker='o', linestyle='--', label='FIB parallel')
       plt.plot([0.0, translation_end], 
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
                lw=2, label=r'parallel theory')
     elif l == 2:
-      plt.errorbar(IBAMR_TIME[::fib_skip], IBAMR_PERP[::fib_skip], 
-                   yerr = IBAMR_PERP_STD[::fib_skip],
+      plt.errorbar(IBAMR_TIME[:fib_end:fib_skip], 
+                   IBAMR_PERP[:fib_end:fib_skip], 
+                   yerr = IBAMR_PERP_STD[:fib_end:fib_skip],
                    c='red', marker='s', linestyle='--', label='FIB perpendicular')
       if translation_end > 200.:
         plt.plot([0.0, translation_end],

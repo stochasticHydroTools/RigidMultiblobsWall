@@ -25,6 +25,24 @@ def calc_boomerang_cp(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.'''
   return location
 
+def calc_boomerang_coh(location, orientation):
+  ''' Function to get boomerang cross point, which is tracked as location.
+  this is for the 15 blob boomerang.'''
+  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
+  dist = 0.80943
+  coh = (location + 
+         np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
+         np.sin(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
+  
+  return location
+
+
+def calc_boomerang_tip(location, orientation):
+  ''' Function to get boomerang cross point, which is tracked as location.'''
+  r_vectors = bm.get_boomerang_r_vectors(location, orientation)
+  tip = r_vectors[0]
+  return tip
+
 
 
 
@@ -59,6 +77,10 @@ if __name__ == '__main__':
   parser.add_argument('-end', dest='end', type=float,
                       help='How far to analyze MSD (how large of a time window '
                       'to use).  This is in the same time units as dt.')
+  parser.add_argument('--out-name', dest='out_name', type=str, default='',
+                      help='Optional output name to add to the output Pkl '
+                      'file for organization.  For example could denote '
+                      'analysis using cross point v. vertex.')
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
                       help='True or False: Do we profile this run or not. '
                       'Defaults to False. Put --profile 1 to profile.')
@@ -78,8 +100,12 @@ if __name__ == '__main__':
   trajectory_length = 150
   
   # Set up logging
-  log_filename = './logs/boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s.log' % (
-    dt, N, args.gfactor, args.data_name)
+  if args.out_name:
+    log_filename = './logs/boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s-%s.log' % (
+      dt, N, args.gfactor, args.data_name, args.out_name)
+  else:
+    log_filename = './logs/boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s.log' % (
+      dt, N, args.gfactor, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -116,7 +142,7 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_boomerang_cp, dt, end,
+                                             calc_boomerang_coh, dt, end,
                                              trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
@@ -130,10 +156,17 @@ if __name__ == '__main__':
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])
 
   # Save MSD data with pickle.
-  msd_data_file_name = os.path.join(
-    '.', 'data',
-    'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
-    (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
+  if args.out_name:
+    msd_data_file_name = os.path.join(
+      '.', 'data',
+      'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' %
+      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name,
+       args.out_name))
+  else:
+    msd_data_file_name = os.path.join(
+      '.', 'data',
+      'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
+      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
 
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)

@@ -2,6 +2,8 @@
 the IBAMR FIB method and theory. '''
 
 import cPickle
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import numpy as np
 import os
@@ -14,38 +16,63 @@ IBAMR_BUCKETS = np.array(
 IBAMR_HEIGHT_PDF = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.00016362722, 0.001804999, 0.008731749, 0.025426527, 0.065377451, 0.11898809, 0.20434552, 0.28891435, 0.3621815, 0.41390688, 0.47103478, 0.52470066, 0.55978978, 0.58630633, 0.59373572, 0.59870666, 0.58981084, 0.57641556, 0.54082188, 0.50282576, 0.45503682, 0.41518324, 0.3812658, 0.34825913, 0.31418176, 0.28920474, 0.26989921, 0.24970623, 0.22898739, 0.20797949, 0.18802668, 0.17552027, 0.15954974, 0.14340056, 0.11988096, 0.10528827, 0.095538669, 0.08268395, 0.077479498, 0.068770892, 0.060564998, 0.055432152, 0.048079361, 0.046548747, 0.041057594, 0.03323098, 0.030264686, 0.025251097, 0.022834306, 0.021998069, 0.020500914, 0.017412232, 0.015891893, 0.013566843, 0.011633356, 0.011052122, 0.01084445, 0.0093264198, 0.0078583059, 0.0061832399, 0.0060315248, 0.0046111069, 0.0045738013, 0.0037832811, 0.0033536999, 0.0029780228, 0.0028575082, 0.0029287259, 0.0033788728, 0.003873339, 0.0029562341, 0.0027608996, 0.0024379995, 0.0017596554, 0.0016605531, 0.0013265696, 0.0015332804, 0.0016332411, 0.0015495885, 0.0013001159, 0.0016375327, 0.0016922338, 0.0018767826, 0.0021278947, 0.0013266468, 0.0018571183, 0.0012557147, 0.001371048, 0.0012284027, 0.0012651562, 0.0012010907, 0.0013958622, 0.0011361669, 0.00081154778, 0.001103705, 0.00071416205, 0.00035708102, 0.00037331198, 0.00021100242, 0.00025969529, 9.7385734e-05, 4.8692867e-05])
 
 
+
+def get_mean_and_std_heights(data_files, ind):
+  ''' Given a list of names of pkl data files, return the buckets,
+  mean pdf, and std of pdf for geometric center.'''
+
+  heights_list = []
+  for file_name in data_files:
+    data_path = os.path.join('.', 'data', file_name)
+    with open(data_path, 'rb') as f:
+      heights_data = cPickle.load(f)
+      heights_list.append(heights_data['heights'][ind][4])
+
+  heights_mean = np.mean(heights_list, axis=0)
+  heights_std = np.std(heights_list, axis=0)/np.sqrt(len(data_files))
+
+  return [heights_data['buckets'], heights_mean, heights_std]
+
+
 if __name__ == '__main__':
-  rfd_height_data = ['free-tetrahedron-heights-dt-0.2-N-500000-scheme-RFD-pdf-run.pkl']
-  fixman_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-FIXMAN-pdf-run.pkl'
-  em_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-EM-pdf-run.pkl'
+  rfd_height_data = [
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-1.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-2.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-3.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-4.pkl']
+  fixman_height_data = [
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-1.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-2.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-3.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-4.pkl']
+  em_height_data = [
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-1.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-2.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-3.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-4.pkl']
 
-  # Add subfolder to path.
-  rfd_height_data = os.path.join('.', 'data', 
-                                 rfd_height_data)
-  fixman_height_data = os.path.join('.', 'data', 
-                                 fixman_height_data)
-  em_height_data = os.path.join('.', 'data', 
-                                em_height_data)
 
-  with open(rfd_height_data, 'rb') as f:
-    rfd_heights = cPickle.load(f)
+  [rfd_buckets, rfd_means, rfd_std] = get_mean_and_std_heights(
+    rfd_height_data, 0)
+  [fixman_buckets, fixman_means, fixman_std] = get_mean_and_std_heights(
+    fixman_height_data, 0)
+  [em_buckets, em_means, em_std] = get_mean_and_std_heights(
+    em_height_data, 0)
 
-  with open(fixman_height_data, 'rb') as f:
-    fixman_heights = cPickle.load(f)
+  # Get equilibirum from all
+  [gb_buckets, gb_means, gb_std] = get_mean_and_std_heights(
+    rfd_height_data + fixman_height_data + em_height_data, 1)
 
-  with open(em_height_data, 'rb') as f:
-    em_heights = cPickle.load(f)
-
-  plt.plot(fixman_heights['buckets'], fixman_heights['heights'][0][4],
-           'g', label='Fixman')
-  plt.plot(rfd_heights['buckets'], rfd_heights['heights'][0][4],
-           'b', label='RFD')
-  plt.plot(em_heights['buckets'], em_heights['heights'][0][4],
-           'm', label='EM')
-  plt.plot(IBAMR_BUCKETS, IBAMR_HEIGHT_PDF,
-           'r', label='FIB')
-  plt.plot(rfd_heights['buckets'], rfd_heights['heights'][1][4],
-           'k', label='MCMC')
+  plt.errorbar(fixman_buckets, fixman_means, yerr = 2.*fixman_std,
+                c='g', label='Fixman')
+  plt.errorbar(rfd_buckets, rfd_means, yerr=2.*rfd_std,
+                c='b', label='RFD')
+  plt.errorbar(em_buckets, em_means, yerr=2.*em_std,
+                c='m', label='EM')
+  plt.errorbar(IBAMR_BUCKETS, IBAMR_HEIGHT_PDF,
+                c='r', label='FIB')
+  plt.errorbar(gb_buckets, gb_means, yerr=2.*gb_std,
+               c='k', label='MCMC')
 
   plt.xlim([0., 9.])
   plt.title('PDF of Height of Center of for Free Tetrahedron.')
