@@ -15,17 +15,17 @@ IBAMR_HEIGHT_PDF = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 
 
 if __name__ == '__main__':
-  rfd_height_data = 'free-tetrahedron-heights-dt-1.6-N-300000-scheme-RFD-pdf-run.pkl'
-  fixman_height_data = 'free-tetrahedron-heights-dt-1.6-N-300000-scheme-FIXMAN-pdf-run.pkl'
-
-  print "length of IBAMR buckets", len(IBAMR_BUCKETS)
-  print "length of IBAMR heights", len(IBAMR_HEIGHT_PDF)
+  rfd_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-RFD-pdf-run.pkl'
+  fixman_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-FIXMAN-pdf-run.pkl'
+  em_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-EM-pdf-run.pkl'
 
   # Add subfolder to path.
   rfd_height_data = os.path.join('.', 'data', 
                                  rfd_height_data)
   fixman_height_data = os.path.join('.', 'data', 
                                  fixman_height_data)
+  em_height_data = os.path.join('.', 'data', 
+                                em_height_data)
   
   with open(rfd_height_data, 'rb') as f:
     rfd_heights = cPickle.load(f)
@@ -33,17 +33,22 @@ if __name__ == '__main__':
   with open(fixman_height_data, 'rb') as f:
     fixman_heights = cPickle.load(f)
 
+  with open(em_height_data, 'rb') as f:
+    em_heights = cPickle.load(f)
+
   plt.plot(fixman_heights['buckets'], fixman_heights['heights'][0][4],
            'g', label='Fixman')
   plt.plot(rfd_heights['buckets'], rfd_heights['heights'][0][4],
            'b', label='RFD')
+  plt.plot(em_heights['buckets'], em_heights['heights'][0][4],
+           'm', label='EM')
   plt.plot(IBAMR_BUCKETS, IBAMR_HEIGHT_PDF,
            'r', label='FIB')
   plt.plot(rfd_heights['buckets'], rfd_heights['heights'][1][4],
            'k', label='MCMC')
 
-  plt.xlim([0., 10.])
-  plt.title('PDF of Height of Center of Mass for Free Tetrahedron.')
+  plt.xlim([0., 9.])
+  plt.title('PDF of Height of Center of for Free Tetrahedron.')
   plt.xlabel('Height')
   plt.ylabel('PDF')
   plt.legend(loc='best', prop={'size': 10})
