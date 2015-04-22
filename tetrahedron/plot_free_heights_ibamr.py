@@ -15,7 +15,7 @@ IBAMR_HEIGHT_PDF = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 
 
 if __name__ == '__main__':
-  rfd_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-RFD-pdf-run.pkl'
+  rfd_height_data = ['free-tetrahedron-heights-dt-0.2-N-500000-scheme-RFD-pdf-run.pkl']
   fixman_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-FIXMAN-pdf-run.pkl'
   em_height_data = 'free-tetrahedron-heights-dt-0.2-N-500000-scheme-EM-pdf-run.pkl'
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
                                  fixman_height_data)
   em_height_data = os.path.join('.', 'data', 
                                 em_height_data)
-  
+
   with open(rfd_height_data, 'rb') as f:
     rfd_heights = cPickle.load(f)
 
