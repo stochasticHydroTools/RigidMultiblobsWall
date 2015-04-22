@@ -4,6 +4,9 @@ at the error in height distribution.  Use data produced by tetrahedron.py
 or tetrahedron_free.py.  For now the data to use is hard coded in this script.
 
 This also produces the Equilibrium distribution plot.
+
+WARNING: tetrahedron_free.py script was changed to store heights differently, and 
+this script doesn't work with new data now. TODO: FIX THIS!
 '''
 import os
 import cPickle

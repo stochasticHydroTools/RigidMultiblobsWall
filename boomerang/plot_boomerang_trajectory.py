@@ -35,6 +35,7 @@ class vtkTimerCallback():
     iren = obj
     iren.GetRenderWindow().Render()
     if WRITE:
+      self.w2if.Update()
       self.w2if.Modified()
       self.lwr.SetFileName(os.path.join(
           '.', 'figures',
@@ -69,8 +70,8 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(20.)
-  wall_source.SetYLength(20.)
+  wall_source.SetXLength(15.)
+  wall_source.SetYLength(15.)
   wall_source.SetZLength(0.25)
 
 
@@ -93,9 +94,9 @@ if __name__ == '__main__':
 
   # Create camera
   camera = vtk.vtkCamera()
-  camera.SetPosition(0., -30., 14.)
+  camera.SetPosition(0., -25., 5.)
   camera.SetFocalPoint(0., 0., 0.)
-  camera.SetViewAngle(37.)
+  camera.SetViewAngle(38.)
 
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
@@ -123,6 +124,8 @@ if __name__ == '__main__':
   # Set up writer for pngs so we can save a movie.
   w2if = vtk.vtkWindowToImageFilter()
   w2if.SetInput(renderWindow)
+  w2if.Update()
+  w2if.ReadFrontBufferOff()
   lwr = vtk.vtkPNGWriter()
   lwr.SetInput( w2if.GetOutput() )
 
@@ -139,54 +142,4 @@ if __name__ == '__main__':
   
   #start the interaction and timer
   renderWindowInteractor.Start()
-
-  # fig = plt.figure()
-  # ax = Axes3D(fig)
-  # ax.set_xlim3d(x_lim)
-  # ax.set_ylim3d(y_lim)
-  # ax.set_zlim3d(z_lim)
-  
-  # wall_x = [x_lim[0] + k*(x_lim[1] - x_lim[0])/20. for k in range(20) ]
-  # for k in range(19):
-  #   wall_x += [x_lim[0] + k*(x_lim[1] - x_lim[0])/20. for k in range(20) ]
-
-  # wall_y = [y_lim[0] for _ in range(20)]
-  # for k in range(19):
-  #   wall_y += [y_lim[0] + k*(y_lim[1] - y_lim[0])/20. for _ in range(20)]
-
-
-  # wall, = ax.plot(wall_x, wall_y, np.zeros(400), 'k.')
-  # blobs, = ax.plot([], [], [], 'bo', ms=24)
-  # connectors, = ax.plot([], [], [], 'b-', lw=2)
-
-
-  # def init_animation():
-  #   ''' Initialize 3D animation. '''
-  #   r_vectors = bm.get_boomerang_r_vectors(locations[0], 
-  #                                          Quaternion(orientations[0]))
-  #   blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
-  #                  [r_vectors[k][1] for k in range(len(r_vectors))])
-  #   blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
-  #   connectors.set_data([r_vectors[k][0] for k in range(len(r_vectors))],
-  #                      [r_vectors[k][1] for k in range(len(r_vectors))])
-  #   connectors.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
-
-    
-  # def update(n):
-  #   ''' Update the boomerang animation '''
-  #   location = locations[n]
-  #   orientation = orientations[n]
-  #   r_vectors = bm.get_boomerang_r_vectors(location, 
-  #                                          Quaternion(orientation))
-  #   blobs.set_data([r_vectors[k][0] for k in range(len(r_vectors))], 
-  #                  [r_vectors[k][1] for k in range(len(r_vectors))])
-  #   blobs.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
-  #   connectors.set_data([r_vectors[k][0] for k in range(len(r_vectors))],
-  #                      [r_vectors[k][1] for k in range(len(r_vectors))])
-  #   connectors.set_3d_properties([r_vectors[k][2] for k in range(len(r_vectors))])
-    
-
-# anim = animation.FuncAnimation(fig, update, init_func=init_animation, 
-#                                frames=3818, interval=1, blit=True)
-# anim.save(os.path.join('figures','boomerang.mp4'), fps=30, writer='ffmpeg')
 

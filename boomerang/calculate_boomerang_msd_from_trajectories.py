@@ -124,7 +124,7 @@ if __name__ == '__main__':
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
   data_interval = int(end/dt/trajectory_length)
-  time = np.arange(0, end, dt*data_interval)
+  time = np.arange(0, len(mean_msd))*dt*data_interval
 
   msd_statistics = MSDStatistics(params)
   msd_statistics.add_run(scheme, dt, [time, mean_msd, std_msd])

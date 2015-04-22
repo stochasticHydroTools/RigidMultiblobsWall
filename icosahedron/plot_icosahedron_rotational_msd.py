@@ -14,19 +14,28 @@ import icosahedron as ic
 import icosahedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 import sphere.sphere as sph
+from utils import calc_total_msd_from_matrix_and_center
 from utils import MSDStatistics
 from utils import plot_time_dependent_msd
 
-def calculate_zz_msd_at_equilibrium(n_steps):
+
+def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   ''' Use MC to calculate asymptotic (t -> inf) zz MSD at equilibrium'''
   zz_msd = 0.
+  rot_msd = 0.
   for k in range(n_steps):
     sample_1 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
     sample_2 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
-    zz_msd += (sample_2[0][2] - sample_1[0][2])**2
+    rot_mat_1 = sample_1[1].rotation_matrix()
+    rot_mat_2 = sample_2[1].rotation_matrix()
+    total_msd = calc_total_msd_from_matrix_and_center(sample_1[0], rot_mat_1,
+                                                      sample_2[0], rot_mat_2)
+    zz_msd += total_msd[2, 2]
+    rot_msd += total_msd[3, 3]
 
   zz_msd /= n_steps
-  return zz_msd
+  rot_msd /= n_steps
+  return [zz_msd, rot_msd]
 
 
 def gibbs_boltzmann_distribution(location):
@@ -119,22 +128,22 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  zz_msd = calculate_zz_msd_at_equilibrium(10000)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
   #zz_msd = 0.4557
   
   figure_index = [1, 2, 1, 3, 4, 5]
-  label_list = [' Icosahedron Parallel MSD', ' Icosahedron yy MSD', 
-                ' Icosahedron Perpendicular MSD', 
-                ' Icosahedron Rotational MSD', ' Icosahedron Rotational MSD', 
-                ' Icosahedron Rotational MSD']
-  sphere_label_list = [' Blob Parallel MSD (a = 0.5)', ' Blob yy MSD', 
-                       ' Blob perpendicular MSD', 
-                       ' Blob Rotational MSD', ' Blob Rotational MSD',
-                       ' Blob Rotational MSD']
+  label_list = [' icosahedron parallel MSD', ' icosahedron yy MSD', 
+                ' blob perpendicular MSD', 
+                ' icosahedron rotational MSD', ' icosahedron rotational MSD', 
+                ' icosahedron rotational MSD']
+  sphere_label_list = [' blob parallel MSD (a = 0.5)', ' blob yy MSD', 
+                       ' blob perpendicular MSD', 
+                       ' blob rotational MSD', ' blob rotational MSD',
+                       ' blob rotational MSD']
   sphere_mobility = 0.17963
   
-  style_list = ['*', 's', '^', '.', '.', '.']
+  style_list = ['*', 's', '^', 'd', '.', '.']
   sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
   translation_plot_limit = 110.
   for l in range(6):
@@ -156,16 +165,19 @@ if __name__ == "__main__":
     if l == 0:
       pyplot.plot([0.0, translation_plot_limit], 
                   [0.0, translation_plot_limit*2.*sph.KT*sphere_mobility], 'k-',
-                  lw=2, label='Blob Parallel Mobility')
+                  lw=2, label='blob parallel mobility')
 #      pyplot.plot([0., translation_plot_limit], [0., translation_plot_limit*average_mob_and_friction[0]*2.*2.*ic.KT], 'k--', lw=2,
 #                  label='Slope = Icosahedron Mobility')
     if l == 2:
       pyplot.plot([0., translation_plot_limit], [zz_msd, zz_msd], 'k--',  
-                  lw=2, label='Icosahedron Asymptotic Perp MSD')
+                  lw=2, label='blob asymptotic perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
-    if l in [3, 4, 5]:
-      pyplot.xlim([0., 150.])
+    if l == 3:
+      pyplot.plot([0., 300.], [rot_msd, rot_msd], 'k--', 
+                  lw=2, label='blob asymptotic rotational MSD')
+      pyplot.xlim([0., 300.])
+
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
     pyplot.legend(loc='best', prop={'size': 12})
     pyplot.savefig('./figures/IcosahedronTimeDependentMSD-Component-%s-%s.pdf' % 

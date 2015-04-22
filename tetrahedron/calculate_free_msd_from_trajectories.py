@@ -34,6 +34,14 @@ def calc_tetrahedron_vertex(location, orientation):
   ''' Function to get tetrahedron center of mass.'''
   return np.array(location)
 
+def calc_tetrahedron_geometric_center(location, orientation):
+  ''' Function to get geometric center.'''
+  r_vectors = tf.get_free_r_vectors(location, orientation)
+  center = ((r_vectors[0] + r_vectors[1]
+             + r_vectors[2] + r_vectors[3])/
+            (4.))
+  return center
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Calculate rotation and '
@@ -84,11 +92,11 @@ if __name__ == '__main__':
   
   # Set up logging
   if args.out_name:
-    log_filename = './logs/tetrahedron-msd-calculation-dt-%f-N-%d-%s-%s.log' % (
-      dt, N, args.data_name, args.out_name)    
+    log_filename = './logs/tetrahedron-msd-calculation-dt-%f-N-%d-scheme-%s-%s-%s.log' % (
+      dt, N, args.scheme, args.data_name, args.out_name)    
   else:
-    log_filename = './logs/tetrahedron-msd-calculation-dt-%f-N-%d-%s.log' % (
-      dt, N, args.data_name)
+    log_filename = './logs/tetrahedron-msd-calculation-dt-%f-N-%d-%s-%s.log' % (
+      dt, N, args.scheme, args.data_name)
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -113,7 +121,9 @@ if __name__ == '__main__':
 
   ##########
   msd_runs = []
+  run_counter = 0
   for name in trajectory_file_names:
+    run_counter += 1
     data_file_name = os.path.join(tf.DATA_DIR, 'tetrahedron', name)
     # Check correct timestep.
     params, locations, orientations = read_trajectory_from_txt(data_file_name)
@@ -125,9 +135,10 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_tetrahedron_com, dt, end,
+                                             calc_tetrahedron_geometric_center, dt, end,
                                              trajectory_length=trajectory_length)
     
+    print('Completed run %s ' % run_counter)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 

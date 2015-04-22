@@ -27,12 +27,18 @@ if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
 #  label_list = [' bug parallel', ' no bug parallel', ' bug perp', ' no bug perp']
-  label_list = [' Parallel MSD Vertex', ' Parallel MSD CoM', ' Perpendicular MSD Vertex', 
-                ' Perpendicular MSD CoM']
+  label_list = [' parallel MSD vertex', ' parallel MSD center', ' perpendicular MSD vertex', 
+                ' perpendicular MSD center']
   symbol_list = ['o', 'd', 's', '^', '.', '+']
   colors = ['b', 'g', 'r', 'c']
-  for k in range(1, len(sys.argv)):
-    data_file = sys.argv[k]
+
+  data_files = ['tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-'
+                'final-vertex.pkl',
+                'tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-'
+                'final-geom-center.pkl']
+  k = 0
+  for data_file in data_files:
+    k += 1
     data_name = os.path.join('.', 'data', data_file)
     with open(data_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
@@ -57,12 +63,14 @@ if __name__ == '__main__':
         elif k == 2:
           plot_time_dependent_msd(msd_statistics, ind, figure_indices[l], color=colors[k-1],
                                   label=label_list[(k-1) + min(l, 2)], symbol=symbol_list[l],
-                                  data_name='COMData-%s-%s.txt' % (l, l),
+                                  data_name='CenterData-%s-%s.txt' % (l, l),
                                   num_err_bars=200)
  
   average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(2000)
 #  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
+  print "average Mu parallel center:", average_mob_and_friction[0]
   vertex_mu = 0.117/2.
+  print "average Mu parallel vertex:", vertex_mu
   
   translation_end = 420.0
   for l in range(6):
@@ -70,10 +78,10 @@ if __name__ == '__main__':
     if l in [0, 1]:
       pyplot.plot([0.0, 150.], 
                   [0.0, 150.*4.*tf.KT*vertex_mu],
-                  'k-', lw=2, label='Mu Parallel Vertex')
+                  'k-', lw=2, label='mobility parallel vertex')
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.
-                  'k--', lw=2, label='Mu Parallel CoM')
+                  'k--', lw=2, label='mobility parallel center')
       pyplot.xlim([0.0, translation_end])
       pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
     elif l == 2:

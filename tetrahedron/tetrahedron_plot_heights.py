@@ -1,3 +1,13 @@
+''' 
+Quick script to plot heights from a single run and compare to
+equilibrium distribution.  Call with:
+
+python tetrahedron_plot_heights name-of-height-data.pkl
+
+The data file will be produced automatically by tetrahedron.py
+or tetrahedron_free.py in the data subfolder.
+'''
+
 import os
 import sys
 import numpy as np

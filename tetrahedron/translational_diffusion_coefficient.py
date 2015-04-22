@@ -81,14 +81,14 @@ def calculate_average_mu_parallel_and_perpendicular(n_samples):
   ''' 
   Generate random samples from equilibrium to
   calculate the average parallel mobility and friction. 
-  Do this with masses equal for comparison to MSD data.
+  Do this with center of tetrahedron for comparison to MSD data.
   '''
   average_mu_parallel = 0.0
   average_mu_perp = 0.0
   average_gamma_parallel = 0.0
   for k in range(n_samples):
     sample = tf.generate_free_equilibrium_sample()
-    mobility_sample = tf.free_tetrahedron_com_mobility([sample[0]], [sample[1]])
+    mobility_sample = tf.free_tetrahedron_center_mobility([sample[0]], [sample[1]])
     average_mu_parallel += mobility_sample[0, 0] + mobility_sample[1, 1]
     average_mu_perp += mobility_sample[2, 2]
     average_gamma_parallel += (1.0/mobility_sample[0, 0] + 
