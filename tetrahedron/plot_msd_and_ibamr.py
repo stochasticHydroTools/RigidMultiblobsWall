@@ -160,7 +160,6 @@ if __name__ == '__main__':
   translation_end = 1000.
   fib_skip = 2
   fib_end = 28
-
   
   print "mu_parallel: ", mu_parallel_center
   print "msd_rot", rot_msd_center
@@ -175,7 +174,7 @@ if __name__ == '__main__':
     plot_time_dependent_msd(fixman_msd_statistics, ind, figure_numbers[l],
                             error_indices=[0, 2, 3], label=labels[l], symbol=styles[l],
                             num_err_bars=40, data_name='FixmanMSDComponent-%s.txt' % l)
-    plt.figure(figure_numbers[l])
+    fig = plt.figure(figure_numbers[l])
     if l in [0]:
 
       plt.errorbar(IBAMR_TIME[:fib_end:fib_skip], 
@@ -204,9 +203,38 @@ if __name__ == '__main__':
                   [rot_msd_com, rot_msd_com], 'k--', lw=2, 
                   label='asymptotic rotational MSD')
       plt.xlim([0., 550.])
+      plt.legend(loc='best', prop={'size': 11})
+      plt.title('MSD(t) for Tetrahedron')
 
-    plt.title('MSD(t) for Tetrahedron')
-    plt.legend(loc='best', prop={'size': 11})
+    if l == 2:
+      plt.legend(loc='best', prop={'size': 11})
+      plt.title('MSD(t) for Tetrahedron')
+      # Make inset.
+      data_len = len(rfd_msd_statistics.data['RFD'][1.6][1])
+      inset = fig.add_axes([0.58, 0.2, 0.30, 0.30])
+      inset.errorbar(rfd_msd_statistics.data['RFD'][1.6][0], 
+                     [rfd_msd_statistics.data['RFD'][1.6][1][k][0][0]
+                      for k in range(data_len)],
+                     yerr = 2.*np.array(
+          [rfd_msd_statistics.data['RFD'][1.6][2][k][0][0]
+           for k in range(data_len)]),
+                     fmt='go--')
+      inset.errorbar(fixman_msd_statistics.data['FIXMAN'][1.6][0], 
+                     [fixman_msd_statistics.data['FIXMAN'][1.6][1][k][0][0]
+                      for k in range(data_len)],
+                     yerr = 2.*np.array(
+          [fixman_msd_statistics.data['FIXMAN'][1.6][2][k][0][0]
+           for k in range(data_len)]),
+                     fmt='bo--')
+      inset.errorbar(IBAMR_TIME, 2.*IBAMR_PARALLEL, yerr=2.*IBAMR_PARALLEL_STD,
+                     fmt='ro--')
+      inset.plot([0.0, 100.],
+                 [0.0, 100.*4.*tf.KT*mu_parallel_com], 'k-',
+                 lw=2)
+      inset.set_title('Short Time MSD')
+      inset.set_xlim([0.0, 100.])
+      inset.set_ylim([0.0, 100.*4.*tf.KT*mu_parallel_com])
+
     plt.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))
 
