@@ -36,11 +36,17 @@ def calculate_boomerang_parallel_mobility(n_samples, sample_file):
 
 if __name__ == '__main__':
   
-  data_files = sys.argv[1:]
+  data_files = ['boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-1.0-'
+                'runs-8-final-CoH.pkl',
+                'boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-10.0-'
+                'runs-8-final-CoH.pkl',
+                'boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-20.0-'
+                'runs-8-final-CoH.pkl']
+
   labels = [' G = 1 Parallel', ' G = 10 Parallel', ' G = 20 Parallel',
             ' G=1 Perp', ' G = 10 Perp', ' G = 20 Perp']
   symbols = ['d', 'o', 's', '^']
-  translation_limit = 8.
+  translation_limit = 20.
 
   ctr = 0
   for name in data_files:
