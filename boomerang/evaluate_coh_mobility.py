@@ -227,15 +227,15 @@ if __name__ == '__main__':
   theta = [0, 0 ,0]
   for k in range(3):
     theta[k] = get_uniform_quaternion()
-    print "theta[k] is ", theta[k]
+    r_vectors = bm.get_boomerang_r_vectors_15(location, theta[k])
     mobility = bm.boomerang_mobility([location], 
                                      [theta[k]])
     trace = mobility[0, 0] + mobility[1, 1] + mobility[2, 2]
     print 'cob trace is ', trace
-    r_vectors = bm.get_boomerang_r_vectors_15(location, theta[k])
-    cod_point = location + np.array([np.cos(np.pi/4.)*cod_dist,
-                                     np.sin(np.pi/4.)*cod_dist,
-                                     0.])
+    arm_1 = r_vectors[0] - location
+    arm_2 = r_vectors[14] - location
+    cod_point = (location + arm_1*np.sin(np.pi/4.)*cod_dist/2.1 
+                 + arm_2*np.sin(np.pi/4.)*cod_dist/2.1)
     cod_mobility = bm.boomerang_mobility_at_arbitrary_point([location], 
                                                             [theta[k]],
                                                             cod_point)
