@@ -128,9 +128,10 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
+#  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
+  rot_msd = 0.16666
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
-  #zz_msd = 0.4557
+  zz_msd = 0.4557
   
   figure_index = [1, 2, 1, 3, 4, 5]
   label_list = [' icosahedron parallel MSD', ' icosahedron yy MSD', 
