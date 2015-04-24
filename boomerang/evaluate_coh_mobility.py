@@ -224,6 +224,7 @@ if __name__ == '__main__':
   # Test that trance of M_uf is the same for CoD and 
   # cross point as we average over orientations.
   cod_dist = 0.9608668
+  coh_dist = 1.07489
   theta = [0, 0 ,0]
   for k in range(3):
     theta[k] = get_uniform_quaternion()
@@ -231,7 +232,7 @@ if __name__ == '__main__':
     mobility = bm.boomerang_mobility([location], 
                                      [theta[k]])
     trace = mobility[0, 0] + mobility[1, 1] + mobility[2, 2]
-    print 'cob trace is ', trace
+    print 'CoB trace is ', trace
     arm_1 = r_vectors[0] - location
     arm_2 = r_vectors[14] - location
     cod_point = (location + arm_1*np.sin(np.pi/4.)*cod_dist/2.1 
@@ -240,7 +241,17 @@ if __name__ == '__main__':
                                                             [theta[k]],
                                                             cod_point)
     cod_trace = cod_mobility[0, 0] + cod_mobility[1, 1] + cod_mobility[2, 2]
-    print 'cod_trace is: ', cod_trace
+    print 'CoD trace is: ', cod_trace
+
+    arm_1 = r_vectors[0] - location
+    arm_2 = r_vectors[14] - location
+    coh_point = (location + arm_1*np.sin(np.pi/4.)*coh_dist/2.1 
+                 + arm_2*np.sin(np.pi/4.)*coh_dist/2.1)
+    coh_mobility = bm.boomerang_mobility_at_arbitrary_point([location], 
+                                                            [theta[k]],
+                                                            coh_point)
+    coh_trace = coh_mobility[0, 0] + coh_mobility[1, 1] + coh_mobility[2, 2]
+    print 'CoH trace is: ', coh_trace
 
     
 

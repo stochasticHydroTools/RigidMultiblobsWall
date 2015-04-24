@@ -220,6 +220,7 @@ def calc_total_msd_from_matrix_and_center(original_center, original_rotated_e,
                            rotated_e[i])
     
   dx = np.array(final_center) - np.array(original_center)
+  print 'dx is ', dx
   displacement = np.concatenate([dx, du_hat])
   return np.outer(displacement, displacement)
 

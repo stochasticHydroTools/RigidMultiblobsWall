@@ -129,7 +129,7 @@ if __name__ == '__main__':
   print "Parameters for this run are: ", params
 
   # Script to run the various integrators on the quaternion.
-  initial_location = [[0., 0., 900000000000000000.]]
+  initial_location = [[0., 0., 9000000.]]
   theta = np.random.normal(0., 1., 4)
   initial_orientation = [Quaternion(theta/np.linalg.norm(theta))]
   quaternion_integrator = QuaternionIntegrator(bm.boomerang_mobility,
