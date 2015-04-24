@@ -524,7 +524,11 @@ def transfer_mobility(mobility_1, point_1, point_2):
 
   # Subtract r cross D_r cross r
   mobility_2[0:3, 0:3] -= vector_cross_tensor(
-    r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
+     r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
+
+  # Test this.
+  #  mobility_2[0:3, 0:3] -= tensor_cross_vector(
+  # vector_cross_tensor(r, mobility_1[3:6, 3:6]), r)
 
   return mobility_2
 

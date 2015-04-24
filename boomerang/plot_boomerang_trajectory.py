@@ -1,7 +1,5 @@
 ''' Plot animation of the Boomerang. '''
 
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 import os
 import sys
@@ -15,7 +13,7 @@ from utils import read_trajectory_from_txt
 
 
 N_SPHERES = len(bm.M)
-TIME_SKIP = 5
+TIME_SKIP = 10
 WRITE = True
 
 class vtkTimerCallback():
@@ -70,8 +68,8 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(15.)
-  wall_source.SetYLength(15.)
+  wall_source.SetXLength(20.)
+  wall_source.SetYLength(20.)
   wall_source.SetZLength(0.25)
 
 
@@ -83,26 +81,30 @@ if __name__ == '__main__':
     blob_mappers[k].SetInputConnection(blob_sources[k].GetOutputPort())
     blob_actors.append(vtk.vtkActor())
     blob_actors[k].SetMapper(blob_mappers[k])
-    blob_actors[k].GetProperty().SetColor(0, 0, 1)
+    blob_actors[k].GetProperty().SetColor(1, 0, 0)
 
   # Set up wall actor and mapper
   wall_mapper = vtk.vtkPolyDataMapper()
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
+  wall_actor.GetProperty().SetColor(0.3, 0.95, 0.3)
 
   # Create camera
   camera = vtk.vtkCamera()
-  camera.SetPosition(0., -25., 5.)
+  # Close
+  camera.SetPosition(0., -25., 4.)
+  # Far
+#  camera.SetPosition(0., -50., 10.)
   camera.SetFocalPoint(0., 0., 0.)
-  camera.SetViewAngle(38.)
+#  camera.SetMagnification(4)
+  camera.SetViewAngle(37.)
 
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
   renderer.SetActiveCamera(camera)
   renderWindow = vtk.vtkRenderWindow()
-#  renderWindow.SetSize(1000, 1000)
+  renderWindow.SetSize(1000, 1000)
 
   renderWindow.AddRenderer(renderer);
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
@@ -124,6 +126,7 @@ if __name__ == '__main__':
   # Set up writer for pngs so we can save a movie.
   w2if = vtk.vtkWindowToImageFilter()
   w2if.SetInput(renderWindow)
+  w2if.SetMagnification(1.5)
   w2if.Update()
   w2if.ReadFrontBufferOff()
   lwr = vtk.vtkPNGWriter()

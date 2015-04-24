@@ -92,10 +92,13 @@ class QuaternionIntegrator(object):
       for i in range(self.dim):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt/2.)
         orientation_midpoint.append(quaternion_dt*self.orientation[i])
-      
+
       if self.has_location:
         location_midpoint = self.location + 0.5*dt*velocity
-    
+        if not self.check_new_state(location_midpoint, orientation_midpoint):
+          # restart the step.
+          continue
+
       if self.has_location:
         mobility_tilde = self.mobility(location_midpoint, orientation_midpoint)
         noise = noise + np.random.normal(0.0, 1.0, self.dim*6)

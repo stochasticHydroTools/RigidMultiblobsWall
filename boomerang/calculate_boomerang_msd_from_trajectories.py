@@ -25,6 +25,7 @@ def calc_boomerang_cp(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.'''
   return location
 
+
 def calc_boomerang_coh(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.
   this is for the 15 blob boomerang.'''
@@ -39,11 +40,9 @@ def calc_boomerang_coh(location, orientation):
 
 def calc_boomerang_tip(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.'''
-  r_vectors = bm.get_boomerang_r_vectors(location, orientation)
+  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
   tip = r_vectors[0]
   return tip
-
-
 
 
 if __name__ == '__main__':
@@ -142,7 +141,7 @@ if __name__ == '__main__':
     
     # Calculate MSD data (just an array of MSD at each time.)
     msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_boomerang_coh, dt, end,
+                                             calc_boomerang_tip, dt, end,
                                              trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)

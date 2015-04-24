@@ -17,6 +17,10 @@ IBAMR_HEIGHT_PDF = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 
 
 
+
+IBAMR_HEIGHT_STD = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 9.9134208e-05, 0.0004826588, 0.0018538702, 0.0038670874, 0.0071828824, 0.0094317394, 0.013795536, 0.018689622, 0.02074595, 0.020668026, 0.020192627, 0.019550605, 0.021015738, 0.019476591, 0.020917931, 0.021594424, 0.020888806, 0.020768723, 0.020902619, 0.019834425, 0.016831116, 0.015291128, 0.012820219, 0.01227613, 0.011516209, 0.01109446, 0.012600609, 0.011533456, 0.0099352951, 0.011440802, 0.012111104, 0.013517728, 0.012973561, 0.012734543, 0.011668602, 0.010968397, 0.010852096, 0.0099903967, 0.010864025, 0.0095840791, 0.0089071712, 0.0093583118, 0.0078861122, 0.0085969012, 0.0077768035, 0.0064760442, 0.0063044863, 0.0057341463, 0.0060829819, 0.0058367432, 0.0061311266, 0.0049479644, 0.0048963709, 0.0045376736, 0.0039262593, 0.003898314, 0.0037683465, 0.0031539999, 0.0030955789, 0.0026844624, 0.0033978274, 0.0026894057, 0.0028829684, 0.0023545012, 0.0021594141, 0.0019034455, 0.0019479546, 0.0020647438, 0.0025534215, 0.0027557581, 0.0020990125, 0.0022067157, 0.0021771737, 0.0013423729, 0.0012334962, 0.0009990866, 0.001143624, 0.0012641378, 0.0013773252, 0.0010462028, 0.0013224502, 0.0014623297, 0.0017411159, 0.001846847, 0.0012299867, 0.0016643996, 0.0010641033, 0.0012028138, 0.0011190296, 0.0012297056, 0.0011821747, 0.0013738787, 0.0011182734, 0.00079876671, 0.0010863227, 0.0007029147, 0.00035145735, 0.00036743268, 0.00020767934, 0.00025560535, 9.5852005e-05, 4.7926002e-05])
+
+
 def get_mean_and_std_heights(data_files, ind):
   ''' Given a list of names of pkl data files, return the buckets,
   mean pdf, and std of pdf for geometric center.'''
@@ -39,17 +43,53 @@ if __name__ == '__main__':
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-1.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-2.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-3.pkl',
-    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-4.pkl']
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-4.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-5.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-6.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-7.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-8.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-9.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-10.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-11.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-12.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-13.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-14.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-15.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-RFD-com-pdf-16.pkl']
   fixman_height_data = [
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-1.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-2.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-3.pkl',
-    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-4.pkl']
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-4.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-5.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-6.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-7.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-8.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-9.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-10.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-11.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-12.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-13.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-14.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-15.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-FIXMAN-com-pdf-16.pkl']
   em_height_data = [
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-1.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-2.pkl',
     'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-3.pkl',
-    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-4.pkl']
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-4.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-5.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-6.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-7.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-8.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-9.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-10.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-11.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-12.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-13.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-14.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-15.pkl',
+    'free-tetrahedron-heights-dt-0.8-N-300000-scheme-EM-com-pdf-16.pkl']
 
 
   [rfd_buckets, rfd_means, rfd_std] = get_mean_and_std_heights(
@@ -63,16 +103,35 @@ if __name__ == '__main__':
   [gb_buckets, gb_means, gb_std] = get_mean_and_std_heights(
     rfd_height_data + fixman_height_data + em_height_data, 1)
 
-  plt.errorbar(fixman_buckets, fixman_means, yerr = 2.*fixman_std,
-                c='g', label='Fixman')
-  plt.errorbar(rfd_buckets, rfd_means, yerr=2.*rfd_std,
-                c='b', label='RFD')
-  plt.errorbar(em_buckets, em_means, yerr=2.*em_std,
-                c='m', label='EM')
-  plt.errorbar(IBAMR_BUCKETS, IBAMR_HEIGHT_PDF,
-                c='r', label='FIB')
-  plt.errorbar(gb_buckets, gb_means, yerr=2.*gb_std,
-               c='k', label='MCMC')
+  err_subsample = 3
+
+  plt.plot(fixman_buckets, fixman_means,
+           c='g', label='Fixman')
+  plt.plot(rfd_buckets, rfd_means,
+           c='b', label='RFD')
+  plt.plot(em_buckets, em_means,
+           c='m', label='EM')
+  plt.plot(IBAMR_BUCKETS, IBAMR_HEIGHT_PDF,
+           c='r', label='FIB')
+  plt.plot(gb_buckets, gb_means,
+           c='k', label='MCMC')
+
+  plt.errorbar(fixman_buckets[::err_subsample], fixman_means[::err_subsample],
+               yerr = 2.*fixman_std[::err_subsample],
+                c='g', linestyle = '')
+  plt.errorbar(rfd_buckets[::err_subsample], rfd_means[::err_subsample],
+               yerr=2.*rfd_std[::err_subsample],
+                c='b', linestyle = '')
+  plt.errorbar(em_buckets[::err_subsample], em_means[::err_subsample],
+               yerr=2.*em_std[::err_subsample],
+                c='m', linestyle='')
+  plt.errorbar(IBAMR_BUCKETS[::err_subsample], 
+               IBAMR_HEIGHT_PDF[::err_subsample],
+               yerr=IBAMR_HEIGHT_STD[::err_subsample],
+                c='r', linestyle='')
+  plt.errorbar(gb_buckets[::err_subsample], gb_means[::err_subsample], 
+               yerr=2.*gb_std[::err_subsample],
+               c='k', linestyle='')
 
   plt.xlim([0., 9.])
   plt.title('PDF of Height of Center of for Free Tetrahedron.')
@@ -82,3 +141,30 @@ if __name__ == '__main__':
 
   plt.savefig(os.path.join('.', 'figures', 
                            'FreeTetrahedronCenterPDF.pdf'))
+
+  with open(os.path.join('.', 'data', 
+                         'TetrahedronIBAMRComparisonHeights.txt'), 'wb') as f:
+    f.write('Buckets:\n')
+    f.write('%s\n' % fixman_buckets)
+    f.write('Fixman PDF:\n')
+    f.write('%s\n' % fixman_means)
+    f.write('Fixman PDF std dev (x1):\n')
+    f.write('%s\n' % fixman_std)
+    f.write('--------------\n')
+    f.write('\n')
+
+    f.write('RFD PDF:\n')
+    f.write('%s\n' % rfd_means)
+    f.write('RFD PDF std dev (x1):\n')
+    f.write('%s\n' % rfd_std)
+    f.write('--------------\n')
+    f.write('\n')
+
+    f.write('EM PDF:\n')
+    f.write('%s\n' % em_means)
+    f.write('EM PDF std dev (x1):\n')
+    f.write('%s\n' % em_std)
+    f.write('--------------\n')
+    f.write('\n')
+    
+  

@@ -1,11 +1,10 @@
 ''' 
 Quick script to plot rotational msd data from specified pkl files.
 usage: 
-  python compare_rotational_msd_data.py rot-msd-data-file-1.pkl
-    rot-msd-data-file-2.pkl etc.
+  python compare_rotational_msd_data.py
 
 Currently configured to compare two different MSD series, one tracking
-Center of Mass, one tracking a single vertex.
+geometric center of tetrahedron , one tracking a single vertex (vertex 4).
 ''' 
 
 import cPickle
@@ -36,6 +35,7 @@ if __name__ == '__main__':
                 'final-vertex.pkl',
                 'tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-'
                 'final-geom-center.pkl']
+  
   k = 0
   for data_file in data_files:
     k += 1
@@ -66,11 +66,12 @@ if __name__ == '__main__':
                                   data_name='CenterData-%s-%s.txt' % (l, l),
                                   num_err_bars=200)
  
-  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(2000)
-#  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(2000)
+  average_mob_and_friction = calculate_average_mu_parallel_and_perpendicular(5000)
+  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(5000)
   print "average Mu parallel center:", average_mob_and_friction[0]
   vertex_mu = 0.117/2.
   print "average Mu parallel vertex:", vertex_mu
+  print "rot_msd ", rot_msd
   
   translation_end = 420.0
   for l in range(6):
@@ -88,6 +89,10 @@ if __name__ == '__main__':
 #      pyplot.plot([0.0, translation_end], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
       pyplot.xlim([0., translation_end])
       pyplot.ylim([0., translation_end*2.*tf.KT*0.0711])
+    elif l == 3:
+      pyplot.plot([0., 500.], [rot_msd, rot_msd], 'k--', 
+                  label='asymptotic rotational MSD')
+      pyplot.xlim([0., 500.])
     pyplot.title('MSD(t) for Free Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 10})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 

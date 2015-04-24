@@ -2,29 +2,37 @@
 for different gravities.
 '''
 import cPickle
-
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+import numpy as np
+import os
+import sys
+sys.path.append('..')
   
 
 if __name__ == '__main__':
   
-  gfactor = 1.0
+  gfactor = 10.0
   scheme = 'RFD'
   dt = 0.01
-  end = 
-  runs = 
+  N = 500000
+  end = 60.0
+  runs = 8
+  data_name = 'final'
 
   colors = ['r', 'g', 'b']
-  symbols = ['s', 'o', 'd', '^']
+  symbols = ['s', 'o', 'd', '^', 'v','h' ]
   labels = ['cross point', 'tip', 'CoH']
   
   point_ctr = 0
   for out_name in ['', 'tip', 'CoH']:
-    point_ctr += 1
-    file_name = 'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' % (
-      (dt, N, end, scheme, gfactor, runs, data_name, out_name))
+    if out_name:
+      file_name = 'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' % (
+        (dt, N, end, scheme, gfactor, runs, data_name, out_name))
+    else:
+      file_name = 'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' % (
+        (dt, N, end, scheme, gfactor, runs, data_name))
   
     file_name = os.path.join('.', 'data', file_name)
 
@@ -58,8 +66,11 @@ if __name__ == '__main__':
                  yerr = 2.*np.array(
                    [msd_statistics.data[scheme][dt][2][k][2][2] for k in range(series_len)]),
                  c=colors[point_ctr],
-                 marker=symbols[point_ctr],
+                 marker=symbols[point_ctr + 3],
                  label=labels[point_ctr] + ' perpendicular')
-                 
+    point_ctr += 1
+  plt.legend(loc='best', prop={'size': 10})
+  plt.xlim([0., 30.])
+  plt.ylim([0., 35.])
   plt.savefig(os.path.join('.', 'figures', 
                            'PointMSDComparison-g-%s.pdf' % gfactor))
