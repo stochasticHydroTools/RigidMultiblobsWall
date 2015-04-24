@@ -34,7 +34,7 @@ def calc_boomerang_coh(location, orientation):
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
          np.sin(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
   
-  return location
+  return coh
 
 
 def calc_boomerang_tip(location, orientation):
