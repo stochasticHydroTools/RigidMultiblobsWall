@@ -174,10 +174,12 @@ if __name__ == '__main__':
   coh = find_boomerang_coh()
   print 'CoH distance from cross point is ', coh
 
-  n_samples = 10
+  n_samples = 30
 
   cross_norm = 0.
   coh_norm = 0.
+  original_masses = bm.M
+  bm.M = np.array(original_masses)*20.
   for k in range(n_samples):
     sample = bm.generate_boomerang_equilibrium_sample()
     mobility_cross = bm.boomerang_mobility([sample[0]], [sample[1]])
@@ -187,8 +189,8 @@ if __name__ == '__main__':
     
   coh_norm /= float(n_samples)
   cross_norm /= float(n_samples)
-
   print 'Ratio of CoH norm to cross norm is ', (coh_norm/cross_norm)
+  bm.M = original_masses
 
   # plot distance v. coupling norm for various gravities.
   gfactors = [1., 20.]
