@@ -79,10 +79,10 @@ if __name__ == '__main__':
     if l in [0, 1]:
       pyplot.plot([0.0, 150.], 
                   [0.0, 150.*4.*tf.KT*vertex_mu],
-                  'k-', lw=2, label='mobility parallel vertex')
+                  'k-', lw=2, label='average parallel mobility vertex')
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.
-                  'k--', lw=2, label='mobility parallel center')
+                  'k--', lw=2, label='average parallel mobility center')
       pyplot.xlim([0.0, translation_end])
       pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
     elif l == 2:
@@ -93,7 +93,6 @@ if __name__ == '__main__':
       pyplot.plot([0., 500.], [rot_msd, rot_msd], 'k--', 
                   label='asymptotic rotational MSD')
       pyplot.xlim([0., 500.])
-    pyplot.title('MSD(t) for Free Tetrahedron')
     pyplot.legend(loc='best', prop={'size': 10})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))

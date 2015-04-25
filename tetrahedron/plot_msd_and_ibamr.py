@@ -180,15 +180,15 @@ if __name__ == '__main__':
       plt.errorbar(IBAMR_TIME[:fib_end:fib_skip], 
                    2.*IBAMR_PARALLEL[:fib_end:fib_skip], 
                    yerr = 2.*IBAMR_PARALLEL_STD[:fib_end:fib_skip],
-                   c='red', marker='o', linestyle='--', label='FIB parallel')
+                   c='red', marker='o', linestyle='--', label='FIB parallel MSD')
       plt.plot([0.0, translation_end], 
                [0.0, translation_end*4.*tf.KT*mu_parallel_com], 'k-',
-               lw=2, label=r'parallel theory')
+               lw=2, label=r'average parallel mobility')
     elif l == 2:
       plt.errorbar(IBAMR_TIME[:fib_end:fib_skip], 
                    IBAMR_PERP[:fib_end:fib_skip], 
                    yerr = IBAMR_PERP_STD[:fib_end:fib_skip],
-                   c='red', marker='s', linestyle='--', label='FIB perpendicular')
+                   c='red', marker='s', linestyle='--', label='FIB perpendicular MSD')
       if translation_end > 200.:
         plt.plot([0.0, translation_end],
                  [zz_msd_center, zz_msd_center], 'k--',
@@ -198,17 +198,15 @@ if __name__ == '__main__':
 
     if l == 3:
       plt.errorbar(IBAMR_ROT_TIME[0::3], IBAMR_ROT[0::3], yerr=IBAMR_ROT_STD[0::3], 
-                   c='red', marker='s', label='FIB rotation')
+                   c='red', marker='s', label='FIB rotational MSD')
       plt.plot([0.0, 550.],
                   [rot_msd_com, rot_msd_com], 'k--', lw=2, 
                   label='asymptotic rotational MSD')
       plt.xlim([0., 550.])
       plt.legend(loc='best', prop={'size': 11})
-      plt.title('MSD(t) for Tetrahedron')
 
     if l == 2:
       plt.legend(loc='best', prop={'size': 11})
-      plt.title('MSD(t) for Tetrahedron')
       # Make inset.
       data_len = len(rfd_msd_statistics.data['RFD'][1.6][1])
       inset = fig.add_axes([0.58, 0.2, 0.30, 0.30])
@@ -231,7 +229,6 @@ if __name__ == '__main__':
       inset.plot([0.0, 100.],
                  [0.0, 100.*4.*tf.KT*mu_parallel_com], 'k-',
                  lw=2)
-      inset.set_title('Short Time MSD')
       inset.set_xlim([0.0, 100.])
       inset.set_ylim([0.0, 100.*4.*tf.KT*mu_parallel_com])
 

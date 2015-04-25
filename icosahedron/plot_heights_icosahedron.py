@@ -3,6 +3,8 @@ a nonuniform Icosahedron run). '''
 
 import cPickle
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot
 import os
 import sys
@@ -91,7 +93,6 @@ def plot_heights_and_theta(heights_data):
   pyplot.plot(buckets, equilibrium_heights, 'k-', linewidth=3, 
               label='Gibbs Boltzmann')
   pyplot.legend(loc='best', prop={'size': 13})
-  pyplot.title('PDF of Height distribution of Icosahedron')
   pyplot.xlabel('Height')
   pyplot.ylabel('PDF')
   pyplot.xlim([0., 5.])    
@@ -107,7 +108,6 @@ def plot_heights_and_theta(heights_data):
                     fmt=(colors[k] + symbols[k]),
                     yerr=2.*std_heights[k][error_indices])
   pyplot.legend(loc='best', prop={'size': 13})
-  pyplot.title('Error Height distribution of Icosahedron')
   pyplot.xlabel('Height')
   pyplot.ylabel('Error in PDF')
   pyplot.xlim([0., 5.])    
@@ -143,7 +143,6 @@ def plot_heights_and_theta(heights_data):
     # HACK, accidentally bucketed negative theta.
     pyplot.plot(theta_buckets, equilibrium_thetas, 'k-', label='Gibbs Boltzmann')
     pyplot.legend(loc='best', prop={'size': 13})
-    pyplot.title('PDF of Theta Distribution of Icosahedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('PDF')
     pyplot.savefig('./figures/IcosahedronThetaDistribution.pdf')
@@ -159,7 +158,6 @@ def plot_heights_and_theta(heights_data):
     
     # HACK, accidentally bucketed negative theta.
     pyplot.legend(loc='best', prop={'size': 14})
-    pyplot.title('PDF of Theta PDF Error of Icosahedron.')
     pyplot.xlabel('Theta')
     pyplot.ylabel('Error in PDF')
     pyplot.savefig('./figures/IcosahedronThetaError.pdf')

@@ -134,10 +134,9 @@ if __name__ == '__main__':
                c='k', linestyle='')
 
   plt.xlim([0., 9.])
-  plt.title('PDF of Height of Center of for Free Tetrahedron.')
   plt.xlabel('Height')
   plt.ylabel('PDF')
-  plt.legend(loc='best', prop={'size': 10})
+  plt.legend(loc='best', prop={'size': 12})
 
   plt.savefig(os.path.join('.', 'figures', 
                            'FreeTetrahedronCenterPDF.pdf'))

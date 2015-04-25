@@ -120,7 +120,7 @@ if __name__ == '__main__':
   plt.legend(loc='best', prop={'size': 10})
   plt.xlim([0., translation_limit])
   plt.ylim([0., translation_limit*1.7])
-  plt.title('Location MSD for different gravities of Boomerang.')
+#  plt.title('Location MSD for different gravities of Boomerang.')
   plt.savefig(os.path.join('.', 'figures', 'FreeBoomerangMSD.pdf'))
     
 
