@@ -24,21 +24,27 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   zz_msd = 0.
   rot_msd = 0.
   rot_perp_msd = 0.
+  zz_vertex_msd = 0.
   for k in range(n_steps):
     sample_1 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
     sample_2 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
+    r_vectors_1 = ic.get_icosahedron_r_vectors(sample_1[0], sample_1[1])
+    r_vectors_2 = ic.get_icosahedron_r_vectors(sample_2[0], sample_2[1])
     rot_mat_1 = sample_1[1].rotation_matrix().T
     rot_mat_2 = sample_2[1].rotation_matrix().T
     total_msd = calc_total_msd_from_matrix_and_center(sample_1[0], rot_mat_1,
                                                       sample_2[0], rot_mat_2)
     zz_msd += total_msd[2, 2]
+
     rot_msd += total_msd[3, 3]
     rot_perp_msd += total_msd[5, 5]
+    zz_vertex_msd += (r_vectors_1[0][2] - r_vectors_2[0][2])**2
 
   zz_msd /= n_steps
   rot_msd /= n_steps
   rot_perp_msd /= n_steps
-  return [zz_msd, rot_msd, rot_perp_msd]
+  zz_vertex_msd /= n_steps
+  return [zz_msd, rot_msd, rot_perp_msd, zz_vertex_msd]
 
 
 def gibbs_boltzmann_distribution(location):
@@ -131,9 +137,10 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd, rot_perp_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
+  [zz_msd, rot_msd, rot_perp_msd, rot_vertex_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
   print 'rot_msd is ', rot_msd
   print 'rot_perp msd is ', rot_perp_msd
+  print 'h_g is ' , np.sqrt(zz_msd)
 #  rot_msd = 0.16666
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
   zz_msd = 0.4557

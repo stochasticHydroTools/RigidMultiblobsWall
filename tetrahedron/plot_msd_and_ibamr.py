@@ -73,10 +73,6 @@ IBAMR_ROT_STD = np.array([0., 0.00098840642, 0.0022415845, 0.0035705491, 0.00481
 
 if __name__ == '__main__':
 
-  print "length of time", len(IBAMR_ROT_TIME)
-  print "length of data", len(IBAMR_ROT)
-  print "length of std", len(IBAMR_ROT_STD)
-
   rfd_data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-final-geom-center.pkl')
   fixman_data_name = ('tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-FIXMAN-runs-4-final-geom-center.pkl')
 
@@ -164,6 +160,7 @@ if __name__ == '__main__':
   print "mu_parallel: ", mu_parallel_center
   print "msd_rot", rot_msd_center
   print "zz_msd", zz_msd_center
+  print "h_g ", np.sqrt(zz_msd_center)
   
 
   for l in range(6):
