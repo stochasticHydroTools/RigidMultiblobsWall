@@ -300,7 +300,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=20000):
   normalization_constants is a dictionary that stores an
   estimated normalization constant for each value of the sum of mass.
   '''
-  max_height = KT/sum(M)*7 + A + DEBYE_LENGTH
+  max_height = KT/sum(M)*12 + A + 4.*DEBYE_LENGTH
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
   norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
