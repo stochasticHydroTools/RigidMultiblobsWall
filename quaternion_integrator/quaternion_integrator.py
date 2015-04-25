@@ -64,7 +64,6 @@ class QuaternionIntegrator(object):
 
   def fixman_time_step(self, dt):
     ''' Take a timestep of length dt using the Fixman method '''
-    
     # Try to take steps until one is valid
     while True:
       if self.has_location:

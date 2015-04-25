@@ -248,6 +248,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
               number of analyzed points roughly this value.
  '''
   data_interval = int(end/dt/trajectory_length) + 1
+  print "data_interval is ", data_interval
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])
@@ -524,7 +525,11 @@ def transfer_mobility(mobility_1, point_1, point_2):
 
   # Subtract r cross D_r cross r
   mobility_2[0:3, 0:3] -= vector_cross_tensor(
-    r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
+     r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
+
+  # Test this.
+  #  mobility_2[0:3, 0:3] -= tensor_cross_vector(
+  # vector_cross_tensor(r, mobility_1[3:6, 3:6]), r)
 
   return mobility_2
 

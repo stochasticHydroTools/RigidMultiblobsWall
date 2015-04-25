@@ -1,7 +1,5 @@
 ''' Plot animation of the Boomerang. '''
 
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 import os
 import sys
@@ -15,8 +13,9 @@ from utils import read_trajectory_from_txt
 
 
 N_SPHERES = len(bm.M)
-TIME_SKIP = 5
+TIME_SKIP = 10
 WRITE = True
+DRAW_COH = True
 
 class vtkTimerCallback():
   def __init__(self):
@@ -32,6 +31,16 @@ class vtkTimerCallback():
     for k in range(N_SPHERES):
       self.sources[k].SetCenter(r_vectors[k][0], r_vectors[k][1],
                                 r_vectors[k][2])
+    if DRAW_COH:
+      coh = bm.calculate_boomerang_coh(
+        self.locations[self.n*TIME_SKIP], 
+        Quaternion(self.orientations[self.n*TIME_SKIP]))
+      cod = bm.calculate_boomerang_cod(
+        self.locations[self.n*TIME_SKIP], 
+        Quaternion(self.orientations[self.n*TIME_SKIP]))
+      self.coh_source.SetCenter(coh)
+      self.cod_source.SetCenter(cod)
+
     iren = obj
     iren.GetRenderWindow().Render()
     if WRITE:
@@ -48,10 +57,6 @@ class vtkTimerCallback():
 if __name__ == '__main__':
   # Data file name where trajectory data is stored.
   data_name = sys.argv[1]
-
-  # x_lim = [-5., 5.]
-  # y_lim = [-5., 5.]
-  # z_lim = [-0.5, 9.5]
 
   #######
   data_file_name = os.path.join(DATA_DIR, 'boomerang', data_name)
@@ -72,10 +77,22 @@ if __name__ == '__main__':
                               initial_r_vectors[0][2])
     blob_sources[k].SetRadius(bm.A)
 
+  if DRAW_COH:
+    coh_source = vtk.vtkSphereSource()
+    coh_point = bm.calculate_boomerang_coh(
+      locations[0], Quaternion(orientations[0]))
+    coh_source.SetCenter(coh_point)
+    coh_source.SetRadius(0.1)
+    cod_source = vtk.vtkSphereSource()
+    cod_point = bm.calculate_boomerang_cod(
+      locations[0], Quaternion(orientations[0]))
+    cod_source.SetCenter(coh_point)
+    cod_source.SetRadius(0.1)
+
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(15.)
-  wall_source.SetYLength(15.)
+  wall_source.SetXLength(10.)
+  wall_source.SetYLength(10.)
   wall_source.SetZLength(0.25)
 
 
@@ -87,26 +104,43 @@ if __name__ == '__main__':
     blob_mappers[k].SetInputConnection(blob_sources[k].GetOutputPort())
     blob_actors.append(vtk.vtkActor())
     blob_actors[k].SetMapper(blob_mappers[k])
-    blob_actors[k].GetProperty().SetColor(0, 0, 1)
+    blob_actors[k].GetProperty().SetColor(1, 0, 0)
+  
+  if DRAW_COH:
+    coh_mapper = vtk.vtkPolyDataMapper()
+    coh_mapper.SetInputConnection(coh_source.GetOutputPort())
+    coh_actor = vtk.vtkActor()
+    coh_actor.SetMapper(coh_mapper)
+    coh_actor.GetProperty().SetColor(5., 5., 1.)
+    cod_mapper = vtk.vtkPolyDataMapper()
+    cod_mapper.SetInputConnection(cod_source.GetOutputPort())
+    cod_actor = vtk.vtkActor()
+    cod_actor.SetMapper(cod_mapper)
+    cod_actor.GetProperty().SetColor(0., 0., 1.)
+
 
   # Set up wall actor and mapper
   wall_mapper = vtk.vtkPolyDataMapper()
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
+  wall_actor.GetProperty().SetColor(0.4, 0.95, 0.4)
 
   # Create camera
   camera = vtk.vtkCamera()
-  camera.SetPosition(0., -25., 5.)
+  # Close
+  camera.SetPosition(0., -12., 6.)
+  # Far
+#  camera.SetPosition(0., -50., 10.)
   camera.SetFocalPoint(0., 0., 0.)
-  camera.SetViewAngle(38.)
+#  camera.SetMagnification(4)
+  camera.SetViewAngle(37.)
 
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
   renderer.SetActiveCamera(camera)
   renderWindow = vtk.vtkRenderWindow()
-#  renderWindow.SetSize(1000, 1000)
+  renderWindow.SetSize(1000, 1000)
 
   renderWindow.AddRenderer(renderer);
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
@@ -115,6 +149,10 @@ if __name__ == '__main__':
   #Add the actors to the scene
   for k in range(len(bm.M)):
     renderer.AddActor(blob_actors[k])
+
+  if DRAW_COH:
+    renderer.AddActor(coh_actor)
+    renderer.AddActor(cod_actor)
 
   renderer.AddActor(wall_actor)
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
@@ -128,6 +166,7 @@ if __name__ == '__main__':
   # Set up writer for pngs so we can save a movie.
   w2if = vtk.vtkWindowToImageFilter()
   w2if.SetInput(renderWindow)
+  w2if.SetMagnification(1.5)
   w2if.Update()
   w2if.ReadFrontBufferOff()
   lwr = vtk.vtkPNGWriter()
@@ -139,6 +178,9 @@ if __name__ == '__main__':
   cb.lwr = lwr
   cb.w2if = w2if
   cb.sources = blob_sources
+  if DRAW_COH:
+    cb.coh_source = coh_source
+    cb.cod_source = cod_source
   cb.locations = locations
   cb.orientations = orientations
   renderWindowInteractor.AddObserver('TimerEvent', cb.execute)
@@ -146,6 +188,4 @@ if __name__ == '__main__':
   
   #start the interaction and timer
   renderWindowInteractor.Start()
-
-  
 

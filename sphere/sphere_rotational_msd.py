@@ -24,6 +24,7 @@ sys.path.append('..')
 import time
 
 from fluids import mobility as mb
+from icosahedron import icosahedron_nonuniform as icn
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import sphere as sph
@@ -96,7 +97,9 @@ def calc_sphere_msd_from_equilibrium(initial_orientation,
   for run in range(n_runs):
     integrator = QuaternionIntegrator(sph.sphere_mobility,
                                       initial_orientation, 
-                                      sph.null_torque_calculator,
+                                      # HACK, test against nonuniform torque.
+                                      icn.nonuniform_torque_calculator,
+#                                      sph.null_torque_calculator,
                                       has_location=True,
                                       initial_location=location,
                                       force_calculator=

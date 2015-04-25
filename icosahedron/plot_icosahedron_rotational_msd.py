@@ -23,6 +23,7 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
   ''' Use MC to calculate asymptotic (t -> inf) zz MSD at equilibrium'''
   zz_msd = 0.
   rot_msd = 0.
+  rot_perp_msd = 0.
   for k in range(n_steps):
     sample_1 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
     sample_2 = icn.generate_nonuniform_icosahedron_equilibrium_sample()
@@ -32,10 +33,12 @@ def calculate_zz_and_rot_msd_at_equilibrium(n_steps):
                                                       sample_2[0], rot_mat_2)
     zz_msd += total_msd[2, 2]
     rot_msd += total_msd[3, 3]
+    rot_perp_msd += total_msd[5, 5]
 
   zz_msd /= n_steps
   rot_msd /= n_steps
-  return [zz_msd, rot_msd]
+  rot_perp_msd /= n_steps
+  return [zz_msd, rot_msd, rot_perp_msd]
 
 
 def gibbs_boltzmann_distribution(location):
@@ -84,7 +87,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join(
     'data', 
-    'icosahedron-msd-dt-0.05-N-500000-end-800.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
+    'icosahedron-msd-dt-0.05-N-500000-end-100.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosahedron parameters:'
@@ -103,7 +106,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.01-N-3000000-final.pkl')
+                                  'sphere-msd-dt-0.05-N-1000000-final.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -128,23 +131,26 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
+  [zz_msd, rot_msd, rot_perp_msd] = calculate_zz_and_rot_msd_at_equilibrium(15000)
+  print 'rot_msd is ', rot_msd
+  print 'rot_perp msd is ', rot_perp_msd
+#  rot_msd = 0.16666
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
-  #zz_msd = 0.4557
+  zz_msd = 0.4557
   
-  figure_index = [1, 2, 1, 3, 4, 5]
+  figure_index = [1, 2, 1, 3, 4, 3]
   label_list = [' icosahedron parallel MSD', ' icosahedron yy MSD', 
                 ' blob perpendicular MSD', 
-                ' icosahedron rotational MSD', ' icosahedron rotational MSD', 
-                ' icosahedron rotational MSD']
+                ' icosahedron 4-4 MSD', ' icosahedron rotational MSD', 
+                ' icosahedron 6-6 MSD']
   sphere_label_list = [' blob parallel MSD (a = 0.5)', ' blob yy MSD', 
                        ' blob perpendicular MSD', 
-                       ' blob rotational MSD', ' blob rotational MSD',
-                       ' blob rotational MSD']
+                       ' blob 4-4 MSD', ' blob rotational MSD',
+                       ' blob 6-6 MSD']
   sphere_mobility = 0.17963
   
-  style_list = ['*', 's', '^', 'd', '.', '.']
-  sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
+  style_list = ['*', 's', '^', 'd', '.', 'h']
+  sphere_style_list = ['d', 'o', 'o', 'o', 'o', 's']
   translation_plot_limit = 110.
   for l in range(6):
     ind = [l, l]
@@ -173,10 +179,12 @@ if __name__ == "__main__":
                   lw=2, label='blob asymptotic perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
-    if l == 3:
-      pyplot.plot([0., 120.], [rot_msd, rot_msd], 'k--', 
-                  lw=2, label='blob asymptotic rotational MSD')
-      pyplot.xlim([0., 120.])
+    if l == 5:
+      pyplot.plot([0., 60.], [rot_msd, rot_msd], 'k-', 
+                  lw=2, label='blob asymptotic 4-4 MSD')
+      pyplot.plot([0., 60.], [rot_perp_msd, rot_perp_msd], 'k--', 
+                  lw=2, label='blob asymptotic 6-6 MSD')
+      pyplot.xlim([0., 60.])
 
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
     pyplot.legend(loc='best', prop={'size': 12})
