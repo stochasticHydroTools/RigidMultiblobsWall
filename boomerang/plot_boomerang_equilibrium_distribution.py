@@ -119,10 +119,8 @@ if __name__ == '__main__':
   n_steps = int(sys.argv[1])
   
   # Plot different multiples of earth's gravity.
-  factor_list = [1., 1., 10., 10., 20., 20.]
-  names_list = ['old', 'increased-rep',
-                'old', 'increased-rep',
-                'old', 'increased-rep']
+  factor_list = [1., 10., 20.]
+  names_list = ['old', 'old', 'old']
 
   bin_width = 0.05
   cross_heights = np.zeros(int(11./bin_width))
