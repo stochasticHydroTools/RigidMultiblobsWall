@@ -248,6 +248,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
               number of analyzed points roughly this value.
  '''
   data_interval = int(end/dt/trajectory_length) + 1
+  print "data_interval is ", data_interval
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])

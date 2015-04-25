@@ -106,6 +106,29 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
   return total_mobility
 
 
+def calculate_boomerang_coh(location, orientation):
+  ''' return CoH of the boomerang, given location and orientation.
+  This uses the 15 blob boomerang.'''
+  dist = 1.07489
+  r_vectors = get_boomerang_r_vectors_15(location, orientation)
+  arm_1 = r_vectors[0] - location
+  arm_2 = r_vectors[14] - location
+  coh_point = (location + arm_1*np.sin(np.pi/4.)*dist/2.1 
+               + arm_2*np.sin(np.pi/4.)*dist/2.1)
+  return coh_point
+
+def calculate_boomerang_cod(location, orientation):
+  ''' return CoD (CoM) of the boomerang, given location and orientation.
+  This uses the 15 blob boomerang.'''
+  dist = 0.96087
+  r_vectors = get_boomerang_r_vectors_15(location, orientation)
+  arm_1 = r_vectors[0] - location
+  arm_2 = r_vectors[14] - location
+  coh_point = (location + arm_1*np.sin(np.pi/4.)*dist/2.1 
+               + arm_2*np.sin(np.pi/4.)*dist/2.1)
+  return coh_point
+
+
 def get_boomerang_r_vectors(location, orientation):
   '''Get the vectors of the 7 blobs used to discretize the boomerang.
   
@@ -468,7 +491,6 @@ if __name__ == '__main__':
   data_file = os.path.join(
     DATA_DIR, 'boomerang', generate_trajectory_name(args.scheme))
   write_trajectory_to_txt(data_file, trajectory, params)
-
 
   # First check that the directory exists.  If not, create it.
   dir_name = os.path.dirname(data_file)

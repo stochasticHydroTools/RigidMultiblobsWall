@@ -30,10 +30,21 @@ def calc_boomerang_coh(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.
   this is for the 15 blob boomerang.'''
   r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
-  dist = 0.80943
+  dist = 1.07489
   coh = (location + 
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
          np.sin(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
+  
+  return coh
+
+def calc_boomerang_cod(location, orientation):
+  ''' Function to get boomerang cross point, which is tracked as location.
+  this is for the 15 blob boomerang.'''
+  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
+  dist = 0.96087
+  coh = (location + 
+         np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
+         np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
   
   return coh
 
@@ -59,6 +70,9 @@ if __name__ == '__main__':
   parser.add_argument('-scheme', dest='scheme', type=str, default='RFD',
                       help='Scheme of data to analyze.  Options are '
                       'RFD, FIXMAN, or EM.  Defaults to RFD.')
+  parser.add_argument('-free', dest='free', type=str, default='',
+                      help='Is this boomerang free in 3 space, or confined '
+                      'near a wall?')
   parser.add_argument('-dt', dest='dt', type=float,
                       help='Timestep of runs to analyze.')
   parser.add_argument('-N', dest='n_steps', type=int,
@@ -73,6 +87,9 @@ if __name__ == '__main__':
                       help='Data name of trajectory runs to be analyzed.')
   parser.add_argument('-n_runs', dest='n_runs', type=int,
                       help='Number of trajectory runs to be analyzed.')
+  parser.add_argument('-point', dest='point', type=str, default = 'COH',
+                      help='Point to use to measure translational MSD. Must be '
+                      'COH, COD, CP, or TIP.')
   parser.add_argument('-end', dest='end', type=float,
                       help='How far to analyze MSD (how large of a time window '
                       'to use).  This is in the same time units as dt.')
@@ -96,15 +113,20 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
-  trajectory_length = 150
+  trajectory_length = 30
+
+  if args.point not in ['COH', 'COD', 'TIP', 'CP']:
+    raise Exception('Point must be one of: COH, COD, TIP, CP.')
   
   # Set up logging
+  log_filename = 'boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s' % (
+    dt, N, args.gfactor, args.data_name)
+  if args.free:
+    log_filename = 'free-' + log_filename
   if args.out_name:
-    log_filename = './logs/boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s-%s.log' % (
-      dt, N, args.gfactor, args.data_name, args.out_name)
-  else:
-    log_filename = './logs/boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s.log' % (
-      dt, N, args.gfactor, args.data_name)
+    log_filename = log_filename + ('-%s' % args.out_name)
+  log_filename = './logs/' + log_filename + '.log'
+
   progress_logger = logging.getLogger('Progress Logger')
   progress_logger.setLevel(logging.INFO)
   # Add the log message handler to the logger
@@ -119,13 +141,23 @@ if __name__ == '__main__':
   trajectory_file_names = []
   for k in range(1, args.n_runs+1):
     if data_name:
-      trajectory_file_names.append(
+      if args.free:
+        trajectory_file_names.append(
+          'free-boomerang-trajectory-dt-%g-N-%s-scheme-%s-%s-%s.txt' % (
+            dt, N, scheme, data_name, k))
+      else:
+        trajectory_file_names.append(
         'boomerang-trajectory-dt-%g-N-%s-scheme-%s-g-%s-%s-%s.txt' % (
-          dt, N, scheme, args.gfactor, data_name, k))
+            dt, N, scheme, args.gfactor, data_name, k))
     else:
-      trajectory_file_names.append(
-        'boomerang-trajectory-dt-%g-N-%s-scheme-%s-g-%s-%s.txt' % (
-          dt, N, scheme, args.gfactor, k))
+      if args.free:
+        trajectory_file_names.append(
+          'free-boomerang-trajectory-dt-%g-N-%s-scheme-%s-%s.txt' % (
+            dt, N, scheme, k))
+      else:
+        trajectory_file_names.append(
+          'boomerang-trajectory-dt-%g-N-%s-scheme-%s-g-%s-%s.txt' % (
+            dt, N, scheme, args.gfactor, k))
 
   ##########
   msd_runs = []
@@ -140,15 +172,28 @@ if __name__ == '__main__':
                       'Number of steps.')
     
     # Calculate MSD data (just an array of MSD at each time.)
-    msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_boomerang_tip, dt, end,
-                                             trajectory_length=trajectory_length)
+    if args.point == 'COD':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               bm.calculate_boomerang_cod, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'COH':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               bm.calculate_boomerang_coh, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'TIP':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               calc_boomerang_tip, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'CP':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               calc_boomerang_cp, dt, end,
+                                               trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
-  data_interval = int(end/dt/trajectory_length)
+  data_interval = int(end/dt/trajectory_length) + 1
   time = np.arange(0, len(mean_msd))*dt*data_interval
 
   msd_statistics = MSDStatistics(params)
@@ -156,16 +201,29 @@ if __name__ == '__main__':
 
   # Save MSD data with pickle.
   if args.out_name:
-    msd_data_file_name = os.path.join(
-      '.', 'data',
-      'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' %
-      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name,
-       args.out_name))
+    if args.free:
+      msd_data_file_name = os.path.join(
+        '.', 'data',
+        'free-boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s-%s.pkl' %
+        (dt, N, end, scheme, len(trajectory_file_names), data_name,
+         args.out_name))      
+    else:
+      msd_data_file_name = os.path.join(
+        '.', 'data',
+        'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' %
+        (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name,
+         args.out_name))
   else:
-    msd_data_file_name = os.path.join(
-      '.', 'data',
-      'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
-      (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
+    if args.free:
+      msd_data_file_name = os.path.join(
+        '.', 'data',
+        'free-boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
+        (dt, N, end, scheme, len(trajectory_file_names), data_name))
+    else:
+      msd_data_file_name = os.path.join(
+        '.', 'data',
+        'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
+        (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
 
   with open(msd_data_file_name, 'wb') as f:
     cPickle.dump(msd_statistics, f)
