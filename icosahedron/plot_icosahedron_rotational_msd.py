@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.05-N-1000000-final.pkl')
+                                  'sphere-msd-dt-0.05-N-500000-final-short.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -141,12 +141,12 @@ if __name__ == "__main__":
   figure_index = [1, 2, 1, 3, 4, 3]
   label_list = [' icosahedron parallel MSD', ' icosahedron yy MSD', 
                 ' blob perpendicular MSD', 
-                ' icosahedron 4-4 MSD', ' icosahedron rotational MSD', 
-                ' icosahedron 6-6 MSD']
+                ' icosahedron parallel rotational MSD', ' icosahedron rotational MSD', 
+                ' icosahedron perpendicular rotational MSD']
   sphere_label_list = [' blob parallel MSD (a = 0.5)', ' blob yy MSD', 
                        ' blob perpendicular MSD', 
-                       ' blob 4-4 MSD', ' blob rotational MSD',
-                       ' blob 6-6 MSD']
+                       ' blob parallel rotational MSD', ' blob rotational MSD',
+                       ' blob perpendicular rotational MSD']
   sphere_mobility = 0.17963
   
   style_list = ['*', 's', '^', 'd', '.', 'h']
@@ -159,7 +159,10 @@ if __name__ == "__main__":
       num_err_bars = 120
     elif l == 3:
       data_name = 'RotationalMSDComponent.txt'
-      num_err_bars = 120
+      num_err_bars = 20
+    elif l == 5:
+      num_err_bars = 20
+      data_name = 'RotationalPerpMSDComponent.txt'
     else:
       data_name = None
     plot_time_dependent_msd(msd_statistics, ind, figure_index[l], symbol=style_list[l], 
@@ -181,9 +184,9 @@ if __name__ == "__main__":
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
     if l == 5:
       pyplot.plot([0., 60.], [rot_msd, rot_msd], 'k-', 
-                  lw=2, label='blob asymptotic 4-4 MSD')
+                  lw=2, label='blob asymptotic parallel MSD')
       pyplot.plot([0., 60.], [rot_perp_msd, rot_perp_msd], 'k--', 
-                  lw=2, label='blob asymptotic 6-6 MSD')
+                  lw=2, label='blob asymptotic perpendicular MSD')
       pyplot.xlim([0., 60.])
 
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
