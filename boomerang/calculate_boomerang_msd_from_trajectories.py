@@ -113,7 +113,7 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
-  trajectory_length = 30
+  trajectory_length = 100
 
   if args.point not in ['COH', 'COD', 'TIP', 'CP']:
     raise Exception('Point must be one of: COH, COD, TIP, CP.')

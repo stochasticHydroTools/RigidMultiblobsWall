@@ -39,16 +39,17 @@ def calculate_boomerang_parallel_mobility_coh(n_samples, sample_file):
 
 if __name__ == '__main__':
   
-  data_files = ['boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-1.0-'
+  data_files = ['boomerang-msd-dt-0.01-N-500000-end-30.0-scheme-RFD-g-1.0-'
                 'runs-8-final-CoD.pkl',
-                'boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-10.0-'
+                'boomerang-msd-dt-0.01-N-500000-end-30.0-scheme-RFD-g-10.0-'
                 'runs-8-final-CoD.pkl',
-                'boomerang-msd-dt-0.01-N-500000-end-60.0-scheme-RFD-g-20.0-'
+                'boomerang-msd-dt-0.01-N-500000-end-30.0-scheme-RFD-g-20.0-'
                 'runs-8-final-CoD.pkl']
 
   labels = [' G = 1 Parallel', ' G = 10 Parallel', ' G = 20 Parallel',
             ' G=1 Perp', ' G = 10 Perp', ' G = 20 Perp']
   symbols = ['d', 'o', 's', '^']
+  colors = ['g', 'r']
   translation_limit = 10.
 
   ctr = 0
@@ -70,9 +71,9 @@ if __name__ == '__main__':
             msd_statistics.data[scheme][dt][2][k][1][1]**2)
 
     plot_time_dependent_msd(msd_statistics, [0, 0], 1, num_err_bars=120,
-                            label=labels[ctr], symbol=symbols[ctr])
+                            label=labels[ctr], symbol=symbols[ctr], color='b')
     plot_time_dependent_msd(msd_statistics, [2, 2], 1, num_err_bars=120,
-                            label=labels[ctr + 3], symbol=symbols[ctr])
+                            label=labels[ctr + 3], symbol=symbols[ctr], color='g')
     ctr += 1
 
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
   for gfactor in [1., 10., 20.]:
     sample_file = os.path.join(DATA_DIR, 'boomerang',
                                'boomerang-samples-g-%s-old.txt' % gfactor)
-    mu_parallel = calculate_boomerang_parallel_mobility_coh(3000, sample_file)
+    mu_parallel = calculate_boomerang_parallel_mobility_coh(500, sample_file)
     print "mu parallel for g = %s is %s" % (gfactor, mu_parallel)
     plt.figure(1)
     plt.plot([0., translation_limit], [0., 4.*bm.KT*mu_parallel*translation_limit],
@@ -88,6 +89,6 @@ if __name__ == '__main__':
     
   plt.legend(loc='best', prop={'size': 10})
   plt.xlim([0., translation_limit])
-  plt.ylim([0., 10.])
-  plt.title('Location MSD for different gravities of Boomerang.')
+  plt.ylim([0., 20.])
+  plt.title('CoM MSD for Boomerang')
   plt.savefig(os.path.join('.', 'figures', 'BoomerangMSDPlot.pdf'))

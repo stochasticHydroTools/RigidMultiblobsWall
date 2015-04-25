@@ -47,17 +47,17 @@ def calculate_free_boomerang_avg_mobilities(n_samples):
 if __name__ == '__main__':
 
   # Specify MSD data files, located in ./data subfolder.
-  cod_data = 'free-boomerang-msd-dt-0.01-N-300000-end-8.0-scheme-RFD-runs-4-final-CoD.pkl'
-  coh_data = 'free-boomerang-msd-dt-0.01-N-300000-end-8.0-scheme-RFD-runs-4-final-CoH.pkl'
-  tip_data = 'free-boomerang-msd-dt-0.01-N-300000-end-8.0-scheme-RFD-runs-4-final-tip.pkl'
+  cod_data = 'free-boomerang-msd-dt-0.01-N-300000-end-30.0-scheme-RFD-runs-4-final-CoD.pkl'
+  coh_data = 'free-boomerang-msd-dt-0.01-N-300000-end-30.0-scheme-RFD-runs-4-final-CoH.pkl'
+  tip_data = 'free-boomerang-msd-dt-0.01-N-300000-end-30.0-scheme-RFD-runs-4-final-tip.pkl'
   
   labels = [' CoH', ' CoD', ' tip']
   symbols = ['s', 'd', 'o']
 
-  translation_limit = 5.
+  translation_limit = 10.
   
   ctr = 0
-  for name in [cod_data, coh_data, tip_data]:
+  for name in [cod_data, coh_data]:
     file_name = os.path.join('.', 'data', 
                              name)
     with open(file_name, 'rb') as f:
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     ctr += 1
 
   # Plot mobility theory.
-  [mu_coh, mu_cod] = calculate_free_boomerang_avg_mobilities(200)
+  [mu_coh, mu_cod] = calculate_free_boomerang_avg_mobilities(4000)
   plt.plot([0., translation_limit], 
            [0., 6.*bm.KT*mu_coh*translation_limit],
            'k--', label='CoH theory')
@@ -91,7 +91,7 @@ if __name__ == '__main__':
            'k-', label='CoD Theory')
   plt.legend(loc='best', prop={'size': 10})
   plt.xlim([0., translation_limit])
-  plt.ylim([0., 9.])
+  plt.ylim([0., translation_limit*1.7])
   plt.title('Location MSD for different gravities of Boomerang.')
   plt.savefig(os.path.join('.', 'figures', 'FreeBoomerangMSDPlot.pdf'))
     

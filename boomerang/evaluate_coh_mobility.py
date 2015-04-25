@@ -65,6 +65,7 @@ def find_boomerang_coh():
   '''
   location = [0., 0., 900000000.]
   orientation = Quaternion([1., 0., 0., 0.])
+
   def coupling_function(dist):
     ''' 
     Calculate norm of coupling at distance dist 

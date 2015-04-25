@@ -87,7 +87,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join(
     'data', 
-    'icosahedron-msd-dt-0.05-N-500000-end-800.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
+    'icosahedron-msd-dt-0.05-N-500000-end-100.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosahedron parameters:'
@@ -131,7 +131,9 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd, rot_perp_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
+  [zz_msd, rot_msd, rot_perp_msd] = calculate_zz_and_rot_msd_at_equilibrium(15000)
+  print 'rot_msd is ', rot_msd
+  print 'rot_perp msd is ', rot_perp_msd
 #  rot_msd = 0.16666
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
   zz_msd = 0.4557
@@ -143,12 +145,12 @@ if __name__ == "__main__":
                 ' icosahedron 6-6 MSD']
   sphere_label_list = [' blob parallel MSD (a = 0.5)', ' blob yy MSD', 
                        ' blob perpendicular MSD', 
-                       ' blob rotational MSD', ' blob rotational MSD',
-                       ' blob rotational MSD']
+                       ' blob 4-4 MSD', ' blob rotational MSD',
+                       ' blob 6-6 MSD']
   sphere_mobility = 0.17963
   
-  style_list = ['*', 's', '^', 'd', '.', '.']
-  sphere_style_list = ['d', 'o', 'o', 'o', 'o', 'o']
+  style_list = ['*', 's', '^', 'd', '.', 'h']
+  sphere_style_list = ['d', 'o', 'o', 'o', 'o', 's']
   translation_plot_limit = 110.
   for l in range(6):
     ind = [l, l]
@@ -178,11 +180,11 @@ if __name__ == "__main__":
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
     if l == 5:
-      pyplot.plot([0., 50.], [rot_msd, rot_msd], 'k--', 
+      pyplot.plot([0., 60.], [rot_msd, rot_msd], 'k-', 
                   lw=2, label='blob asymptotic 4-4 MSD')
-      pyplot.plot([0., 50.], [rot_perp_msd, rot_perp_msd], 'k--', 
+      pyplot.plot([0., 60.], [rot_perp_msd, rot_perp_msd], 'k--', 
                   lw=2, label='blob asymptotic 6-6 MSD')
-      pyplot.xlim([0., 50.])
+      pyplot.xlim([0., 60.])
 
     pyplot.title('MSD(t) for Icosahedron with Hydrodynamic Radius = 0.5')
     pyplot.legend(loc='best', prop={'size': 12})
