@@ -38,7 +38,7 @@ def calculate_boomerang_parallel_mobility_coh(n_samples, sample_file):
 
 if __name__ == '__main__':
   
-  gfactor = 1.0
+  gfactor = 20.0
   scheme = 'RFD'
   dt = 0.01
   N = 500000
@@ -47,8 +47,8 @@ if __name__ == '__main__':
   data_name = 'final'
   translation_end = 3.
 
-  colors = ['r', 'g', 'b']
-  symbols = ['s', 'o', 'd', '^', 'v','h' ]
+  colors = ['r', 'g', 'b', 'm']
+  symbols = ['s', 'o', 'd', '^', 'v', 'h']
   labels = ['CoD', 'tip', 'CoH']
   
   point_ctr = 0

@@ -46,6 +46,7 @@ if __name__ == '__main__':
                 'boomerang-msd-dt-0.01-N-500000-end-30.0-scheme-RFD-g-20.0-'
                 'runs-8-final-CoD.pkl']
 
+
   labels = [' G = 1 Parallel', ' G = 10 Parallel', ' G = 20 Parallel',
             ' G=1 Perp', ' G = 10 Perp', ' G = 20 Perp']
   symbols = ['d', 'o', 's', '^']

@@ -27,7 +27,7 @@ def calc_boomerang_cp(location, orientation):
 
 
 def calc_boomerang_coh(location, orientation):
-  ''' Function to get boomerang cross point, which is tracked as location.
+  ''' Function to get boomerang CoH, which is tracked as location.
   this is for the 15 blob boomerang.'''
   r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
   dist = 1.07489
@@ -38,7 +38,7 @@ def calc_boomerang_coh(location, orientation):
   return coh
 
 def calc_boomerang_cod(location, orientation):
-  ''' Function to get boomerang cross point, which is tracked as location.
+  ''' Function to get boomerang CoD, which is tracked as location.
   this is for the 15 blob boomerang.'''
   r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
   dist = 0.96087
@@ -47,6 +47,17 @@ def calc_boomerang_cod(location, orientation):
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
   
   return coh
+
+def calc_boomerang_experimental(location, orientation):
+  ''' Function to get boomerang CoH from the chakrabarty paper,
+  which is tracked as location. this is for the 15 blob boomerang.'''
+  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
+  dist = 1.16
+  experiment_pt = (location + 
+                   np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
+                   np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
+  
+  return experiment_pt
 
 
 def calc_boomerang_tip(location, orientation):
@@ -89,7 +100,7 @@ if __name__ == '__main__':
                       help='Number of trajectory runs to be analyzed.')
   parser.add_argument('-point', dest='point', type=str, default = 'COH',
                       help='Point to use to measure translational MSD. Must be '
-                      'COH, COD, CP, or TIP.')
+                      'COH, COD, CP, EXP, or TIP.')
   parser.add_argument('-end', dest='end', type=float,
                       help='How far to analyze MSD (how large of a time window '
                       'to use).  This is in the same time units as dt.')
@@ -115,8 +126,8 @@ if __name__ == '__main__':
   data_name = args.data_name
   trajectory_length = 100
 
-  if args.point not in ['COH', 'COD', 'TIP', 'CP']:
-    raise Exception('Point must be one of: COH, COD, TIP, CP.')
+  if args.point not in ['COH', 'COD', 'TIP', 'CP', 'EXP']:
+    raise Exception('Point must be one of: COH, COD, TIP, EXP, CP.')
   
   # Set up logging
   log_filename = 'boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s' % (
@@ -161,7 +172,9 @@ if __name__ == '__main__':
 
   ##########
   msd_runs = []
+  ctr = 0
   for name in trajectory_file_names:
+    ctr += 1
     data_file_name = os.path.join(DATA_DIR, 'boomerang', name)
     # Check correct timestep.
     params, locations, orientations = read_trajectory_from_txt(data_file_name)
@@ -188,8 +201,13 @@ if __name__ == '__main__':
       msd_data = calc_msd_data_from_trajectory(locations, orientations, 
                                                calc_boomerang_cp, dt, end,
                                                trajectory_length=trajectory_length)
+    elif args.point == 'EXP':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               calc_boomerang_experimental, dt, end,
+                                               trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
+    print 'Completed run %s of %s' % (ctr, len(trajectory_file_names))
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
