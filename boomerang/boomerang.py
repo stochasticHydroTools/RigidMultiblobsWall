@@ -492,7 +492,6 @@ if __name__ == '__main__':
     DATA_DIR, 'boomerang', generate_trajectory_name(args.scheme))
   write_trajectory_to_txt(data_file, trajectory, params)
 
-
   # First check that the directory exists.  If not, create it.
   dir_name = os.path.dirname(data_file)
   if not os.path.isdir(dir_name):

@@ -60,7 +60,7 @@ def find_boomerang_coh():
   This is just used to find the CoH, and should not be
   used in any of the actual calculations or scripts.
   
-  Running this gives CoH = 0.809431 from tracking point along
+  Running this gives CoH = 1.07489 from tracking point along
   45 degree line.
   '''
   location = [0., 0., 900000000.]
@@ -117,8 +117,6 @@ def find_boomerang_coh():
                                                       [orientation],
                                                       cod_point)
   print "mobility cod coupling is ", mobility[3:6, 0:3]  
-
-  
 
   # Compare to theory from Bernal and De La Torre 'Transport Properties and Hydrodynamic Centers
   # of Rigid Macromolecules with Arbitrary Shapes'

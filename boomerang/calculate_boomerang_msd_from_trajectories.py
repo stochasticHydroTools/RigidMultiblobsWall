@@ -30,7 +30,7 @@ def calc_boomerang_coh(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.
   this is for the 15 blob boomerang.'''
   r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
-  dist = 1.0748
+  dist = 1.07489
   coh = (location + 
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
          np.sin(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
@@ -41,7 +41,7 @@ def calc_boomerang_cod(location, orientation):
   ''' Function to get boomerang cross point, which is tracked as location.
   this is for the 15 blob boomerang.'''
   r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
-  dist = 0.9608
+  dist = 0.96087
   coh = (location + 
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[0] - location) +
          np.cos(np.pi/4.)*(dist/2.1)*(r_vectors[14] - location))
@@ -87,6 +87,9 @@ if __name__ == '__main__':
                       help='Data name of trajectory runs to be analyzed.')
   parser.add_argument('-n_runs', dest='n_runs', type=int,
                       help='Number of trajectory runs to be analyzed.')
+  parser.add_argument('-point', dest='point', type=str, default = 'COH',
+                      help='Point to use to measure translational MSD. Must be '
+                      'COH, COD, CP, or TIP.')
   parser.add_argument('-end', dest='end', type=float,
                       help='How far to analyze MSD (how large of a time window '
                       'to use).  This is in the same time units as dt.')
@@ -110,7 +113,10 @@ if __name__ == '__main__':
   end = args.end
   N = args.n_steps
   data_name = args.data_name
-  trajectory_length = 200
+  trajectory_length = 30
+
+  if args.point not in ['COH', 'COD', 'TIP', 'CP']:
+    raise Exception('Point must be one of: COH, COD, TIP, CP.')
   
   # Set up logging
   log_filename = 'boomerang-msd-calculation-dt-%f-N-%d-g-%s-%s' % (
@@ -166,15 +172,28 @@ if __name__ == '__main__':
                       'Number of steps.')
     
     # Calculate MSD data (just an array of MSD at each time.)
-    msd_data = calc_msd_data_from_trajectory(locations, orientations, 
-                                             calc_boomerang_cod, dt, end,
-                                             trajectory_length=trajectory_length)
+    if args.point == 'COD':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               bm.calculate_boomerang_cod, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'COH':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               bm.calculate_boomerang_coh, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'TIP':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               calc_boomerang_tip, dt, end,
+                                               trajectory_length=trajectory_length)
+    elif args.point == 'CP':
+      msd_data = calc_msd_data_from_trajectory(locations, orientations, 
+                                               calc_boomerang_cp, dt, end,
+                                               trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
-  data_interval = int(end/dt/trajectory_length)
+  data_interval = int(end/dt/trajectory_length) + 1
   time = np.arange(0, len(mean_msd))*dt*data_interval
 
   msd_statistics = MSDStatistics(params)
