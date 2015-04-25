@@ -202,13 +202,13 @@ if __name__ == '__main__':
   plt.figure(1)
   plt.title('PDF of Height of Cross Point of Boomerang')
   plt.legend(loc='best', prop={'size': 9})
-  plt.xlim([0.,6.])
+  plt.xlim([0.,7.])
   plt.savefig('./figures/BoomerangCrossHeightDistribution.pdf')
 
   plt.figure(2)
   plt.title('PDF of Max Blob of Boomerang')
   plt.legend(loc='best', prop={'size': 9})
-  plt.xlim([0.,6.])
+  plt.xlim([0.,8.])
   plt.savefig('./figures/BoomerangMaxBlobDistribution.pdf')
     
   plt.figure(3)

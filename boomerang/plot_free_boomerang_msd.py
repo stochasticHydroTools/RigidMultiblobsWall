@@ -25,6 +25,7 @@ def calculate_free_boomerang_avg_mobilities(n_samples):
   location = [0., 0., 9000000.]
   avg_coh_mobility = 0.
   avg_cod_mobility = 0.
+  avg_tip_mobility = 0.
   for k in range(n_samples):
     orientation = np.random.normal(0., 1., 4)
     orientation = Quaternion(orientation/np.linalg.norm(orientation))
@@ -38,10 +39,18 @@ def calculate_free_boomerang_avg_mobilities(n_samples):
                                                         [orientation],
                                                         cod)
     avg_cod_mobility += mobility[0, 0] + mobility[1, 1] + + mobility[2, 2]
+    r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
+    tip = r_vectors[0]
+    mobility = bm.boomerang_mobility_at_arbitrary_point([location],
+                                                        [orientation],
+                                                        tip)
+    avg_tip_mobility += mobility[0, 0] + mobility[1, 1] + + mobility[2, 2]
+
     
   avg_coh_mobility /= (3.*n_samples)
   avg_cod_mobility /= (3.*n_samples)
-  return [avg_coh_mobility, avg_cod_mobility]
+  avg_tip_mobility /= (3.*n_samples)
+  return [avg_coh_mobility, avg_cod_mobility, avg_tip_mobility]
 
     
 if __name__ == '__main__':
@@ -51,13 +60,20 @@ if __name__ == '__main__':
   coh_data = 'free-boomerang-msd-dt-0.01-N-300000-end-30.0-scheme-RFD-runs-4-final-CoH.pkl'
   tip_data = 'free-boomerang-msd-dt-0.01-N-300000-end-30.0-scheme-RFD-runs-4-final-tip.pkl'
   
+  out_data_file = os.path.join('.', 'data', 'FreeBoomerangMSD-data.txt')
+  with open(out_data_file, 'w') as f:
+    f.write('Translational MSD for free boomerang (xx + yy + zz).\n')
+    f.write('dt = 0.01 for all runs \n')
+    f.write('time series: \n' )
+
+
   labels = [' CoH', ' CoD', ' tip']
   symbols = ['s', 'd', 'o']
 
   translation_limit = 10.
   
   ctr = 0
-  for name in [cod_data, coh_data]:
+  for name in [cod_data, coh_data, tip_data]:
     file_name = os.path.join('.', 'data', 
                              name)
     with open(file_name, 'rb') as f:
@@ -79,20 +95,32 @@ if __name__ == '__main__':
 
     plot_time_dependent_msd(msd_statistics, [0, 0], 1, num_err_bars=120,
                             label=labels[ctr], symbol=symbols[ctr])
+    with open(out_data_file, 'a') as f:
+      f.write('time: \n')
+      f.write('%s \n' % msd_statistics.data['RFD'][0.01][0])
+      f.write('%s Parallel MSD \n' % labels[ctr])
+      f.write('%s \n' % ([msd_statistics.data['RFD'][0.01][1][k][0][0] for k
+                         in range(len(msd_statistics.data['RFD'][0.01][0]))]))
+      
+      
     ctr += 1
 
   # Plot mobility theory.
-  [mu_coh, mu_cod] = calculate_free_boomerang_avg_mobilities(4000)
-  plt.plot([0., translation_limit], 
-           [0., 6.*bm.KT*mu_coh*translation_limit],
-           'k--', label='CoH theory')
+  [mu_coh, mu_cod, mu_tip] = calculate_free_boomerang_avg_mobilities(7000)
+  # plt.plot([0., translation_limit], 
+  #          [0., 6.*bm.KT*mu_coh*translation_limit],
+  #          'k--', label='CoH theory')
+  print "bulk diffusivity ", bm.KT*mu_coh 
   plt.plot([0., translation_limit], 
            [0., 6.*bm.KT*mu_cod*translation_limit],
            'k-', label='CoD Theory')
+  plt.plot([0., translation_limit/5.], 
+           [0., 6.*bm.KT*mu_tip*translation_limit/5.],
+           'k--', label='tip Theory')
   plt.legend(loc='best', prop={'size': 10})
   plt.xlim([0., translation_limit])
   plt.ylim([0., translation_limit*1.7])
   plt.title('Location MSD for different gravities of Boomerang.')
-  plt.savefig(os.path.join('.', 'figures', 'FreeBoomerangMSDPlot.pdf'))
+  plt.savefig(os.path.join('.', 'figures', 'FreeBoomerangMSD.pdf'))
     
-    
+
