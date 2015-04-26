@@ -192,6 +192,7 @@ if __name__ == '__main__':
                  lw=2, label='asymptotic perpendicular theory')
       plt.xlim([0., translation_end])
       plt.ylim([0., translation_end*4.*tf.KT*mu_parallel_com])
+      plt.ylabel('Translational MSD')
 
     if l == 3:
       plt.errorbar(IBAMR_ROT_TIME[0::3], IBAMR_ROT[0::3], yerr=IBAMR_ROT_STD[0::3], 
@@ -201,6 +202,7 @@ if __name__ == '__main__':
                   label='asymptotic rotational MSD')
       plt.xlim([0., 550.])
       plt.legend(loc='best', prop={'size': 11})
+      plt.ylabel('Rotational MSD')
 
     if l == 2:
       plt.legend(loc='best', prop={'size': 11})
@@ -228,6 +230,7 @@ if __name__ == '__main__':
                  lw=2)
       inset.set_xlim([0.0, 100.])
       inset.set_ylim([0.0, 100.*4.*tf.KT*mu_parallel_com])
+      
 
     plt.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 
                    (l, l))

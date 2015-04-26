@@ -26,9 +26,9 @@ if __name__ == '__main__':
   # Don't care about paramters here, pass an empty dictionary.
   combined_msd_statistics = MSDStatistics({})
 #  label_list = [' bug parallel', ' no bug parallel', ' bug perp', ' no bug perp']
-  label_list = [' parallel MSD vertex', ' parallel MSD center', ' perpendicular MSD vertex', 
-                ' perpendicular MSD center']
-  symbol_list = ['o', 'd', 's', '^', '.', '+']
+  label_list = [' parallel MSD vertex', ' parallel MSD center', ' rotational MSD vertex', 
+                '  rotational MSD center']
+  symbol_list = ['s', 'o', 'd', '^', '.', '+']
   colors = ['b', 'g', 'r', 'c']
 
   data_files = ['tetrahedron-msd-dt-1.6-N-300000-end-1000.0-scheme-RFD-runs-4-'
@@ -79,19 +79,21 @@ if __name__ == '__main__':
     if l in [0, 1]:
       pyplot.plot([0.0, 150.], 
                   [0.0, 150.*4.*tf.KT*vertex_mu],
-                  'k-', lw=2, label='average parallel mobility vertex')
+                  'r-', lw=2, label='average parallel mobility vertex')
       pyplot.plot([0.0, translation_end], 
                   [0.0, translation_end*2.*tf.KT*0.0711],  #CoM mu.
-                  'k--', lw=2, label='average parallel mobility center')
+                  'r--', lw=2, label='average parallel mobility center')
       pyplot.xlim([0.0, translation_end])
       pyplot.ylim([0., translation_end*4.*tf.KT*average_mob_and_friction[0]])
+      pyplot.ylabel('Parallel MSD')
     elif l == 2:
 #      pyplot.plot([0.0, translation_end], [zz_msd, zz_msd], 'k--', label='Equilibrium Perp MSD')
       pyplot.xlim([0., translation_end])
       pyplot.ylim([0., translation_end*2.*tf.KT*0.0711])
     elif l == 3:
-      pyplot.plot([0., 500.], [rot_msd, rot_msd], 'k--', 
+      pyplot.plot([0., 500.], [rot_msd, rot_msd], 'k--', lw=2,
                   label='asymptotic rotational MSD')
+      pyplot.ylabel('Rotational MSD')
       pyplot.xlim([0., 500.])
     pyplot.legend(loc='best', prop={'size': 10})
     pyplot.savefig('./figures/TimeDependentRotationalMSD-Component-%s-%s.pdf' % 

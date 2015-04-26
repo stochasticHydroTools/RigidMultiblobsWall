@@ -93,7 +93,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join(
     'data', 
-    'icosahedron-msd-dt-0.05-N-500000-end-800.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
+    'icosahedron-msd-dt-0.05-N-500000-end-100.0-scheme-RFD-runs-16-fixed-repulsion.pkl')
   with open(data_name, 'rb') as f:
     msd_statistics = cPickle.load(f)
     print 'Icosahedron parameters:'
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
   # Open Sphere file to compare to.
   sphere_data_name = os.path.join('..', 'sphere', 'data',
-                                  'sphere-msd-dt-0.05-N-1000000-final.pkl')
+                                  'sphere-msd-dt-0.05-N-500000-final-short.pkl')
 
   with open(sphere_data_name, 'rb') as f:
     sphere_statistics = cPickle.load(f)
@@ -137,7 +137,7 @@ if __name__ == "__main__":
   # This is for the mass = 0.5 Sphere and nonuniform Icosahedron.
 #  average_mob_and_friction = [0.08735]
   
-  [zz_msd, rot_msd, rot_perp_msd, rot_vertex_msd] = calculate_zz_and_rot_msd_at_equilibrium(1000)
+  [zz_msd, rot_msd, rot_perp_msd, rot_vertex_msd] = calculate_zz_and_rot_msd_at_equilibrium(10000)
   print 'rot_msd is ', rot_msd
   print 'rot_perp msd is ', rot_perp_msd
   print 'h_g is ' , np.sqrt(zz_msd)
@@ -189,11 +189,13 @@ if __name__ == "__main__":
                   lw=2, label='blob asymptotic perp MSD')
       pyplot.xlim([0., translation_plot_limit,])
       pyplot.ylim([0., translation_plot_limit*2.2*sph.KT*sphere_mobility])
+      pyplot.ylabel('Translational MSD')
     if l == 5:
       pyplot.plot([0., 60.], [rot_msd, rot_msd], 'k-', 
                   lw=2, label='blob asymptotic parallel MSD')
       pyplot.plot([0., 60.], [rot_perp_msd, rot_perp_msd], 'k--', 
                   lw=2, label='blob asymptotic perpendicular MSD')
+      pyplot.ylabel('Rotational MSD')
       pyplot.xlim([0., 60.])
 
     pyplot.legend(loc='best', prop={'size': 12})

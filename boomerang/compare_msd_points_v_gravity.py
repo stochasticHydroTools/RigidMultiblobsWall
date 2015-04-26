@@ -101,15 +101,15 @@ def calculate_boomerang_asymptotic_tip_zz(n_samples, sample_file):
 
 if __name__ == '__main__':
   
-  gfactor = 1.0
+  gfactor = 20.0
   scheme = 'RFD'
   dt = 0.01
   N = 500000
   end = 30.0
   runs = 8
   data_name = 'final'
-  translation_end = 30.
-  subsample = 4
+  translation_end = 22.
+  subsample = 3
   
   data_file = os.path.join('.', 'data', 
                            'PointMSDComparison-g-%s-data.txt' % gfactor)
@@ -190,7 +190,7 @@ if __name__ == '__main__':
   mu_cp = calculate_boomerang_parallel_mobility_cp(500, sample_file)
 
   zz_msd = calculate_boomerang_asymptotic_tip_zz(500, sample_file)
-  
+  print 'h_g is ', np.sqrt(zz_msd)
   print "parallel diffusivity  for g = ", gfactor, " is ", mu_coh*bm.KT
 
   plt.plot([0., translation_end], [0, 4.*bm.KT*mu_coh*translation_end], 'k-',
@@ -206,6 +206,6 @@ if __name__ == '__main__':
   plt.ylim([0., translation_end*1.2])
 #  plt.title('MSD for Boomerang with g = %s' % gfactor)
   plt.xlabel('Time (s)')
-  plt.ylabel(r'MSD (microns squared)')
+  plt.ylabel(r'Translational MSD')
   plt.savefig(os.path.join('.', 'figures', 
                            'PointMSDComparison-g-%s.pdf' % gfactor))
