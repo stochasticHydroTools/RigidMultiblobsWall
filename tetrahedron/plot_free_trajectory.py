@@ -30,6 +30,15 @@ class vtkTimerCallback():
     for k in range(N_SPHERES):
       self.sources[k].SetCenter(r_vectors[k][0], r_vectors[k][1],
                                 r_vectors[k][2])
+    for k in range(N_SPHERES):
+      for j in range(0, k):
+        self.line_sources[k][j].SetPoint1(r_vectors[k][0], 
+                                          r_vectors[k][1], 
+                                          r_vectors[k][2])
+        self.line_sources[k][j].SetPoint2(r_vectors[j][0], 
+                                          r_vectors[j][1], 
+                                          r_vectors[j][2])
+
     iren = obj
     iren.GetRenderWindow().Render()
     if WRITE:
@@ -90,6 +99,34 @@ if __name__ == '__main__':
   wall_actor.SetMapper(wall_mapper)
   wall_actor.GetProperty().SetColor(0.3, 0.95, 0.3)
 
+  # Create lines
+  line_sources = []
+  for k in range(N_SPHERES):
+    line_sources.append([])
+    for j in range(0, k):
+      line_sources[k].append(vtk.vtkLineSource())
+      print "j is ", j, "k is ", k
+      print 'line_sources ', line_sources
+      line_sources[k][j-1].SetPoint1(initial_r_vectors[k][0], 
+                                     initial_r_vectors[k][1], 
+                                     initial_r_vectors[k][2])
+      line_sources[k][j-1].SetPoint2(initial_r_vectors[j][0], 
+                                     initial_r_vectors[j][1], 
+                                     initial_r_vectors[j][2])
+
+  line_mappers = []
+  line_actors = []
+  for k in range(N_SPHERES):
+    line_mappers.append([])
+    line_actors.append([])
+    for j in range(0, k):
+      line_mappers[k].append(vtk.vtkPolyDataMapper())
+      line_mappers[k][j].SetInputConnection(
+        line_sources[k][j].GetOutputPort())
+      line_actors[k].append(vtk.vtkActor())
+      line_actors[k][j].SetMapper(line_mappers[-1][-1])
+      line_actors[k][j].GetProperty().SetColor(1, 0, 0)
+
   # Create camera
   camera = vtk.vtkCamera()
   camera.SetPosition(0., -20., 8.)
@@ -100,7 +137,7 @@ if __name__ == '__main__':
   renderer = vtk.vtkRenderer()
   renderer.SetActiveCamera(camera)
   renderWindow = vtk.vtkRenderWindow()
-#  renderWindow.SetSize(1000, 1000)
+  renderWindow.SetSize(1000, 1000)
 
   renderWindow.AddRenderer(renderer);
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
@@ -109,6 +146,11 @@ if __name__ == '__main__':
   #Add the actors to the scene
   for k in range(N_SPHERES):
     renderer.AddActor(blob_actors[k])
+  
+  # Add Line Ators to the scene.
+  for k in range(N_SPHERES):
+    for j in range(0, k):
+      renderer.AddActor(line_actors[k][j])
 
   renderer.AddActor(wall_actor)
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
@@ -122,6 +164,7 @@ if __name__ == '__main__':
   # Set up writer for pngs so we can save a movie.
   w2if = vtk.vtkWindowToImageFilter()
   w2if.SetInput(renderWindow)
+  w2if.SetMagnification(1.5)
   w2if.Update()
   w2if.ReadFrontBufferOff()
   lwr = vtk.vtkPNGWriter()
@@ -133,6 +176,7 @@ if __name__ == '__main__':
   cb.lwr = lwr
   cb.w2if = w2if
   cb.sources = blob_sources
+  cb.line_sources = line_sources
   cb.locations = locations
   cb.orientations = orientations
   renderWindowInteractor.AddObserver('TimerEvent', cb.execute)

@@ -13,9 +13,9 @@ from utils import read_trajectory_from_txt
 
 
 N_SPHERES = len(bm.M)
-TIME_SKIP = 10
+TIME_SKIP = 8
 WRITE = True
-DRAW_COH = True
+DRAW_COH = False
 
 class vtkTimerCallback():
   def __init__(self):
@@ -24,6 +24,7 @@ class vtkTimerCallback():
  
   def execute(self,obj,event):
     print self.timer_count
+    self.textActor.SetInput('Time: %s' % self.timer_count)
     r_vectors = bm.get_boomerang_r_vectors_15(
       self.locations[self.n*TIME_SKIP], 
       Quaternion(self.orientations[self.n*TIME_SKIP]))
@@ -50,7 +51,7 @@ class vtkTimerCallback():
           '.', 'figures',
           'frame'+ ('%03d' % self.n)+'.png'))
       self.lwr.Write()
-    self.timer_count += 0.1
+    self.timer_count += 0.01*TIME_SKIP
     self.n += 1
 
 
@@ -91,8 +92,8 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(10.)
-  wall_source.SetYLength(10.)
+  wall_source.SetXLength(25.)
+  wall_source.SetYLength(25.)
   wall_source.SetZLength(0.25)
 
 
@@ -129,10 +130,9 @@ if __name__ == '__main__':
   # Create camera
   camera = vtk.vtkCamera()
   # Close
-  camera.SetPosition(0., -12., 6.)
-  # Far
-#  camera.SetPosition(0., -50., 10.)
-  camera.SetFocalPoint(0., 0., 0.)
+#  camera.SetPosition(0., -20., 6.)
+  camera.SetPosition(0., -30., 7.)
+  camera.SetFocalPoint(0., 0., 1.)
 #  camera.SetMagnification(4)
   camera.SetViewAngle(37.)
 
@@ -172,6 +172,15 @@ if __name__ == '__main__':
   lwr = vtk.vtkPNGWriter()
   lwr.SetInput( w2if.GetOutput() )
 
+  # Set up text
+  textActor = vtk.vtkTextActor()
+  textActor.GetTextProperty().SetFontSize (24)
+  textActor.SetDisplayPosition(400, 120)
+  renderer.AddActor2D(textActor)
+  textActor.SetInput("Hello world")
+  textActor.GetTextProperty().SetColor( 0.0, 0.0, 0.0 )
+ 
+
   # Sign up to receive TimerEvent
   cb = vtkTimerCallback()
   cb.actors = blob_actors
@@ -183,6 +192,7 @@ if __name__ == '__main__':
     cb.cod_source = cod_source
   cb.locations = locations
   cb.orientations = orientations
+  cb.textActor = textActor
   renderWindowInteractor.AddObserver('TimerEvent', cb.execute)
   timerId = renderWindowInteractor.CreateRepeatingTimer(300);
   

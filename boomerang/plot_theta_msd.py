@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     plt.errorbar(msd_data[0], msd_data[1], 
                  yerr = 2.*msd_data[2], 
-                 label='theta MSD, g = %s' % gfactor,
+                 label='rotational MSD, g = %s' % gfactor,
                  c=colors[ctr], lw=1, marker=symbols[ctr],
                  linestyle='--')
     D_theta = (msd_data[1][1] - msd_data[1][0])/(
@@ -59,12 +59,12 @@ if __name__ == '__main__':
     zz_theta_mob = estimate_theta_diffusion(10, sample_file)
     print "zz_theta_mob is ", zz_theta_mob, " for g = ", gfactor
     plt.plot([0., translation_end], [0., D_theta*translation_end],
-             label=r'line with $D_\theta = %.2f$' % D_theta, 
+             label=r'constant $D_\theta = %.2f$' % D_theta, 
              c=colors[ctr+3], lw=2,
              linestyle=styles[ctr])
     ctr += 1
 
-  plt.ylabel('Rotational MSD ($\Delta \theta^2$)')
+  plt.ylabel(r'Rotational MSD $(\Delta \theta)^2$')
   plt.xlabel('Time (s)')
   plt.legend(loc='best', prop={'size': 10})
   plt.ylim([0., 45.])
