@@ -1,4 +1,4 @@
-''' Plot trajectory of icosahedron. '''
+''' Plot frame of Sphere162. '''
 
 import numpy as np
 import os
@@ -6,14 +6,16 @@ import sys
 sys.path.append('..')
 import vtk
 
-import icosahedron as ic
+import sphere162 as sph162
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 from utils import read_trajectory_from_txt
 
 
-N_SPHERES = 12
+N_SPHERES = 162
+TIME_SKIP = 10
 WRITE = True
+DRAW_COH = True
 
 
 class vtkTimerCallback():
@@ -23,7 +25,7 @@ class vtkTimerCallback():
  
   def execute(self,obj,event):
     print self.timer_count
-    r_vectors = ic.get_icosahedron_r_vectors(
+    r_vectors = sph162.get_sphere_162_blobs_r_vectors(
       self.locations[0], 
       self.orientations[0])
 
@@ -45,17 +47,12 @@ class vtkTimerCallback():
 
 if __name__ == '__main__':
 
-  # Data file name where trajectory data is stored.
-#  data_name = sys.argv[1]
-
   #######
-#  params, locations, orientations = read_trajectory_from_txt(data_file_name)
-
-  locations = [[0., 0., 0.]]
   orientations = [Quaternion([1., 0., 0., 0.])]
+  locations = [[0., 0., 0.]]
+  initial_r_vectors = sph162.get_sphere_162_blobs_r_vectors(locations[0], 
+                                                            orientations[0])
 
-  initial_r_vectors = ic.get_icosahedron_r_vectors(locations[0], 
-                                                   orientations[0])
   # Create blobs
   blob_sources = []
   for k in range(N_SPHERES):
@@ -63,7 +60,8 @@ if __name__ == '__main__':
     blob_sources[k].SetCenter(initial_r_vectors[0][0],
                               initial_r_vectors[0][1],
                               initial_r_vectors[0][2])
-    blob_sources[k].SetRadius(ic.VERTEX_A)
+    blob_sources[k].SetRadius(sph162.VERTEX_A)
+
 
 
   #Create a blob mappers and blob actors
@@ -79,7 +77,7 @@ if __name__ == '__main__':
   # Create camera
   camera = vtk.vtkCamera()
   # Close
-  camera.SetPosition(0., -2.5, 2.)
+  camera.SetPosition(0., -5., 4.)
   camera.SetFocalPoint(0., 0., 0.)
   camera.SetViewAngle(37.)
 

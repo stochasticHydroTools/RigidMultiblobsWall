@@ -14,5 +14,7 @@ if __name__ == '__main__':
 
   mobility = tf.free_tetrahedron_center_mobility([location], [orientation])
 
+  print "tranlsation mothbiliy", mobility[0:3, 0:3]
+
   print "mobility coupling is : ", mobility[0:3, 3:6]
 
