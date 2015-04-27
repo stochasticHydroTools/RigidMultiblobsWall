@@ -73,7 +73,7 @@ if __name__ == '__main__':
     blob_sources[k].SetCenter(initial_r_vectors[0][0],
                               initial_r_vectors[0][1],
                               initial_r_vectors[0][2])
-    blob_sources[k].SetRadius(tf.A)
+    blob_sources[k].SetRadius(tf.A*2)
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
@@ -105,8 +105,6 @@ if __name__ == '__main__':
     line_sources.append([])
     for j in range(0, k):
       line_sources[k].append(vtk.vtkLineSource())
-      print "j is ", j, "k is ", k
-      print 'line_sources ', line_sources
       line_sources[k][j-1].SetPoint1(initial_r_vectors[k][0], 
                                      initial_r_vectors[k][1], 
                                      initial_r_vectors[k][2])
@@ -152,7 +150,7 @@ if __name__ == '__main__':
     for j in range(0, k):
       renderer.AddActor(line_actors[k][j])
 
-  renderer.AddActor(wall_actor)
+#  renderer.AddActor(wall_actor)
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
 
   #Render and interact
