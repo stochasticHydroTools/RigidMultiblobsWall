@@ -1,6 +1,5 @@
 ''' Script to load a trajectory and calculate the mean square displacement in theta.'''
 
-
 import argparse
 import cPickle
 import cProfile
@@ -47,17 +46,10 @@ def calculate_theta_displacement_in_plane(quaternion_1, quaternion_2):
   projected_bisector_2 = bisector_2 - normal_vector*(np.dot(
       normal_vector, bisector_2))
   projected_bisector_2 /= np.linalg.norm(projected_bisector_2)
-  print 'orthogonal? ', np.dot(projected_bisector_2, normal_vector)
-  print 'projected_bisector 2 is ', projected_bisector_2
-  print 'norm of projected_bisector 2 is ', np.linalg.norm(projected_bisector_2)
-  print 'bisector 1 is ', bisector_1
-  print 'dot product: ', np.dot(bisector_1, projected_bisector_2)
-  
 
   d_theta = (np.arccos(np.dot(bisector_1, projected_bisector_2))*
              np.sign(np.cross(bisector_1, projected_bisector_2)))
     
-  print "d_theta is ", d_theta
   return d_theta
 
 def calculate_theta_displacement(quaternion_1, quaternion_2):
@@ -69,6 +61,7 @@ def calculate_theta_displacement(quaternion_1, quaternion_2):
   # Fake location, we only care about orientation
   location = [0., 0., 0.]
   r_vectors_1 = bm.get_boomerang_r_vectors_15(location, quaternion_1)
+
   bisector_1 = (r_vectors_1[0] + r_vectors_1[14])[0:2]
   bisector_1 /= np.linalg.norm(bisector_1)
 
@@ -77,7 +70,7 @@ def calculate_theta_displacement(quaternion_1, quaternion_2):
   bisector_2 /= np.linalg.norm(bisector_2)
   
   d_theta = (np.arccos(np.dot(bisector_1, bisector_2))*
-             np.sign(np.cross(bisector_1, projected_bisector_2)))
+             np.sign(np.cross(bisector_1, bisector_2)))
 
   return d_theta
 
@@ -112,8 +105,6 @@ def calc_theta_msd_from_trajectory(orientations, dt, end,
       Quaternion(orientations[k]), 
       Quaternion(orientations[k-1]))
     d_thetas.append(d_theta)
-    if abs(d_theta) > 1.0:
-      print "d_theta is ", d_theta
     thetas.append(thetas[k] + d_theta)
   
   # Plot thetas as a sanity check
