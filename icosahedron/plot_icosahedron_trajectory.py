@@ -65,6 +65,13 @@ if __name__ == '__main__':
                               initial_r_vectors[0][2])
     blob_sources[k].SetRadius(ic.VERTEX_A)
 
+  # Wall source.
+  wall_source = vtk.vtkCubeSource()
+  wall_source.SetCenter(0., 0., -0.125)
+  wall_source.SetXLength(10.)
+  wall_source.SetYLength(10.)
+  wall_source.SetZLength(0.25)
+
 
   #Create a blob mappers and blob actors
   blob_mappers = []
@@ -75,6 +82,14 @@ if __name__ == '__main__':
     blob_actors.append(vtk.vtkActor())
     blob_actors[k].SetMapper(blob_mappers[k])
     blob_actors[k].GetProperty().SetColor(1, 0, 0)
+
+  # Wall actor and mapper.
+  wall_mapper = vtk.vtkPolyDataMapper()
+  wall_mapper.SetInputConnection(wall_source.GetOutputPort())
+  wall_actor = vtk.vtkActor()
+  wall_actor.SetMapper(wall_mapper)
+  wall_actor.GetProperty().SetColor(0.3, 0.95, 0.3)
+
   
   # Create camera
   camera = vtk.vtkCamera()
@@ -96,6 +111,8 @@ if __name__ == '__main__':
   #Add the actors to the scene
   for k in range(N_SPHERES):
     renderer.AddActor(blob_actors[k])
+  
+  renderer.AddActor(wall_actor)
 
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
 
