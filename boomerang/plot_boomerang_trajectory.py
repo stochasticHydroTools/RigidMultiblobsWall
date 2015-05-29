@@ -15,7 +15,7 @@ from utils import read_trajectory_from_txt
 N_SPHERES = len(bm.M)
 TIME_SKIP = 8
 WRITE = True
-DRAW_COH = False
+DRAW_COH = True
 
 class vtkTimerCallback():
   def __init__(self):
@@ -92,8 +92,8 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(25.)
-  wall_source.SetYLength(25.)
+  wall_source.SetXLength(4.5)
+  wall_source.SetYLength(4.5)
   wall_source.SetZLength(0.25)
 
 
@@ -130,10 +130,8 @@ if __name__ == '__main__':
   # Create camera
   camera = vtk.vtkCamera()
   # Close
-#  camera.SetPosition(0., -20., 6.)
-  camera.SetPosition(0., -30., 7.)
+  camera.SetPosition(0., -6., 2.)
   camera.SetFocalPoint(0., 0., 1.)
-#  camera.SetMagnification(4)
   camera.SetViewAngle(37.)
 
   # Setup a renderer, render window, and interactor
@@ -176,7 +174,7 @@ if __name__ == '__main__':
   textActor = vtk.vtkTextActor()
   textActor.GetTextProperty().SetFontSize (24)
   textActor.SetDisplayPosition(400, 120)
-  renderer.AddActor2D(textActor)
+#  renderer.AddActor2D(textActor)
   textActor.SetInput("Hello world")
   textActor.GetTextProperty().SetColor( 0.0, 0.0, 0.0 )
  
