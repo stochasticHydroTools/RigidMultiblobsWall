@@ -73,12 +73,12 @@ if __name__ == '__main__':
     blob_sources[k].SetCenter(initial_r_vectors[0][0],
                               initial_r_vectors[0][1],
                               initial_r_vectors[0][2])
-    blob_sources[k].SetRadius(tf.A*2)
+    blob_sources[k].SetRadius(tf.A)
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(15.)
-  wall_source.SetYLength(15.)
+  wall_source.SetXLength(10.)
+  wall_source.SetYLength(10.)
   wall_source.SetZLength(0.25)
 
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
   # Create camera
   camera = vtk.vtkCamera()
-  camera.SetPosition(0., -20., 8.)
+  camera.SetPosition(0., -15., 3.)
   camera.SetFocalPoint(0., 0., 0.)
   camera.SetViewAngle(37.)
 
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     for j in range(0, k):
       renderer.AddActor(line_actors[k][j])
 
-#  renderer.AddActor(wall_actor)
+  renderer.AddActor(wall_actor)
+
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
 
   #Render and interact
