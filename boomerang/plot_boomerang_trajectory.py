@@ -69,6 +69,10 @@ if __name__ == '__main__':
   initial_r_vectors = bm.get_boomerang_r_vectors_15(
     locations[0], Quaternion(orientations[0]))
 
+  #HACK for image:
+  locations[TIME_SKIP] = [0., 0., 2.2]
+  orientations[TIME_SKIP] = [0.9, -np.sqrt(1. - 0.9**2 - 0.3**3), 0.0, 0.3]
+
   # Create blobs
   blob_sources = []
   for k in range(N_SPHERES):
@@ -92,8 +96,8 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(4.5)
-  wall_source.SetYLength(4.5)
+  wall_source.SetXLength(5.0)
+  wall_source.SetYLength(5.0)
   wall_source.SetZLength(0.25)
 
 
@@ -125,12 +129,12 @@ if __name__ == '__main__':
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.4, 0.95, 0.4)
+  wall_actor.GetProperty().SetColor(0.1, 0.95, 0.1)
 
   # Create camera
   camera = vtk.vtkCamera()
   # Close
-  camera.SetPosition(0., -6., 2.)
+  camera.SetPosition(0., -6.5, 3.5)
   camera.SetFocalPoint(0., 0., 1.)
   camera.SetViewAngle(37.)
 
