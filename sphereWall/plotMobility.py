@@ -16,7 +16,10 @@ from icosahedron import icosahedron as ic
 import sphere.sphere as sph
 from quaternion_integrator.quaternion import Quaternion
 #Add theory
-sys.path.append('/sibm/fbalboa/codes/mobilityTheory')
+
+# NOTE: Floren, I changed this. I don't know
+# if your codes in /sibm are different?
+sys.path.append('../mobilities')
 import selfMobilitySwanBradyWithStresslet
 import selfMobilitySwanBrady
 import selfMobilityBrenner
