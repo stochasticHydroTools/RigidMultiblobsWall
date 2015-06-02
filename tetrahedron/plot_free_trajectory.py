@@ -97,7 +97,7 @@ if __name__ == '__main__':
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.3, 0.95, 0.3)
+  wall_actor.GetProperty().SetColor(0.4, 0.95, 0.4)
 
   # Create lines
   # line_sources = []

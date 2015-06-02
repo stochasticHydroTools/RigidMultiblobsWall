@@ -24,7 +24,7 @@ class vtkTimerCallback():
  
   def execute(self,obj,event):
     print self.timer_count
-#    self.textActor.SetInput('Time: %s' % self.timer_count)
+    self.textActor.SetInput('Time: %s' % self.timer_count)
     r_vectors = bm.get_boomerang_r_vectors_15(
       self.locations[self.n*TIME_SKIP], 
       Quaternion(self.orientations[self.n*TIME_SKIP]))
@@ -64,8 +64,6 @@ if __name__ == '__main__':
   
   params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
-  print 'Parameters are : ', params
-
   initial_r_vectors = bm.get_boomerang_r_vectors_15(
     locations[0], Quaternion(orientations[0]))
 
@@ -96,7 +94,6 @@ if __name__ == '__main__':
   wall_source.SetYLength(10.)
   wall_source.SetZLength(0.25)
 
-
   #Create a blob mappers and blob actors
   blob_mappers = []
   blob_actors = []
@@ -125,12 +122,11 @@ if __name__ == '__main__':
   wall_mapper.SetInputConnection(wall_source.GetOutputPort())
   wall_actor = vtk.vtkActor()
   wall_actor.SetMapper(wall_mapper)
-  wall_actor.GetProperty().SetColor(0.4, 0.95, 0.4)
+  wall_actor.GetProperty().SetColor(0.1, 0.95, 0.1)
 
   # Create camera
   camera = vtk.vtkCamera()
-  # Close
-  camera.SetPosition(0., -10., 4.)
+  camera.SetPosition(0., -20., 5.)
   camera.SetFocalPoint(0., 0., 1.)
   camera.SetViewAngle(37.)
 
@@ -174,8 +170,7 @@ if __name__ == '__main__':
   textActor = vtk.vtkTextActor()
   textActor.GetTextProperty().SetFontSize (24)
   textActor.SetDisplayPosition(400, 120)
- # renderer.AddActor2D(textActor)
-  textActor.SetInput("Hello world")
+  renderer.AddActor2D(textActor)
   textActor.GetTextProperty().SetColor( 0.0, 0.0, 0.0 )
  
 
@@ -190,7 +185,7 @@ if __name__ == '__main__':
     cb.cod_source = cod_source
   cb.locations = locations
   cb.orientations = orientations
-#  cb.textActor = textActor
+  cb.textActor = textActor
   renderWindowInteractor.AddObserver('TimerEvent', cb.execute)
   timerId = renderWindowInteractor.CreateRepeatingTimer(300);
   
