@@ -15,7 +15,7 @@ from utils import read_trajectory_from_txt
 N_SPHERES = len(bm.M)
 TIME_SKIP = 8
 WRITE = True
-DRAW_COH = True
+DRAW_COH = False
 
 class vtkTimerCallback():
   def __init__(self):
@@ -64,14 +64,8 @@ if __name__ == '__main__':
   
   params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
-  print 'Parameters are : ', params
-
   initial_r_vectors = bm.get_boomerang_r_vectors_15(
     locations[0], Quaternion(orientations[0]))
-
-  #HACK for image:
-  locations[TIME_SKIP] = [0., 0., 2.2]
-  orientations[TIME_SKIP] = [0.9, -np.sqrt(1. - 0.9**2 - 0.3**3), 0.0, 0.3]
 
   # Create blobs
   blob_sources = []
@@ -96,10 +90,9 @@ if __name__ == '__main__':
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(5.0)
-  wall_source.SetYLength(5.0)
+  wall_source.SetXLength(10.)
+  wall_source.SetYLength(10.)
   wall_source.SetZLength(0.25)
-
 
   #Create a blob mappers and blob actors
   blob_mappers = []
@@ -133,8 +126,7 @@ if __name__ == '__main__':
 
   # Create camera
   camera = vtk.vtkCamera()
-  # Close
-  camera.SetPosition(0., -6.5, 3.5)
+  camera.SetPosition(0., -20., 5.)
   camera.SetFocalPoint(0., 0., 1.)
   camera.SetViewAngle(37.)
 
@@ -178,8 +170,7 @@ if __name__ == '__main__':
   textActor = vtk.vtkTextActor()
   textActor.GetTextProperty().SetFontSize (24)
   textActor.SetDisplayPosition(400, 120)
-#  renderer.AddActor2D(textActor)
-  textActor.SetInput("Hello world")
+  renderer.AddActor2D(textActor)
   textActor.GetTextProperty().SetColor( 0.0, 0.0, 0.0 )
  
 

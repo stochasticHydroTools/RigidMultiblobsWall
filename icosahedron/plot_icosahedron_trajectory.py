@@ -9,13 +9,11 @@ import vtk
 import icosahedron as ic
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
-from utils import read_trajectory_from_txt_old
-
+from utils import read_trajectory_from_txt
 
 N_SPHERES = 12
 TIME_SKIP = 1
 WRITE = True
-
 
 class vtkTimerCallback():
   def __init__(self):
@@ -47,11 +45,9 @@ class vtkTimerCallback():
 if __name__ == '__main__':
 
   # Data file name where trajectory data is stored.
-  data_file_name = sys.argv[1]
-
-  #######
-  params, locations, orientations = read_trajectory_from_txt_old(os.path.join(
-    DATA_DIR, 'icosahedron', data_file_name))
+  data_name = sys.argv[1]
+  data_file_name = os.path.join(DATA_DIR, 'icosahedron', data_name)
+  params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
   initial_r_vectors = ic.get_icosahedron_r_vectors(locations[0], 
                                                    Quaternion(orientations[0]))
@@ -79,6 +75,7 @@ if __name__ == '__main__':
     blob_mappers[k].SetInputConnection(blob_sources[k].GetOutputPort())
     blob_actors.append(vtk.vtkActor())
     blob_actors[k].SetMapper(blob_mappers[k])
+    # Set heavy blob to blue.
     if k == (N_SPHERES - 1):
       blob_actors[k].GetProperty().SetColor(0., 0, 1.)      
     else:
@@ -93,7 +90,6 @@ if __name__ == '__main__':
   
   # Create camera
   camera = vtk.vtkCamera()
-  # Close
   camera.SetPosition(0., -10., 3.)
   camera.SetFocalPoint(0., 0., 0.)
   camera.SetViewAngle(37.)
