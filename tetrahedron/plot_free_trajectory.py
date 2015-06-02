@@ -30,14 +30,14 @@ class vtkTimerCallback():
     for k in range(N_SPHERES):
       self.sources[k].SetCenter(r_vectors[k][0], r_vectors[k][1],
                                 r_vectors[k][2])
-    for k in range(N_SPHERES):
-      for j in range(0, k):
-        self.line_sources[k][j].SetPoint1(r_vectors[k][0], 
-                                          r_vectors[k][1], 
-                                          r_vectors[k][2])
-        self.line_sources[k][j].SetPoint2(r_vectors[j][0], 
-                                          r_vectors[j][1], 
-                                          r_vectors[j][2])
+    # for k in range(N_SPHERES):
+    #   for j in range(0, k):
+    #     self.line_sources[k][j].SetPoint1(r_vectors[k][0], 
+    #                                       r_vectors[k][1], 
+    #                                       r_vectors[k][2])
+    #     self.line_sources[k][j].SetPoint2(r_vectors[j][0], 
+    #                                       r_vectors[j][1], 
+    #                                       r_vectors[j][2])
 
     iren = obj
     iren.GetRenderWindow().Render()
@@ -73,12 +73,12 @@ if __name__ == '__main__':
     blob_sources[k].SetCenter(initial_r_vectors[0][0],
                               initial_r_vectors[0][1],
                               initial_r_vectors[0][2])
-    blob_sources[k].SetRadius(tf.A*2)
+    blob_sources[k].SetRadius(tf.A)
 
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(10.)
-  wall_source.SetYLength(10.)
+  wall_source.SetXLength(7.)
+  wall_source.SetYLength(7.)
   wall_source.SetZLength(0.25)
 
 
@@ -100,35 +100,35 @@ if __name__ == '__main__':
   wall_actor.GetProperty().SetColor(0.3, 0.95, 0.3)
 
   # Create lines
-  line_sources = []
-  for k in range(N_SPHERES):
-    line_sources.append([])
-    for j in range(0, k):
-      line_sources[k].append(vtk.vtkLineSource())
-      line_sources[k][j-1].SetPoint1(initial_r_vectors[k][0], 
-                                     initial_r_vectors[k][1], 
-                                     initial_r_vectors[k][2])
-      line_sources[k][j-1].SetPoint2(initial_r_vectors[j][0], 
-                                     initial_r_vectors[j][1], 
-                                     initial_r_vectors[j][2])
+  # line_sources = []
+  # for k in range(N_SPHERES):
+  #   line_sources.append([])
+  #   for j in range(0, k):
+  #     line_sources[k].append(vtk.vtkLineSource())
+  #     line_sources[k][j-1].SetPoint1(initial_r_vectors[k][0], 
+  #                                    initial_r_vectors[k][1], 
+  #                                    initial_r_vectors[k][2])
+  #     line_sources[k][j-1].SetPoint2(initial_r_vectors[j][0], 
+  #                                    initial_r_vectors[j][1], 
+  #                                    initial_r_vectors[j][2])
 
-  line_mappers = []
-  line_actors = []
-  for k in range(N_SPHERES):
-    line_mappers.append([])
-    line_actors.append([])
-    for j in range(0, k):
-      line_mappers[k].append(vtk.vtkPolyDataMapper())
-      line_mappers[k][j].SetInputConnection(
-        line_sources[k][j].GetOutputPort())
-      line_actors[k].append(vtk.vtkActor())
-      line_actors[k][j].SetMapper(line_mappers[-1][-1])
-      line_actors[k][j].GetProperty().SetColor(1, 0, 0)
+  # line_mappers = []
+  # line_actors = []
+  # for k in range(N_SPHERES):
+  #   line_mappers.append([])
+  #   line_actors.append([])
+  #   for j in range(0, k):
+  #     line_mappers[k].append(vtk.vtkPolyDataMapper())
+  #     line_mappers[k][j].SetInputConnection(
+  #       line_sources[k][j].GetOutputPort())
+  #     line_actors[k].append(vtk.vtkActor())
+  #     line_actors[k][j].SetMapper(line_mappers[-1][-1])
+  #     line_actors[k][j].GetProperty().SetColor(1, 0, 0)
 
   # Create camera
   camera = vtk.vtkCamera()
-  camera.SetPosition(0., -10., 5.)
-  camera.SetFocalPoint(0., 0., 0.)
+  camera.SetPosition(0., -9., 3.)
+  camera.SetFocalPoint(0., 0., 1.)
   camera.SetViewAngle(37.)
 
   # Setup a renderer, render window, and interactor
@@ -145,10 +145,10 @@ if __name__ == '__main__':
   for k in range(N_SPHERES):
     renderer.AddActor(blob_actors[k])
   
-  # Add Line Ators to the scene.
-  for k in range(N_SPHERES):
-    for j in range(0, k):
-      renderer.AddActor(line_actors[k][j])
+  # # Add Line Ators to the scene.
+  # for k in range(N_SPHERES):
+  #   for j in range(0, k):
+  #     renderer.AddActor(line_actors[k][j])
 
   renderer.AddActor(wall_actor)
   renderer.SetBackground(0.9, 0.9, 0.9) # Background color off white
@@ -174,7 +174,7 @@ if __name__ == '__main__':
   cb.lwr = lwr
   cb.w2if = w2if
   cb.sources = blob_sources
-  cb.line_sources = line_sources
+#  cb.line_sources = line_sources
   cb.locations = locations
   cb.orientations = orientations
   renderWindowInteractor.AddObserver('TimerEvent', cb.execute)

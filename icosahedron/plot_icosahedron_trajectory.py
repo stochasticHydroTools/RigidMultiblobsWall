@@ -11,10 +11,8 @@ from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 from utils import read_trajectory_from_txt
 
-
 N_SPHERES = 12
 WRITE = True
-
 
 class vtkTimerCallback():
   def __init__(self):
@@ -24,8 +22,8 @@ class vtkTimerCallback():
   def execute(self,obj,event):
     print self.timer_count
     r_vectors = ic.get_icosahedron_r_vectors(
-      self.locations[0], 
-      self.orientations[0])
+      self.locations[self.n], 
+      Quaternion(self.orientations[self.n]))
 
     for k in range(N_SPHERES):
       self.sources[k].SetCenter(r_vectors[k][0], r_vectors[k][1],
@@ -46,16 +44,13 @@ class vtkTimerCallback():
 if __name__ == '__main__':
 
   # Data file name where trajectory data is stored.
-#  data_name = sys.argv[1]
-
+  data_name = sys.argv[1]
+  data_file_name = os.path.join(DATA_DIR, 'icosahedron', data_name)
   #######
-#  params, locations, orientations = read_trajectory_from_txt(data_file_name)
-
-  locations = [[0., 0., 0.]]
-  orientations = [Quaternion([1., 0., 0., 0.])]
+  params, locations, orientations = read_trajectory_from_txt(data_file_name)
 
   initial_r_vectors = ic.get_icosahedron_r_vectors(locations[0], 
-                                                   orientations[0])
+                                                   Quaternion(orientations[0]))
   # Create blobs
   blob_sources = []
   for k in range(N_SPHERES):
@@ -68,10 +63,9 @@ if __name__ == '__main__':
   # Wall source.
   wall_source = vtk.vtkCubeSource()
   wall_source.SetCenter(0., 0., -0.125)
-  wall_source.SetXLength(10.)
-  wall_source.SetYLength(10.)
-  wall_source.SetZLength(0.25)
-
+  wall_source.SetXLength(3.5)
+  wall_source.SetYLength(3.5)
+  wall_source.SetZLength(0.12)
 
   #Create a blob mappers and blob actors
   blob_mappers = []
@@ -82,6 +76,9 @@ if __name__ == '__main__':
     blob_actors.append(vtk.vtkActor())
     blob_actors[k].SetMapper(blob_mappers[k])
     blob_actors[k].GetProperty().SetColor(1, 0, 0)
+  blob_actors[N_SPHERES - 1].GetProperty().SetColor(0, 0, 1)
+  # Set heavy blob to blue.
+  
 
   # Wall actor and mapper.
   wall_mapper = vtk.vtkPolyDataMapper()
@@ -94,8 +91,8 @@ if __name__ == '__main__':
   # Create camera
   camera = vtk.vtkCamera()
   # Close
-  camera.SetPosition(0., -2.5, 2.)
-  camera.SetFocalPoint(0., 0., 0.)
+  camera.SetPosition(0., -5.5, 2.)
+  camera.SetFocalPoint(0., 0., 0.5)
   camera.SetViewAngle(37.)
 
   # Setup a renderer, render window, and interactor
