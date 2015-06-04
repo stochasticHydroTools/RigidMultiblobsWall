@@ -517,8 +517,6 @@ if __name__ == '__main__':
       else:
         raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
 
-#      trajectory[0].append(quaternion_integrator.location[0])
-#      trajectory[1].append(quaternion_integrator.orientation[0].entries)
       location = quaternion_integrator.location[0]
       orientation = quaternion_integrator.orientation[0].entries
       f.write('%s, %s, %s, %s, %s, %s, %s \n' % (
