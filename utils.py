@@ -1,4 +1,5 @@
 '''File with utilities for the scripts and functions in this project.'''
+
 import logging
 import matplotlib
 matplotlib.use('Agg')
@@ -134,8 +135,6 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
          for _ in range(num_steps)])
       # Set label and style.
       if label:
-         #HACK, use scheme in Label + given.
-         # ('dt = %s ' % dt) + 
          if scheme == 'FIXMAN':
             plot_label = scheme.capitalize() + label
          else:
@@ -160,17 +159,6 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
                   msd_entries,
                   nosymbol_plot_style)
       
-      if ind[0] == 0 and scheme == 'RFD':
-        #HACK line of best fit for Translational MSD.
-#        fit_line = np.polyfit(msd_statistics.data[scheme][dt][0], msd_entries, 1)
-#        print 'np.polyfit is ', fit_line
-#        slope_ratio = fit_line[0]/(4.*0.2*0.06)
-#        pyplot.plot(msd_statistics.data[scheme][dt][0], 
-#                    fit_line[0]*np.array(msd_statistics.data[scheme][dt][0]),
-#                    'k-.',
-#                    label='%.2f * Average Mobility' % slope_ratio)
-         pass
-
       if write_data:
         with open(os.path.join('.', 'data', data_name),'a') as f:
           f.write("scheme %s \n" % scheme)
@@ -306,7 +294,7 @@ def fft_msd(x, y, end):
   Where the last 2 sums are performed using an FFT.
   We expect that x and y are the same length.
 
-  THIS IS NOT CURRENTLY USED OR TESTED THOROUGHLY'''
+  WARNING: THIS IS NOT CURRENTLY USED OR TESTED THOROUGHLY'''
 
   if len(x) != len(y):
     raise Exception('Length of X and Y are not the same, aborting MSD '
@@ -526,10 +514,6 @@ def transfer_mobility(mobility_1, point_1, point_2):
   # Subtract r cross D_r cross r
   mobility_2[0:3, 0:3] -= vector_cross_tensor(
      r, tensor_cross_vector(mobility_1[3:6, 3:6], r))
-
-  # Test this.
-  #  mobility_2[0:3, 0:3] -= tensor_cross_vector(
-  # vector_cross_tensor(r, mobility_1[3:6, 3:6]), r)
 
   return mobility_2
 
