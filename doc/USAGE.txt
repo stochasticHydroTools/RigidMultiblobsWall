@@ -9,82 +9,92 @@ this is that from appendix C of the Swan and Brady paper:
 
 The software is organized as follows.  
 
-The quaternion_integratorand fluids subfolders have some general
+The quaternion_integrator and fluids subfolders have some general
 functions and objects that are used to perform simulations.  
 
-The icosahedron, tetrahedron, sphere, and boomerang have mobilities
-and functions used to simulate specific rigid bodies, along with
-scripts to create trajectory data, analyze it, plot results, and
-several tests for each body.
+The boomerang folder contains an example with mobilities and functions
+used to simulate the diffusion of a rigid boomerang particle near a
+single wall. It also contains some scripts to analyze trajectory data
+and plot results.
 
-The utils.py file has some functions that are shard among all of the
-different rigid bodies (mostly for analyzing data, etc).
+The utils.py file has some general functions that would be useful for
+more than one rigid body (mostly for analyzing and reading trajectory
+data and for logging).
 
-The constrained_integrator and constrained_integrator_test files and
-the files in the cosine_curve folder define objects used for more
-general constrained diffusion, and are somewhat orthogonal to the
-rest of the code.  I will not discuss them here.
+Trajectory data is saved as a list of locations and orientations. Each
+timestep is saved as 7 floats printed on a separate line, with
+location as the first 3 floats, and the quaternion representing
+orientation as the last 4 floats.  The timestep 'dt' and number of
+steps is also saved in the data file, to recreate the time for each
+point in the trajectory.  This is human readable and could be analyzed
+by other codes if this is convenient.  One can also extract the locations,
+orientations, and parameters using the read_trajectory_data_from_txt
+function in utils.py.
 
 
-To use:
+#################################################
+To run the Boomerang example:
+#################################################
 
-1) Define the data where you want to save your data by making a copy 
+1) Define the directory where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
 liking. (In the future, any additional configuration variables will be set in
 this file.)
 
-2) Some code uses c++ through the Boost Python library for speedup.
-There are Makefiles provided, which may need to be modified slightly
-to reflect your Python version, etc.  Running make in these folders
-will then compile the .so files used by the python programs.
+2) Some code (the fluid mobility) uses C++ through the Boost Python
+library for speedup.  There is a Makefile provided in the fluids
+subfolder, which will need to be modified slightly to reflect your
+Python version, etc.  Running make in this folder will then compile
+the .so files used by the python programs.
 
-(for the orientation simulations it should just be the mobility code
-in the fluids directory.  If you do not have boost, or do not want to
+(NOTE: If you do not have boost, or do not want to
 use it, read the section below entitled "Without Boost").  
 
 
-
 3) You should now be ready to run some scripts to produce trajectory
-data.  To test this, cd into ./tetrahedron/, and try to run:
+data.  To test this, cd into ./boomerang/, and try to run:
 
-   python tetrahedron_free.py -dt 1.0 -N 500 --data-name=testing
+   python boomerang.py -dt 0.01 -N 100 -gfactor 1.0 --data-name=testing-1
 
 You should see a log tracking the progress of this run in
-./tetrahedron/logs/, and after its conclusion, you should have a few .txt
-trajectory data file in <DATA_DIR>/tetrahedron/.  
+./boomerang/logs/, and after its conclusion, you should have a few .txt
+trajectory data file in <DATA_DIR>/boomerang/. 
 
+To get a description of all command line arguments available for
+boomerang.py, run:
+
+	 python boomerang.py --help
+	 
 Note that when running multiple runs to be analyzed for MSD, you
 *MUST* end data-name with a hyphen and an integer, starting at 1 and 
 increasing successively.  e.g. --data-name=heavy-masses-1, 
 --data-name=heavy-masses-2, etc.
-			 
 
-Trajectory data is saved as a list of locations, each of which is 3
-floats printed on a separate line, and orientations, each of which is
-4 floats printed on a separate line.  The timestep 'dt' and number of
-steps is also saved in the data file, to recreate the time for each 
-point in the trajectory.  This is human readable and could be analyzed
-by other codes if this is convenient.
+4) One can now analyze the scripts to calculate the MSD (new scripts
+can be made to calculate other quantities of interest from trajectory
+data.)  There is a script in ./boomerang which takes command line
+arguments to specify which files to analyze.  From the boomerang
+directory, run:
+		 
+	python boomerang.py -dt 0.01 -N 1000 -gfactor 1.0 --data-name=testing-1
+	python boomerang.py -dt 0.01 -N 1000 -gfactor 1.0 --data-name=testing-2
 
-NOTE: My current approach is to also bin the equilibrium distribution while
-saving the trajectory, since it requires little extra computation and
-storage, and allows one to quickly check the distribution.  This data
-will be saved in ./tetrahedron/data, ./icosahedron/data, etc. as a
-python specific .pkl file which can be read by corresponding plotting
-scripts.
+	(These above might take some time to run)
 
-4) One now analyzes the scripts to calculate the MSD (new scripts can
-be made to calculate other quantities of interest from trajectory
-data.)  For now there is a script in ./icosahedron and ./tetrahedron
-which take command line arguments to specify which files to analyze.
-run:
-	python ./icosahedron/calculate_icosahedron_msd_from_trajectories.py --help
-for more details.
+	Then when the trajectories are done, run:
 
+	python calculate_boomerang_msd_from_trajectories.py -dt 0.01 -N 1000
+	--data-name=testing -n_runs 2 -gfactor 1.0 -end 1.0
 
-5) Plotting the analyzed data is done with individual plotting scripts
-located in each folder.   
+This will create the file:
+  "boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl"
+in  <DATA_DIR>/boomerang.
 
+5) Plotting the MSD can then be done by running:
+  
+  python plot_boomerang_msd.py boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl
+
+which will create a (noisy) pdf in the boomerang/figures/ folder.
 
 
 #############
@@ -95,13 +105,10 @@ the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
 function which is identical to "boosted_single_wall_fluid_mobility"
 but doesn't use boost (and is somewhat slower).  Replace calls to the
 boosted version with calls to the python version wherever mobility of
-a rigid body is calculated (for example in "force_and_torque_mobility"
-in ./tetrahedron/tetrahedron_free.py).  Then remove the 
-"import mobility_ext as me" 
+a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
+in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
 line from ./fluids/mobility.py and everything should run without having 
-to compile any of the c++ code.
-
-
+to compile any of the C++ code.
 
 
 

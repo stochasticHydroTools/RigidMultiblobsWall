@@ -319,6 +319,10 @@ def generate_boomerang_equilibrium_sample(n_precompute=20000):
   with location and orientation from the Gibbs Boltzmann 
   distribution for the Boomerang.
 
+  This function is best used to generate many samples at once, as
+  there is significant overhead involved in precomputing the
+  normalization factor.
+
   normalization_constants is a dictionary that stores an
   estimated normalization constant for each value of the sum of mass.
   '''
@@ -461,9 +465,8 @@ if __name__ == '__main__':
   print "Parameters for this run are: ", params
 
   # Script to run the various integrators on the quaternion.
-  sample = generate_boomerang_equilibrium_sample()
-  initial_location = [sample[0]]
-  initial_orientation = [sample[1]]
+  initial_location = [[0., 0., 2.]]
+  initial_orientation = [Quaternion([1., 0., 0., 0.])]
   quaternion_integrator = QuaternionIntegrator(boomerang_mobility,
                                            initial_orientation, 
                                            boomerang_torque_calculator, 

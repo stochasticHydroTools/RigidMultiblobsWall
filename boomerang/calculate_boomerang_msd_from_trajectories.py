@@ -236,25 +236,25 @@ if __name__ == '__main__':
   if args.out_name:
     if args.free:
       msd_data_file_name = os.path.join(
-        '.', 'data',
+        DATA_DIR, 'boomerang',
         'free-boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s-%s.pkl' %
         (dt, N, end, scheme, len(trajectory_file_names), data_name,
          args.out_name))      
     else:
       msd_data_file_name = os.path.join(
-        '.', 'data',
+        DATA_DIR, 'boomerang',
         'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s-%s.pkl' %
         (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name,
          args.out_name))
   else:
     if args.free:
       msd_data_file_name = os.path.join(
-        '.', 'data',
+        DATA_DIR, 'boomerang',
         'free-boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-runs-%s-%s.pkl' %
         (dt, N, end, scheme, len(trajectory_file_names), data_name))
     else:
       msd_data_file_name = os.path.join(
-        '.', 'data',
+        DATA_DIR, 'boomerang',
         'boomerang-msd-dt-%s-N-%s-end-%s-scheme-%s-g-%s-runs-%s-%s.pkl' %
         (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
 

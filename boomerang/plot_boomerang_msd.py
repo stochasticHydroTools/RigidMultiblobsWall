@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
   ctr = 0
   for name in data_files:
-    file_name = os.path.join('.', 'data', name)
+    file_name = os.path.join(DATA_DIR, 'boomerang', name)
     with open(file_name, 'rb') as f:
       msd_statistics = cPickle.load(f)
       msd_statistics.print_params()
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     ctr += 1
 
   plt.legend(loc='best', prop={'size': 10})
-  plt.xlim([0., translation_limit])
-  plt.ylim([0., 20.])
+#  plt.xlim([0., translation_limit])
+#  plt.ylim([0., 20.])
   plt.title('MSD for Boomerang')
   plt.savefig(os.path.join('.', 'figures', 'BoomerangMSDPlot.pdf'))
