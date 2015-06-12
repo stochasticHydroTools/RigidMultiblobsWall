@@ -24,7 +24,7 @@ import time
 
 
 from config_local import DATA_DIR
-from fluids import mobility as mb
+from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 from utils import log_time_progress
