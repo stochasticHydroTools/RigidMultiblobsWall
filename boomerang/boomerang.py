@@ -38,6 +38,9 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 # Make sure logs folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
+# Make sure data folder exists.
+if not os.path.isdir(os.path.join(DATA_DIR, 'boomerang')):
+  os.mkdir(os.path.join(DATA_DIR, 'boomerang'))
 
 
 # Parameters.  Units are um, s, mg.

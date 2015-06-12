@@ -83,6 +83,10 @@ Note that when running multiple runs to be analyzed for MSD, you
 increasing successively.  e.g. --data-name=heavy-masses-1, 
 --data-name=heavy-masses-2, etc.
 
+One can create frames of this trajectory to make a animation using the script:
+		python plot_boomerang_trajectory boomerang-trajectory-dt-0.01-N-100-scheme-RFD-g-1.0-testing-1.txt
+
+
 4) One can now analyze the scripts to calculate the MSD (new scripts
 can be made to calculate other quantities of interest from trajectory
 data.)  There is a script in ./boomerang which takes command line
