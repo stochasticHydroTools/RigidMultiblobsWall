@@ -2,10 +2,14 @@ This package contains several scripts for doing some simple
 simulations of rigid bodies made out of "blob" particles rigidly
 connected.  These simulations consider the particles near a single
 wall (floor), which is always at z = 0. The blob mobility used for
-this is that from appendix C of the Swan and Brady paper:
-		 'Simulation of hydrodynamically interacting particles near a
-		 no-slip boundary.'
+this is that from appendix C of the paper:
+'Simulation of hydrodynamically interacting particles near a no-slip boundary'
+by James Swan and John Brady, Phys. Fluids 19, 113306 (2007).
 
+For the theory consult:
+[1] "Brownian Dynamics of Confined Rigid Bodies"
+S. Delong, F. Balboa Usabiaga and A. Donev
+Submitted to J. Chem. Phys., 2015 [Arxiv:?.?].
 
 The software is organized as follows.  
 
@@ -14,14 +18,20 @@ functions and objects that are used to perform simulations.
 
 The boomerang folder contains an example with mobilities and functions
 used to simulate the diffusion of a rigid boomerang particle near a
-single wall. It also contains some scripts to analyze trajectory data
+single wall, as described in Section IV.E in [1].
+It also contains some scripts to analyze trajectory data
 and plot results.
 
-The sphere folder contains an example to simulate a sphere with 
-orientation described with a single blob.
+The sphere folder contains an example to simulate a sphere
+whose center of mass is displaced from the geometric center
+(i.e., gravity generates a torque), sedimented near a no-slip wall
+in the presence of gravity, as described in Section IV.C in [1].
+Unlike the boomerang example this code does not use a rigid
+multiblob model of the sphere but rather uses the best known
+(semi)analytical approximations to the sphere mobility.
 
 The utils.py file has some general functions that would be useful for
-more than one rigid body (mostly for analyzing and reading trajectory
+general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
 
 Trajectory data is saved as a list of locations and orientations. Each
