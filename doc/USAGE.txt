@@ -17,6 +17,9 @@ used to simulate the diffusion of a rigid boomerang particle near a
 single wall. It also contains some scripts to analyze trajectory data
 and plot results.
 
+The sphere folder contains an example to simulate a sphere with 
+orientation described with a single blob.
+
 The utils.py file has some general functions that would be useful for
 more than one rigid body (mostly for analyzing and reading trajectory
 data and for logging).
@@ -95,6 +98,26 @@ in  <DATA_DIR>/boomerang.
   python plot_boomerang_msd.py boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl
 
 which will create a (noisy) pdf in the boomerang/figures/ folder.
+
+
+
+#################################################
+To run the sphere example:
+#################################################
+
+1) Define the directory where you want to save your data by making a copy 
+of config.py called "config_local.py" and define DATA_DIR to your
+liking. (In the future, any additional configuration variables will be set in
+this file.)
+
+2) Define the sphere mobility function. In the file "sphere/sphere.py",
+chose one of the two mobility functions implemented. One function is based on an 
+expansion in terms of "h", the sphere-wall distance, to order "h**5". 
+The other function use a combination of theories (see function for details)
+and a fit to the sphere mobility computed from a higher resolution model.
+
+
+
 
 
 #############
