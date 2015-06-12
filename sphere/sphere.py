@@ -57,7 +57,13 @@ def sphere_force_calculator(location, orientation):
 
 def sphere_mobility(location, orientation):
   location = location[0]
+
+  # Select sphere mobility close to a wall
+  # Mobility based on the paper Swan and Brady, Physics of fluids 2007.
   fluid_mobility = mb.single_wall_self_mobility_with_rotation(location, ETA, A)
+
+  # Mobility based on several theories and a cubic spline fit to
+  # the mobility computed from a higer resolution method.
   #fluid_mobility = sphere_best_mobility_known(location, ETA, A)
   return fluid_mobility
 
