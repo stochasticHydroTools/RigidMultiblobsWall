@@ -4,11 +4,10 @@ Rotational and Translational Diffusion of Confined Rigid Bodies
 by Steven Delong, Florencio Balboa, and Aleksandar Donev (donev@courant.nyu.edu)
 Courant Institute of Mathematical Sciences.
 
-These mostly Python scripts implement the numerical algorithms described in the preprint:
-
-"Brownian Dynamics of Confined Rigid Bodies"
-S. Delong, F. Balboa Usabiaga and A. Donev
-Submitted to J. Chem. Phys., 2015 [http://arxiv.org/abs/1506.08868]
+These mostly Python scripts implement the numerical algorithms described in the paper:
+Brownian Dynamics of Confined Rigid Bodies. S. Delong, F. Balboa Usabiaga and A. Donev,
+The Journal of Chemical Physics, **143**, 144107 (2015). 
+[DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
 This code consists of a quaternion integrator object used to simulate
 Brownian trajectories of a single rigid body using quaternions, along with
