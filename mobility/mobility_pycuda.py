@@ -65,12 +65,12 @@ __device__ void mobilityRPY(double rx,
   return;
 }
 
-__global__ void velocity_from_force_RPY(const double *x,
-                                        const double *f,					
-                                        double *u,
-					int number_of_blobs,
-                                        double eta,
-                                        double a){
+__global__ void velocity_from_force(const double *x,
+                                    const double *f,					
+                                    double *u,
+				    int number_of_blobs,
+                                    double eta,
+                                    double a){
 
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -171,7 +171,7 @@ def single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a):
     cuda.memcpy_htod(f_gpu, f)
     
     # Get mobility function
-    mobility = mod.get_function("velocity_from_force_RPY")
+    mobility = mod.get_function("velocity_from_force")
 
     # Compute mobility force product
     mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
