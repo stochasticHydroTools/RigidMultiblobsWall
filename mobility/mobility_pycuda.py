@@ -6,6 +6,10 @@ from pycuda.compiler import SourceModule
 
 
 mod = SourceModule("""
+/*
+ mobilityRPY computes the 3x3 RPY mobility
+ between blobs i and j normalized with 8 pi eta a
+*/
 __device__ void mobilityRPY(double rx,
 			    double ry,
 			    double rz,
@@ -65,6 +69,68 @@ __device__ void mobilityRPY(double rx,
   return;
 }
 
+
+/*
+ mobilityRPY computes the 3x3 mobility correction due to a wall
+ between blobs i and j normalized with 8 pi eta a.
+ This uses the expression from the Swan and Brady paper for a finite size particle.
+ Mobility is normalize by 8*pi*eta*a.
+*/
+__device__ void mobilitySingleWallCorrection(double rx,
+			                     double ry,
+			                     double rz,
+			                     double &Mxx,
+                  			     double &Mxy,
+			                     double &Mxz,
+                                             double &Myx,
+			                     double &Myy,
+			                     double &Myz,
+                                             double &Mzx,
+                                             double &Mzy,
+			                     double &Mzz,
+			                     int i,
+			                     int j,
+                                             double invaGPU,
+                                             double hj){
+  if(i == j){
+    double invZi = 1.0 / hj;
+    Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
+    Myy += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
+    Mzz += -(9*invZi - 4*pow(invZi,3) + pow(invZi,5)) / 6.0;
+  }
+  else{
+    double h_hat = hj / rz;
+    double invR = rsqrt(rx*rx + ry*ry + rz*rz); // = 1 / r;
+    double ex = rx * invR;
+    double ey = ry * invR;
+    double ez = rz * invR;
+    
+    double fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * pow(invR,3) - 2*(1-5*ez*ez) * pow(invR,5))  / 3.0;
+    double fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(1-7*ez*ez) * pow(invR,5)) / 3.0;
+    double fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(2-7*ez*ez) * pow(invR,5)) * 2.0 / 3.0;
+    double fact4 =  ez * (3*h_hat*invR - 10*pow(invR,5)) * 2.0 / 3.0;
+    double fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*pow(invR, 3) + (2-15*ez*ez)*pow(invR, 5)) * 4.0 / 3.0;
+    
+    Mxx += fact1 + fact2 * ex*ex;
+    Mxy += fact2 * ex*ey;
+    Mxz += fact2 * ex*ez + fact3 * ex;
+    Myx += fact2 * ey*ex;
+    Myy += fact1 + fact2 * ey*ey;
+    Myz += fact2 * ey*ez + fact3 * ey;
+    Mzx += fact2 * ez*ex + fact4 * ex;
+    Mzy += fact2 * ez*ey + fact4 * ey;
+    Mzz += fact1 + fact2 * ez*ez + fact3 * ez + fact4 * ez + fact5;         
+  }
+
+}
+
+
+
+
+/*
+ velocity_from_force computes the product
+ U = M*F
+*/
 __global__ void velocity_from_force(const double *x,
                                     const double *f,					
                                     double *u,
@@ -85,8 +151,8 @@ __global__ void velocity_from_force(const double *x,
   double rx, ry, rz;
 
   double Mxx, Mxy, Mxz;
-  double Myy, Myz;
-  double Mzz;
+  double Myx, Myy, Myz;
+  double Mzx, Mzy, Mzz;
 
   int NDIM = 3; // 3 is the spatial dimension
   int ioffset = i * NDIM; 
@@ -100,13 +166,17 @@ __global__ void velocity_from_force(const double *x,
     ry = x[ioffset + 1] - x[joffset + 1];
     rz = x[ioffset + 2] - x[joffset + 2];
 
-    //1. Compute mobility for pair i-j
+    // 1. Compute mobility for pair i-j
     mobilityRPY(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, i,j, invaGPU);
+    Myx = Mxy;
+    Mzx = Mxz;
+    Mzy = Myz;
+    mobilitySingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, i,j, invaGPU, x[joffset+2]/a);
 
     //2. Compute product M_ij * F_j
     Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1] + Mxz * f[joffset + 2]);
-    Uy = Uy + (Mxy * f[joffset] + Myy * f[joffset + 1] + Myz * f[joffset + 2]);
-    Uz = Uz + (Mxz * f[joffset] + Myz * f[joffset + 1] + Mzz * f[joffset + 2]);
+    Uy = Uy + (Myx * f[joffset] + Myy * f[joffset + 1] + Myz * f[joffset + 2]);
+    Uz = Uz + (Mzx * f[joffset] + Mzy * f[joffset + 1] + Mzz * f[joffset + 2]);
   }
   //LOOP END
 

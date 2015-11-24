@@ -46,7 +46,7 @@ if __name__ == '__main__':
     # Create rod
     eta = 1.0
     a = 1.0
-    location = [0., 0., 100000.]
+    location = [0., 0., 1]
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion([1., 0., 0., 0.])
     r_vectors = get_r_vectors(location, orientation)
