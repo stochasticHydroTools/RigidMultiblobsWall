@@ -3,6 +3,7 @@
 *.o
 *.mod
 *.pyc
+*.so
 
 # tmp files #
 ############
