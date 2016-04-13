@@ -11,7 +11,7 @@ def stochastic_forcing_sdv(mobility, factor):
   definite matrix (e.g. mobility of a 1D rod).
   
   Input:
-  Mobility = the mobility matrix. You can pass it like a list of lists or
+  mobility = the mobility matrix. You can pass it like a list of lists or
              a list of numpy arrays.
   factor = the prefactor, in general something like sqrt(2*k_B*T*dt)
   
@@ -34,14 +34,13 @@ def stochastic_forcing_sdv(mobility, factor):
   return stochastic_forcing
 
 
-
 def stochastic_forcing_cholesky(mobility, factor):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   Cholesky decomposition. 
   
   Input:
-  Mobility = the positive-definite mobility matrix. You can 
+  mobility = the positive-definite mobility matrix. You can 
              pass it like a list of lists or a list of numpy arrays.
   factor = the prefactor, in general something like sqrt(2*k_B*T*dt)
   
@@ -61,6 +60,24 @@ def stochastic_forcing_cholesky(mobility, factor):
   return stochastic_forcing
 
 
+def stochastic_forcing_lanczos(mobility_mult, factor, r):
+  '''
+  Compute the stochastic forcing (factor * M^{1/2} * z) using
+  the Lanczos algorithm, see Krylov subspace methods for 
+  computing hydrodynamic interactions in Brownian dynamics simulations, 
+  T. Ando et al. The Journal of Chemical Physics 137, 064106 (2012) 
+  doi: 10.1063/1.4742347 and subsequent papers by Yousef Saad.
+  
+  Input:
+  mobility_mult = function that computes a matrix vector product 
+                  with the mobility matrix.
+  factor = the prefactor, in general something like sqrt(2*k_B*T*dt)
+  
+  Output:
+  stochastic_forcing = (factor * M^{1/2} * z)
+  '''
 
+
+  return 0
 
 
