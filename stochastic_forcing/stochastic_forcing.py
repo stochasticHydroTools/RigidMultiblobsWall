@@ -1,15 +1,7 @@
 '''
-Class to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with several algorithms.
+Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with several algorithms.
 '''
-
 import numpy as np
-
-import sys
-sys.path.append('..')
-import mobility as mob
-from boomerang import boomerang as bm
-from quaternion_integrator import quaternion as q
-
 
 def stochastic_forcing_sdv(mobility, factor):
   '''
@@ -69,35 +61,6 @@ def stochastic_forcing_cholesky(mobility, factor):
   return stochastic_forcing
 
 
-  return
-
-
-if __name__ == '__main__':
-
-  # Define objects
-  location = [0., 0., 100000.]
-  theta = np.random.normal(0., 1., 4)
-  #orientation = Quaternion(theta/np.linalg.norm(theta))
-  orientation = q.Quaternion([1., 0., 0., 0.])
-  r_vectors = bm.get_boomerang_r_vectors_15(location, orientation)
-  mobility = bm.force_and_torque_boomerang_mobility(r_vectors, location)
-  
-  mobility_np = []
-  for i in range(len(mobility)):
-    m = np.zeros( len(mobility) )
-    for j in range(len(mobility)):
-      m[j] = mobility[i][j]
-    mobility_np.append(m)
-
-
-    
-  # Compute noise
-  noise = stochastic_forcing_sdv(mobility_np, 1.0)
-  print noise, '\n'
-
-  noise = stochastic_forcing_cholesky(mobility_np, 1.0)
-  print noise, '\n'
 
 
 
-  print '# End'
