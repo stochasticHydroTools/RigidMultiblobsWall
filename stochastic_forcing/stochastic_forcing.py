@@ -3,10 +3,10 @@ Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with sever
 '''
 import numpy as np
 
-def stochastic_forcing_svd(mobility, factor, z = None):
+def stochastic_forcing_eig(mobility, factor, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
-  SVD decomposition. This functions is more expensive that
+  eigenvalue decomposition. This functions is more expensive that
   using a Cholesky factorization but it works for non-positive
   definite matrix (e.g. mobility of a 1D rod).
   
@@ -38,10 +38,10 @@ def stochastic_forcing_svd(mobility, factor, z = None):
   return stochastic_forcing
 
 
-def stochastic_forcing_svd_symm(mobility, factor, z = None):
+def stochastic_forcing_eig_symm(mobility, factor, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
-  SVD decomposition. This functions is more expensive that
+  eigenvalue decomposition. This functions is more expensive that
   using a Cholesky factorization but it works for non-positive
   definite matrix (e.g. mobility of a 1D rod).
   
@@ -166,7 +166,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
   # Iterate until convergence or max_iter
   for i in range(max_iter):
     # print '\n\n', i
-
+    
     # w = mobility * v[i]
     if mobility is None:
       w = mobility_mult(r_vectors, np.reshape(v[i], (dim/3, 3)), eta, radius)
@@ -234,7 +234,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
     # v(i+1) = w
     # v.append( w )
     v = np.concatenate([v, [w]])
-    # print 'v', v
+    # print 'v', v.T
 
     if i > 0:
       noise_old_norm = np.linalg.norm(noise_old)
