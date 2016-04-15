@@ -3,7 +3,7 @@ Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with sever
 '''
 import numpy as np
 
-def stochastic_forcing_sdv(mobility, factor, z = None):
+def stochastic_forcing_svd(mobility, factor, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   SVD decomposition. This functions is more expensive that
@@ -113,8 +113,8 @@ def stochastic_forcing_lanczos(factor = 1.0,
   v_norm = np.linalg.norm(v[0])
   v[0] /= v_norm 
 
-  print v
-  print v[0]
+  # print v
+  # print v[0]
 
   # Create list for the data of the symmetric tridiagonal matrix h 
   h_sup = []
@@ -134,11 +134,11 @@ def stochastic_forcing_lanczos(factor = 1.0,
     else:
       w = np.dot(mobility, v[i])
 
-    # w = w - h[i-1, i] * v[i-1]
-    # print '\n\n\n', 'v', i, v[i]
-    # print i, w
+    # w = w - h[i-1, i] * v[i-1]   
+    # print '\n\n\n', 'v', i, v[i] 
+    # print i, w                   
     if i > 0:
-      w = w - h_sup[i-1] * v[i-1]
+      w = w - h_sup[i-1] * v[i-1] 
       # print i, w
       # print i, h[i-1]
 
@@ -176,8 +176,6 @@ def stochastic_forcing_lanczos(factor = 1.0,
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     # print 'eig_values_sqrt', eig_values_sqrt
     
-    h_half = np.linalg.cholesky(h)
-
     # Create vector e_1
     e_1 = np.zeros(len(eig_values))
     e_1[0] = 1.0
@@ -185,19 +183,12 @@ def stochastic_forcing_lanczos(factor = 1.0,
     # print 'V*e_1', np.dot(e_1, v)
     
     # Compute noise approximation
-    if 0:
-      noise = factor * eig_values_sqrt * e_1
-      noise = np.dot(eig_vectors, noise)
-      noise = np.dot(noise, v)
-    elif 1:
-      noise = np.dot(eig_vectors.T, e_1)
-      noise = v_norm * factor * eig_values_sqrt * noise
-      noise = np.dot(eig_vectors, noise)
-      noise = np.dot(v.T, noise)
-    else:
-      noise = factor * np.dot(v.T, np.dot(h_half, e_1))
-
-    print 'noise', noise
+    noise = np.dot(eig_vectors.T, e_1)
+    noise = v_norm * factor * eig_values_sqrt * noise
+    noise = np.dot(eig_vectors, noise)
+    noise = np.dot(v.T, noise)
+    
+    # print 'noise', noise
     # print 'v', (v.T).shape
     # print 'w', w
 
