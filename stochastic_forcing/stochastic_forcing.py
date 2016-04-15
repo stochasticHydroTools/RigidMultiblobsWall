@@ -23,7 +23,7 @@ def stochastic_forcing_sdv(mobility, factor, z = None):
   # Compute eigenvalues and eigenvectors 
   eig_values, eig_vectors = np.linalg.eigh(mobility)
 
-  # Compute the square root of positive eigenvalues set to zero otherwise
+  # Compute the square root of positive eigenvalues and set to zero otherwise
   eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
 
   # Multiply by random vector with zero mean and unit variance
@@ -104,14 +104,17 @@ def stochastic_forcing_lanczos(factor = 1.0,
 
   # Create matrix v (initial column is random)
   if z is None:
-    v = [np.random.randn(dim)]
+    v = np.random.randn(1, dim)
   else:
-    v = [z]
-
+    v = np.reshape(z, (1, dim))
+  # print 'v', v[0]
 
   # Normalize v
   v_norm = np.linalg.norm(v[0])
   v[0] /= v_norm 
+
+  print v
+  print v[0]
 
   # Create list for the data of the symmetric tridiagonal matrix h 
   h_sup = []
@@ -170,7 +173,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
     # print 'eig_vectors', eig_vectors
    
     # Compute the square root of positive eigenvalues set to zero otherwise
-    eig_values_sqrt = np.array([np.sqrt(x) if x > 1e-08 else 0 for x in eig_values])
+    eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     # print 'eig_values_sqrt', eig_values_sqrt
     
     h_half = np.linalg.cholesky(h)
@@ -183,14 +186,25 @@ def stochastic_forcing_lanczos(factor = 1.0,
     
     # Compute noise approximation
     if 0:
-      noise = factor * eig_values * e_1
+      noise = factor * eig_values_sqrt * e_1
       noise = np.dot(eig_vectors, noise)
       noise = np.dot(noise, v)
+    elif 1:
+      noise = np.dot(eig_vectors.T, e_1)
+      noise = v_norm * factor * eig_values_sqrt * noise
+      noise = np.dot(eig_vectors, noise)
+      noise = np.dot(v.T, noise)
     else:
-      noise = factor * np.dot(np.dot(h_half, e_1), v)
+      noise = factor * np.dot(v.T, np.dot(h_half, e_1))
+
+    print 'noise', noise
+    # print 'v', (v.T).shape
+    # print 'w', w
 
     # v(i+1) = w
-    v.append( w )
+    # v.append( w )
+    v = np.concatenate([v, [w]])
+    # print 'v', v
 
     if i > 0:
       noise_old_norm = np.linalg.norm(noise_old)
