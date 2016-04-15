@@ -30,12 +30,51 @@ def stochastic_forcing_svd(mobility, factor, z = None):
   if z is None:
     eig_values_sqrt *= np.random.normal(0.0, 1.0, len(mobility))
   else:
-     eig_values_sqrt *= z
+    eig_values_sqrt *= z
 
   # Compute stochastic forcing
   stochastic_forcing = factor * np.dot(eig_vectors, eig_values_sqrt)
       
   return stochastic_forcing
+
+
+def stochastic_forcing_svd_symm(mobility, factor, z = None):
+  '''
+  Compute the stochastic forcing (factor * M^{1/2} * z) using
+  SVD decomposition. This functions is more expensive that
+  using a Cholesky factorization but it works for non-positive
+  definite matrix (e.g. mobility of a 1D rod).
+  
+  Input:
+  mobility = the mobility matrix. You can pass it like a list of lists or
+             a list of numpy arrays.
+  factor = the prefactor, in general something like sqrt(2*k_B*T*dt)
+  z = (Optional) the random vector z
+  
+  Output:
+  stochastic_forcing = (factor * M^{1/2} * z)
+  '''
+  
+  # Compute eigenvalues and eigenvectors 
+  eig_values, eig_vectors = np.linalg.eigh(mobility)
+
+  # Compute the square root of positive eigenvalues and set to zero otherwise
+  eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
+
+  # Multiply V^T by random vector with zero mean and unit variance
+  if z is None:
+    z = np.dot(eig_vectors.T, np.random.normal(0.0, 1.0, len(mobility)))
+  else:
+    z = np.dot(eig_vectors.T, z)
+
+  # Multiply by square root of eigenvalues
+  z *= eig_values_sqrt
+  
+  # Compute stochastic forcing
+  stochastic_forcing = factor * np.dot(eig_vectors, z)
+
+  return stochastic_forcing
+
 
 
 def stochastic_forcing_cholesky(mobility, factor, z = None):
@@ -126,7 +165,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
 
   # Iterate until convergence or max_iter
   for i in range(max_iter):
-    print '\n\n', i
+    # print '\n\n', i
 
     # w = mobility * v[i]
     if mobility is None:
