@@ -156,7 +156,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
   if z is None:
     v = np.random.randn(1, dim)
   else:
-    v = np.reshape(z, (1, dim))
+    v = np.copy(np.reshape(z, (1, dim)))
 
   # Normalize v
   v_norm = np.linalg.norm(v[0])
