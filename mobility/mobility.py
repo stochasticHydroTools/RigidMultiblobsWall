@@ -4,8 +4,8 @@ import sys
 sys.path.append('..')
 import time
 
-import mobility_ext as me
-import mobility_pycuda
+# import mobility_ext as me
+# import mobility_pycuda
 
 ETA = 1.0 # Viscosity.
 

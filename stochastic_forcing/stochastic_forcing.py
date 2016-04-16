@@ -63,15 +63,15 @@ def stochastic_forcing_eig_symm(mobility, factor, z = None):
 
   # Multiply V^T by random vector with zero mean and unit variance
   if z is None:
-    z = np.dot(eig_vectors.T, np.random.normal(0.0, 1.0, len(mobility)))
+    w = np.dot(eig_vectors.T, np.random.normal(0.0, 1.0, len(mobility)))
   else:
-    z = np.dot(eig_vectors.T, z)
+    w = np.dot(eig_vectors.T, z)
 
   # Multiply by square root of eigenvalues
-  z *= eig_values_sqrt
+  w *= eig_values_sqrt
   
   # Compute stochastic forcing
-  stochastic_forcing = factor * np.dot(eig_vectors, z)
+  stochastic_forcing = factor * np.dot(eig_vectors, w)
 
   return stochastic_forcing
 
