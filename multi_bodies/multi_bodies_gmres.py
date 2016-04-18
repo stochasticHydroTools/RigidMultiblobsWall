@@ -41,7 +41,7 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
 
-resolution =3
+resolution = 3
 print "resolution = ", resolution
 # Parameters.  Units are um, s, mg.
 
@@ -110,23 +110,7 @@ def rod_mobility(r_vectors, rotation_matrix):
   Calculate the force and torque mobility for the
   rod.  Here location is the cross point.
   '''
-
   return force_and_torque_rod_mobility(r_vectors, rotation_matrix)
-
-
-#def rod_mobility_at_arbitrary_point(locations, orientations, point):
-  #'''
-  #Calculate the force and torque mobility for the
-  #rod.  Here location is the cross point, but point is 
-  #some other arbitrary point.  
-
-  #The returned mobility is the (force, torque) -> (velocity, angular
-  #velocity) mobility for forces applied to <point>, torques about
-  #<point>, and the resulting velocity of <point>
-  #'''
-  #r_vectors = get_r_vectors(locations[0], orientations[0])
-  #return force_and_torque_rod_mobility(r_vectors, point)
-
 
 def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
   '''
