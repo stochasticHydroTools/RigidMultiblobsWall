@@ -216,7 +216,7 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   
   return velocities
 
-def single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a):
+def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -226,8 +226,7 @@ def single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
-  velocities = mobility_pycuda.single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a)
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
   
   return velocities
 

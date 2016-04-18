@@ -1483,9 +1483,9 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
         x[i*3    ] = r_vectors[i][0]
         x[i*3 + 1] = r_vectors[i][1]
         x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
+        f[i*3]     = force[i,0]
+        f[i*3 + 1] = force[i,1]
+        f[i*3 + 2] = force[i,2]
         
         
     # Allocate GPU memory

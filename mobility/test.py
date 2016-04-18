@@ -1,14 +1,9 @@
-
-
 import numpy as np
 import sys
 
-#sys.path.append('/sibm/fbalboa/sfw/RotationalDiffusion')
+sys.path.append('../')
 import boomerang as bm
-
-#sys.path.append('/sibm/fbalboa/sfw/RotationalDiffusion')
 from quaternion_integrator.quaternion import Quaternion
-
 import mobility as mob
 
 
@@ -57,8 +52,7 @@ if __name__ == '__main__':
     print 'r_vectors \n', r_vectors, '\n\n'
     print 'force \n', force, '\n\n'
 
-    
-    velocities_from_gpu = mob.single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a)
+    velocities_from_gpu = mob.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
     print 'velocities_from_gpu \n', velocities_from_gpu, '\n\n'
 
     mobility = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
@@ -71,8 +65,8 @@ if __name__ == '__main__':
                 pass
                              
     print 'velocities_cpu \n', u, '\n\n'
-    print 'Are the two velocities equal for tol=1e-08?', np.allclose(velocities_from_gpu, u, atol=1e-08)
-    print 'Are the two velocities equal for tol=1e-06?', np.allclose(velocities_from_gpu, u, atol=1e-06)
-    print 'Are the two velocities equal for tol=1e-04?', np.allclose(velocities_from_gpu, u, atol=1e-04)
+    print 'Are the two velocities equal to tol=1e-08?', np.allclose(velocities_from_gpu, u, atol=1e-08)
+    print 'Are the two velocities equal to tol=1e-06?', np.allclose(velocities_from_gpu, u, atol=1e-06)
+    print 'Are the two velocities equal to tol=1e-04?', np.allclose(velocities_from_gpu, u, atol=1e-04)
 
     print '# End'
