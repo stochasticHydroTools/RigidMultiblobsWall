@@ -2,9 +2,15 @@
 Simple integrator for N quaternions.
 '''
 import numpy as np
+import math as m
 from quaternion import Quaternion
+import scipy.sparse.linalg as spla
+## I CAN'T USE KRYPY ON PYTHON 2.6 BUT BOOST ONLY WORKS ON PYTHON 2.6
+#import krypy.linsys as kpls
 
-class QuaternionIntegrator(object):
+from functools import partial
+
+class QuaternionIntegratorGMRES(object):
   '''
   Integrator that timesteps using Fixman quaternion updates.
   '''
@@ -17,6 +23,10 @@ class QuaternionIntegrator(object):
                force_calculator = None,
                slip_velocity = None,
                resistance_blobs = None,
+               mobility_blobs = None,
+               #linear_operator = None,
+               #get_vectors = None,
+               blob_vel = None,
                force_slip = None):
     '''
 
@@ -47,15 +57,31 @@ class QuaternionIntegrator(object):
     self.force_calculator = force_calculator
     self.slip_velocity = slip_velocity
     self.resistance_blobs = resistance_blobs
+    self.mobility_blobs = mobility_blobs
+    self.blob_vel = blob_vel
     self.force_slip = force_slip
     ## To save velocities and rotations
     self.veltot = []
     self.omegatot = []
-    self.forcetot = []
-    self.torquetot = []
     self.mob_coeff = []
-
-
+    
+    self.Nblobs = None
+    self.Nrods = None
+    self.linear_operator = None
+    self.mobility_tt_prod = None
+    self.mobility_rr_prod = None
+    self.mobility_rt_prod = None
+    self.mobility_tt_tr_prod = None
+    
+    self.precond = None
+    self.get_vectors = None
+    self.matrices_for_GMRES_ite  = None
+    self.matrices_for_direct_ite  = None
+    self.first_guess  = None
+    self.velocity_previous  = None
+    self.initial_config  = None
+    self.A = None
+    self.eta = None
     
     #TODO, if we use location, check that we have a force calculator and
     # an iniital location.
@@ -75,6 +101,7 @@ class QuaternionIntegrator(object):
     # Can also be None, which will not check anything.  The integrator 
     # will count the total number of rejected steps.
     self.check_function = None
+   
     self.rejections = 0
     self.successes = 0
 
@@ -163,132 +190,167 @@ class QuaternionIntegrator(object):
           return
 
 
-  def rfd_time_step(self, dt):
+  def rfd_time_step(self, dt, current_ite):
     ''' Take a timestep of length dt using the RFD method '''
     # Attempt steps until we find a valid endpoint.  
     #print "self.dim =" , self.dim
     while True:
       self.veltot = []
       self.omegatot = []
-      self.torquetot = []
-      self.forcetot = []
       self.mob_coeff = []
       if self.has_location:
-        # Handle integrator with location as well.
-        mobility  = self.mobility(self.location, self.orientation)
-        
-        ## If mobility is positive definite use Cholesky
-        ## mobility  = self.mobility(self.location, self.orientation)
-        ## mobility_half = np.linalg.cholesky(mobility)
 
-       
-        # If mobility is not positive definite compute eigenvalues (eig_w) and eigenvectors (eig_v)
-        eig_w, eig_v = np.linalg.eigh(mobility)
+        #print self.location
+        #print "=================================================== "
+        #print "==== Compute forces and torques on rods  ====== "
+        #print "=================================================== "
+        force = self.force_calculator(self.location)
         
-         ### HERE I HAVE COMMENTED THE DIV TERM 
-        ## Calculate RFD location.
-        #rfd_noise = np.random.normal(0.0, 1.0, self.dim*6)
-        ## NEED TO MAKE IT WORK TO AVOID A LOOP ON POSITION!!!
-        ##rfd_location = self.location + self.rf_delta * rfd_noise[0:3*self.dim]
-
-        ## Update each quaternion at a time for RFD orientation.
-        #rfd_location = []
-        #rfd_orientation = []
-        #for i in range(self.dim):
-	  #rfd_location.append(self.location[i] + self.rf_delta*rfd_noise[3*i:3*(i+1)]) 
-          #quaternion_dt = Quaternion.from_rotation(( self.rf_delta * rfd_noise[(3*self.dim + i*3):(3*self.dim + i*3+3)] ))
-          #rfd_orientation.append(quaternion_dt*self.orientation[i])
-        
-        ## divergence term d_x(N) : \Psi^T 
-        #divergence_term = self.kT*np.dot((self.mobility(rfd_location, rfd_orientation) - mobility), rfd_noise/self.rf_delta)
-
-        # Add external forces
-        #force = self.force_calculator(self.location, self.orientation)
-        #torque = self.torque_calculator(self.location, self.orientation)
-	force = np.zeros(3*self.dim)
-        torque =np.zeros(3*self.dim)
-        # Add forces due to slip
-        # 0. Get slip on each blob
-        slip = self.slip_velocity(self.location, self.orientation)
-        #print "slip = ", slip
-        # 1. Compute constraint forces due to slip lambda_tile = M^{-1} \cdot slip
-        resistance = self.resistance_blobs(self.location, self.orientation)
-        lambda_tilde = np.dot(resistance, slip)
+        # TO COMMENT
+        for n in range(self.Nrods):
+	  force[3*n+1] = 0.0
+        #raw_input()
+        #vels = self.mobility_tt_prod(self.location,force)
+        #print vels
+        #raw_input()
+        #torque = self.torque_calculator(r_vectors_ite, rotation_matrix_ite)
       
-        # 2. Compute total effective force due to slip = K^* \cdot lambda_tilde
-        force_slip = self.force_slip(self.location, self.orientation,lambda_tilde)
+        #random_forces_blobs = 1.0*(2.0*np.random.random(self.Nblobs*3)-1.0)*6.0*m.pi*self.A
+        #random_forcing_rods = self.force_slip(r_vectors_ite, random_forces_blobs)
+        
+        #force = random_forcing_rods[0:3*self.Nrods]*0.0
+        #torque = random_forcing_rods[3*self.Nrods:6*self.Nrods]*0.0
+        #force =  1.0*(2.0*np.random.random(self.Nrods*3)-1.0)*6.0*m.pi*0.225*self.eta*0.0
+        #print "force = ", force
+	#raw_input()
+        Omega_known =np.zeros(3*self.Nrods)
+        for n in range(self.Nrods):
+           Amplitude_omega =20.0
+	   #Omega_known[3*n:3*(n+1)] = np.array([Amplitude_omega*m.cos(2.0*m.pi*current_ite*dt*0.01),\
+	                                        #Amplitude_omega*m.sin(2.0*m.pi*current_ite*dt*0.01),\
+	                                        #0.0])
+           Omega_known[3*n:3*(n+1)] = np.array([0.0,\
+	                                        Amplitude_omega,\
+	                                        0.0])
+
+        #torque =np.zeros(3*self.Nrods)
+        #for n in range(self.Nrods):
+           #Amplitude_torque =-Amplitude_omega*8.0*m.pi*self.eta*self.A**3
+	   ##Omega_known[3*n:3*(n+1)] = np.array([Amplitude_omega*m.cos(2.0*m.pi*current_ite*dt*0.01),\
+	                                        ##Amplitude_omega*m.sin(2.0*m.pi*current_ite*dt*0.01),\
+	                                        ##0.0])
+           #torque[3*n:3*(n+1)] = np.array([0.0,\
+	                                        #Amplitude_torque,\
+	                                        #0.0])
+        #print "Omega_known = ", Omega_known
+        
+        #print "=================================================== "
+        #print "==== Prescribe  slip on blobs  ====== "
+        #print "=================================================== " 
+        # 0. Get slip on each blob
+        #slip = self.slip_velocity(r_vectors_ite,self.location)
+      
+	#print "=================================================== "
+	#print "==== GMRES WITH PRECONDITIONER ====== "
+	#print "=================================================== "
+	#force = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+        #print "force = ", force
+	RHS = Omega_known - self.mobility_rt_prod(self.location,force)
+	#print RHS
+        #raw_input()
+        
+	linear_operator_partial = partial(self.linear_operator,\
+					  r_vectors = self.location)
+	Size_system = self.Nrods*3	
+	#print "Size_system = ", Size_system
+	A = spla.LinearOperator((Size_system,Size_system),\
+				matvec = linear_operator_partial,\
+				dtype='float64')
+
+					
+	P_optim = spla.LinearOperator( (Size_system,Size_system),\
+				      matvec = self.precond,\
+				      dtype='float64' )				
+					
+	#RHS = np.concatenate([slip, -np.concatenate([force, torque])])
+	
+	#print "J_rot.shape = ", J_rot.shape
+	
+	#print "RHS.shape = ",RHS.shape		      
+	#print "Size_system = ", Size_system	
+        
+	#(sol_precond,info_precond) = spla.gmres(A,RHS,x0=self.first_guess,tol=1e-6,M=P_optim,callback=make_callback())
+	(sol_precond,info_precond) = spla.gmres(A,RHS,x0=self.first_guess,tol=1e-6,M=P_optim)
+
+	self.first_guess = sol_precond
+        
+
+	#velocity = self.mobility_tt_tr_prod(self.location,force, torque)
+
+	#omega =self.mobility_rr_prod(self.location,torque) + self.mobility_rt_prod(self.location,force)
 
         
-        # Compute total deterministic force
-        force_deterministic = np.concatenate([force, torque])*0.0 + force_slip
-        
-        # Add noise
-        noise = np.random.normal(0.0, 1.0, self.dim*6)
-        # If mobility is positive definite use Cholesky
-        # noise_term = np.sqrt(2.0*self.kT/dt) * np.dot(mobility_half, noise) 
-        
-        # If mobility is not positive definite use eigenvectors and eigenvalues
-        eig_w_sqrt_noise = np.zeros( self.dim*6 )
-        for i in range(self.dim*6):
-          if(eig_w[i] < 0):
-            eig_w_sqrt_noise[i] = 0
-          else:
-            eig_w_sqrt_noise[i] = np.sqrt(eig_w[i]) * noise[i]
-        noise_term = np.sqrt(2.0*self.kT/dt) * np.dot( eig_v, eig_w_sqrt_noise)
-
-        # Compute deterministic velocity
-        velocity_deterministic = np.dot(mobility, force_deterministic)
-
-        # Compute total velocity
-         ### HERE I HAVE COMMENTED THE DIV TERM 
-        velocity_and_omega = velocity_deterministic + noise_term # + divergence_term
-
-
+        velocity = self.mobility_tt_tr_prod(self.location,force, sol_precond)
+        #velocity = self.mobility_tt_tr_prod(self.location,force, torque)
+	omega = Omega_known
+         
         # Unpack linear and angular velocities
-        velocity = velocity_and_omega[0:(3*self.dim)]
-        omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+        #velocity = velocity_and_omega[0:(3*self.dim)]
+        #omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+        #print "velocity = "
+        #print velocity
+        #print "omega = "
+        #print omega
+        #raw_input()
+        #print "velocity/drag= "
+        #print velocity*(6.0*m.pi*self.eta*self.A**2)
+        #print "velocity/torque= "
+        #print velocity*(6.0*m.pi*self.eta*self.A**2)/torque[4]
+        #print "omega/torque= "
+        #print omega*(8.0*m.pi*self.eta*self.A**3)/torque[4]
+        #print "torque/torque_bulk = "
+        #print (8.0*m.pi*self.eta*self.A**3*Omega_known[1])/torque[1]
+	##print "omega = "
+        ##print omega
+        #raw_input()
         
-
-        #print "force_deterministic = ", force_deterministic
-        #print "force = "
-        #print force
-        #print "torque = "
-        #print torque
-        print "velocity = "
-        print velocity
-        print "omega = "
-        print omega
-        #raw_input()
-       
-        #print "6*6 mobility = "
-        #for i in range(6):
-	  #for j in range(i+1):
-	    #if abs(mobility[i][j])>1e-10:
-	     #print i,j
-	     #print mobility[i][j]
-        #raw_input()
-
         self.avg_velocity += np.linalg.norm(velocity)
         self.avg_omega += np.linalg.norm(omega)
-
+        
 
         new_location = []
-        # Update location and save velocity and rotation
-        for i in range(self.dim): 
-          new_location.append(self.location[i] + dt*velocity[3*i:3*(i+1)])
-          self.veltot.append(velocity[3*i:3*(i+1)])
-          self.omegatot.append(omega[3*i:3*(i+1)])
-          self.forcetot.append(force[3*i:3*(i+1)])
-          self.torquetot.append(torque[3*i:3*(i+1)])
-          ## TO COMMENT, ONLY FOR HYDRO TESTS
-          #self.mob_coeff.append(mobility)
+	#print "self.velocity_previous[3*6:3*7] = ",self.velocity_previous[3*6:3*7]
+	#print "velocity[3*6:3*7] = ",velocity[3*6:3*7]
+	## Update location and save velocity and rotation
+	#if np.all(self.velocity_previous):
+	  #for i in range(self.dim): 
+	    ## TO UNCOMMENT
+	    ## We now use AB2 in the absence of fluctuations
+	    #new_location.append(self.location[i] +\
+		#dt*(1.5*velocity[3*i:3*(i+1)] - 0.5*self.velocity_previous[3*i:3*(i+1)]))
+	    
+	    #self.veltot.append(velocity[3*i:3*(i+1)])
+	    #self.omegatot.append(omega[3*i:3*(i+1)])
+	  
+	#else:
+	  #print "Use Explicit Euler for 1st time Step"
+	for i in range(self.dim): 
+	  # TO COMMENT
+	  velocity[3*i+2] = 0.0
+	  new_location.append(self.location[i] +\
+	      dt*velocity[3*i:3*(i+1)])
+	  
+	  self.veltot.append(velocity[3*i:3*(i+1)])
+	  self.omegatot.append(omega[3*i:3*(i+1)])
+	
+          
+           ## TO COMMENT, ONLY FOR HYDRO TESTS
+          #self.mob_coeff.append(mobility_tt)
 
           ## TO COMMENT, ONLY FOR HYDRO TESTS
-          ##equispaced position increments for tests on hydro
-          #new_location.append(self.location[i] + 0.01*np.array([0.0, 0.0, (-1.0)**(float(i+1))]))
-        #print "self.location = "
-        #print self.location
-
+          #new_location.append(self.location[i] + 0.008637333333333*np.array([0.0, 0.0, (-1.0)**(float(i+1))]))
+	
+       
       # BD: I DID NOT MODIFY THIS PART SINCE WE INTEGRATE POSITIONS
       else:
         rfd_noise = np.random.normal(0.0, 1.0, self.dim*3)
@@ -309,25 +371,28 @@ class QuaternionIntegrator(object):
 
  
       # For with location and without location, we update orientation the same way.
-      new_orientation = []
-      for i in range(self.dim):
-        quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
-        new_orientation.append(quaternion_dt*self.orientation[i])
+      #new_orientation = []
+      
+      #for i in range(self.dim):
+	## TO UNCOMMENT
+        #quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
+        #new_orientation.append(quaternion_dt*self.orientation[i])
         
         # TO COMMENT, THIS IS ONLY FOR HYDRO TESTS
         #new_orientation.append(self.orientation[i])
-
+     
+      self.velocity_previous = velocity
       # Check validity of new state.
       if self.has_location:
 	# TO UNCOMMENT
-        if self.check_new_state(new_location, new_orientation):
+        if self.check_new_state(new_location):
           self.location = new_location
-          self.orientation = new_orientation
+          #self.orientation = new_orientation
           self.successes += 1
           return
       else:
-        if self.check_new_state(None, new_orientation):
-          self.orientation = new_orientation
+        if self.check_new_state(new_orientation):
+          #self.orientation = new_orientation
           self.successes += 1
           return
 
@@ -451,16 +516,16 @@ class QuaternionIntegrator(object):
     return [avg_drift, avg_covariance]
       
       
-  def check_new_state(self, location, orientation):
+  def check_new_state(self, location):
     ''' 
     Use the check function to test if the new state is valid.
     If not, the timestep will be thrown out. 
     '''
     if self.check_function:
       if self.has_location:
-        admissible = self.check_function(location, orientation)
+        admissible = self.check_function(location)
       else:
-        admissible = self.check_function(orientation)
+        admissible = self.check_function(location)
       if not admissible:
         self.rejections += 1
         print 'rejections =', self.rejections
@@ -468,4 +533,12 @@ class QuaternionIntegrator(object):
     else:
       return True
 
+# Callback generator
+def make_callback():
+    closure_variables = dict(counter=0, residuals=[]) 
+    def callback(residuals):
+        closure_variables["counter"] += 1
+        closure_variables["residuals"].append(residuals)
+        print closure_variables["counter"], residuals
+    return callback
     

@@ -5,8 +5,9 @@ sys.path.append('..')
 import time
 
 import mobility_ext as me
+import mobility_pycuda
 
-ETA = 1.0 # Viscosity.
+ETA = 1e-3 # Viscosity.
 
 def image_singular_stokeslet(r_vectors, a):
   ''' Calculate the image system for the singular stokeslet (M above).'''
@@ -79,10 +80,188 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
   a speedup. Must compile mobility_ext.cc before this will work 
   (use Makefile).
   '''
-  fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
+  #fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
   num_particles = len(r_vectors)
-  me.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  fluid_mobility = np.array([np.zeros(3*num_particles) 
+                             for _ in range(3*num_particles)])
+
+  #me.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  me.RPY_single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
   return fluid_mobility
+
+def boosted_infinite_fluid_mobility(r_vectors, eta, a):
+  ''' 
+  Same as single wall fluid mobility, but boosted into C++ for 
+  a speedup. Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  '''
+  #fluid_mobility = rotne_prager_tensor(r_vectors, eta, a)
+  num_particles = len(r_vectors)
+  fluid_mobility = np.array([np.zeros(3*num_particles) 
+                             for _ in range(3*num_particles)])
+
+  #me.single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  me.RPY_infinite_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  return fluid_mobility
+
+   
+def boosted_mobility_vector_product(r_vectors, eta, a, vector):
+  ''' 
+  Compute a mobility * vector product boosted in C++ for a
+  speedup. Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  '''
+  num_particles = len(r_vectors)
+  ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
+  ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
+  ## WITH BOOST
+  #vector_res = np.array(np.zeros(3*num_particles))
+  vector_res = np.zeros(3*num_particles)
+  me.mobility_vector_product(r_vectors, eta, a, num_particles, vector, vector_res)
+  return vector_res
+
+def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a)
+  
+  return velocities
+
+def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
+  
+  return rot
+
+def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
+  
+  return rot
+
+def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
+  
+  return rot
+
+def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
+  
+  return rot
+
+def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
+  
+  return velocities
+
+
+def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
+  
+  return velocities
+
+def single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  velocities = mobility_pycuda.single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a)
+  
+  return velocities
+
+
+
+  
+def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, \
+                                                 index_particle):
+  ''' 
+  Compute a mobility * vector product for only one particle. Return the 
+  velocity of of the desired particle. Boosted in C++ for a
+  speedup. Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  '''
+  num_particles = len(r_vectors)
+  ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
+  ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
+  ## WITH BOOST
+  vector_res = np.zeros(3)
+  me.mobility_vector_product_one_particle(r_vectors, eta, a, \
+					  num_particles, vector, \
+					  vector_res, index_particle)
+  return vector_res
+  
 
 
 def single_wall_fluid_mobility(r_vectors, eta, a):
@@ -148,6 +327,7 @@ def rotne_prager_tensor(r_vectors, eta, a):
           # Constants for far RPY tensor, taken from OverdampedIB paper.
           C1 = 3.*a/(4.*r_norm) + (a**3)/(2.*r_norm**3)
           C2 = 3.*a/(4.*r_norm) - (3.*a**3)/(2.*r_norm**3)
+          
         elif r_norm <= 2.*a:
           # This is for the close interaction, 
           #  Call C3 -> C1 and C4 -> C2
@@ -168,6 +348,7 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
   velocity and angular velocity.
   This expression is taken from Swan and Brady's paper:
   '''
+  print "location = ",location
   h = location[2]/a
   fluid_mobility = (1./(6.*np.pi*eta*a))*np.identity(3)
   zero_matrix = np.zeros([3, 3])
