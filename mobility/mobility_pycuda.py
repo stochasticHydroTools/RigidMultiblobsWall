@@ -1085,9 +1085,9 @@ def set_number_of_threads_and_blocks(num_elements):
   used in CUDA kernels.
   '''
   threads_per_block=512
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements/threads_per_block) < 512):
     threads_per_block = 256
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements/threads_per_block) < 256):
     threads_per_block = 128
   if((num_elements/threads_per_block) < 128):
     threads_per_block = 64
