@@ -1104,27 +1104,18 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  f = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i*3]
-    f[i*3 + 1] = force[i*3+1]
-    f[i*3 + 2] = force[i*3+2]
-        
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  f_gpu = cuda.mem_alloc(f.nbytes)
-  u_gpu = cuda.mem_alloc(f.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(force.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(f_gpu, f)
+  cuda.memcpy_htod(f_gpu, force)
     
   # Get mobility function
   mobility = mod.get_function("velocity_from_force")
@@ -1133,7 +1124,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
   mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(f)
+  u = np.empty_like(force)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u
@@ -1144,26 +1135,18 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  f = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i*3]
-    f[i*3 + 1] = force[i*3+1]
-    f[i*3 + 2] = force[i*3+2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3) 
     
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  f_gpu = cuda.mem_alloc(f.nbytes)
-  u_gpu = cuda.mem_alloc(f.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(force.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(f_gpu, f)
+  cuda.memcpy_htod(f_gpu, force)
     
   # Get mobility function
   mobility = mod.get_function("rotation_from_force")
@@ -1172,7 +1155,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(f)
+  u = np.empty_like(force)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u
@@ -1183,27 +1166,18 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
   
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  f = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i*3]
-    f[i*3 + 1] = force[i*3+1]
-    f[i*3 + 2] = force[i*3+2]
-    
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)    
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  f_gpu = cuda.mem_alloc(f.nbytes)
-  u_gpu = cuda.mem_alloc(f.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(force.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(f_gpu, f)
+  cuda.memcpy_htod(f_gpu, force)
     
   # Get mobility function
   mobility = mod.get_function("rotation_from_force_no_wall")
@@ -1212,7 +1186,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(f)
+  u = np.empty_like(force)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u
@@ -1223,26 +1197,18 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  t = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    t[i*3]     = torque[i*3]
-    t[i*3 + 1] = torque[i*3+1]
-    t[i*3 + 2] = torque[i*3+2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
     
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  t_gpu = cuda.mem_alloc(t.nbytes)
-  u_gpu = cuda.mem_alloc(t.nbytes)
+  t_gpu = cuda.mem_alloc(torque.nbytes)
+  u_gpu = cuda.mem_alloc(torque.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
   
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(t_gpu, t)
+  cuda.memcpy_htod(t_gpu, torque)
     
   # Get mobility function
   mobility = mod.get_function("rotation_from_torque")
@@ -1251,7 +1217,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(t)
+  u = np.empty_like(torque)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u  
@@ -1262,26 +1228,18 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  t = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    t[i*3]     = torque[i*3]
-    t[i*3 + 1] = torque[i*3+1]
-    t[i*3 + 2] = torque[i*3+2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  t_gpu = cuda.mem_alloc(t.nbytes)
-  u_gpu = cuda.mem_alloc(t.nbytes)
+  t_gpu = cuda.mem_alloc(torque.nbytes)
+  u_gpu = cuda.mem_alloc(torque.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(t_gpu, t)
+  cuda.memcpy_htod(t_gpu, torque)
     
   # Get mobility function
   mobility = mod.get_function("rotation_from_torque_no_wall")
@@ -1290,7 +1248,7 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(t)
+  u = np.empty_like(torque)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u
@@ -1302,32 +1260,20 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  f = np.zeros( number_of_blobs * 3)
-  t = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i*3]
-    f[i*3 + 1] = force[i*3+1]
-    f[i*3 + 2] = force[i*3+2]
-    t[i*3]     = torque[i*3]
-    t[i*3 + 1] = torque[i*3+1]
-    t[i*3 + 2] = torque[i*3+2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  t_gpu = cuda.mem_alloc(t.nbytes)
-  f_gpu = cuda.mem_alloc(f.nbytes)
-  u_gpu = cuda.mem_alloc(t.nbytes)
+  t_gpu = cuda.mem_alloc(torque.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(torque.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(t_gpu, t)
-  cuda.memcpy_htod(f_gpu, f)
+  cuda.memcpy_htod(t_gpu, torque)
+  cuda.memcpy_htod(f_gpu, force)
     
   # Get mobility function
   mobility = mod.get_function("velocity_from_force_and_torque")
@@ -1336,7 +1282,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(t)
+  u = np.empty_like(torque)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u  
@@ -1347,32 +1293,20 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
   
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3)
-  f = np.zeros( number_of_blobs * 3)
-  t = np.zeros( number_of_blobs * 3)
-  for i in range(number_of_blobs):       
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i*3]
-    f[i*3 + 1] = force[i*3+1]
-    f[i*3 + 2] = force[i*3+2]
-    t[i*3]     = torque[i*3]
-    t[i*3 + 1] = torque[i*3+1]
-    t[i*3 + 2] = torque[i*3+2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
            
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
-  t_gpu = cuda.mem_alloc(t.nbytes)
-  f_gpu = cuda.mem_alloc(f.nbytes)
-  u_gpu = cuda.mem_alloc(t.nbytes)
+  t_gpu = cuda.mem_alloc(torque.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(torque.nbytes)
   number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
-  cuda.memcpy_htod(t_gpu, t)
-  cuda.memcpy_htod(f_gpu, f)
+  cuda.memcpy_htod(t_gpu, torque)
+  cuda.memcpy_htod(f_gpu, force)
   
   # Get mobility function
   mobility = mod.get_function("velocity_from_force_and_torque_no_wall")
@@ -1381,7 +1315,7 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(t)
+  u = np.empty_like(torque)
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u   
@@ -1392,16 +1326,9 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   number_of_blobs = np.int32(len(r_vectors))
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
   
-  # Copy python info to simple numpy arrays
-  x = np.zeros( number_of_blobs * 3, dtype=np.float32)
-  f = np.zeros( number_of_blobs * 3, dtype=np.float32)
-  for i in range(number_of_blobs):
-    x[i*3    ] = r_vectors[i][0]
-    x[i*3 + 1] = r_vectors[i][1]
-    x[i*3 + 2] = r_vectors[i][2]
-    f[i*3]     = force[i,0]
-    f[i*3 + 1] = force[i,1]
-    f[i*3 + 2] = force[i,2]
+  # Reshape arrays
+  x = np.float32(np.reshape(r_vectors, number_of_blobs * 3))
+  f = np.float32(np.reshape(force, number_of_blobs * 3))
               
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
