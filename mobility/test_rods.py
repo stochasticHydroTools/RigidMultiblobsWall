@@ -1,15 +1,9 @@
-
-
 import numpy as np
 import sys
 
-#sys.path.append('/home/delmotte/Documents/Research_NYU/RigidBodies/RotationalDiffusion/multi_rods/')
 #import rod_gmres as rod
-
-sys.path.append('/home/delmotte/Documents/Research_NYU/RigidBodies/RotationalDiffusion')
-#sys.path.append('/sibm/fbalboa/sfw/RotationalDiffusion')
+sys.path.append('../')
 from quaternion_integrator.quaternion import Quaternion
-
 import mobility as mob
 
 
@@ -59,7 +53,7 @@ if __name__ == '__main__':
     print 'force \n', force, '\n\n'
 
     
-    velocities_from_gpu = mob.single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a)
+    velocities_from_gpu = mob.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
     print 'velocities_from_gpu \n', velocities_from_gpu, '\n\n'
 
     mobility = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
@@ -74,7 +68,7 @@ if __name__ == '__main__':
     print 'velocities_cpu \n', u, '\n\n'
     
     force_hstack=np.hstack(force)
-    print 'force_hstack \n', force_hstack, '\n\n'
+    # print 'force_hstack \n', force_hstack, '\n\n'
     u2 =  mob.boosted_mobility_vector_product(r_vectors, eta, a,force_hstack) 
     print 'velocities_cpu Matrix_vector C++ \n', u2, '\n\n'
     
