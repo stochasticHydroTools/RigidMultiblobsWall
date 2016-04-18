@@ -186,7 +186,6 @@ def get_boomerang_r_vectors_15(location, orientation):
   the cross point blob. (2.1)/7. = 0.3
   '''
 
-  if 0:
     initial_configuration = [np.array([2.1, 0., 0.]),
                              np.array([1.8, 0., 0.]),
                              np.array([1.5, 0., 0.]),
@@ -202,8 +201,6 @@ def get_boomerang_r_vectors_15(location, orientation):
                              np.array([0., 1.5, 0.]),
                              np.array([0., 1.8, 0.]),
                              np.array([0., 2.1, 0.])]
-  else:
-    initial_configuration = [np.array([0., 0., 0.])]
 
   rotation_matrix = orientation.rotation_matrix()
   rotated_configuration = []
