@@ -188,19 +188,6 @@ __global__ void velocity_from_force_single(const float *x,
 
   return;
 }
-
-
-__global__ void velocity_from_force_RPY_2_single(const float *x,
-                                          const float *f,
-                                          float *u,
-                                          int number_of_blobs,
-                                          float eta,
-                                          float a){
-
-  int i = blockDim.x * blockIdx.x + threadIdx.x;
-  return;
-
-}
 """)
 
 def single_wall_mobility_times_force_pycuda_single(r_vectors, force, eta, a):
