@@ -9,17 +9,17 @@ mod = SourceModule("""
  
 ////////// UF //////////////////////////////////////////////////
 __device__ void mobilityUFRPY(double rx,
-			    double ry,
-			    double rz,
-			    double &Mxx,
-			    double &Mxy,
-			    double &Mxz,
-			    double &Myy,
-			    double &Myz,
-			    double &Mzz,
-			    int i,
-			    int j,
-                            double invaGPU){
+			     double ry,
+			     double rz,
+			     double &Mxx,
+			     double &Mxy,
+			     double &Mxz,
+			     double &Myy,
+			     double &Myz,
+			     double &Mzz,
+			     int i,
+			     int j,
+                             double invaGPU){
   
   double fourOverThree = 4.0 / 3.0;
 
@@ -63,7 +63,6 @@ __device__ void mobilityUFRPY(double rx,
       Mzz = c1 + c2 * rz*rz ;
     }
   } 
-  
   return;
 }
 
@@ -75,21 +74,21 @@ __device__ void mobilityUFRPY(double rx,
  Mobility is normalize by 8*pi*eta*a.
 */
 __device__ void mobilityUFSingleWallCorrection(double rx,
-			                     double ry,
-			                     double rz,
-			                     double &Mxx,
-                  			     double &Mxy,
-			                     double &Mxz,
-                                             double &Myx,
-			                     double &Myy,
-			                     double &Myz,
-                                             double &Mzx,
-                                             double &Mzy,
-			                     double &Mzz,
-			                     int i,
-			                     int j,
-                                             double invaGPU,
-                                             double hj){
+			                       double ry,
+			                       double rz,
+			                       double &Mxx,
+                  			       double &Mxy,
+			                       double &Mxz,
+                                               double &Myx,
+			                       double &Myy,
+			                       double &Myz,
+                                               double &Mzx,
+                                               double &Mzy,
+			                       double &Mzz,
+			                       int i,
+			                       int j,
+                                               double invaGPU,
+                                               double hj){
   if(i == j){
     double invZi = 1.0 / hj;
     Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
@@ -119,7 +118,6 @@ __device__ void mobilityUFSingleWallCorrection(double rx,
     Mzy += fact2 * ez*ey + fact4 * ey;
     Mzz += fact1 + fact2 * ez*ez + fact3 * ez + fact4 * ez + fact5;         
   }
-
 }
 
 
@@ -190,19 +188,18 @@ __global__ void velocity_from_force(const double *x,
 ////////// WT //////////////////////////////////////////////////
 
 __device__ void mobilityWTRPY(double rx,
-			    double ry,
-			    double rz,
-			    double &Mxx,
-			    double &Mxy,
-			    double &Mxz,
-			    double &Myy,
-			    double &Myz,
-			    double &Mzz,
-			    int i,
-			    int j,
-                            double invaGPU){
+			      double ry,
+			      double rz,
+			      double &Mxx,
+			      double &Mxy,
+			      double &Mxz,
+			      double &Myy,
+			      double &Myz,
+			      double &Mzz,
+			      int i,
+			      int j,
+                              double invaGPU){
   
-
   if(i==j){
     Mxx = 1.0;
     Mxy = 0;
@@ -245,27 +242,26 @@ __device__ void mobilityWTRPY(double rx,
       Mzz = c1 + c2 * rz*rz ;
     }
   } 
-  
   return;
 }
 
 
 __device__ void mobilityWTSingleWallCorrection(double rx,
-			                     double ry,
-			                     double rz,
-			                     double &Mxx,
-                  			     double &Mxy,
-			                     double &Mxz,
-                                             double &Myx,
-			                     double &Myy,
-			                     double &Myz,
-                                             double &Mzx,
-                                             double &Mzy,
-			                     double &Mzz,
-			                     int i,
-			                     int j,
-                                             double invaGPU,
-                                             double hj){
+			                       double ry,
+			                       double rz,
+			                       double &Mxx,
+                  			       double &Mxy,
+			                       double &Mxz,
+                                               double &Myx,
+			                       double &Myy,
+			                       double &Myz,
+                                               double &Mzx,
+                                               double &Mzy,
+			                       double &Mzz,
+			                       int i,
+			                       int j,
+                                               double invaGPU,
+                                               double hj){
   if(i == j){
     double invZi = 1.0 / hj;
     double invZi3 = pow(invZi,3);
@@ -295,23 +291,21 @@ __device__ void mobilityWTSingleWallCorrection(double rx,
     Mzy += fact2 * ez*ey + fact3 * ey;
     Mzz += fact1 + fact2 * ez*ez + fact3 * ez;         
   }
-
 }
 
 
 __global__ void rotation_from_torque(const double *x,
-                                    const double *t,					
-                                    double *u,
-				    int number_of_blobs,
-                                    double eta,
-                                    double a){
+                                     const double *t,					
+                                     double *u,
+				     int number_of_blobs,
+                                     double eta,
+                                     double a){
 
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
   double invaGPU = 1.0 / a;
-  
   double a3 = a*a*a;
 
   double Ux=0;
@@ -362,12 +356,11 @@ __global__ void rotation_from_torque(const double *x,
 
 
 __global__ void rotation_from_torque_no_wall(const double *x,
-					    const double *t,					
-					    double *u,
-					    int number_of_blobs,
-					    double eta,
-					    double a){
-
+					     const double *t,					
+					     double *u,
+					     int number_of_blobs,
+					     double eta,
+					     double a){
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -424,19 +417,18 @@ __global__ void rotation_from_torque_no_wall(const double *x,
 ////////// WF //////////////////////////////////////////////////
 
 __device__ void mobilityWFRPY(double rx,
-			    double ry,
-			    double rz,
-			    double &Mxx,
-			    double &Mxy,
-			    double &Mxz,
-			    double &Myy,
-			    double &Myz,
-			    double &Mzz,
-			    int i,
-			    int j,
-                            double invaGPU){
+			     double ry,
+			     double rz,
+			     double &Mxx,
+			     double &Mxy,
+			     double &Mxz,
+			     double &Myy,
+			     double &Myz,
+			     double &Mzz,
+			     int i,
+			     int j,
+                             double invaGPU){
   
-
   if(i==j){
     Mxx = 0;
     Mxy = 0;
@@ -474,26 +466,25 @@ __device__ void mobilityWFRPY(double rx,
       Mzz = 0;
     }
   } 
-  
   return;
 }
 
 
 __device__ void mobilityWFSingleWallCorrection(double rx,
-			                     double ry,
-			                     double rz,
-			                     double &Mxx,
-                  			     double &Mxy,
-			                     double &Mxz,
-                                             double &Myx,
-			                     double &Myy,
-			                     double &Myz,
-                                             double &Mzx,
-                                             double &Mzy,
-			                     int i,
-			                     int j,
-                                             double invaGPU,
-                                             double hj){
+			                       double ry,
+			                       double rz,
+			                       double &Mxx,
+                  			       double &Mxy,
+			                       double &Mxz,
+                                               double &Myx,
+			                       double &Myy,
+			                       double &Myz,
+                                               double &Mzx,
+                                               double &Mzy,
+			                       int i,
+			                       int j,
+                                               double invaGPU,
+                                               double hj){
   if(i == j){
     double invZi = 1.0 / hj;
     double invZi4 = pow(invZi,4);
@@ -523,7 +514,6 @@ __device__ void mobilityWFSingleWallCorrection(double rx,
     Mzx +=   fact1*ey;
     Mzy += - fact1*ex;
   }
-
 }
 
 
@@ -533,7 +523,6 @@ __global__ void rotation_from_force(const double *x,
 				    int number_of_blobs,
                                     double eta,
                                     double a){
-
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -590,11 +579,11 @@ __global__ void rotation_from_force(const double *x,
 
 
 __global__ void rotation_from_force_no_wall(const double *x,
-					  const double *f,					
-					  double *u,
-					  int number_of_blobs,
-					  double eta,
-					  double a){
+					   const double *f,					
+					   double *u,
+					   int number_of_blobs,
+					   double eta,
+					   double a){
 
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -653,18 +642,17 @@ __global__ void rotation_from_force_no_wall(const double *x,
 ////////// UT //////////////////////////////////////////////////
 
 __device__ void mobilityUTRPY(double rx,
-			    double ry,
-			    double rz,
-			    double &Mxx,
-			    double &Mxy,
-			    double &Mxz,
-			    double &Myy,
-			    double &Myz,
-			    double &Mzz,
-			    int i,
-			    int j,
-                            double invaGPU){
-  
+			      double ry,
+			      double rz,
+			      double &Mxx,
+			      double &Mxy,
+			      double &Mxz,
+			      double &Myy,
+			      double &Myz,
+			      double &Mzz,
+			      int i,
+			      int j,
+                              double invaGPU){
 
   if(i==j){
     Mxx = 0;
@@ -710,20 +698,20 @@ __device__ void mobilityUTRPY(double rx,
 
 
 __device__ void mobilityUTSingleWallCorrection(double rx,
-			                     double ry,
-			                     double rz,
-			                     double &Mxx,
-                  			     double &Mxy,
-			                     double &Mxz,
-                                             double &Myx,
-			                     double &Myy,
-			                     double &Myz,
-                                             double &Mzx,
-                                             double &Mzy,
-			                     int i,
-			                     int j,
-                                             double invaGPU,
-                                             double hj){
+			                       double ry,
+			                       double rz,
+			                       double &Mxx,
+                  			       double &Mxy,
+			                       double &Mxz,
+                                               double &Myx,
+			                       double &Myy,
+			                       double &Myz,
+                                               double &Mzx,
+                                               double &Mzy,
+			                       int i,
+			                       int j,
+                                               double invaGPU,
+                                               double hj){
   if(i == j){
     double invZi = 1.0 / hj;
     double invZi4 = pow(invZi,4);
@@ -840,12 +828,12 @@ __global__ void velocity_from_force_and_torque(const double *x,
 
 
 __global__ void velocity_from_force_and_torque_no_wall(const double *x,
-						      const double *f,
-						      const double *t,
-						      double *u,
-						      int number_of_blobs,
-						      double eta,
-						      double a){
+						       const double *f,
+						       const double *t,
+						       double *u,
+						       int number_of_blobs,
+						       double eta,
+						       double a){
 
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -922,17 +910,17 @@ __global__ void velocity_from_force_and_torque_no_wall(const double *x,
 ////////// UF - single precision //////////////////////////////////////////////////
 
 __device__ void mobilityUFRPY_single(float rx,
-			    float ry,
-			    float rz,
-			    float &Mxx,
-			    float &Mxy,
-			    float &Mxz,
-			    float &Myy,
-			    float &Myz,
-			    float &Mzz,
-			    int i,
-			    int j,
-                            float invaGPU){
+			             float ry,
+			             float rz,
+			             float &Mxx,
+			             float &Mxy,
+			             float &Mxz,
+			             float &Myy,
+			             float &Myz,
+			             float &Mzz,
+			             int i,
+			             int j,
+                                     float invaGPU){
   
   float fourOverThree = 4.0 / 3.0;
 
@@ -983,21 +971,21 @@ __device__ void mobilityUFRPY_single(float rx,
 
 
 __device__ void mobilityUFSingleWallCorrection_single(float rx,
-			                     float ry,
-			                     float rz,
-			                     float &Mxx,
-                  			     float &Mxy,
-			                     float &Mxz,
-                                             float &Myx,
-			                     float &Myy,
-			                     float &Myz,
-                                             float &Mzx,
-                                             float &Mzy,
-			                     float &Mzz,
-			                     int i,
-			                     int j,
-                                             float invaGPU,
-                                             float hj){
+			                              float ry,
+			                              float rz,
+			                              float &Mxx,
+                  			              float &Mxy,
+			                              float &Mxz,
+                                                      float &Myx,
+			                              float &Myy,
+			                              float &Myz,
+                                                      float &Mzx,
+                                                      float &Mzy,
+			                              float &Mzz,
+			                              int i,
+			                              int j,
+                                                      float invaGPU,
+                                                      float hj){
   if(i == j){
     float invZi = 1.0 / hj;
     Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
@@ -1032,12 +1020,11 @@ __device__ void mobilityUFSingleWallCorrection_single(float rx,
 
 
 __global__ void velocity_from_force_single(const float *x,
-                                    const float *f,					
-                                    float *u,
-				    int number_of_blobs,
-                                    float eta,
-                                    float a){
-
+                                           const float *f,					
+                                           float *u,
+				           int number_of_blobs,
+                                           float eta,
+                                           float a){
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -1091,424 +1078,351 @@ __global__ void velocity_from_force_single(const float *x,
 
 """)
 
+def set_number_of_threads_and_blocks(num_elements):
+  '''
+  This functions uses a heuristic method to determine
+  the number of blocks and threads per block to be
+  used in CUDA kernels.
+  '''
+  threads_per_block=512
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 256
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 128
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 64
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 32
+  num_blocks = (num_elements-1)/threads_per_block + 1
+
+  return (threads_per_block, num_blocks)
+
+
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    f = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  f = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i*3]
+    f[i*3 + 1] = force[i*3+1]
+    f[i*3 + 2] = force[i*3+2]
         
         
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(f.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(f.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(f_gpu, f)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(f_gpu, f)
     
-    # Get mobility function
-    mobility = mod.get_function("velocity_from_force")
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_force")
 
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(f)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(f)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u
+  return u
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    f = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
-        
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(f.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  f = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i*3]
+    f[i*3 + 1] = force[i*3+1]
+    f[i*3 + 2] = force[i*3+2]
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(f_gpu, f)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(f.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Get mobility function
-    mobility = mod.get_function("rotation_from_force")
-
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(f_gpu, f)
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(f)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Get mobility function
+  mobility = mod.get_function("rotation_from_force")
+  
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+    
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(f)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u
+  return u
   
 def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
-   
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
-
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    f = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
+  
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
+  
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  f = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i*3]
+    f[i*3 + 1] = force[i*3+1]
+    f[i*3 + 2] = force[i*3+2]
+    
         
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(f.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(f.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(f_gpu, f)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(f_gpu, f)
     
-    # Get mobility function
-    mobility = mod.get_function("rotation_from_force_no_wall")
+  # Get mobility function
+  mobility = mod.get_function("rotation_from_force_no_wall")
 
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(f)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(f)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u
+  return u
   
 def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    t = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        t[i*3]     = torque[i*3]
-        t[i*3 + 1] = torque[i*3+1]
-        t[i*3 + 2] = torque[i*3+2]
-        
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    t_gpu = cuda.mem_alloc(t.nbytes)
-    u_gpu = cuda.mem_alloc(t.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  t = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    t[i*3]     = torque[i*3]
+    t[i*3 + 1] = torque[i*3+1]
+    t[i*3 + 2] = torque[i*3+2]
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(t_gpu, t)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  t_gpu = cuda.mem_alloc(t.nbytes)
+  u_gpu = cuda.mem_alloc(t.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(t_gpu, t)
     
-    # Get mobility function
-    mobility = mod.get_function("rotation_from_torque")
+  # Get mobility function
+  mobility = mod.get_function("rotation_from_torque")
 
-    # Compute mobility force product
-    mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(t)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(t)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u  
+  return u  
 
 def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    t = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        t[i*3]     = torque[i*3]
-        t[i*3 + 1] = torque[i*3+1]
-        t[i*3 + 2] = torque[i*3+2]
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  t = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    t[i*3]     = torque[i*3]
+    t[i*3 + 1] = torque[i*3+1]
+    t[i*3 + 2] = torque[i*3+2]
         
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    t_gpu = cuda.mem_alloc(t.nbytes)
-    u_gpu = cuda.mem_alloc(t.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  t_gpu = cuda.mem_alloc(t.nbytes)
+  u_gpu = cuda.mem_alloc(t.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(t_gpu, t)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(t_gpu, t)
     
-    # Get mobility function
-    mobility = mod.get_function("rotation_from_torque_no_wall")
+  # Get mobility function
+  mobility = mod.get_function("rotation_from_torque_no_wall")
 
-    # Compute mobility force product
-    mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(t)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(t)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u
+  return u
   
   
 def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    f = np.zeros( number_of_blobs * 3)
-    t = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
-        t[i*3]     = torque[i*3]
-        t[i*3 + 1] = torque[i*3+1]
-        t[i*3 + 2] = torque[i*3+2]
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  f = np.zeros( number_of_blobs * 3)
+  t = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i*3]
+    f[i*3 + 1] = force[i*3+1]
+    f[i*3 + 2] = force[i*3+2]
+    t[i*3]     = torque[i*3]
+    t[i*3 + 1] = torque[i*3+1]
+    t[i*3 + 2] = torque[i*3+2]
         
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    t_gpu = cuda.mem_alloc(t.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(t.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  t_gpu = cuda.mem_alloc(t.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(t.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(t_gpu, t)
-    cuda.memcpy_htod(f_gpu, f)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(t_gpu, t)
+  cuda.memcpy_htod(f_gpu, f)
     
-    # Get mobility function
-    mobility = mod.get_function("velocity_from_force_and_torque")
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_force_and_torque")
 
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(t)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(t)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u  
+  return u  
   
 def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
-   
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
-
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3)
-    f = np.zeros( number_of_blobs * 3)
-    t = np.zeros( number_of_blobs * 3)
-    for i in range(number_of_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i*3]
-        f[i*3 + 1] = force[i*3+1]
-        f[i*3 + 2] = force[i*3+2]
-        t[i*3]     = torque[i*3]
-        t[i*3 + 1] = torque[i*3+1]
-        t[i*3 + 2] = torque[i*3+2]
-        
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    t_gpu = cuda.mem_alloc(t.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(t.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
+  
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3)
+  f = np.zeros( number_of_blobs * 3)
+  t = np.zeros( number_of_blobs * 3)
+  for i in range(number_of_blobs):       
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i*3]
+    f[i*3 + 1] = force[i*3+1]
+    f[i*3 + 2] = force[i*3+2]
+    t[i*3]     = torque[i*3]
+    t[i*3 + 1] = torque[i*3+1]
+    t[i*3 + 2] = torque[i*3+2]
+           
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  t_gpu = cuda.mem_alloc(t.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(t.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(t_gpu, t)
-    cuda.memcpy_htod(f_gpu, f)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(t_gpu, t)
+  cuda.memcpy_htod(f_gpu, f)
+  
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_force_and_torque_no_wall")
+
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Get mobility function
-    mobility = mod.get_function("velocity_from_force_and_torque_no_wall")
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(t)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, np.float64(eta), np.float64(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
-    
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(t)
-    cuda.memcpy_dtoh(u, u_gpu)
-
-
-    return u   
+  return u   
   
 def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a):
    
-    # Determine number of threads and blocks for the GPU
-    number_of_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((number_of_blobs/threads_per_block) < 128):
-        threads_per_block = 32
-    num_blocks = (number_of_blobs-1)/threads_per_block + 1
-
-    # Copy python info to simple numpy arrays
-    x = np.zeros( number_of_blobs * 3, dtype=np.float32)
-    f = np.zeros( number_of_blobs * 3, dtype=np.float32)
-    for i in range(number_of_blobs):
-        #x[i*3    ] = r_vectors[i][0]
-        #x[i*3 + 1] = r_vectors[i][1]
-        #x[i*3 + 2] = r_vectors[i][2]
-        #f[i*3]     = force[i,0]
-        #f[i*3 + 1] = force[i,1]
-        #f[i*3 + 2] = force[i,2]
-        
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
-        f[i*3]     = force[i,0]
-        f[i*3 + 1] = force[i,1]
-        f[i*3 + 2] = force[i,2]
-        
-        
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    f_gpu = cuda.mem_alloc(f.nbytes)
-    u_gpu = cuda.mem_alloc(f.nbytes)
-    number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
+  
+  # Copy python info to simple numpy arrays
+  x = np.zeros( number_of_blobs * 3, dtype=np.float32)
+  f = np.zeros( number_of_blobs * 3, dtype=np.float32)
+  for i in range(number_of_blobs):
+    x[i*3    ] = r_vectors[i][0]
+    x[i*3 + 1] = r_vectors[i][1]
+    x[i*3 + 2] = r_vectors[i][2]
+    f[i*3]     = force[i,0]
+    f[i*3 + 1] = force[i,1]
+    f[i*3 + 2] = force[i,2]
+              
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  f_gpu = cuda.mem_alloc(f.nbytes)
+  u_gpu = cuda.mem_alloc(f.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
-    cuda.memcpy_htod(f_gpu, f)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(f_gpu, f)
     
-    # Get mobility function
-    mobility = mod.get_function("velocity_from_force_single")
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_force_single")
 
-    # Compute mobility force product
-    mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float32(eta), np.float32(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  # Compute mobility force product
+  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float32(eta), np.float32(a), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    u = np.empty_like(f)
-    cuda.memcpy_dtoh(u, u_gpu)
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(f)
+  cuda.memcpy_dtoh(u, u_gpu)
 
-
-    return u  
+  return u  
 
 
