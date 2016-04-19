@@ -6,7 +6,9 @@ import numpy as np
 def stochastic_forcing_eig(mobility, factor, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
-  eigenvalue decomposition. This functions is more expensive that
+  eigenvalue decomposition. If M=V*S*V.T the noise is
+  w = V*S^{1/2}*z. 
+  This functions is more expensive that
   using a Cholesky factorization but it works for non-positive
   definite matrix (e.g. mobility of a 1D rod).
   
@@ -41,7 +43,9 @@ def stochastic_forcing_eig(mobility, factor, z = None):
 def stochastic_forcing_eig_symm(mobility, factor, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
-  eigenvalue decomposition. This functions is more expensive that
+  eigenvalue decomposition. If M=V*S*V.T the noise is
+  w = V*S^{1/2}*V.T*z. 
+  This functions is more expensive that
   using a Cholesky factorization but it works for non-positive
   definite matrix (e.g. mobility of a 1D rod).
   
@@ -109,9 +113,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
                                tolerance = 1e-06, 
                                max_iter = 1000, 
                                name = '',
-                               r_vectors = None, 
-                               eta = None, 
-                               radius = None, 
+                               dim = None, 
                                mobility = None, 
                                mobility_mult = None,
                                z = None):
@@ -130,10 +132,9 @@ def stochastic_forcing_lanczos(factor = 1.0,
   factor = the prefactor, in general something like sqrt(2*k_B*T*dt)
   tolerance = the tolerance to determine convergence.
   max_iter = maximum number of iterations allowed.
+  dim = The dimension of the noise. If it is not passed dim = len(z).
   name = (Optional) name of a file to save the residuals. The residuals are
          not saved if the string name is empty.
-  eta = the viscosity, used by mobility_mult.
-  radius = the particle radius, used by mobility_mult.
   z = (Optional) the random vector.
   mobility = the mobility matrix. You can pass it like a list of lists or
              a list of numpy arrays. It is not used if mobility_mult
@@ -146,11 +147,9 @@ def stochastic_forcing_lanczos(factor = 1.0,
   stochastic_forcing = (factor * M^{1/2} * z)
   '''
 
-  # Define array dimension (3 * number of blobs)
-  if mobility is None:
-    dim = len(r_vectors) * 3
-  else:
-    dim = len(mobility)
+  # Define array dimension 
+  if dim is None:
+    dim = len(z)
 
   # Create matrix v (initial column is random)
   if z is None:
@@ -174,7 +173,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
   for i in range(max_iter):
     # w = mobility * v[i]
     if mobility is None:
-      w = mobility_mult(r_vectors, np.reshape(v[i], (dim/3, 3)), eta, radius)
+      w = mobility_mult(v[i])
     else:
       w = np.dot(mobility, v[i])
 
