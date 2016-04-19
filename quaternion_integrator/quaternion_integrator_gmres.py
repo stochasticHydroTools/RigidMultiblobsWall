@@ -139,14 +139,12 @@ class QuaternionIntegratorGMRES(object):
         print "=================================================== "
         # force = self.force_calculator(r_vectors_ite)
         # torque = self.torque_calculator(r_vectors_ite, rotation_matrix_ite)
+        # random_forces_blobs = 1.0*(2.0*np.random.random(self.Nblobs*3)-1.0)*6.0*m.pi*self.A
         random_forces_blobs = 1.0*(2.0*np.random.random(self.Nblobs*3)-1.0)*6.0*m.pi*self.A
         random_forcing_rods = self.force_slip(r_vectors_ite, rotation_matrix_ite,random_forces_blobs)
-        
         force = random_forcing_rods[0:3*self.Nrods]*1.0
         torque = random_forcing_rods[3*self.Nrods:6*self.Nrods]*0.0
-        
- 
-    
+            
         print "=================================================== "
         print "==== Prescribe  slip on blobs  ====== "
         print "=================================================== " 

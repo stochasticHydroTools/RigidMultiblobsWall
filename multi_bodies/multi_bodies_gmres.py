@@ -48,7 +48,7 @@ if shape == 'rod':
   if resolution == 0:
     A = 0.183228708092682 # To Match true velocities with Rh = 0.1623
     # Nblobs_per_rod = 14
-    Nblobs_per_rod = 3
+    Nblobs_per_rod = 4
   elif resolution == 1:
     A =  0.0742 # To match true cylinder with a/s = 0.5, Rh=0.1623
     Nblobs_per_rod =86
@@ -728,22 +728,18 @@ def K_matrix_T_vector_prod(r_vectors, rotation_matrix, lambda_slip):
   level of describtion of the blobs to the level of describtion of the body.
   Then perform the operation: K^*\cdot lambda_slip
   '''
-
   # K matrix
   Nbody = len(r_vectors)
   Nblobs_per_body = len(r_vectors[0])
-  J_trans = np.concatenate([np.identity(3) for \
-                     _ in range(Nblobs_per_body)])
-
+  J_trans = np.concatenate([np.identity(3) for _ in range(Nblobs_per_body)])
   force_slip = np.zeros(6*Nbody)
-  
+
   for k in range(Nbody):
     force_slip[3*k:3*(k+1)] =\
-        np.dot(J_trans.T,\
-                 lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])	     
+        np.dot(J_trans.T, lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])	     
     force_slip[3*Nbody+3*k:3*Nbody+3*(k+1)] =\
-        np.dot(rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,0:3].T,\
-                 lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
+        np.dot(rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,0:3].T, lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
+
   return force_slip
 
 def K_matrix_vector_prod(r_vectors, rotation_matrix, vel_body):
