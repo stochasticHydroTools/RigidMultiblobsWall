@@ -40,54 +40,56 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
+resolution = 1
+shape = 'rod'   # 'rod' or 'shell'
 
-resolution =3
-print "resolution = ", resolution
 # Parameters.  Units are um, s, mg.
 
 # TO ADD AN IF STATEMENT TO CHOSE BETWEEN SHELLS AND CYLINDERS
-#if resolution == 0:
-  #A = 0.183228708092682 # To Match true velocities with Rh = 0.1623
-  #Nblobs_per_rod = 14
-#elif resolution == 1:
- ##A =  0.042116364993415 # To match true cylinder with a/s = 0.26515
- ##Nblobs_per_rod = 96
- #A =  0.0742 # To match true cylinder with a/s = 0.5, Rh=0.1623
- #Nblobs_per_rod =86
-#elif resolution == 2:
- ##A = 0.021508896861336 # To match true cylinder with a/s = 0.25793
- ##Nblobs_per_rod = 374
- #A =  0.0402 # To match true cylinder with a/s = 0.5, Rh=0.1623
- #Nblobs_per_rod = 324
- 
-# BLOB RADII FOR SHELL WITH Rg = 0.225
-if resolution == 1: 
-  A = 0.1183 # 12 blobs
-  Nblobs_per_rod = 12
-elif resolution== 2:
-  A= 0.061484985366573 # 42 blobs
-  Nblobs_per_rod = 42
-elif resolution== 3: 
-  A = 0.031039252100254 # 162 blobs
-  Nblobs_per_rod = 162
-elif resolution == 4: 
-  A = 0.015556856646539 # 642 blobs
-  Nblobs_per_rod = 642
-elif resolution == 5: 
-  A = 0.007783085222670 # 642 blobs
-  Nblobs_per_rod = 2562
+if shape == 'rod':
+  if resolution == 0:
+    A = 0.183228708092682 # To Match true velocities with Rh = 0.1623
+    Nblobs_per_rod = 14
+  elif resolution == 1:
+    #A =  0.042116364993415 # To match true cylinder with a/s = 0.26515
+    #Nblobs_per_rod = 96
+    A =  0.0742 # To match true cylinder with a/s = 0.5, Rh=0.1623
+    Nblobs_per_rod =86
+  elif resolution == 2:
+    #A = 0.021508896861336 # To match true cylinder with a/s = 0.25793
+    #Nblobs_per_rod = 374
+    A =  0.0402 # To match true cylinder with a/s = 0.5, Rh=0.1623
+    Nblobs_per_rod = 324
+elif shape == 'shell':
+  # BLOB RADII FOR SHELL WITH Rg = 0.225
+  if resolution == 1: 
+    A = 0.1183 # 12 blobs
+    Nblobs_per_rod = 12
+  elif resolution== 2:
+    A= 0.061484985366573 # 42 blobs
+    Nblobs_per_rod = 42
+  elif resolution== 3: 
+    A = 0.031039252100254 # 162 blobs
+    Nblobs_per_rod = 162
+  elif resolution == 4: 
+    A = 0.015556856646539 # 642 blobs
+    Nblobs_per_rod = 642
+  elif resolution == 5: 
+    A = 0.007783085222670 # 642 blobs
+    Nblobs_per_rod = 2562
   
-DIAM_BLOB = 2.0*A  # Diameter of the blobs
-if A == 0.07:
-  DIAM_ROD_GEO = 0.28  # Geometric Diameter of the blobs
-else:
-  DIAM_ROD_GEO = 0.3246  # Geometric Diameter of the blobs
+# Diameter of the blobs
+DIAM_BLOB = 2.0*A  
+# Geometric diameter of the rod
+DIAM_ROD_GEO = 0.3246  
+
 if resolution ==0:
  DIAM_ROD_EXCLU = DIAM_ROD_GEO
 else: 
  DIAM_ROD_EXCLU = DIAM_ROD_GEO + DIAM_BLOB  # Excluded volume Diameter of the blobs
 
-ETA = 1e-3  # Water. Pa s = kg/(m s) = mg/(um s)
+# Water. Pa s = kg/(m s) = mg/(um s)
+ETA = 1e-3  
 
 
 # density of particle = 0.2 g/cm^3 = 0.0000000002 mg/um^3.  
@@ -226,74 +228,29 @@ def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
 
   return (total_mobility, mob_inv)
 
-
 def get_rod_initial_config(location, orientation):
   '''
   Depends on the resolution chosen
-  ''' 
-  
+  '''  
   folder_rods = 'Generated_rods/'
- 
   if resolution == 0:
-    initial_configuration = []
-    # Using Bringley's formula for Nb = floor(Lrod/a_rod) + 1
-    with open(folder_rods + 'Cylinder_l_geo_1.9295_radius_0.18323_Nblobs_perimeter_1_Nblobs_total_14_a_s_1.2345.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("  ")]))    
-                              
+    filename = folder_rods + 'Cylinder_l_geo_1.9295_radius_0.18323_Nblobs_perimeter_1_Nblobs_total_14_a_s_1.2345.vertex'
   elif resolution == 1:
-    initial_configuration = []
-    # If D_eff = D = 0.3246 and a/s = 0.5
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86.vertex') as f:
-    # If D_eff = D = 0.3246 and a/s = 0.2
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_108_a_s_0.2.vertex') as f:
-    # If D_eff = D = 0.3246 and a/s = 0.3
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_92_a_s_0.3.vertex') as f:
-    # If D_eff = D = 0.3246 and a/s = 0.4
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86_a_s_0.4.vertex') as f:    
-    # If D_eff = D = 0.3246 and a/s = 0.6
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86_a_s_0.6.vertex') as f:  
-    # If D to match resolution 2
-    #with open(folder_rods + 'Cylinder_l_geo_2.12_radius_0.14_Nblobs_perimeter_6_Nblobs_total_98.vertex') as f:
-    #To match tt_perp of true cylinder with a/s = 0.5    
-    # To match tt_perp of true cylinder with a/s = 0.26515
-    #with open('Cylinder_l_geo_2.0748_radius_0.15884_Nblobs_perimeter_6_Nblobs_total_96_a_s_0.26515.vertex') as f:
-
-    with open(folder_rods +'Cylinder_l_geo_1.9384_radius_0.1484_Nblobs_perimeter_6_Nblobs_total_86_a_s_0.5.vertex') as f:
-
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("  ")]))    
-      
+    filename = folder_rods + 'Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86.vertex'
   elif resolution == 2:
-    initial_configuration = []
-    # If D_eff = D = 0.3246  and a/s = 0.5
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_324.vertex') as f:    
-    # If D_eff = D = 0.3246  and a/s = 0.4
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_332_a_s_0.4.vertex') as f: 
-    # If D_eff = D = 0.3246  and a/s = 0.6
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_318_a_s_0.6.vertex') as f:
-    # If D_eff = D = 0.3246  and a/s = 0.3
-    #with open('Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_354_a_s_0.3.vertex') as f:
-    # If D = 0.5
-    #with open('Cylinder_l_geo_3.2656_radius_0.25_Nblobs_perimeter_12_Nblobs_total_324.vertex') as f:    
-    #with open('Cylinder_l_geo_1.6328_radius_0.125_Nblobs_perimeter_12_Nblobs_total_324.vertex') as f:
-    #with open('Cylinder_l_geo_0.81639_radius_0.0625_Nblobs_perimeter_12_Nblobs_total_324.vertex') as f:
-    # To match tt_perp of true cylinder with a/s = 0.25793
-    #with open(folder_rods + 'Cylinder_l_geo_2.1043_radius_0.1611_Nblobs_perimeter_12_Nblobs_total_374_a_s_0.25793.vertex') as f:
-    # To match tt_perp of true cylinder with a/s = 0.5
-    with open('Cylinder_l_geo_2.0299_radius_0.1554_Nblobs_perimeter_12_Nblobs_total_324_a_s_0.5.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("  ")]))    
+    filename = folder_rods + 'Cylinder_l_geo_2.0299_radius_0.1554_Nblobs_perimeter_12_Nblobs_total_324_a_s_0.5.vertex'
+  else:
+    raise Exception('Resolution should be 0, 1 or 2.')
 
+  print 'filename', filename
+  initial_configuration = []
+  k = 0
+  with open(filename, 'r') as f:
+    for l in f:
+      if k > 0:
+        initial_configuration.append(np.array([float(x) for x in l.strip().split("  ")]))        
+      else:
+        k = 1
 
   return initial_configuration
 
@@ -301,57 +258,26 @@ def get_shell_initial_config(location, orientation):
   '''
   Depends on the resolution chosen
   ''' 
-  
-  folder_shells = 'Generated_shells/'
- 
-           
+
+  folder_shells = 'Generated_shells/' 
   if resolution == 1:
-    initial_configuration = []
-    with open(folder_shells +'shell_3d_Nblob_12_radius_0_225.vertex') as f:
-
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
-      
+    namefile = folder_shells + 'shell_3d_Nblob_12_radius_0_225.vertex'
   elif resolution == 2:
-    initial_configuration = []
-    with open(folder_shells +'shell_3d_Nblob_42_radius_0_225.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
-  
+    namefile = folder_shells +'shell_3d_Nblob_42_radius_0_225.vertex'
   elif resolution == 3:
-    initial_configuration = []
-    with open(folder_shells +'shell_3d_Nblob_162_radius_0_225.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
-
+    namefile = folder_shells +'shell_3d_Nblob_162_radius_0_225.vertex'    
   elif resolution == 4:
-    initial_configuration = []
-    with open(folder_shells +'shell_3d_Nblob_642_radius_0_225.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
-
+    namefile = folder_shells +'shell_3d_Nblob_642_radius_0_225.vertex'    
   elif resolution == 5:
-    initial_configuration = []
-    with open(folder_shells +'shell_3d_Nblob_2562_radius_0_225.vertex') as f:
-      k = 0
-      for l in f:
-	k = k+1
-	if k>1:
-	  initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
-
-
+    namefile = folder_shells +'shell_3d_Nblob_2562_radius_0_225.vertex'    
+  
+  with open(namefile, 'r') as f:
+    k = 0
+    for l in f:
+      k = k+1
+      if k>1:
+        initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
+ 
   return initial_configuration
 
 def get_r_vectors(location, orientation, initial_configuration):
@@ -1081,25 +1007,17 @@ if __name__ == '__main__':
     pr.enable()
 
   # Increase gravity
-  M = np.array(M)*args.gravity_factor
+  M = np.array(M) * args.gravity_factor
 
   # Get command line parameters
   dt = args.dt
   n_steps = args.n_steps
-  print_increment = max(int(n_steps/20.), 1)
+  print_increment = max(n_steps/20, 1)
 
   # Set up logging.
   if(True):
     log_filename = './logs/rod-dt-%f-N-%d-scheme-%s-g-%s-%s.log' % (dt, n_steps, args.scheme, args.gravity_factor, args.data_name)
     flog = open(log_filename, 'w')
-    #progress_logger = logging.getLogger('Progress Logger')
-    #progress_logger.setLevel(logging.INFO)
-    ## Add the log message handler to the logger
-    #logging.basicConfig(filename=log_filename, level=logging.INFO, filemode='w')
-    #sl = StreamToLogger(progress_logger, logging.INFO)
-    #sys.stdout = sl
-    #sl = StreamToLogger(progress_logger, logging.ERROR)
-    #sys.stderr = sl
     original = sys.stdout
     sys.stdout = Tee(sys.stdout, flog)
 
@@ -1113,56 +1031,25 @@ if __name__ == '__main__':
   print "Parameters for this run are: ", params
 
   
-  #z = 0.3246*2.0
   z = (0.225+A) + float(n_steps-1)*0.01
   z = 0.711
   z = 0.3553875
   print "dz = ", z
   
-  #folder_packings = 'Generated_packings/'
-  ## Script to run the various integrators on the quaternion.
-  #if resolution == 0:
-    #filename = folder_packings + 'PackSuperellipses_Nr_10000_Nb_21_AR_7_543_phi_0_1.dat'
-  #elif resolution == 1:
-    #filename = folder_packings +  'PackSuperellipses_Nr_10000_Nb_98_AR_5_381_phi_0_1.dat'
-  #elif resolution == 2:
-    #filename = folder_packings +  'PackSuperellipses_Nr_10_Nb_324_AR_5_394_phi_0_1.dat'
-  
-  #print " Open file : ", filename
-  #(Nrods,initial_location,initial_orientation)  = \
-          #read_initial_configuration(filename,z )
-  
-  #dx = 5.06
-  #dy = 1.2984
-  #Nrods = 9
-  #(initial_location,initial_orientation) = create_initial_configuration_lattice(Nrods,dx,dy,z)
-
-  
-  
-  
   initial_location = [np.array([0.0e0, 0.47385e0*0.5, z]),\
-                      np.array([0.47385*1.25, 0.0e0, z]),]
-		    
+                      np.array([0.47385*1.25, 0.0e0, z]),]	    
   initial_orientation = [Quaternion([1.0, 0., 0., 0.]),\
                          Quaternion([1.0, 0., 0., 0.]),]
-		       
-		       
-  #initial_location = [[0.0e0, 0.0e0, 0.7e0],\
-                      #[5.0e0, 5.0e0, 0.7e0],\
-                      #[10.0e0, 10.0e0, 0.7e0],]
-		    
-  #initial_orientation = [Quaternion([1., 0., 0., 0.]),\
-                         #Quaternion([0.707106781186548, 0., 0., 0.707106781186548]),\
-                         ##Quaternion([1.0, 0., 0., 0.0]),\
-                         #Quaternion([1, 0., 0., 0.])]
 
-  Nrods =len(initial_location)
-   
+  Nrods =len(initial_location)   
   Nblobs = Nrods*Nblobs_per_rod
   
-  
-  #initial_configuration = get_rod_initial_config(initial_location,initial_orientation)
-  initial_configuration = get_shell_initial_config(initial_location,initial_orientation)
+  if shape == 'rod':
+    initial_configuration = get_rod_initial_config(initial_location, initial_orientation)
+  elif shape == 'shell':
+    initial_configuration = get_shell_initial_config(initial_location, initial_orientation)
+  else:
+    raise Exception('shape should be rod or shell.')    
 
  
   print "Nrods = ", Nrods
