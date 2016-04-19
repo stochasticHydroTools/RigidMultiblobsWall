@@ -40,14 +40,15 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
-resolution = 1
+resolution = 0
 shape = 'rod'   # 'rod' or 'shell'
 
 # TO ADD AN IF STATEMENT TO CHOSE BETWEEN SHELLS AND CYLINDERS
 if shape == 'rod':
   if resolution == 0:
     A = 0.183228708092682 # To Match true velocities with Rh = 0.1623
-    Nblobs_per_rod = 14
+    # Nblobs_per_rod = 14
+    Nblobs_per_rod = 3
   elif resolution == 1:
     A =  0.0742 # To match true cylinder with a/s = 0.5, Rh=0.1623
     Nblobs_per_rod =86
@@ -91,7 +92,7 @@ ETA = 1e-3
 # Volume is ~1.1781 um^3. 
 TOTAL_MASS = 0*1.1781*0.0000000002*(9.8*1.e6)
 M = [TOTAL_MASS/float(Nblobs_per_rod) for _ in range(Nblobs_per_rod)]
-KT = 1.0*0.1*1.3806488e-5# 300.*1.3806488e-5  # T = 300K
+KT = 0.0*0.1*1.3806488e-5# 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
 REPULSION_STRENGTH_WALL = 0.0*20 * 300.*1.3806488e-5 #KT # 7.5*....
@@ -104,8 +105,8 @@ DEBYE_LENGTH_BLOBS = 0.005*A
 
 def rod_mobility(r_vectors, rotation_matrix):
   ''' 
-  Calculate the force and torque mobility for the
-  rod.  Here location is the cross point.
+  Calculate the force and torque mobility for the rod. 
+  Here location is the rod center.
   '''
   return force_and_torque_rod_mobility(r_vectors, rotation_matrix)
 
@@ -127,13 +128,15 @@ def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
   Here location is the dereferenced list with 3 entries.
   '''  
   # Blobs mobility
-  if len(r_vectors) == 1: 
-    r_vec_for_mob = r_vectors[0]
-  else: 
-    r_vec_for_mob = []
-    for k in range(len(r_vectors)):
-      r_vec_for_mob += r_vectors[k]
-
+  if 1:
+    if len(r_vectors) == 1: 
+      r_vec_for_mob = r_vectors[0]
+    else: 
+      r_vec_for_mob = []
+      for k in range(len(r_vectors)):
+        r_vec_for_mob += r_vectors[k]
+  else:
+    r_vec_for_mob = np.reshape(r_vectors, len(r_vectors) * len(r_vectors[0]))
   mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
 
   # K matrix
@@ -141,70 +144,53 @@ def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
   Nblobs_per_body = len(r_vectors[0])
   J_tot = None
   for k in range(Nbody):
-    J = np.concatenate([np.identity(3) for \
-                     _ in range(Nblobs_per_body)])
-
+    J = np.concatenate([np.identity(3) for _ in range(Nblobs_per_body)])
     J_rot_combined = np.concatenate([J, rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,:]], axis=1)
-
     if J_tot is None:
-        J_tot = J_rot_combined
+      J_tot = J_rot_combined
     else:
-        J_tot=np.concatenate([J_tot, J_rot_combined], axis=1)
+      J_tot=np.concatenate([J_tot, J_rot_combined], axis=1)
 
-  #print "rotation_matrix = ", 
-  #print rotation_matrix
-  #raw_input()
   mob_inv = np.linalg.inv(mobility)
-
   total_resistance = np.zeros((6*Nbody,6*Nbody))
   
   # ONLY BUILD UPPER TRIANGULAR PART OF R AND ASSIGN THE REST
   for k in range(Nbody):
-    for j in range(k,Nbody):
-  
-        # VF BLOCK
-        total_resistance[3*k:3*(k+1),3*j:3*(j+1)] =\
-             np.dot(np.dot(J_tot[:,6*k:6*k+3].T,\
-                    mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
-                    J_tot[:,6*j:6*j+3])
-        if j>k:
-	  total_resistance[3*j:3*(j+1),3*k:3*(k+1)] = \
-                    total_resistance[3*k:3*(k+1),3*j:3*(j+1)].T
+    for j in range(k,Nbody): 
+      # VF BLOCK
+      total_resistance[3*k:3*(k+1),3*j:3*(j+1)] =\
+          np.dot(np.dot(J_tot[:,6*k:6*k+3].T,\
+                          mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
+                   J_tot[:,6*j:6*j+3])
+      if j>k:
+        total_resistance[3*j:3*(j+1),3*k:3*(k+1)] = \
+            total_resistance[3*k:3*(k+1),3*j:3*(j+1)].T
+        
+      # VT BLOCK
+      total_resistance[3*k:3*(k+1),3*(Nbody+j):3*(Nbody+j+1)] =\
+          np.dot(np.dot(J_tot[:,6*k:6*k+3].T,\
+                          mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
+                   J_tot[:,6*j+3:6*(j+1)])
+      if j>k:
+        total_resistance[3*j:3*(j+1),3*(Nbody+k):3*(Nbody+k+1)] =\
+            np.dot(np.dot(J_tot[:,6*j:6*j+3].T,\
+                            mob_inv[3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body,3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body]),\
+                     J_tot[:,6*k+3:6*(k+1)])
 
-        # VT BLOCK
-        total_resistance[3*k:3*(k+1),3*(Nbody+j):3*(Nbody+j+1)] =\
-             np.dot(np.dot(J_tot[:,6*k:6*k+3].T,\
-                    mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
-                    J_tot[:,6*j+3:6*(j+1)])
-        if j>k:
-            total_resistance[3*j:3*(j+1),3*(Nbody+k):3*(Nbody+k+1)] =\
-                     np.dot(np.dot(J_tot[:,6*j:6*j+3].T,\
-                    mob_inv[3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body,3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body]),\
-                    J_tot[:,6*k+3:6*(k+1)])
-
-        # WT BLOCK
-        total_resistance[3*(Nbody+k):3*(Nbody+k+1),3*(Nbody+j):3*(Nbody+j+1)] =\
-             np.dot(np.dot(J_tot[:,6*k+3:6*(k+1)].T,\
-                    mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
-                    J_tot[:,6*j+3:6*(j+1)])
-        if j>k:
-	  total_resistance[3*(Nbody+j):3*(Nbody+j+1),3*(Nbody+k):3*(Nbody+k+1)] =\
-                    total_resistance[3*(Nbody+k):3*(Nbody+k+1),3*(Nbody+j):3*(Nbody+j+1)].T
+      # WT BLOCK
+      total_resistance[3*(Nbody+k):3*(Nbody+k+1),3*(Nbody+j):3*(Nbody+j+1)] =\
+          np.dot(np.dot(J_tot[:,6*k+3:6*(k+1)].T,\
+                          mob_inv[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*j*Nblobs_per_body:3*(j+1)*Nblobs_per_body]),\
+                   J_tot[:,6*j+3:6*(j+1)])
+      if j>k:
+        total_resistance[3*(Nbody+j):3*(Nbody+j+1),3*(Nbody+k):3*(Nbody+k+1)] =\
+            total_resistance[3*(Nbody+k):3*(Nbody+k+1),3*(Nbody+j):3*(Nbody+j+1)].T
 
   # WF BLOCK IS JUST THE TRANSPOSE OF VT BLOCK
   total_resistance[3*Nbody:6*Nbody,0:3*Nbody] = total_resistance[0:3*Nbody,3*Nbody:6*Nbody].T
-  
-  
-  #print "total_resistance - total_resistance.T = 0 ", \
-         #np.allclose(total_resistance,total_resistance.T)
-  #raw_input()
 
   # Mobility body
   total_mobility = np.linalg.pinv(total_resistance)
-  #print "total_mobility = ", 
-  #print total_mobility
-  #raw_input()
-
   return (total_mobility, mob_inv)
 
 def get_rod_initial_config(location, orientation):
@@ -213,7 +199,8 @@ def get_rod_initial_config(location, orientation):
   '''  
   folder_rods = 'Generated_rods/'
   if resolution == 0:
-    filename = folder_rods + 'Cylinder_l_geo_1.9295_radius_0.18323_Nblobs_perimeter_1_Nblobs_total_14_a_s_1.2345.vertex'
+    # filename = folder_rods + 'Cylinder_l_geo_1.9295_radius_0.18323_Nblobs_perimeter_1_Nblobs_total_14_a_s_1.2345.vertex'
+    filename = folder_rods + 'Cylinder_l_geo_1.9295_radius_0.18323_Nblobs_perimeter_1_Nblobs_total_3_a_s_1.2345.vertex'
   elif resolution == 1:
     filename = folder_rods + 'Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86.vertex'
   elif resolution == 2:
@@ -227,7 +214,7 @@ def get_rod_initial_config(location, orientation):
   with open(filename, 'r') as f:
     for l in f:
       if k > 0:
-        initial_configuration.append(np.array([float(x) for x in l.strip().split("  ")]))        
+        initial_configuration.append(np.array([float(x) for x in l.split()]))        
       else:
         k = 1
 
@@ -261,9 +248,8 @@ def get_shell_initial_config(location, orientation):
 
 def get_r_vectors(location, orientation, initial_configuration):
   '''
-  Rotates the frame config
+  Rotates the frame config of one body
   ''' 
-
   rotation_matrix = orientation.rotation_matrix()
   rotated_configuration = []
 
@@ -275,7 +261,9 @@ def get_r_vectors(location, orientation, initial_configuration):
 
   
 def read_initial_configuration(filename,z):
-
+  '''
+  Read initial configuration (locantion and orientation) from filename.
+  '''
   k = 0
   initial_location = []
   initial_orientation = []
@@ -293,8 +281,7 @@ def read_initial_configuration(filename,z):
 	scale = DIAM_ROD_EXCLU/D_raw
 	print "l_raw , D_raw, AR_raw, scale = ", l_raw , D_raw , AR_raw, scale
 	print "l_raw*scale = ", l_raw*scale
-        #raw_input()      
-      if k>6:
+    if k>6:
         pos_orient =  l.strip().split(' ')
         pos_orient = [x for x in pos_orient if x != '']
         pos = pos_orient[0:2]
@@ -302,19 +289,13 @@ def read_initial_configuration(filename,z):
         angle = m.atan2(-float(orient[0]),float(orient[1]))
 	initial_location.append(np.array([scale*float(pos[0]), scale*float(pos[1]), z]))    
 	initial_orientation.append(Quaternion([m.cos(angle/2.), 0.0, 0.0, m.sin(angle/2.)]))  
-	#print "angle = ", angle
-	#print "initial_orientation = ", initial_orientation
-        #print "initial_location = ", initial_location
-        #raw_input()
-      #if k>10:
-        #Nrods = k-7+1
-        #print "len(initial_location), Nrods = ", len(initial_location), Nrods
-        #break
-  return (Nrods,initial_location, initial_orientation)
+  return (Nrods, initial_location, initial_orientation)
   
   
 def create_initial_configuration_lattice(Nrods,dx,dy,z):
-
+  '''
+  Create initial configuration for bodies forming a 2D lattice.
+  '''
   Nx = int(m.sqrt(float(Nrods)))
   Ny = Nx
   initial_location = []
@@ -323,14 +304,7 @@ def create_initial_configuration_lattice(Nrods,dx,dy,z):
     for l in range(Ny):
       initial_location.append(np.array([float(k)*dx, float(l)*dy, z]))    
       initial_orientation.append(Quaternion([1.0, 0.0, 0.0, 0.0]))  
-	#print "angle = ", angle
-  #print "initial_orientation = ", initial_orientation
   print "initial_location = ", initial_location
-
-      #if k>10:
-        #Nrods = k-7+1
-        #print "len(initial_location), Nrods = ", len(initial_location), Nrods
-        #break
   return (initial_location, initial_orientation)
 
 
@@ -341,15 +315,12 @@ def calc_rot_matrix(r_vectors, location):
   (R_i x) = -1 (r_i cross x). 
   R will be 3N by 3 (18 x 3). The r vectors point from the center
   of the shape to the other vertices.
-  '''
-  
+  '''  
   Nbody = len(r_vectors)
   Nblobs_per_body = len(r_vectors[0])  
   rot_matrix = np.zeros((3*Nbody*Nblobs_per_body,3))
   for k in range(Nbody):
-
     for j in range(Nblobs_per_body):
-
       # Here the cross is relative to the center
       adjusted_r_vector = r_vectors[k][j] - location[k]
       rot_matrix[k*3*Nblobs_per_body + 3*j:k*3*Nblobs_per_body + 3*(j+1),0:3] = \
@@ -360,7 +331,10 @@ def calc_rot_matrix(r_vectors, location):
 
 
 def rod_force_calculator(r_vectors):
-
+  '''
+  Compute force on the walls due to gravity,
+  wall interations and blob-blob interactions.
+  '''
   gravity = np.array([0., 0., -1.*sum(M)])
 
   Nblobs_per_body = len(r_vectors[0])
@@ -373,6 +347,7 @@ def rod_force_calculator(r_vectors):
                         (REPULSION_STRENGTH_WALL*((ri[2] - A)/DEBYE_LENGTH_WALL + 1)*
                          np.exp(-1.*(ri[2] - A)/DEBYE_LENGTH_WALL)/ \
                          ((ri[2] - A)**2))])
+
 	# Use a Yukawa potential for blob-blob repulsion
         for l in range(k): 
 	  for j in range(Nblobs_per_body):
@@ -390,11 +365,9 @@ def rod_force_calculator(r_vectors):
 	    repulsion[3*k:3*(k+1)] += np.array(-rep_blobs)
 	    repulsion[3*l:3*(l+1)] += np.array(rep_blobs)
 	    
-      repulsion[3*k:3*(k+1)] = repulsion[3*k:3*(k+1)] + gravity
-      
+      repulsion[3*k:3*(k+1)] = repulsion[3*k:3*(k+1)] + gravity     
   
   return repulsion
-
 
 
 def rod_torque_calculator(r_vectors,rotation_matrix):
@@ -537,17 +510,15 @@ def rod_check_function(locations,orientations,initial_configuration):
 	raw_input()
         return False
   return True
-  
+ 
 
 def slip_velocity(r_vectors,locations):
   '''
   Function that returns the slip velocity on each blob.
   '''
-  ## Forces
-  #return slip_velocity_extensile_rod(r_vectors)
+  # return slip_velocity_extensile_rod(r_vectors)
   return slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations)
-  # Dipoles of Forces
-  #return slip_velocity_extensile_rod_dipoles(locations, orientations)
+
 
 def slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations):
   '''
@@ -586,30 +557,21 @@ def slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations):
     axis = axis / np.sqrt(np.dot(axis, axis))
     if resolution ==0:    
      lower_bound = length_rod/2.0 - 0.7 -0.0001
-     #lower_bound = length_rod/2.0 - A -0.0001
+     # lower_bound = length_rod/2.0 - A -0.0001
     else:
-     lower_bound = length_rod/2.0 - 0.7 -0.0001
-     
+     lower_bound = length_rod/2.0 - 0.7 -0.0001     
     upper_bound = length_rod/2.0
-    #print "lower_bound = ", lower_bound
-    #print "upper_bound = ", upper_bound
-    #print "axis = ", axis
-    #print "length_rod = ", length_rod
+
     # Create slip  
     slip_blob = []
     for i in range(number_of_blobs):
       if Nblobs_covering_ends>0 and i>=number_of_blobs-2*Nblobs_covering_ends:
-	#print "i = ",i
 	slip_blob = [0., 0., 0.]
       else:
 	dist_COM_along_axis = np.dot(r_vectors[k][i]-locations[k], axis)
-	if(dist_COM_along_axis >lower_bound) and \
-	  (dist_COM_along_axis <=upper_bound):
-	  #print "i, dist_COM_along_axis = ",i, dist_COM_along_axis
+	if(dist_COM_along_axis >lower_bound) and (dist_COM_along_axis <=upper_bound):
 	  slip_blob = -speed * axis
-	elif(dist_COM_along_axis <-lower_bound) and \
-	  (dist_COM_along_axis >=-upper_bound):
-	  #print "i, dist_COM_along_axis = ",i, dist_COM_along_axis
+	elif(dist_COM_along_axis <-lower_bound) and (dist_COM_along_axis >=-upper_bound):
 	  slip_blob = speed * axis
 	else:
 	  slip_blob = [0., 0., 0.]
@@ -626,26 +588,16 @@ def slip_velocity_extensile_rod(r_vectors):
   are equispaced.
   In this version the slip is constant. 
   '''
-
-  # Slip speed
-  #speed = -1.0
-  # random slip
-  
-  
   slip = []
   for k in range(len(r_vectors)):
     # Get rod orientation
     number_of_blobs = len(r_vectors[k])
     axis = r_vectors[k][number_of_blobs-1] - r_vectors[k][0]
-    # random slip direction 
-    #axis = 2.0*np.random.random(3) - 1.0
     axis = axis / np.sqrt(np.dot(axis, axis))
 
-    # Create slip
-  
+    # Create slip 
     slip_blob = []
     for i in range(number_of_blobs):
-      #speed = 2.0*np.random.random() - 1.0
       if(i < number_of_blobs / 2):
 	slip_blob = speed * axis
       elif(i > (number_of_blobs / 2)):
@@ -657,8 +609,6 @@ def slip_velocity_extensile_rod(r_vectors):
       slip.append(slip_blob[0])
       slip.append(slip_blob[1])
       slip.append(slip_blob[2])
-
-
   return slip
 
 
@@ -671,7 +621,6 @@ def resistance_blobs(r_vectors):
   r_vec_for_mob = []
   for k in range(len(r_vectors)):
     r_vec_for_mob += r_vectors[k]
-
   mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
 
   # Resistance blobs
@@ -689,16 +638,13 @@ def mobility_blobs(locations, orientations):
   for k in range(len(locations)):
     r_vec_for_mob += get_rod_r_vectors(locations[k], orientations[k])
 
-
-
   mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
-
   return mobility
   
   
 def matrices_for_GMRES_iteration(locations, orientations, initial_configuration):
   '''
-  
+  Return matrices used by the GMRES solver.
   '''
   
   # Get vectors
@@ -761,51 +707,35 @@ def matrices_for_GMRES_iteration(locations, orientations, initial_configuration)
 
 def matrices_for_direct_iteration(locations, orientations, initial_configuration):
   '''
-  
+  Return matrices used by the direct solver.
   '''
-  
   # Get vectors
   r_vectors = []
   for k in range(len(locations)):
-    r_vectors.append(get_r_vectors(locations[k], orientations[k],initial_configuration))
-    
+    r_vectors.append(get_r_vectors(locations[k], orientations[k],initial_configuration))    
   rotation_matrix = calc_rot_matrix(r_vectors, locations)
   
-
   return (r_vectors, rotation_matrix)
   
   
 def mobility_vector_prod(r_vectors, vector):
   '''
-  This function compute the mobility matrix at the blob level
-  '''
-  
+  This function compute the product M*F with the obility matrix 
+  defined at the blob level.
+  ''' 
   # Blobs mobility
   r_vec_for_mob = []
   for k in range(len(r_vectors)):
     r_vec_for_mob += r_vectors[k]
-
-
-
-  #res1 = mb.boosted_mobility_vector_product(r_vec_for_mob, ETA, A,vector)
-  #res2 = mb.single_wall_mobility_times_force_pycuda(r_vec_for_mob, vector, ETA, A)
-  
-  #print "np.linalg.norm(C++-CUDA) = "
-  #print np.linalg.norm(res1-res2)
-  #raw_input()
-  
-  res = mb.single_wall_mobility_times_force_pycuda(r_vec_for_mob, vector, ETA, A)
-
-  #res = mb.single_wall_mobility_times_force_pycuda_single(r_vec_for_mob, vector, ETA, A)
-
+ 
+  res = mb.single_wall_mobility_trans_times_force_pycuda(r_vec_for_mob, vector, ETA, A)
   return res
 
 
 def K_matrix_T_vector_prod(r_vectors, rotation_matrix, lambda_slip):
   '''
-  Compute the K^T matrix,  this matrix transport the information from the level of
-  describtion of the blobs to the level of describtion of the 
-  body.
+  Compute the K^T matrix,  this matrix transport the information from the 
+  level of describtion of the blobs to the level of describtion of the body.
   Then perform the operation: K^*\cdot lambda_slip
   '''
 
@@ -818,34 +748,23 @@ def K_matrix_T_vector_prod(r_vectors, rotation_matrix, lambda_slip):
   force_slip = np.zeros(6*Nbody)
   
   for k in range(Nbody):
-       #force_slip[3*k:3*(k+1)] =\
-	      #np.dot(J_tot[:,6*k:6*k+3].T,\
-		     #lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
-       force_slip[3*k:3*(k+1)] =\
-	      np.dot(J_trans.T,\
-		     lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])	     
-       #force_slip[3*Nbody+3*k:3*Nbody+3*(k+1)] =\
-	      #np.dot(J_tot[:,6*k+3:6*(k+1)].T,\
-		     #lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
-       force_slip[3*Nbody+3*k:3*Nbody+3*(k+1)] =\
-	      np.dot(rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,0:3].T,\
-		     lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
+    force_slip[3*k:3*(k+1)] =\
+        np.dot(J_trans.T,\
+                 lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])	     
+    force_slip[3*Nbody+3*k:3*Nbody+3*(k+1)] =\
+        np.dot(rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,0:3].T,\
+                 lambda_slip[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body])
   return force_slip
 
 def K_matrix_vector_prod(r_vectors, rotation_matrix, vel_body):
   '''
-  Compute the K matrix,  this matrix transport the information from the level of
-  describtion of the body to the level of describtion of the 
-  blobs.
+  Compute the K matrix,  this matrix transport the information from the 
+  level of describtion of the body to the level of describtion of the blobs.
   Then perform the operation: K\cdot vel_body
-  '''
-  
-
+  ''' 
   Nbody = len(r_vectors)
   Nblobs_per_body = len(r_vectors[0])
-  J_trans = np.concatenate([np.identity(3) for \
-                     _ in range(Nblobs_per_body)])
-
+  J_trans = np.concatenate([np.identity(3) for _ in range(Nblobs_per_body)])
   
   vel_blobs = np.zeros(3*Nbody*Nblobs_per_body)
   for k in range(Nbody):
@@ -858,17 +777,13 @@ def K_matrix_vector_prod(r_vectors, rotation_matrix, vel_body):
   
 def K_matrix(r_vectors, rotation_matrix):
   '''
-  Compute the K matrix,  this matrix transport the information from the level of
-  describtion of the body to the level of describtion of the 
-  blobs.
+  Compute the K matrix,  this matrix transport the information from the 
+  level of describtion of the body to the level of describtion of the blobs.
   '''
-  
-
   Nbodies = len(r_vectors)
   Nblobs_per_body = len(r_vectors[0])
   J_tot = np.zeros((3*Nblobs_per_body*Nbodies,6*Nbodies))
-  J = np.concatenate([np.identity(3) for \
-                     _ in range(Nblobs_per_body)])
+  J = np.concatenate([np.identity(3) for _ in range(Nblobs_per_body)])
   for k in range(Nbodies):
     J_tot[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*k:3*(k+1)] = J
     J_tot[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,3*Nbodies+3*k:3*Nbodies+3*(k+1)] = \
@@ -883,9 +798,7 @@ def K_matrix(r_vectors, rotation_matrix):
 def linear_operator_rigid(vector, r_vectors, rotation_matrix, Nbody, Ncomp_blobs):
   '''
   Return the action of the linear operator of the rigid body on vector v
-  '''
-
-  
+  ''' 
   res = np.zeros(Ncomp_blobs + 6*Nbody)
   
   res[0:Ncomp_blobs] = \
@@ -910,20 +823,15 @@ def preconditioner_gmres(vector, K_matrix, mob_chol_blobs, self_mob_body):
 
   for k in range(Nbody):
     # 1)Solve M*Lambda_tilde = slip
-
     mobility_chol = mob_chol_blobs[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body,0:3*Nblobs_per_body]
-
-    lambda_tilde = -sla.cho_solve((mobility_chol,True),\
-                                 vector[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body])
+    lambda_tilde = -sla.cho_solve((mobility_chol,True), vector[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body])
     
     # 2) Compute rigid body velocity Y_tilde
     total_mobility = self_mob_body[6*k:6*(k+1),0:6]
-    my_K_matrix = K_matrix[0:3*Nblobs_per_body,6*k:6*(k+1)]
-   
+    my_K_matrix = K_matrix[0:3*Nblobs_per_body,6*k:6*(k+1)]  
       
     my_force_torque = np.concatenate([vector[Ncomp_blobs+k*3:Ncomp_blobs+(k+1)*3],\
                                      vector[Ncomp_blobs+3*Nbody+k*3:Ncomp_blobs+3*Nbody+(k+1)*3] ])
- 
     
     product = -np.dot( total_mobility, my_force_torque\
                                      - np.dot(my_K_matrix.T,lambda_tilde) )
@@ -932,10 +840,9 @@ def preconditioner_gmres(vector, K_matrix, mob_chol_blobs, self_mob_body):
     res[Ncomp_blobs+3*Nbody+k*3:Ncomp_blobs+3*Nbody+(k+1)*3]=product[3:6]
     
     # Only for python 2.7
-    #product_compatible = np.hstack(product)
-    #res[Ncomp_blobs+k*3:Ncomp_blobs+(k+1)*3]=product_compatible[0:3]
-    #res[Ncomp_blobs+3*Nbody+k*3:Ncomp_blobs+3*Nbody+(k+1)*3]=product_compatible[3:6]
-            
+    # product_compatible = np.hstack(product)
+    # res[Ncomp_blobs+k*3:Ncomp_blobs+(k+1)*3]=product_compatible[0:3]
+    # res[Ncomp_blobs+3*Nbody+k*3:Ncomp_blobs+3*Nbody+(k+1)*3]=product_compatible[3:6]            
 
     # 3) Solve M*Lamda_tilde_2 = (slip + K*Y_tilde)
     res[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] = \
@@ -943,12 +850,10 @@ def preconditioner_gmres(vector, K_matrix, mob_chol_blobs, self_mob_body):
                                vector[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] \
                              + np.dot(my_K_matrix,product) )
     # Only for python 2.7                       
-    #res[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] = \
-                          #np.hstack(sla.cho_solve( (mobility_chol,True),\
-                               #vector[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] \
-                             #+ np.dot(J_rot_combined,product) ))                      
-
-
+    # res[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] = \
+    # np.hstack(sla.cho_solve( (mobility_chol,True),\
+    # vector[k*3*Nblobs_per_body:(k+1)*3*Nblobs_per_body] \
+    # + np.dot(J_rot_combined,product) ))                      
   
   return res
 
@@ -1041,17 +946,17 @@ if __name__ == '__main__':
     choice_solver = 2  
 
   quaternion_integrator = QuaternionIntegratorGMRES(rod_mobility,
-                                               initial_orientation, 
-                                               rod_torque_calculator, 
-                                               has_location=True,
-                                               initial_location=initial_location,
-                                               force_calculator=rod_force_calculator,
-                                               slip_velocity=slip_velocity,
-                                               resistance_blobs=resistance_blobs,
-                                               mobility_blobs=mobility_blobs,
-                                               mobility_vector_prod=mobility_vector_prod,
-                                               blob_vel = K_matrix_vector_prod,
-                                               force_slip = K_matrix_T_vector_prod)
+                                                    initial_orientation, 
+                                                    rod_torque_calculator, 
+                                                    has_location=True,
+                                                    initial_location=initial_location,
+                                                    force_calculator=rod_force_calculator,
+                                                    slip_velocity=slip_velocity,
+                                                    resistance_blobs=resistance_blobs,
+                                                    mobility_blobs=mobility_blobs,
+                                                    mobility_vector_prod=mobility_vector_prod,
+                                                    blob_vel = K_matrix_vector_prod,
+                                                    force_slip = K_matrix_T_vector_prod)
   quaternion_integrator.kT = KT
   quaternion_integrator.A = A
   quaternion_integrator.Nrods = Nrods
