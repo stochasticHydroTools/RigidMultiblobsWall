@@ -49,13 +49,9 @@ if shape == 'rod':
     A = 0.183228708092682 # To Match true velocities with Rh = 0.1623
     Nblobs_per_rod = 14
   elif resolution == 1:
-    #A =  0.042116364993415 # To match true cylinder with a/s = 0.26515
-    #Nblobs_per_rod = 96
     A =  0.0742 # To match true cylinder with a/s = 0.5, Rh=0.1623
     Nblobs_per_rod =86
   elif resolution == 2:
-    #A = 0.021508896861336 # To match true cylinder with a/s = 0.25793
-    #Nblobs_per_rod = 374
     A =  0.0402 # To match true cylinder with a/s = 0.5, Rh=0.1623
     Nblobs_per_rod = 324
 elif shape == 'shell':
@@ -1034,7 +1030,6 @@ if __name__ == '__main__':
   else:
     raise Exception('shape should be rod or shell.')    
 
- 
   print "Nrods = ", Nrods
   print "Nblobs = ", Nblobs
   
@@ -1055,8 +1050,6 @@ if __name__ == '__main__':
                                                resistance_blobs=resistance_blobs,
                                                mobility_blobs=mobility_blobs,
                                                mobility_vector_prod=mobility_vector_prod,
-                                               #linear_operator = linear_operator_rigid,
-                                               #get_vectors = get_rod_r_vectors,
                                                blob_vel = K_matrix_vector_prod,
                                                force_slip = K_matrix_T_vector_prod)
   quaternion_integrator.kT = KT
@@ -1084,11 +1077,10 @@ if __name__ == '__main__':
       trajectory_dat_name = 'rod-trajectory-dt-%g-N-%d-scheme-%s-g-%s.txt' % (dt, n_steps, scheme, args.gravity_factor)
       return trajectory_dat_name
 
-  data_file = os.path.join(
-    DATA_DIR, 'data', generate_trajectory_name(args.scheme))
+  data_file = os.path.join(DATA_DIR, 'data', generate_trajectory_name(args.scheme))
   write_trajectory_to_txt(data_file, trajectory, params)
 
-  # First check that the directory exists.  If not, create it.
+  # First check that the directory exists. If not, create it.
   dir_name = os.path.dirname(data_file)
   if not os.path.isdir(dir_name):
      os.mkdir(dir_name)
@@ -1099,7 +1091,7 @@ if __name__ == '__main__':
     for key, value in params.items():
       f.writelines(['%s: %s \n' % (key, value)])
     f.write('Trajectory data:\n')
-    f.write('Location, Orientation, Velocity, Rotation:\n')
+    f.write('Location, Orientation:\n')
 
      # Current location/orientation is the state at which velocities
      # and rotations are computed
@@ -1107,41 +1099,24 @@ if __name__ == '__main__':
     current_orientation = initial_orientation
 
     start_time = time.time()  
-    for k in range(n_steps):
-      
-      
-      # Fixman step and bin result.
+    for k in range(n_steps):           
+      # Step and bin result.
       if args.scheme == 'FIXMAN':
         quaternion_integrator.fixman_time_step(dt)
       elif args.scheme == 'RFD':
         quaternion_integrator.rfd_time_step(dt)
       elif args.scheme == 'EM':
-        # EM step and bin result.
         quaternion_integrator.additive_em_time_step(dt)
       else:
         raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
-      
-      
-
+           
       for l in range(len(initial_location)):
-	#veltot = quaternion_integrator.veltot[l]
-	#omegatot = quaternion_integrator.omegatot[l]
 	my_orientation = current_orientation[l].entries
-	mob_coeffs = quaternion_integrator.mob_coeff[l]
-	#f.write('%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n' % (
-	f.write('%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s \n' % (
-	  current_location[l][0], current_location[l][1], current_location[l][2], \
-	  my_orientation[0], my_orientation[1], my_orientation[2], my_orientation[3],\
-	  mob_coeffs[0][0], mob_coeffs[0][4],\
-	  mob_coeffs[1][1], mob_coeffs[1][3],\
-	  mob_coeffs[2][2], mob_coeffs[3][3],\
-	  mob_coeffs[4][4], mob_coeffs[5][5] ))
-	  #current_location[l][0], current_location[l][1], current_location[l][2], \
-	  #my_orientation[0], my_orientation[1], my_orientation[2], my_orientation[3],\
-	  #veltot[0], veltot[1], veltot[2],\
-	  #omegatot[0], omegatot[1], omegatot[2]))
-       
-       # Update positions and orientations
+	f.write('%s, %s, %s, %s, %s, %s, %s \n' % (
+            current_location[l][0], current_location[l][1], current_location[l][2], \
+              my_orientation[0], my_orientation[1], my_orientation[2], my_orientation[3]))
+                
+      # Update positions and orientations
       current_location = []
       current_orientation = []
       for l in range(len(initial_location)):
@@ -1169,10 +1144,6 @@ if __name__ == '__main__':
   else:
     print 'Finished timestepping. Total Time: %.2f seconds.' %  float(elapsed_time)
   print 'Integrator Rejection rate: %s' % (float(quaternion_integrator.rejections) / float(quaternion_integrator.rejections + n_steps))
-
-
-  #flog.close()
-
 
 
   if args.profile:
