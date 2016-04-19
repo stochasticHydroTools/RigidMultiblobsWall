@@ -944,7 +944,7 @@ if __name__ == '__main__':
   quaternion_integrator.linear_operator = linear_operator_rigid 
   quaternion_integrator.precond = preconditioner_gmres  
   quaternion_integrator.get_vectors = get_r_vectors
-  quaternion_integrator.matrices_for_GMRES_ite = matrices_for_GMRES_iteration_np
+  quaternion_integrator.matrices_for_GMRES_ite = matrices_for_GMRES_iteration
   quaternion_integrator.matrices_for_direct_ite = matrices_for_direct_iteration
   quaternion_integrator.first_guess = np.zeros(Nblobs*3 + Nrods*6)
   quaternion_integrator.initial_config = initial_configuration
