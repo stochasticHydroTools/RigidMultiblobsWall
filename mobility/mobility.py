@@ -79,9 +79,9 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
   Same as single wall fluid mobility, but boosted into C++ for 
   a speedup. Must compile mobility_ext.cc before this will work 
   (use Makefile).
-  '''
+  ''' 
   num_particles = len(r_vectors)
-  fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
+  fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
   me.RPY_single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
   return fluid_mobility
 

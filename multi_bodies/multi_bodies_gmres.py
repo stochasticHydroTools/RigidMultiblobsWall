@@ -92,7 +92,7 @@ ETA = 1e-3
 # Volume is ~1.1781 um^3. 
 TOTAL_MASS = 0*1.1781*0.0000000002*(9.8*1.e6)
 M = [TOTAL_MASS/float(Nblobs_per_rod) for _ in range(Nblobs_per_rod)]
-KT = 0.0*0.1*1.3806488e-5# 300.*1.3806488e-5  # T = 300K
+KT = 1.0*0.1*1.3806488e-5 # 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
 REPULSION_STRENGTH_WALL = 0.0*20 * 300.*1.3806488e-5 #KT # 7.5*....
@@ -128,15 +128,7 @@ def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
   Here location is the dereferenced list with 3 entries.
   '''  
   # Blobs mobility
-  if 1:
-    if len(r_vectors) == 1: 
-      r_vec_for_mob = r_vectors[0]
-    else: 
-      r_vec_for_mob = []
-      for k in range(len(r_vectors)):
-        r_vec_for_mob += r_vectors[k]
-  else:
-    r_vec_for_mob = np.reshape(r_vectors, len(r_vectors) * len(r_vectors[0]))
+  r_vec_for_mob = np.reshape(r_vectors, (len(r_vectors) * len(r_vectors[0]), 3)) 
   mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
 
   # K matrix
@@ -251,11 +243,9 @@ def get_r_vectors(location, orientation, initial_configuration):
   Rotates the frame config of one body
   ''' 
   rotation_matrix = orientation.rotation_matrix()
-  rotated_configuration = []
-
-  for vec in initial_configuration:
-    rotated_configuration.append(np.dot(rotation_matrix, vec) + np.array(location))
-    
+  rotated_configuration = np.empty([len(initial_configuration), 3])
+  for i, vec in enumerate(initial_configuration):
+    rotated_configuration[i] = np.dot(rotation_matrix, vec) + np.array(location)
   return rotated_configuration
 
 
@@ -710,11 +700,11 @@ def matrices_for_direct_iteration(locations, orientations, initial_configuration
   Return matrices used by the direct solver.
   '''
   # Get vectors
-  r_vectors = []
+  r_vectors = np.empty([len(locations), len(initial_configuration), 3])
   for k in range(len(locations)):
-    r_vectors.append(get_r_vectors(locations[k], orientations[k],initial_configuration))    
+    r_vectors[k] = get_r_vectors(locations[k], orientations[k],initial_configuration)
+
   rotation_matrix = calc_rot_matrix(r_vectors, locations)
-  
   return (r_vectors, rotation_matrix)
   
   
@@ -884,6 +874,8 @@ if __name__ == '__main__':
                       'heavy-masses-1, heavy-masses-2, heavy-masses-3 etc.')
   parser.add_argument('--profile', dest='profile', type=bool, default=False,
                       help='True or False: Profile this run or not.')
+
+  # np.random.seed(1)
 
   args=parser.parse_args()
   if args.profile:

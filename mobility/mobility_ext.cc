@@ -345,10 +345,11 @@ void SingleWallFluidMobilityCorrection(bp::list r_vectors,
 }
 
 
-void RPYSingleWallFluidMobility(bp::list r_vectors, 
-                             double eta,
-                             double a, int num_particles,
-                             bp::numeric::array mobility) {
+void RPYSingleWallFluidMobility(/*bp::list r_vectors,*/
+				bp::numeric::array r_vectors,
+				double eta,
+				double a, int num_particles,
+				bp::numeric::array mobility) {
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
@@ -361,8 +362,8 @@ void RPYSingleWallFluidMobility(bp::list r_vectors,
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
     for (int k = j+1; k < num_particles; ++k) {
       // Here notation is based on appendix C of the Swan and Brady paper:
-      //  'Simulation of hydrodynamically interacting particles near a no-slip
-      //   boundary.'
+      // 'Simulation of hydrodynamically interacting particles near a no-slip
+      // boundary.'
       bp::numeric::array  r_vector_2 = bp::extract<bp::numeric::array>(r_vectors[k]);
       h = bp::extract<double>(r_vector_2[2]);
       for (int l = 0; l < 3; ++l) {
