@@ -43,8 +43,6 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 resolution = 1
 shape = 'rod'   # 'rod' or 'shell'
 
-# Parameters.  Units are um, s, mg.
-
 # TO ADD AN IF STATEMENT TO CHOSE BETWEEN SHELLS AND CYLINDERS
 if shape == 'rod':
   if resolution == 0:
@@ -77,7 +75,8 @@ elif shape == 'shell':
   elif resolution == 5: 
     A = 0.007783085222670 # 642 blobs
     Nblobs_per_rod = 2562
-  
+
+# Parameters.  Units are um, s, mg.  
 # Diameter of the blobs
 DIAM_BLOB = 2.0*A  
 # Geometric diameter of the rod
@@ -112,23 +111,7 @@ def rod_mobility(r_vectors, rotation_matrix):
   Calculate the force and torque mobility for the
   rod.  Here location is the cross point.
   '''
-
   return force_and_torque_rod_mobility(r_vectors, rotation_matrix)
-
-
-#def rod_mobility_at_arbitrary_point(locations, orientations, point):
-  #'''
-  #Calculate the force and torque mobility for the
-  #rod.  Here location is the cross point, but point is 
-  #some other arbitrary point.  
-
-  #The returned mobility is the (force, torque) -> (velocity, angular
-  #velocity) mobility for forces applied to <point>, torques about
-  #<point>, and the resulting velocity of <point>
-  #'''
-  #r_vectors = get_r_vectors(locations[0], orientations[0])
-  #return force_and_torque_rod_mobility(r_vectors, point)
-
 
 def force_and_torque_rod_mobility(r_vectors, rotation_matrix):
   '''
