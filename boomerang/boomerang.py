@@ -471,12 +471,12 @@ if __name__ == '__main__':
   initial_location = [[0., 0., 2.]]
   initial_orientation = [Quaternion([1., 0., 0., 0.])]
   quaternion_integrator = QuaternionIntegrator(boomerang_mobility,
-                                           initial_orientation, 
-                                           boomerang_torque_calculator, 
-                                           has_location=True,
-                                           initial_location=initial_location,
-                                           force_calculator=
-                                           boomerang_force_calculator)
+                                               initial_orientation, 
+                                               boomerang_torque_calculator, 
+                                               has_location=True,
+                                               initial_location=initial_location,
+                                               force_calculator=
+                                               boomerang_force_calculator)
   quaternion_integrator.kT = KT
   quaternion_integrator.check_function = boomerang_check_function
 
