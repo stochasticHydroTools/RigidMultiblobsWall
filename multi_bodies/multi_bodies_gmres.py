@@ -294,7 +294,6 @@ def create_initial_configuration_lattice(Nrods,dx,dy,z):
     for l in range(Ny):
       initial_location.append(np.array([float(k)*dx, float(l)*dy, z]))    
       initial_orientation.append(Quaternion([1.0, 0.0, 0.0, 0.0]))  
-  print "initial_location = ", initial_location
   return (initial_location, initial_orientation)
 
 
@@ -497,7 +496,6 @@ def rod_check_function(locations,orientations,initial_configuration):
       if r_vectors[k][i][2] < A:
 	print r_vectors[k][i][2]
 	print A
-	raw_input()
         return False
   return True
  
@@ -507,7 +505,8 @@ def slip_velocity(r_vectors,locations):
   Function that returns the slip velocity on each blob.
   '''
   # return slip_velocity_extensile_rod(r_vectors)
-  return slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations)
+  # return slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations)
+  return np.zeros(len(r_vectors)*len(r_vectors[0])*3)
 
 
 def slip_velocity_extensile_rod_resolved_distrib(r_vectors,locations):
@@ -839,7 +838,7 @@ def preconditioner_gmres(vector, K_matrix, mob_chol_blobs, self_mob_body):
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of Rod '
-                                   'particle with Fixman, EM, and RFD '
+                                   'particle with deterministic forward Euler '
                                    'schemes, and save trajectory.  Rod '
                                    'is affected by gravity and repulsed from '
                                    'the wall gently.')
@@ -849,8 +848,8 @@ if __name__ == '__main__':
                       help='Number of steps to take for runs.')
   parser.add_argument('-gfactor', dest='gravity_factor', type=float, default=1.0,
                       help='Factor to increase gravity by.')
-  parser.add_argument('-scheme', dest='scheme', type=str, default='RFD',
-                      help='Numerical Scheme to use: RFD, FIXMAN, or EM.')
+  parser.add_argument('-scheme', dest='scheme', type=str, default='EULER',
+                      help='Numerical Scheme to use: deterministic EULER.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -894,15 +893,11 @@ if __name__ == '__main__':
   print "Parameters for this run are: ", params
 
   
-  z = (0.225+A) + float(n_steps-1)*0.01
-  z = 0.711
-  z = 0.3553875
+  z = 2.0
   print "dz = ", z
   
-  initial_location = [np.array([0.0e0, 0.47385e0*0.5, z]),\
-                      np.array([0.47385*1.25, 0.0e0, z]),]	    
-  initial_orientation = [Quaternion([1.0, 0., 0., 0.]),\
-                         Quaternion([1.0, 0., 0., 0.]),]
+  initial_location = [np.array([0.0e0, 0.47385e0*0.5, z]), np.array([0.47385*1.25, 0.0e0, z]),]	    
+  initial_orientation = [Quaternion([1.0, 0., 0., 0.]),  Quaternion([1.0, 0., 0., 0.]),]
 
   Nrods =len(initial_location)   
   Nblobs = Nrods*Nblobs_per_rod
@@ -917,13 +912,6 @@ if __name__ == '__main__':
   print "Nrods = ", Nrods
   print "Nblobs = ", Nblobs
   
-  # If we don't include BM, choice_solver = GMRES (1)
-  # If we include BM, choice_solver = direct (2)
-  if KT==0.0:
-    choice_solver = 1
-  else:
-    choice_solver = 2  
-
   quaternion_integrator = QuaternionIntegratorGMRES(rod_mobility,
                                                     initial_orientation, 
                                                     rod_torque_calculator, 
@@ -948,7 +936,6 @@ if __name__ == '__main__':
   quaternion_integrator.matrices_for_direct_ite = matrices_for_direct_iteration
   quaternion_integrator.first_guess = np.zeros(Nblobs*3 + Nrods*6)
   quaternion_integrator.initial_config = initial_configuration
-  quaternion_integrator.solver = choice_solver
 
   trajectory = [[], []]
 
@@ -985,14 +972,7 @@ if __name__ == '__main__':
     start_time = time.time()  
     for k in range(n_steps):           
       # Step and bin result.
-      if args.scheme == 'FIXMAN':
-        quaternion_integrator.fixman_time_step(dt)
-      elif args.scheme == 'RFD':
-        quaternion_integrator.rfd_time_step(dt)
-      elif args.scheme == 'EM':
-        quaternion_integrator.additive_em_time_step(dt)
-      else:
-        raise Exception('scheme must be one of: RFD, FIXMAN, EM.')
+      quaternion_integrator.deterministic_forward_euler_time_step(dt)
            
       for l in range(len(initial_location)):
 	my_orientation = current_orientation[l].entries

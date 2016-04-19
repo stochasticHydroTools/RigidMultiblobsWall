@@ -312,10 +312,7 @@ class QuaternionIntegrator(object):
       new_orientation = []
       for i in range(self.dim):
         quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
-        new_orientation.append(quaternion_dt*self.orientation[i])
-        
-        # TO COMMENT, THIS IS ONLY FOR HYDRO TESTS
-        #new_orientation.append(self.orientation[i])
+        new_orientation.append(quaternion_dt*self.orientation[i])       
 
       # Check validity of new state.
       if self.has_location:
