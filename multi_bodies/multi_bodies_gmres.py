@@ -92,7 +92,7 @@ ETA = 1e-3
 # Volume is ~1.1781 um^3. 
 TOTAL_MASS = 0*1.1781*0.0000000002*(9.8*1.e6)
 M = [TOTAL_MASS/float(Nblobs_per_rod) for _ in range(Nblobs_per_rod)]
-KT = 1.0*0.1*1.3806488e-5 # 300.*1.3806488e-5  # T = 300K
+KT = 0.0*0.1*1.3806488e-5 # 300.*1.3806488e-5  # T = 300K
 
 # Made these up somewhat arbitrarily
 REPULSION_STRENGTH_WALL = 0.0*20 * 300.*1.3806488e-5 #KT # 7.5*....
@@ -638,29 +638,29 @@ def matrices_for_GMRES_iteration(locations, orientations, initial_configuration)
   '''
   
   # Get vectors
-  r_vectors = []
+  r_vectors = np.empty([len(locations), len(initial_configuration), 3])
   for k in range(len(locations)):
-    r_vectors.append(get_r_vectors(locations[k], orientations[k],initial_configuration))
-    
+    r_vectors[k] = get_r_vectors(locations[k], orientations[k],initial_configuration)
+
+  rotation_matrix = calc_rot_matrix(r_vectors, locations)
+
   Nbody = len(r_vectors)
   Nblobs_per_body = len(r_vectors[0])
   Ncomp_blobs = 3*Nbody*Nblobs_per_body
 
-  rotation_matrix = calc_rot_matrix(r_vectors, locations)
-  
+ 
   ### INSTEAD OF DEFINING J_tot = None, 
   ### I SHOULD SPECIFY ITS SIZE TO AVOID CONCATENATE SO MUCH
-  #J_tot = np.zeros((3*Nblobs_per_body,6*Nbody))
+  # J_tot = np.zeros((3*Nblobs_per_body,6*Nbody))
   self_mobility_body = np.zeros((6*Nbody,6))
   mobility_blobs_each_body = np.zeros((Ncomp_blobs,3*Nblobs_per_body))
   chol_mobility_blobs_each_body = np.zeros((Ncomp_blobs,3*Nblobs_per_body))
   
   J_tot = None
-  J = np.concatenate([np.identity(3) for \
-                     _ in range(Nblobs_per_body)])  
+  J = np.concatenate([np.identity(3) for _ in range(Nblobs_per_body)])  
+
   for k in range(Nbody):
     ### AVOID TOO MUCH CONCATENATION!
-
     J_rot_combined = np.concatenate([J, rotation_matrix[3*k*Nblobs_per_body:3*(k+1)*Nblobs_per_body,:]], axis=1)
 
     if J_tot is None:
@@ -668,7 +668,7 @@ def matrices_for_GMRES_iteration(locations, orientations, initial_configuration)
     else:
         J_tot=np.concatenate([J_tot, J_rot_combined], axis=1)
         
-    ## Mobilility with wall correction
+    # Mobilility with wall correction
     mobility = mb.boosted_single_wall_fluid_mobility(r_vectors[k], ETA, A)
     # Mobilility without wall
     #mobility = mb.boosted_infinite_fluid_mobility(r_vectors[k], ETA, A)
@@ -686,14 +686,8 @@ def matrices_for_GMRES_iteration(locations, orientations, initial_configuration)
                                         np.dot(resistance, \
                                                J_rot_combined)))
 
-
-			     
-
-    
-
   return (J_tot,self_mobility_body,chol_mobility_blobs_each_body,r_vectors, rotation_matrix)
-  
-  
+
 
 def matrices_for_direct_iteration(locations, orientations, initial_configuration):
   '''
@@ -714,10 +708,7 @@ def mobility_vector_prod(r_vectors, vector):
   defined at the blob level.
   ''' 
   # Blobs mobility
-  r_vec_for_mob = []
-  for k in range(len(r_vectors)):
-    r_vec_for_mob += r_vectors[k]
- 
+  r_vec_for_mob = np.reshape(r_vectors, (len(r_vectors) * len(r_vectors[0]), 3)) 
   res = mb.single_wall_mobility_trans_times_force_pycuda(r_vec_for_mob, vector, ETA, A)
   return res
 
@@ -953,7 +944,7 @@ if __name__ == '__main__':
   quaternion_integrator.linear_operator = linear_operator_rigid 
   quaternion_integrator.precond = preconditioner_gmres  
   quaternion_integrator.get_vectors = get_r_vectors
-  quaternion_integrator.matrices_for_GMRES_ite = matrices_for_GMRES_iteration
+  quaternion_integrator.matrices_for_GMRES_ite = matrices_for_GMRES_iteration_np
   quaternion_integrator.matrices_for_direct_ite = matrices_for_direct_iteration
   quaternion_integrator.first_guess = np.zeros(Nblobs*3 + Nrods*6)
   quaternion_integrator.initial_config = initial_configuration
