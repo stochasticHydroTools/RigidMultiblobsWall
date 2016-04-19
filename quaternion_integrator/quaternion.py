@@ -19,7 +19,10 @@ class Quaternion(object):
     phi. This will be used with phi = omega*dt or similar in the integrator.'''
     phi_norm = np.linalg.norm(phi)
     s = np.array([np.cos(phi_norm/2.)])
-    p = np.sin(phi_norm/2)*(phi/phi_norm)
+    if phi_norm != 0:
+      p = np.sin(phi_norm/2)*(phi/phi_norm)
+    else:
+      p = np.zeros(3)
     return cls(np.concatenate([s, p]))
 
     
