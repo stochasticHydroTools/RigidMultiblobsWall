@@ -5,7 +5,7 @@ sys.path.append('..')
 import time
 
 import mobility_ext as me
-import mobility_pycuda
+# import mobility_pycuda
 
 ETA = 1.0 # Viscosity
 
@@ -311,8 +311,8 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
     h = r_vectors[j][2]/a
     for l in range(3):
       fluid_mobility[j*3 + l][j*3 + l] += (1./(6.*np.pi*eta*a))*(
-          (l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
-          + (l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
+        (l != 2)*(-1./16.)*(9./h - 2./(h**3) + 1./(h**5))
+        + (l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
   return fluid_mobility
 
 
@@ -346,6 +346,17 @@ def rotne_prager_tensor(r_vectors, eta, a):
         fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = ((1./(6.*np.pi*eta*a))*
                                                       np.identity(3))
   return fluid_mobility
+
+
+def single_wall_fluid_mobility_product(r_vectors, vector, eta, a):
+  ''' Product (Mobility * vector). Mobility for particles near a wall.  
+  This uses the expression from the Swan and Brady paper for a finite 
+  size particle, as opposed to the Blake paper point particle result. 
+  '''
+  r = np.reshape(r_vectors, (len(r_vectors)*len(r_vectors[0]), 3))
+  mobility = single_wall_fluid_mobility(r, eta, a)
+  return np.dot(mobility, vector)
+
 
 def single_wall_self_mobility_with_rotation(location, eta, a):
   ''' 
