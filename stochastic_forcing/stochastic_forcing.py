@@ -144,7 +144,11 @@ def stochastic_forcing_lanczos(factor = 1.0,
                   free methods.
   
   Output:
+  The code returns 
+  (stochastic_forcing, iterations) 
+  with
   stochastic_forcing = (factor * M^{1/2} * z)
+  iterations = total number of iterations.
   '''
 
   # Define array dimension 
@@ -170,7 +174,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
   noise_old = np.zeros(dim) 
 
   # Iterate until convergence or max_iter
-  for i in range(max_iter):
+  for i in range(max_iter+1):
     # w = mobility * v[i]
     if mobility is None:
       w = mobility_mult(v[i])
@@ -233,12 +237,12 @@ def stochastic_forcing_lanczos(factor = 1.0,
 
       # Check convergence and return if difference < tolerance
       if diff_norm / noise_old_norm < tolerance:
-        return noise
+        return (noise, i)
           
     # Save noise to check convergence in the next iteration
     noise_old = np.copy(noise)
 
   # Return UNCONVERGED noise
-  return noise
+  return (noise, max_iter)
 
 
