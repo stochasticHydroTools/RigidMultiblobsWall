@@ -5,7 +5,7 @@ sys.path.append('..')
 import time
 
 import mobility_ext as me
-# import mobility_pycuda
+import mobility_pycuda
 
 ETA = 1.0 # Viscosity
 
@@ -104,12 +104,13 @@ def boosted_mobility_vector_product(r_vectors, eta, a, vector):
   Must compile mobility_ext.cc before this will work 
   (use Makefile).
   '''
-  num_particles = len(r_vectors)
   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
   ## WITH BOOST
-  vector_res = np.zeros(3*num_particles)
-  me.mobility_vector_product(r_vectors, eta, a, num_particles, vector, vector_res)
+  num_particles = r_vectors.size / 3
+  vector_res = np.zeros(r_vectors.size)
+  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3)) 
+  me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
   return vector_res
 
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
@@ -353,7 +354,7 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a):
   This uses the expression from the Swan and Brady paper for a finite 
   size particle, as opposed to the Blake paper point particle result. 
   '''
-  r = np.reshape(r_vectors, (len(r_vectors)*len(r_vectors[0]), 3))
+  r = np.reshape(r_vectors, (r_vectors.size / 3, 3))
   mobility = single_wall_fluid_mobility(r, eta, a)
   return np.dot(mobility, vector)
 

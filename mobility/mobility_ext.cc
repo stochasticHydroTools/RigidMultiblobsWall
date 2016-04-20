@@ -131,7 +131,7 @@ void MobilityVectorProduct_optimized(bp::list r_vectors,
 //////////////////////////////////////////////////////////////////////////////////////////
 /////////////// MOBILITY VECTOR PRODUCT TO BE OPTIMIZED /////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
-void MobilityVectorProduct(bp::list r_vectors, 
+void MobilityVectorProduct(bp::numeric::array r_vectors, 
 			   double eta,
 			   double a, int num_particles,
                            bp::numeric::array vector,
