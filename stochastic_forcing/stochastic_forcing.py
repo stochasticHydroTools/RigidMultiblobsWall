@@ -177,7 +177,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
   for i in range(max_iter+1):
     # w = mobility * v[i]
     if mobility is None:
-      w = mobility_mult(v[i])
+      w = np.reshape(mobility_mult(v[i]), dim)
     else:
       w = np.dot(mobility, v[i])
 
