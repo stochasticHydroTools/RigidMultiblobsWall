@@ -6,20 +6,22 @@ from pycuda.compiler import SourceModule
 
 
 mod = SourceModule("""
- 
-////////// UF //////////////////////////////////////////////////
+/*
+ mobilityUFRPY computes the 3x3 RPY mobility
+ between blobs i and j normalized with 8 pi eta a
+*/
 __device__ void mobilityUFRPY(double rx,
-			     double ry,
-			     double rz,
-			     double &Mxx,
-			     double &Mxy,
-			     double &Mxz,
-			     double &Myy,
-			     double &Myz,
-			     double &Mzz,
-			     int i,
-			     int j,
-                             double invaGPU){
+			      double ry,
+			      double rz,
+			      double &Mxx,
+			      double &Mxy,
+			      double &Mxz,
+			      double &Myy,
+			      double &Myz,
+			      double &Mzz,
+			      int i,
+			      int j,
+                              double invaGPU){
   
   double fourOverThree = 4.0 / 3.0;
 
@@ -119,6 +121,8 @@ __device__ void mobilityUFSingleWallCorrection(double rx,
     Mzz += fact1 + fact2 * ez*ez + fact3 * ez + fact4 * ez + fact5;         
   }
 }
+
+
 
 
 /*

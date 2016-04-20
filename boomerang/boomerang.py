@@ -98,11 +98,12 @@ def force_and_torque_boomerang_mobility(r_vectors, location):
     boundary."
   Here location is the dereferenced list with 3 entries.
   '''  
-  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  # mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
+  mobility = mb.single_wall_fluid_mobility(r_vectors, ETA, A)
   rotation_matrix = calc_rot_matrix(r_vectors, location)
   J = np.concatenate([np.identity(3) for _ in range(len(r_vectors))])
   J_rot_combined = np.concatenate([J, rotation_matrix], axis=1)
-  total_mobility = np.linalg.inv(np.dot(J_rot_combined.T,
+  total_mobility = np.linalg.pinv(np.dot(J_rot_combined.T,
                                         np.dot(np.linalg.inv(mobility),
                                                J_rot_combined)))
   return total_mobility
@@ -184,6 +185,7 @@ def get_boomerang_r_vectors_15(location, orientation):
   gives a distance of 2.1 from the tip (last blob + 0.25) to the edge of 
   the cross point blob. (2.1)/7. = 0.3
   '''
+
   initial_configuration = [np.array([2.1, 0., 0.]),
                            np.array([1.8, 0., 0.]),
                            np.array([1.5, 0., 0.]),
@@ -201,10 +203,9 @@ def get_boomerang_r_vectors_15(location, orientation):
                            np.array([0., 2.1, 0.])]
 
   rotation_matrix = orientation.rotation_matrix()
-  rotated_configuration = []
-  for vec in initial_configuration:
-    rotated_configuration.append(np.dot(rotation_matrix, vec)
-                                 + np.array(location))
+  rotated_configuration = np.empty([len(initial_configuration), 3])
+  for i, vec in enumerate(initial_configuration):
+    rotated_configuration[i] = np.dot(rotation_matrix, vec) + np.array(location)
 
   return rotated_configuration
 

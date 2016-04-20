@@ -26,10 +26,15 @@ def get_r_vectors(location, orientation):
                            np.array([0., 1.8, 0.]),
                            np.array([0., 2.1, 0.])]
 
-  for i in range(len(initial_configuration)):
-      initial_configuration[i] += location
+  # rotation_matrix = orientation.rotation_matrix()
+  rotated_configuration = np.empty([len(initial_configuration), 3])
+  for i, vec in enumerate(initial_configuration):
+    rotated_configuration[i] = vec + np.array(location)
+
+  # for i in range(len(initial_configuration)):
+  # initial_configuration[i] += location
   
-  return initial_configuration 
+  return rotated_configuration
 
 
 

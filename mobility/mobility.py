@@ -253,6 +253,22 @@ def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, \
   
 
 
+def single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+
+  velocities = mobility_pycuda.single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a)
+  
+  return velocities
+
+
 def single_wall_fluid_mobility(r_vectors, eta, a):
   ''' Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
