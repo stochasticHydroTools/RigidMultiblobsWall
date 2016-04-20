@@ -40,8 +40,8 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):
 if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
   os.mkdir(os.path.join(os.getcwd(), 'logs'))
 
-resolution = 0
-shape = 'rod'   # 'rod' or 'shell'
+resolution = 2
+shape = 'boomerang'   # 'rod', 'shell' or 'boomerang'
 
 # TO ADD AN IF STATEMENT TO CHOSE BETWEEN SHELLS AND CYLINDERS
 if shape == 'rod':
@@ -72,6 +72,9 @@ elif shape == 'shell':
   elif resolution == 5: 
     A = 0.007783085222670 # 642 blobs
     Nblobs_per_rod = 2562
+elif shape == 'boomerang':
+  A = 0.265*np.sqrt(3./2.)   # Radius of blobs in um
+  Nblobs_per_rod = 15
 
 # Parameters.  Units are um, s, mg.  
 # Diameter of the blobs
@@ -85,21 +88,21 @@ else:
  DIAM_ROD_EXCLU = DIAM_ROD_GEO + DIAM_BLOB  # Excluded volume Diameter of the blobs
 
 # Water. Pa s = kg/(m s) = mg/(um s)
-ETA = 1e-3  
+ETA = 8.9e-4
 
 
 # density of particle = 0.2 g/cm^3 = 0.0000000002 mg/um^3.  
 # Volume is ~1.1781 um^3. 
-TOTAL_MASS = 0*1.1781*0.0000000002*(9.8*1.e6)
+TOTAL_MASS = 1 * 1.1781 * 0.0000000002 * (9.8 * 1.e6)
 M = [TOTAL_MASS/float(Nblobs_per_rod) for _ in range(Nblobs_per_rod)]
-KT = 0.0*0.1*1.3806488e-5 # 300.*1.3806488e-5  # T = 300K
+KT = 0 * 300 * 1.3806488e-5 # T = 300K
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH_WALL = 0.0*20 * 300.*1.3806488e-5 #KT # 7.5*....
+REPULSION_STRENGTH_WALL = 7.5 * KT
 DEBYE_LENGTH_WALL = 0.5*A # 0.1*A
 
 # Made these up somewhat arbitrarily
-REPULSION_STRENGTH_BLOBS = 0.0*2. * 300.*1.3806488e-5 #KT
+REPULSION_STRENGTH_BLOBS = 7.5 * KT
 DEBYE_LENGTH_BLOBS = 0.005*A
 
 
@@ -202,41 +205,48 @@ def get_rod_initial_config(location, orientation):
 
   print 'filename', filename
   initial_configuration = []
-  k = 0
   with open(filename, 'r') as f:
-    for l in f:
+    for k, l in enumerate(f):
       if k > 0:
         initial_configuration.append(np.array([float(x) for x in l.split()]))        
-      else:
-        k = 1
-
   return initial_configuration
 
 def get_shell_initial_config(location, orientation):
   '''
   Depends on the resolution chosen
   ''' 
-
   folder_shells = 'Generated_shells/' 
   if resolution == 1:
     namefile = folder_shells + 'shell_3d_Nblob_12_radius_0_225.vertex'
   elif resolution == 2:
-    namefile = folder_shells +'shell_3d_Nblob_42_radius_0_225.vertex'
+    namefile = folder_shells + 'shell_3d_Nblob_42_radius_0_225.vertex'
   elif resolution == 3:
-    namefile = folder_shells +'shell_3d_Nblob_162_radius_0_225.vertex'    
+    namefile = folder_shells + 'shell_3d_Nblob_162_radius_0_225.vertex'    
   elif resolution == 4:
-    namefile = folder_shells +'shell_3d_Nblob_642_radius_0_225.vertex'    
+    namefile = folder_shells + 'shell_3d_Nblob_642_radius_0_225.vertex'    
   elif resolution == 5:
-    namefile = folder_shells +'shell_3d_Nblob_2562_radius_0_225.vertex'    
+    namefile = folder_shells + 'shell_3d_Nblob_2562_radius_0_225.vertex'    
   
+  initial_configuration = []    
   with open(namefile, 'r') as f:
-    k = 0
-    for l in f:
-      k = k+1
-      if k>1:
-        initial_configuration.append(np.array([float(x) for x in l.strip().split("\t")]))    
- 
+    for k, l in enumerate(f):
+      if k > 0:
+        initial_configuration.append(np.array([float(x) for x in l.split()]))    
   return initial_configuration
+
+def get_boomerang_initial_config(location, orientation):
+  '''
+  
+  ''' 
+  folder_boomerang = 'Generated_boomerang/' 
+  namefile = folder_boomerang + 'boomerang_3d_Nblob_15.vertex'
+  initial_configuration = []    
+  with open(namefile, 'r') as f:
+    for k, l in enumerate(f):
+      if k > 0:
+        initial_configuration.append(np.array([float(x) for x in l.split()]))    
+  return initial_configuration
+
 
 def get_r_vectors(location, orientation, initial_configuration):
   '''
@@ -896,8 +906,10 @@ if __name__ == '__main__':
   z = 2.0
   print "dz = ", z
   
-  initial_location = [np.array([0.0e0, 0.47385e0*0.5, z]), np.array([0.47385*1.25, 0.0e0, z]),]	    
-  initial_orientation = [Quaternion([1.0, 0., 0., 0.]),  Quaternion([1.0, 0., 0., 0.]),]
+  # initial_location = [np.array([0.0e0, 0.47385e0*0.5, z]), np.array([0.47385*1.25, 0.0e0, z]),]	    
+  # initial_orientation = [Quaternion([1.0, 0., 0., 0.]),  Quaternion([1.0, 0., 0., 0.]),]
+  initial_location = [np.array([0.0, 0.0, z])]	    
+  initial_orientation = [Quaternion([1.0, 0., 0., 0.])]
 
   Nrods =len(initial_location)   
   Nblobs = Nrods*Nblobs_per_rod
@@ -906,8 +918,10 @@ if __name__ == '__main__':
     initial_configuration = get_rod_initial_config(initial_location, initial_orientation)
   elif shape == 'shell':
     initial_configuration = get_shell_initial_config(initial_location, initial_orientation)
+  elif shape == 'boomerang':
+    initial_configuration = get_boomerang_initial_config(initial_location, initial_orientation)
   else:
-    raise Exception('shape should be rod or shell.')    
+    raise Exception('shape should be rod, shell or boomerang.')    
 
   print "Nrods = ", Nrods
   print "Nblobs = ", Nblobs
