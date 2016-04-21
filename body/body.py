@@ -1,5 +1,8 @@
 '''
-Small class to handle a single body.
+Small class to handle a single body. The notation follows
+loosely the paper Brownian dynamics of confined rigid
+bodies, Steven Delong et al. The Journal of Chemical
+Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
 import numpy as np
 from quaternion_integrator.quaternion import Quaternion 
@@ -8,24 +11,92 @@ class Body(object):
   '''
   Small class to handle a single body.
   '''  
-  def __init__(self, name, location, orientation, reference_configuration, a):
+  def __init__(self, location, orientation, reference_configuration, blob_radius):
     '''
     Constructor. Take arguments like ...
     '''
-    # Name a string or number
-    self.name = name
     # Location as np.array.shape = 3
     self.location = location
     # Orientation as Quaternion
     self.orientation = orientation
-    # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
-    # as np.array.shape = (Nblobs, 3) or np.array.shape = (Nblobs * 3)
-    self.reference_configuration = reference_configuration
     # Number of blobs
-    self.Nblobs = self.reference_configuration.size
+    self.Nblobs = reference_configuration.size / 3
+    # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
+    # and location = np.array[0, 0, 0]) as a np.array.shape = (Nblobs, 3) 
+    # or np.array.shape = (Nblobs * 3)
+    self.reference_configuration = np.reshape(reference_configuration, (self.Nblobs, 3))
     # Blob radius
-    self.a = a
-
+    self.blob_radius = blob_radius
+    # Name of body and type of body. A string or number
+    self.name = None
+    self.type = None
+    self.mobility_blobs = None
+    self.mobility_body = None
+    # Geometrix matrix K (see paper Delong et al. 2015).
+    self.K = None
+    self.rotation_matrix = None
     
   
+  def get_r_vectors(self):
+    '''
+    Return the coordinates of the blobs.
+    '''
+    rotation_matrix = self.orientation.rotation_matrix()
+    r_vectors = np.empty([self.Nblobs, 3])
+    for i, vec in enumerate(self.reference_configuration):
+      r_vectors[i] = np.dot(rotation_matrix, vec) + self.location
+    return r_vectors
+
+
+  def calc_rot_matrix(self):
+    ''' 
+    Calculate the matrix R, where the i-th 3x3 block of R gives
+    (R_i x) = -1 (r_i cross x).
+    R will be 3Nblobs by 3 (18 x 3). 
+    '''
+    rot_matrix = np.empty((self.Nblobs, 3, 3))
+    for k, vec in enumerate(self.reference_configuration):
+      # Create block
+      block = np.array([[0.0, vec[2], -1.0 * vec[1]],
+                        [-1.0 * vec[2], 0.0, vec[0]],
+                        [vec[1], -1.0 * vec[0], 0.0]])
+      # Assign block
+      rot_matrix[k] = block
+    return np.reshape(rot_matrix, (3*self.Nblobs, 3))
+
+
+  def calc_J_matrix(self):
+    '''
+    Returns a block matrix with dimensions (Nblobs, 1)
+    with each block being a 3x3 identity matrix.
+    '''
+    J = np.empty([self.Nblobs, 3, 3])
+    for i in range(self.Nblobs):
+      J[i] = np.eye(3)
+    return np.reshape(J, (3*self.Nblobs, 3))
+
+  def calc_K_matrix(self):
+    '''
+    Compute geometric matrix K
+    '''
+    return
+                     
+
+  def check_function(self, distance = None):
+    ''' 
+    Function to check that the body didn't cross the wall,
+    i.e., all its blobs have z > distance. Default distance is blob_radius.
+    '''
+    # Define distance
+    if not distance:
+      distance = self.blob_radius
+
+    # Get current configuration
+    r_vectors = self.get_r_vectors()
+
+    # Loop over blobs
+    for vec in r_vectors:
+      if vec[2] < distance:
+        return False
+    return True
 
