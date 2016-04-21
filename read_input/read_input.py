@@ -10,7 +10,9 @@ class ReadInput(object):
   '''
 
   def __init__(self, entries):
-    ''' Constructor, takes 4 entries = s, p1, p2, p3 as a numpy array. '''
+    ''' Construnctor takes the name of the input file '''
     self.entries = entries
+    self.inputfile = entries[0]
+
 
 
