@@ -30,8 +30,25 @@ class QuaternionIntegrator(object):
 
   def deterministic_forward_euler(self, dt): 
     ''' 
-    Take a time step of length dt using the 
-    deterministic forward Euler scheme. 
+    Take a time step of length dt using the deterministic forward Euler scheme. 
+    The function uses gmres to solve the rigid body equations.
+    ''' 
+    print 'Integrator starting' 
+    while True: 
+      # print 'bodies\n', self.bodies[0].reference_configuration
+      # Compute velocities 
+
+      # Update positions 
+
+      # Check positions if valid return 
+      return
+      
+
+
+  def deterministic_forward_euler_dense_algebra(self, dt): 
+    ''' 
+    Take a time step of length dt using the deterministic forward Euler scheme. 
+    The function uses dense algebra methods to solve the equations.
     ''' 
     print 'Integrator starting' 
     while True: 
