@@ -2,6 +2,8 @@ import argparse
 import numpy as np
 import sys
 sys.path.append('../')
+import subprocess
+import cPickle
 
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
@@ -27,7 +29,7 @@ if __name__ == '__main__':
 
   # Read input file
   read = read_input.ReadInput(input_file)
-  
+   
   # Set some variables for the simulation
   n_steps = read.n_steps 
   relaxation_steps = read.relaxation_steps
@@ -39,7 +41,20 @@ if __name__ == '__main__':
   scheme  = read.scheme 
   output_name = read.output_name 
   structure_names = read.structure_names
+  seed = read.seed
   
+  # Copy input file to output
+  subprocess.call(["cp", input_file, output_name + '.inputfile'])
+
+  # Set random generator state
+  if seed is not None:
+    with open(seed, 'rb') as f:
+      np.random.set_state(cPickle.load(f))
+  
+  # Save random generator state
+  with open(output_name + '.seed', 'wb') as f:
+    cPickle.dump(np.random.get_state(), f)
+
   # Create rigid bodies
   bodies = []
   for structure in structure_names:
@@ -58,17 +73,24 @@ if __name__ == '__main__':
   num_bodies = bodies.size
   num_blobs = sum([x.Nblobs for x in bodies])
 
-  # print '\n\n\n'
-  print 'num_of_body_types', num_of_body_type
-  print 'num_bodies', num_bodies
-  print 'num_blobs', num_blobs  
+
+  # Write initial configuration
+  # Write data to file, parameters first then trajectory.
+  # with open(data_file, 'w', 1) as f:
+    
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, 'deterministic_forward_euler')
+  integrator = QuaternionIntegrator(bodies, scheme)
+
+  # Loop over time steps
   for step in range(n_steps):
     print 'step = ', step
     # integrator.deterministic_forward_euler_time_step(dt)
     integrator.advance_time_step(dt)
   
+
+
+    
+
 
   print '# End'

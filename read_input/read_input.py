@@ -41,5 +41,7 @@ class ReadInput(object):
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
     self.structure_names = str.split(str(self.options.get('structure_names')))
+    self.seed = self.options.get('seed')
+    
     
     
