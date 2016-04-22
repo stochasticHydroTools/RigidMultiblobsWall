@@ -35,6 +35,12 @@ class Body(object):
     # Geometrix matrix K (see paper Delong et al. 2015).
     self.K = None
     self.rotation_matrix = None
+    # Some default functions
+    self.function_slip = self.default_none
+    self.function_force = self.default_none
+    self.function_torque = self.default_none
+    self.function_force_blobs = self.default_none
+    
     
   
   def get_r_vectors(self):
@@ -99,4 +105,37 @@ class Body(object):
       if vec[2] < distance:
         return False
     return True
+
+
+  def calc_slip(self):
+    '''
+    Return the slip on the blobs.
+    '''
+    return self.function_slip()
+
+
+  def calc_force(self):
+    '''
+    Return the force on the body.
+    '''
+    return self.function_force()
+
+
+  def calc_torque(self):
+    '''
+    Return the torque on the body.
+    '''
+    return self.function_torque()
+
+
+  def calc_force_blobs(self):
+    '''
+    Return the force on the blobs.
+    '''
+    return self.function_force_blobs()
+
+
+  def default_none(self):
+    return None
+
 
