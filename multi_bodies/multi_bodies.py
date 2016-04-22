@@ -32,7 +32,8 @@ if __name__ == '__main__':
    
   # Set some variables for the simulation
   n_steps = read.n_steps 
-  relaxation_steps = read.relaxation_steps
+  n_save = read.n_save
+  n_relaxation = read.n_relaxation
   dt = read.dt 
   eta = read.eta 
   g = read.g 
@@ -57,10 +58,12 @@ if __name__ == '__main__':
 
   # Create rigid bodies
   bodies = []
+  body_types = []
   for structure in structure_names:
-    print 'Creating structure', structure
+    print 'Creating structures = ', structure
     struct_ref_config = read_vertex_file.read_vertex_file(structure + '.vertex')
     struct_locations, struct_orientations = read_clones_file.read_clones_file(structure + '.clones')
+    body_types.append(len(struct_orientations))
     # Creat each body of tyoe structure
     for i in range(len(struct_orientations)):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
@@ -69,25 +72,42 @@ if __name__ == '__main__':
   bodies = np.array(bodies)
 
   # Set some more variables
-  num_of_body_type = len(structure_names)
+  num_of_body_types = len(structure_names)
   num_bodies = bodies.size
   num_blobs = sum([x.Nblobs for x in bodies])
 
-
-  # Write initial configuration
-  # Write data to file, parameters first then trajectory.
-  # with open(data_file, 'w', 1) as f:
-    
+  # Write bodies information
+  with open(output_name + '.bodies_info', 'w') as f:
+    f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
+    f.write('body_types         ' + str(body_types) + '\n')
+    f.write('num_bodies         ' + str(num_bodies) + '\n')
+    f.write('num_blobs          ' + str(num_blobs) + '\n')
 
   # Create integrator
   integrator = QuaternionIntegrator(bodies, scheme)
 
-  # Loop over time steps
-  for step in range(n_steps):
-    print 'step = ', step
-    # integrator.deterministic_forward_euler_time_step(dt)
-    integrator.advance_time_step(dt)
+  # Open file to save configuration
+  with open(output_name + '.bodies', 'w') as f:
+    # Loop over time steps
+    for step in range(-n_relaxation, n_steps):
+      # Save data if...
+      if (step % n_save) == 0 and step >= 0:
+        print 'step = ', step  
+        f.write(str(step * dt) + '\n') # The time
+        for b in bodies:
+          orientation = b.orientation.entries
+          f.write('%s %s %s %s %s %s %s\n' % (b.location[0], b.location[1], b.location[2], orientation[0], orientation[1], orientation[2], orientation[3]))
+      
+      # integrator.deterministic_forward_euler_time_step(dt)
+      integrator.advance_time_step(dt)
   
+    # Save final data if...
+    if ((step+1) % n_save) == 0 and step >= 0:
+      print 'step = ', step+1
+      f.write(str((step+1) * dt) + '\n') # The time
+      for b in bodies:
+        orientation = b.orientation.entries
+        f.write('%s %s %s %s %s %s %s\n' % (b.location[0], b.location[1], b.location[2], orientation[0], orientation[1], orientation[2], orientation[3]))
 
 
     

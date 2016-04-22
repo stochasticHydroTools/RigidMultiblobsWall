@@ -32,7 +32,8 @@ class ReadInput(object):
 
     # Set option to file or default values
     self.n_steps = int(self.options.get('n_steps') or 0)
-    self.relaxation_steps = int(self.options.get('relaxation_steps') or 0)
+    self.n_save = int(self.options.get('n_save') or 1)
+    self.n_relaxation = int(self.options.get('n_relaxation') or 0)
     self.dt = float(self.options.get('dt') or 0.0)
     self.eta = float(self.options.get('eta') or 1.0)
     self.g = float(self.options.get('g') or 1.0)

@@ -11,8 +11,7 @@ from quaternion import Quaternion
 class QuaternionIntegrator(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
-  '''
-  
+  '''  
   def __init__(self, bodies, scheme): 
     ''' 
     Init object 
@@ -33,7 +32,7 @@ class QuaternionIntegrator(object):
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses gmres to solve the rigid body equations.
     ''' 
-    print 'Integrator starting' 
+    print 'Integrator starting (gmres)' 
     while True: 
       # print 'bodies\n', self.bodies[0].reference_configuration
       # Compute velocities 
@@ -43,15 +42,18 @@ class QuaternionIntegrator(object):
       # Check positions if valid return 
       return
       
-
 
   def deterministic_forward_euler_dense_algebra(self, dt): 
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses dense algebra methods to solve the equations.
     ''' 
-    print 'Integrator starting' 
+    print 'Integrator starting (dense algebra)' 
     while True: 
+
+      for b in self.bodies:
+        b.location[0] += 1.0
+
       # print 'bodies\n', self.bodies[0].reference_configuration
       # Compute velocities 
 
@@ -61,7 +63,7 @@ class QuaternionIntegrator(object):
       return
       
       
-    
+  
     
 
 
