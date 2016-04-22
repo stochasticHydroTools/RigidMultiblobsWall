@@ -6,6 +6,7 @@ sys.path.append('../')
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_gmres import QuaternionIntegratorGMRES
+from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
 from body import body 
 from read_input import read_input
 from read_input import read_vertex_file
@@ -62,7 +63,12 @@ if __name__ == '__main__':
   print 'num_bodies', num_bodies
   print 'num_blobs', num_blobs  
 
-
+  # Create integrator
+  integrator = QuaternionIntegrator(bodies, 'deterministic_forward_euler')
+  for step in range(n_steps):
+    print 'step = ', step
+    # integrator.deterministic_forward_euler_time_step(dt)
+    integrator.advance_time_step(dt)
   
 
   print '# End'
