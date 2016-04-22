@@ -16,6 +16,20 @@ from read_input import read_clones_file
 
 
 
+def calc_slip(bodies, Nblobs):
+  '''
+  Function to calculate the slip in all the blobs.
+  '''
+  slip = np.empty((Nblobs, 3))
+  offset = 0
+  for b in bodies:
+    slip_b = b.calc_slip()
+    slip[offset:offset+b.Nblobs] = slip_b
+    offset += b.Nblobs
+  return slip
+  
+
+
 
 if __name__ == '__main__':
   # Get command line arguments
@@ -84,7 +98,8 @@ if __name__ == '__main__':
     f.write('num_blobs          ' + str(num_blobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, scheme)
+  integrator = QuaternionIntegrator(bodies, num_blobs, scheme)
+  integrator.calc_slip = calc_slip
 
   # Open file to save configuration
   with open(output_name + '.bodies', 'w') as f:

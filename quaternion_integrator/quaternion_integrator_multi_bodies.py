@@ -12,12 +12,20 @@ class QuaternionIntegrator(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
   '''  
-  def __init__(self, bodies, scheme): 
+  def __init__(self, bodies, Nblobs, scheme): 
     ''' 
     Init object 
     '''
     self.bodies = bodies
+    self.Nblobs = Nblobs
     self.scheme = scheme
+
+    # Optional variables
+    self.calc_slip = None
+    self.calc_force_torque = None
+    self.mobility_blobs = None
+    self.mobility_body = None
+    
     return 
 
   def advance_time_step(self, dt):
@@ -50,16 +58,28 @@ class QuaternionIntegrator(object):
     ''' 
     print 'Integrator starting (dense algebra)' 
     while True: 
+      # Calculate slip on blobs
+      if self.calc_slip is not None:
+        slip = self.calc_slip(self.bodies, self.Nblobs)
+      else:
+        slip = np.zeros((self.Nblobs, 3))
 
-      for b in self.bodies:
-        b.location[0] += 1.0
+      # Calculate mobility at the blob level
 
-      # print 'bodies\n', self.bodies[0].reference_configuration
-      # Compute velocities 
+      # Calculate constraint for due to slip l = M^{-1}*slip
 
-      # Update positions 
+      # Calculate force-torque on bodies
 
-      # Check positions if valid return 
+      # Calculate mobility at the body level N
+
+      # Compute velocities
+
+      # Update location orientation
+
+      # Check positions, if valid return
+
+      
+
       return
       
       

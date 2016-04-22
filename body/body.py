@@ -36,10 +36,10 @@ class Body(object):
     self.K = None
     self.rotation_matrix = None
     # Some default functions
-    self.function_slip = self.default_none
+    self.function_slip = self.default_zero_blobs
     self.function_force = self.default_none
     self.function_torque = self.default_none
-    self.function_force_blobs = self.default_none
+    self.function_force_blobs = self.default_zero_blobs
     
     
   
@@ -133,7 +133,9 @@ class Body(object):
     Return the force on the blobs.
     '''
     return self.function_force_blobs()
-
+  
+  def default_zero_blobs(self):
+    return np.zeros((self.Nblobs, 3))
 
   def default_none(self):
     return None
