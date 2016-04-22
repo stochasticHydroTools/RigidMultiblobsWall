@@ -52,7 +52,7 @@ class Body(object):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
     (R_i x) = -1 (r_i cross x).
-    R will be 3Nblobs by 3 (18 x 3). 
+    R has shape (3*Nblobs, 3).
     '''
     rot_matrix = np.empty((self.Nblobs, 3, 3))
     for k, vec in enumerate(self.reference_configuration):
@@ -77,10 +77,10 @@ class Body(object):
 
   def calc_K_matrix(self):
     '''
-    Compute geometric matrix K
+    Return geometric matrix K = [J, rot] with shape (3*Nblobs, 6)
     '''
-    return
-                     
+    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix()], axis=1)
+                        
 
   def check_function(self, distance = None):
     ''' 
