@@ -1,10 +1,11 @@
 import argparse
 import numpy as np
-import sys
-sys.path.append('../')
 import subprocess
 import cPickle
 from functools import partial
+import sys
+import time
+sys.path.append('../')
 
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
@@ -76,6 +77,33 @@ def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.
     force_torque_bodies[k:(k+1)] += sum(force_blobs)
     # Add torque to the body
     force_torque_bodies[len(bodies)+k:len(bodies)+(k+1)] += np.dot(R.T, np.reshape(force_blobs, 3*b.Nblobs))
+    offset += b.Nblobs
+  return force_torque_bodies
+
+
+def force_torque_calculator_sort_by_bodies(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.0, debey_length_wall=1.0):
+  '''
+  Return the forces and torque in each body with
+  format [f_1, t_1, f_2, t_2, ...] and shape (2*Nbodies, 3),
+  where f_i and t_i are the force and torque in the body i.
+  '''
+  force_torque_bodies = np.zeros((2*len(bodies), 3))
+  offset = 0
+  for k, b in enumerate(bodies):
+    R = b.calc_rot_matrix()
+    force_blobs = np.zeros((b.Nblobs, 3))
+    # Compute forces on each blob
+    for blob in range(b.Nblobs):
+      h = r_vectors[offset+blob, 2]
+      # Force on blob (wall repulsion + gravity)
+      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debey_length_wall + 1.0) * \
+                                                        np.exp(-1.0*(h - b.blob_radius)/debey_length_wall) / ((h - b.blob_radius)**2))])
+      force_blobs[blob:(blob+1)] += - g * np.array([0.0, 0.0, b.blob_masses[blob]])
+
+    # Add force to the body
+    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs)
+    # Add torque to the body
+    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs, 3*b.Nblobs))
     offset += b.Nblobs
   return force_torque_bodies
 
@@ -167,7 +195,8 @@ if __name__ == '__main__':
   integrator.calc_slip = calc_slip
   integrator.get_blobs_r_vectors = get_blobs_r_vectors
   integrator.mobility_blobs = mobility_blobs
-  integrator.force_torque_calculator = partial(force_torque_calculator, g=g)
+  # integrator.force_torque_calculator = partial(force_torque_calculator, g=g) 
+  integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g=g, repulsion_strength_wall=1.0) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.eta = eta
   integrator.a = a
@@ -175,10 +204,12 @@ if __name__ == '__main__':
   # Open file to save configuration
   with open(output_name + '.bodies', 'w') as f:
     # Loop over time steps
+    start_time = time.time()  
     for step in range(-n_relaxation, n_steps):
       # Save data if...
       if (step % n_save) == 0 and step >= 0:
-        print 'step = ', step  
+        elapsed_time = time.time() - start_time
+        print 'Integrator = ', scheme, ', step = ', step, ', wallclock time = ', time.time() - start_time
         f.write(str(step * dt) + '\n') # The time
         for b in bodies:
           orientation = b.orientation.entries
@@ -186,17 +217,18 @@ if __name__ == '__main__':
       
       # integrator.deterministic_forward_euler_time_step(dt)
       integrator.advance_time_step(dt)
-  
+
     # Save final data if...
     if ((step+1) % n_save) == 0 and step >= 0:
-      print 'step = ', step+1
+      print 'Integrator = ', scheme, ', step = ', step+1, ', wallclock time = ', time.time() - start_time
       f.write(str((step+1) * dt) + '\n') # The time
       for b in bodies:
         orientation = b.orientation.entries
         f.write('%s %s %s %s %s %s %s\n' % (b.location[0], b.location[1], b.location[2], orientation[0], orientation[1], orientation[2], orientation[3]))
 
-
-    
+  # Save wallclock time 
+  with open(output_name + '.time', 'w') as f:
+    f.write(str(time.time() - start_time) + '\n')
 
 
   print '# End'

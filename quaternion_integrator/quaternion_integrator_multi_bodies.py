@@ -69,7 +69,6 @@ class QuaternionIntegrator(object):
     velocities = (v_1, w_1, v_2, w_2, ...)
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
-    print 'Integrator starting (dense algebra)' 
     while True: 
       # Calculate slip on blobs
       if self.calc_slip is not None:
@@ -102,15 +101,22 @@ class QuaternionIntegrator(object):
       # Compute velocities
       velocities = np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
 
-      # Update location orientation
-      
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location += velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation
+        
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        return
 
-      # Check positions, if valid return
-
-      
-
-      return
-      
+      print 'Invalid configuration'
       
   
     
