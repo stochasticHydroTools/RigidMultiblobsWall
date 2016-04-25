@@ -64,6 +64,10 @@ class QuaternionIntegrator(object):
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses dense algebra methods to solve the equations.
+    
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     print 'Integrator starting (dense algebra)' 
     while True: 
@@ -99,6 +103,7 @@ class QuaternionIntegrator(object):
       velocities = np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
 
       # Update location orientation
+      
 
       # Check positions, if valid return
 

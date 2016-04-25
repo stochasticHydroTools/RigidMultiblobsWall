@@ -49,6 +49,7 @@ def mobility_blobs(r_vectors, eta, a):
   Compute dense mobility at the blob level.
   Shape (3*Nblobs, 3*Nblobs).
   '''
+  # mobility = mb.rotne_prager_tensor(r_vectors, eta, a)
   mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
   return mobility
 
