@@ -20,6 +20,12 @@ class QuaternionIntegrator(object):
     self.Nblobs = Nblobs
     self.scheme = scheme
 
+    # Other variables
+    self.get_blobs_r_vectors = None
+    self.mobility_blobs = None
+    self.eta = None
+    self.a = None
+
     # Optional variables
     self.calc_slip = None
     self.calc_force_torque = None
@@ -64,7 +70,14 @@ class QuaternionIntegrator(object):
       else:
         slip = np.zeros((self.Nblobs, 3))
 
+      # Get blobs coordinates
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
       # Calculate mobility at the blob level
+      mobility_blobs = self.mobility_blobs(r_vectors_blobs, self.eta, self.a)
+
+      # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
+      resistance_blobs = np.linalg.inv(mobility_blobs)
 
       # Calculate constraint for due to slip l = M^{-1}*slip
 

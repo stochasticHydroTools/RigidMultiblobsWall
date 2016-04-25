@@ -27,8 +27,29 @@ def calc_slip(bodies, Nblobs):
     slip[offset:offset+b.Nblobs] = slip_b
     offset += b.Nblobs
   return slip
-  
 
+
+def get_blobs_r_vectors(bodies, Nblobs):
+  '''
+  Return coordinates of all the blobs with shape (Nblobs, 3).
+  '''
+  r_vectors = np.empty((Nblobs, 3))
+  offset = 0
+  for b in bodies:
+    num_blobs = b.Nblobs
+    r_vectors[offset:(offset+num_blobs)] = b.get_r_vectors()
+    offset += num_blobs
+
+  return r_vectors
+
+
+def mobility_blobs(r_vectors, eta, a):
+  '''
+  Compute dense mobility at the blob level.
+  Shape (3*Nblobs, 3*Nblobs).
+  '''
+  mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
+  return mobility
 
 
 if __name__ == '__main__':
@@ -100,6 +121,10 @@ if __name__ == '__main__':
   # Create integrator
   integrator = QuaternionIntegrator(bodies, num_blobs, scheme)
   integrator.calc_slip = calc_slip
+  integrator.get_blobs_r_vectors = get_blobs_r_vectors
+  integrator.mobility_blobs = mobility_blobs
+  integrator.eta = eta
+  integrator.a = a
 
   # Open file to save configuration
   with open(output_name + '.bodies', 'w') as f:
