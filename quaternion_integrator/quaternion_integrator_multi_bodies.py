@@ -23,8 +23,10 @@ class QuaternionIntegrator(object):
     # Other variables
     self.get_blobs_r_vectors = None
     self.mobility_blobs = None
+    self.force_torque_calculator = None
     self.eta = None
     self.a = None
+    
 
     # Optional variables
     self.calc_slip = None
@@ -79,9 +81,11 @@ class QuaternionIntegrator(object):
       # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
       resistance_blobs = np.linalg.inv(mobility_blobs)
 
-      # Calculate constraint for due to slip l = M^{-1}*slip
+      # Calculate constraint force due to slip l = M^{-1}*slip
+      force_slip = np.dot(resistance_blobs, np.reshape(slip, (3*self.Nblobs,1)))
 
       # Calculate force-torque on bodies
+      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
       # Calculate mobility at the body level N
 

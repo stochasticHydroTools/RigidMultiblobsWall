@@ -25,6 +25,8 @@ class Body(object):
     # and location = np.array[0, 0, 0]) as a np.array.shape = (Nblobs, 3) 
     # or np.array.shape = (Nblobs * 3)
     self.reference_configuration = np.reshape(reference_configuration, (self.Nblobs, 3))
+    # Blob masses
+    self.blob_masses = np.ones(self.Nblobs)
     # Blob radius
     self.blob_radius = blob_radius
     # Name of body and type of body. A string or number
