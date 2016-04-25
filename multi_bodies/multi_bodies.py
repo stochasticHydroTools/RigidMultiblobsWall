@@ -79,6 +79,22 @@ def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.
   return force_torque_bodies
 
 
+def calc_K_matrix(bodies, Nblobs):
+  '''
+  Calculate the geometric block-diagonal matrix K.
+  Shape (3*Nblobs, 6*Nbodies).
+  '''
+  K = np.zeros((3*Nblobs, 6*len(bodies)))
+  offset = 0
+  for k, b in enumerate(bodies):
+    K_body = b.calc_K_matrix()
+    K[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] = K_body
+    offset += b.Nblobs
+  return K
+
+
+
+
 if __name__ == '__main__':
   # Get command line arguments
   parser = argparse.ArgumentParser(description='Run a multi-body simulation '
@@ -151,6 +167,7 @@ if __name__ == '__main__':
   integrator.get_blobs_r_vectors = get_blobs_r_vectors
   integrator.mobility_blobs = mobility_blobs
   integrator.force_torque_calculator = partial(force_torque_calculator, g=g)
+  integrator.calc_K_matrix = calc_K_matrix
   integrator.eta = eta
   integrator.a = a
 

@@ -24,6 +24,7 @@ class QuaternionIntegrator(object):
     self.get_blobs_r_vectors = None
     self.mobility_blobs = None
     self.force_torque_calculator = None
+    self.calc_K_matrix = None
     self.eta = None
     self.a = None
     
@@ -32,7 +33,7 @@ class QuaternionIntegrator(object):
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_blobs = None
-    self.mobility_body = None
+    self.mobility_bodies = None
     
     return 
 
@@ -75,7 +76,7 @@ class QuaternionIntegrator(object):
       # Get blobs coordinates
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Calculate mobility at the blob level
+      # Calculate mobility (M) at the blob level
       mobility_blobs = self.mobility_blobs(r_vectors_blobs, self.eta, self.a)
 
       # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
@@ -87,9 +88,15 @@ class QuaternionIntegrator(object):
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
-      # Calculate mobility at the body level N
+      # Calculate block-diagonal matrix K
+      K = self.calc_K_matrix(self.bodies, self.Nblobs)
+     
+      # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
+      resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
+      mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
 
       # Compute velocities
+      velocities = np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
 
       # Update location orientation
 
