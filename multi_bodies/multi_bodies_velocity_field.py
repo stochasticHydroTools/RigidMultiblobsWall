@@ -40,7 +40,7 @@ if not os.path.isdir(os.path.join(os.getcwd(), 'logs')):
 
 
 # Control th resolution of the rod
-resolution = 3
+resolution = 1
 resolution_sphere = 1
 print "resolution = ", resolution
 print "resolution_sphere = ", resolution_sphere
@@ -116,7 +116,7 @@ print "resolution_sphere = ", resolution_sphere
 # BLOB RADII FOR SHELL WITH Rg = 0.225
 if resolution == 1: 
   A = 0.1183 # 12 blobs
-  Nblobs_per_rod = 12
+  Nblobs_per_rod = 86
 elif resolution== 2:
   A= 0.061484985366573 # 42 blobs
   Nblobs_per_rod = 42
@@ -199,10 +199,10 @@ def rod_mobility(locations, orientations):
   Calculate the force and torque mobility for the
   rod.  Here location is the cross point.
   '''
-  r_vectors = []
+  num_blobs_per_rod = len(get_rod_r_vectors(locations[0], orientations[0]))
+  r_vectors = np.empty([len(locations), num_blobs_per_rod, 3])
   for k in range(len(locations)):
-    r_vectors.append(get_rod_r_vectors(locations[k], orientations[k]))
-
+    r_vectors[k] = get_rod_r_vectors(locations[k], orientations[k])
   return force_and_torque_rod_mobility(r_vectors, locations)
 
 def sphere_mobility(locations, orientations):
@@ -249,11 +249,12 @@ def force_and_torque_rod_mobility(r_vectors, location):
   Here location is the dereferenced list with 3 entries.
   '''  
   # Blobs mobility
-  r_vec_for_mob = []
-  for k in range(len(r_vectors)):
-    r_vec_for_mob += r_vectors[k]
+  # r_vec_for_mob = []
+  # for k in range(len(r_vectors)):
+  # r_vec_for_mob += r_vectors[k]
+  # print 'r_vectors', r_vectors
 
-  mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
 
   # K matrix
   rotation_matrix = calc_rot_matrix(r_vectors, location)
@@ -404,7 +405,7 @@ def get_rod_r_vectors(location, orientation):
     # If D_eff = D/(1+a_blob/4)
     #with open('Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_98.vertex') as f:
     # If D_eff = D
-    with open(folder_rods + 'Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_80.vertex') as f:
+    with open(folder_rods + 'Cylinder_l_geo_2.12_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_86.vertex') as f:
     #with open('Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_158.vertex') as f:
     #with open('Cylinder_l_3.246_radius_0.1623_Nblobs_perimeter_6_Nblobs_total_122.vertex') as f:
     # Radius geo to get radius hydro  = 0.1623
@@ -424,10 +425,9 @@ def get_rod_r_vectors(location, orientation):
     # If D_eff = D/(1+a_blob/4)
     #with open('Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_366.vertex') as f:
     # If D_eff = D    
-    with open(folder_rods + 'Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_330.vertex') as f:    
+    # with open(folder_rods + 'Cylinder_l_2.2_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_330.vertex') as f:    
     #with open('Cylinder_l_3.246_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_474.vertex') as f:    
-    #with open('Cylinder_l_1.2984_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_198.vertex') as f:
-      
+    with open('Cylinder_l_1.2984_radius_0.1623_Nblobs_perimeter_12_Nblobs_total_198.vertex') as f:
       k = 0
       for l in f:
 	k = k+1
@@ -843,16 +843,24 @@ def rod_torque_calculator(location, orientation):
   orientation - list of length 1 with orientation (as a Quaternion)
                 of rod.
   '''
-  r_vectors = []
+  # r_vectors = []
+  # for k in range(len(location)):
+  # r_vectors.append(get_rod_r_vectors(location[k], orientation[k]))
+  num_blobs_per_rod = len(get_rod_r_vectors(location[0], orientation[0]))
+  r_vectors = np.empty([len(location), num_blobs_per_rod, 3])
   for k in range(len(location)):
-     r_vectors.append(get_rod_r_vectors(location[k], orientation[k]))
+    r_vectors[k] = get_rod_r_vectors(location[k], orientation[k])
   # Here the big difference with force calculator is that the forces 
   # for all the blobs are stored, in order to compute the torques
-  Nblobs = len(r_vectors[0])
-  forces = np.zeros(3*len(r_vectors)*Nblobs)
+  Nblobs = r_vectors.size / 3
+  forces = np.zeros(r_vectors.size)
+
+  # print r_vectors[0]
+
   for k in range(len(r_vectors)):
       for i in range(Nblobs):
-        ri = r_vectors[k][i]    
+        # print k, i, Nblobs
+        ri = r_vectors[k][i]
         gravity = -1.*M[i]
         forces[3*k*Nblobs+3*i:3*k*Nblobs+3*(i+1)] += np.array([0., 0., \
                         (REPULSION_STRENGTH_WALL*((ri[2] - A)/DEBYE_LENGTH_WALL + 1)*
@@ -1105,7 +1113,7 @@ def rod_check_function(location, orientation):
       if r_vectors[k][i][2] < A:
 	print r_vectors[k][i][2]
 	print A
-	raw_input()
+	# raw_input()
         return False
   return True
   
@@ -1406,11 +1414,15 @@ def resistance_blobs(locations, orientations):
   '''
   
   # Blobs mobility
-  r_vec_for_mob = []
+  # r_vec_for_mob = []
+  # for k in range(len(locations)):
+  # r_vec_for_mob += get_rod_r_vectors(locations[k], orientations[k])
+  num_blobs_per_rod = len(get_rod_r_vectors(locations[0], orientations[0]))
+  r_vectors = np.empty([len(locations), num_blobs_per_rod, 3])
   for k in range(len(locations)):
-    r_vec_for_mob += get_rod_r_vectors(locations[k], orientations[k])
+    r_vectors[k] = get_rod_r_vectors(locations[k], orientations[k])
 
-  mobility = mb.boosted_single_wall_fluid_mobility(r_vec_for_mob, ETA, A)
+  mobility = mb.boosted_single_wall_fluid_mobility(r_vectors, ETA, A)
 
   # Resistance blobs
   resistance = np.linalg.inv(mobility)
@@ -1750,3 +1762,4 @@ if __name__ == '__main__':
     print s.getvalue()
 
  
+

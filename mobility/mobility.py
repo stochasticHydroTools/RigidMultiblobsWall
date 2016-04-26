@@ -5,7 +5,7 @@ sys.path.append('..')
 import time
 
 import mobility_ext as me
-import mobility_pycuda
+#import mobility_pycuda
 
 ETA = 1.0 # Viscosity
 
@@ -80,9 +80,9 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
   a speedup. Must compile mobility_ext.cc before this will work 
   (use Makefile).
   ''' 
-  num_particles = len(r_vectors)
+  num_particles = r_vectors.size / 3
   fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
-  me.RPY_single_wall_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+  me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
   return fluid_mobility
 
 def boosted_infinite_fluid_mobility(r_vectors, eta, a):

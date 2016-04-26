@@ -10,7 +10,7 @@ import sys
 import multi_bodies_velocity_field as rod
 from quaternion_integrator.quaternion import Quaternion
 from mobility import mobility as mb
-import visit.visit_writer as visit_writer
+from visit import visit_writer as visit_writer
 
 
 # Length from rod to plot velocities
@@ -177,10 +177,10 @@ def fluid_velocity(mobility_blobs,
 	    
 	print "r_vec_for_mob = "
 	print r_vec_for_mob
-	raw_input()
+	# raw_input()
 	print "lambda_blobs = "
 	print lambda_blobs
-	raw_input()
+	# raw_input()
         # Use directly matrix-vector product in C++ instead
         velocity = mb.boosted_mobility_vector_product_one_particle(\
 	                            r_vec_for_mob, \
@@ -411,5 +411,6 @@ if __name__ == '__main__':
        
   print '#END'
     
+
 
 
