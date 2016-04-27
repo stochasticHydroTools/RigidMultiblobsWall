@@ -55,6 +55,22 @@ def mobility_blobs(r_vectors, eta, a):
   return mobility
 
 
+def mobility_vector_prod(r_vectors, vector, eta, a):
+  '''
+  This function compute the product M*F with the mobility matrix 
+  defined at the blob level.
+  ''' 
+  # Python version
+  res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
+  # Boosted version
+  # res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
+  # Pycuda version
+  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  
+  return res
+
+
+
 def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.0, debey_length_wall=1.0):
   '''
   Return the forces and torque in each body with
@@ -122,6 +138,72 @@ def calc_K_matrix(bodies, Nblobs):
   return K
 
 
+def K_matrix_vector_prod(bodies, vector, Nblobs):
+  '''
+  Compute the matrix vector product K*vector where
+  K is the geometrix matrix that transport the information from the 
+  level of describtion of the body to the level of describtion of the blobs.
+  ''' 
+  # Prepare variables
+  result = np.empty((Nblobs, 3))
+  v = np.reshape(vector, (len(bodies) * 6))
+
+  # Loop over bodies
+  offset = 0
+  for k, b in enumerate(bodies):
+    K = b.calc_K_matrix()
+    result[offset : offset+b.Nblobs] = np.reshape(np.dot(K, v[6*k : 6*(k+1)]), (b.Nblobs, 3))
+    offset += b.Nblobs    
+
+  return result
+
+
+def K_matrix_T_vector_prod(bodies, vector, Nblobs):
+  '''
+  Compute the matrix vector product K^T*vector where
+  K is the geometrix matrix that transport the information from the 
+  level of describtion of the body to the level of describtion of the blobs.
+  ''' 
+  # Prepare variables
+  result = np.empty((len(bodies), 6))
+  v = np.reshape(vector, (Nblobs * 3))
+
+  # Loop over bodies
+  offset = 0
+  for k, b in enumerate(bodies):
+    K = b.calc_K_matrix()
+    result[k : k+1] = np.dot(K.T, v[3*offset : 3*(offset+b.Nblobs)])
+    offset += b.Nblobs    
+
+  result = np.reshape(result, (2*len(bodies), 3))
+  return result
+
+
+def linear_operator_rigid(bodies, r_vectors, vector, eta, a):
+  '''
+  Return the action of the linear operator of the rigid body on vector v.
+  The linear operator is
+  |  M   -K|
+  | -K^T  0|
+  ''' 
+  # Reserve memory for the solution and create some variables
+  Ncomp_blobs = r_vectors.size
+  Nblobs = r_vectors.size / 3
+  Ncomp_bodies = 6 * len(bodies)
+  res = np.empty((Ncomp_blobs + Ncomp_bodies))
+  v = np.reshape(vector, (vector.size/3, 3))
+  
+  # Compute the "slip" part
+  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a) 
+  K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*len(bodies)], Nblobs) 
+  res[0:Ncomp_blobs] -= np.reshape(K_times_U, (3*Nblobs))
+
+  # Compute the "-force_torque" part
+  K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs)
+  res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
+
+  return res
+
 
 
 if __name__ == '__main__':
@@ -181,17 +263,17 @@ if __name__ == '__main__':
   # Set some more variables
   num_of_body_types = len(structure_names)
   num_bodies = bodies.size
-  num_blobs = sum([x.Nblobs for x in bodies])
+  Nblobs = sum([x.Nblobs for x in bodies])
 
   # Write bodies information
   with open(output_name + '.bodies_info', 'w') as f:
     f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
     f.write('body_types         ' + str(body_types) + '\n')
     f.write('num_bodies         ' + str(num_bodies) + '\n')
-    f.write('num_blobs          ' + str(num_blobs) + '\n')
+    f.write('num_blobs          ' + str(Nblobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, num_blobs, scheme)
+  integrator = QuaternionIntegrator(bodies, Nblobs, scheme)
   integrator.calc_slip = calc_slip
   integrator.get_blobs_r_vectors = get_blobs_r_vectors
   integrator.mobility_blobs = mobility_blobs
@@ -229,6 +311,14 @@ if __name__ == '__main__':
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
+
+
+
+
+  print '\n\n\n'
+
+  r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+  # print 'r_vectors\n', r_vectors
 
 
   print '# End'

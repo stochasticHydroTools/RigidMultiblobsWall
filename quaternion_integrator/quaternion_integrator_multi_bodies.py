@@ -51,12 +51,25 @@ class QuaternionIntegrator(object):
     ''' 
     print 'Integrator starting (gmres)' 
     while True: 
-      # print 'bodies\n', self.bodies[0].reference_configuration
-      # Compute velocities 
+      # Calculate slip on blobs
+      if self.calc_slip is not None:
+        slip = self.calc_slip(self.bodies, self.Nblobs)
+      else:
+        slip = np.zeros((self.Nblobs, 3))
 
-      # Update positions 
+      # Get blobs coordinates
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Check positions if valid return 
+      # Calculate force-torque on bodies
+      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
+
+      # Set right hand side
+      RHS = np.concatenate([slip, -force_torque])
+
+      # Build Matrix of linear system
+
+
+
       return
       
 
