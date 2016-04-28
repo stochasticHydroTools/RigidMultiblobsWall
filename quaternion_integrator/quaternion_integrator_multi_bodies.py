@@ -25,6 +25,7 @@ class QuaternionIntegrator(object):
     self.mobility_blobs = None
     self.force_torque_calculator = None
     self.calc_K_matrix = None
+    self.linear_operator = None
     self.eta = None
     self.a = None
     
@@ -34,6 +35,7 @@ class QuaternionIntegrator(object):
     self.calc_force_torque = None
     self.mobility_blobs = None
     self.mobility_bodies = None
+    self.first_guess = None
     
     return 
 
@@ -64,11 +66,39 @@ class QuaternionIntegrator(object):
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
       # Set right hand side
-      RHS = np.concatenate([slip, -force_torque])
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
 
-      # Build Matrix of linear system
+      # Set linear operators 
+      linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
+      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
+      # Set preconditioner
+      PC = None
+      
+      # Solve preconditioned linear system
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
+      self.first_guess = sol_precond  
 
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location += velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation
+        
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        return
+
+      print 'Invalid configuration'
 
       return
       
@@ -137,3 +167,11 @@ class QuaternionIntegrator(object):
 
 
 
+# Callback generator
+def make_callback():
+    closure_variables = dict(counter=0, residuals=[]) 
+    def callback(residuals):
+        closure_variables["counter"] += 1
+        closure_variables["residuals"].append(residuals)
+        print closure_variables["counter"], residuals
+    return callback

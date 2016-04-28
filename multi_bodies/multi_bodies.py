@@ -61,11 +61,11 @@ def mobility_vector_prod(r_vectors, vector, eta, a):
   defined at the blob level.
   ''' 
   # Python version
-  res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
+  # res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
   # Boosted version
   # res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
   # Pycuda version
-  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
   
   return res
 
@@ -179,7 +179,7 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs):
   return result
 
 
-def linear_operator_rigid(bodies, r_vectors, vector, eta, a):
+def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   '''
   Return the action of the linear operator of the rigid body on vector v.
   The linear operator is
@@ -280,6 +280,7 @@ if __name__ == '__main__':
   # integrator.force_torque_calculator = partial(force_torque_calculator, g=g) 
   integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g=g, repulsion_strength_wall=1.0) 
   integrator.calc_K_matrix = calc_K_matrix
+  integrator.linear_operator = linear_operator_rigid
   integrator.eta = eta
   integrator.a = a
 
@@ -319,6 +320,14 @@ if __name__ == '__main__':
 
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
   # print 'r_vectors\n', r_vectors
+  
+  x = np.ones((Nblobs*3+6*len(bodies)))
+  b = linear_operator_rigid(x, bodies, r_vectors, eta, a)
 
+  linear_operator_partial = partial(linear_operator_rigid, bodies=bodies, r_vectors=r_vectors, eta=eta, a=a)
+
+  b_2 = linear_operator_partial(x)
+
+  print 'allclose', np.allclose(b, b_2)
 
   print '# End'
