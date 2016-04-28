@@ -19,6 +19,7 @@ class QuaternionIntegrator(object):
     self.bodies = bodies
     self.Nblobs = Nblobs
     self.scheme = scheme
+    self.mobility_bodies = np.empty((len(bodies), 6, 6))
 
     # Other variables
     self.get_blobs_r_vectors = None
@@ -28,14 +29,13 @@ class QuaternionIntegrator(object):
     self.linear_operator = None
     self.eta = None
     self.a = None
-    
-
+   
     # Optional variables
     self.calc_slip = None
     self.calc_force_torque = None
-    self.mobility_blobs = None
-    self.mobility_bodies = None
+    self.mobility_blobs_cholesky = None
     self.first_guess = None
+    self.preconditioner = None
     
     return 
 
@@ -74,11 +74,26 @@ class QuaternionIntegrator(object):
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
       # Set preconditioner
-      PC = None
-      
+      self.mobility_blobs_cholesky = []
+      # 1. Loop over bodies
+      for k, b in enumerate(self.bodies):
+        # 2. Compute body mobility
+        N = b.calc_mobility_body(self.eta, self.a)
+        self.mobility_bodies[k] = N
+        # 3. Compute cholesky factorization
+        L = np.empty((3*b.Nblobs, 3*b.Nblobs))
+        L = b.calc_mobility_blobs_cholesky(self.eta, self.a)
+        self.mobility_blobs_cholesky.append(L)
+      # 4. Pack preconditioner
+      PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
+                             mobility_blobs_cholesky=self.mobility_blobs_cholesky, Nblobs=self.Nblobs)
+      PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
+      # PC = None
+
       # Solve preconditioned linear system
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
-      self.first_guess = sol_precond  
+      # self.first_guess = sol_precond  
+
 
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))

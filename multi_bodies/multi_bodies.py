@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import scipy.linalg as sla
 import subprocess
 import cPickle
 from functools import partial
@@ -201,9 +202,37 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
-
   return res
 
+
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_blobs_cholesky, Nblobs):
+  '''
+  Block diagonal preconditioner for rigid bodies.
+  It solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+  '''
+  result = np.empty(vector.shape)
+  offset = 0
+  for k, b in enumerate(bodies):
+    # 1. Solve M*Lambda_tilde = slip
+    slip = vector[3*offset : 3*(offset + b.Nblobs)]
+    Lambda_tilde = sla.cho_solve((mobility_blobs_cholesky[k], True), slip)
+
+    # 2. Compute rigid body velocity
+    F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+    F -= np.dot(b.calc_K_matrix().T, Lambda_tilde)
+    Y = np.dot(mobility_bodies[k], F)
+
+    # 3. Solve M*Lambda = (slip + K*Y)
+    slip += np.dot(b.calc_K_matrix(), Y)
+    Lambda = sla.cho_solve((mobility_blobs_cholesky[k], True), slip)
+    
+    # 4. Set result
+    result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+    result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+    offset += b.Nblobs
+  return result
 
 
 if __name__ == '__main__':
@@ -256,6 +285,7 @@ if __name__ == '__main__':
     # Creat each body of tyoe structure
     for i in range(len(struct_orientations)):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
+      b.mobility_blobs = mobility_blobs
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)
@@ -273,16 +303,18 @@ if __name__ == '__main__':
     f.write('num_blobs          ' + str(Nblobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, Nblobs, scheme)
-  integrator.calc_slip = calc_slip
-  integrator.get_blobs_r_vectors = get_blobs_r_vectors
+  integrator = QuaternionIntegrator(bodies, Nblobs, scheme) 
+  integrator.calc_slip = calc_slip 
+  integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = mobility_blobs
   # integrator.force_torque_calculator = partial(force_torque_calculator, g=g) 
   integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g=g, repulsion_strength_wall=1.0) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
+  integrator.preconditioner = block_diagonal_preconditioner
   integrator.eta = eta
   integrator.a = a
+  integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
 
   # Open file to save configuration
   with open(output_name + '.bodies', 'w') as f:
