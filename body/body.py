@@ -42,8 +42,10 @@ class Body(object):
     self.function_force = self.default_none
     self.function_torque = self.default_none
     self.function_force_blobs = self.default_zero_blobs
+    self.mobility_blobs_cholesky = None
     
-    
+  
+   
   
   def get_r_vectors(self):
     '''
@@ -136,10 +138,38 @@ class Body(object):
     '''
     return self.function_force_blobs()
   
+
   def default_zero_blobs(self):
     return np.zeros((self.Nblobs, 3))
+
 
   def default_none(self):
     return None
 
 
+  def calc_mobility_blobs(self, eta, a):
+    '''
+    Calculate blobs mobility. Shape (3*Nblobs, 3*Nblobs).
+    '''
+    r_vectors = self.get_r_vectors()
+    return self.mobility_blobs(r_vectors, eta, a)
+    
+
+  def calc_mobility_body(self, eta, a):
+    '''
+    Calculate the 6x6 body mobility that maps
+    forces and torques to velocities and angular
+    velocites.
+    '''
+    K = self.calc_K_matrix()
+    M = self.calc_mobility_blobs(eta, a)
+    return np.linalg.pinv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
+
+
+  def calc_mobility_blobs_cholesky(self, eta, a):
+    '''
+    Compute the Cholesky factorization L of the blobs mobility M=L*L.T.
+    L is a lower triangular matrix with shape (3*Nblobs, 3*Nblobs).
+    '''
+    M = self.calc_mobility_blobs(eta, a)
+    return np.linalg.cholesky(M)
