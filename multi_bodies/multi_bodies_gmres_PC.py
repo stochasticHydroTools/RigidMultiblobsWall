@@ -95,7 +95,7 @@ ETA = 8.9e-4
 # Volume is ~1.1781 um^3. 
 TOTAL_MASS = 1 * 1.1781 * 0.0000000002 * (9.8 * 1.e6)
 M = [TOTAL_MASS/float(Nblobs_per_rod) for _ in range(Nblobs_per_rod)]
-KT = 0 * 300 * 1.3806488e-5 # T = 300K
+KT = 0.0 * 300 * 1.3806488e-5 # T = 300K
 
 # Made these up somewhat arbitrarily
 REPULSION_STRENGTH_WALL = 7.5 * KT
@@ -854,7 +854,7 @@ def preconditioner_gmres(vector, K_matrix, mob_chol_blobs, self_mob_body):
 if __name__ == '__main__':
   # Get command line arguments.
   parser = argparse.ArgumentParser(description='Run Simulation of Rod '
-                                   'particle with deterministic forward Euler '
+                                   'particle with deterministic PC '
                                    'schemes, and save trajectory.  Rod '
                                    'is affected by gravity and repulsed from '
                                    'the wall gently.')
@@ -864,8 +864,8 @@ if __name__ == '__main__':
                       help='Number of steps to take for runs.')
   parser.add_argument('-gfactor', dest='gravity_factor', type=float, default=1.0,
                       help='Factor to increase gravity by.')
-  parser.add_argument('-scheme', dest='scheme', type=str, default='EULER',
-                      help='Numerical Scheme to use: deterministic EULER.')
+  parser.add_argument('-scheme', dest='scheme', type=str, default='PC',
+                      help='Numerical Scheme to use: deterministic PC.')
   parser.add_argument('--data-name', dest='data_name', type=str,
                       default='',
                       help='Optional name added to the end of the '
@@ -957,6 +957,7 @@ if __name__ == '__main__':
   quaternion_integrator.matrices_for_direct_ite = matrices_for_direct_iteration
   quaternion_integrator.first_guess = np.zeros(Nblobs*3 + Nrods*6)
   quaternion_integrator.initial_config = initial_configuration
+  quaternion_integrator.ISstochastic = False
 
   trajectory = [[], []]
 

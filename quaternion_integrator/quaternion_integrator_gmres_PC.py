@@ -92,6 +92,8 @@ class PCQuaternionIntegratorGMRES(object):
     self.rejections = 0
     self.successes = 0
 
+    self.ISstochastic = None
+
 
   def stochastic_PC_time_step(self, dt):
     ''' Take a timestep of length dt using the RFD method '''
@@ -109,26 +111,28 @@ class PCQuaternionIntegratorGMRES(object):
         torque_P = self.torque_calculator(r_vectors_ite_P, rotation_matrix_ite_P)
 
 	# Generate W increments for predictor step and part of corrector step
-	W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
-	W2 = np.random.normal(0.0, 1.0, self.Nblobs*3)
-	MnW2 = self.mobility_vector_prod(W2, r_vectors_ite_P)
+	if self.ISstochastic:
+	  W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
+	  W2 = np.random.normal(0.0, 1.0, self.Nblobs*3)
+	  MnW2 = self.mobility_vector_prod(W2, r_vectors_ite_P)
 
 
 
         # Get slip on each blob
         slip_P = self.slip_velocity(r_vectors_ite_P, self.location)  
 
-	mobility_vector_prod_partial_P = partial(self.mobility_vector_prod, r_vectors = r_vectors_ite_P)
-	(rand_slip_P,max_iter_P) = sf.stochastic_forcing_lanczos(factor = 1,\
-                               tolerance = 1e-06,\
-                               max_iter = 1000,\
-                               name = '',\
-                               dim = None,\
-                               mobility = None,\
-                               mobility_mult = mobility_vector_prod_partial_P,\
-                               z = W1)
-
-	slip_P = slip_P + np.sqrt(4.0*self.kT/dt)*(rand_slip_P + W2)   
+	if self.ISstochastic:
+	  mobility_vector_prod_partial_P = partial(self.mobility_vector_prod, r_vectors = r_vectors_ite_P)
+	  (rand_slip_P,max_iter_P) = sf.stochastic_forcing_lanczos(factor = 1,\
+          tolerance = 1e-06,\
+          max_iter = 1000,\
+          name = '',\
+          dim = None,\
+          mobility = None,\
+          mobility_mult = mobility_vector_prod_partial_P,\
+          z = W1)
+	  slip_P = slip_P + np.sqrt(4.0*self.kT/dt)*(rand_slip_P + W2)
+	   
 
         # Set linear operators
         linear_operator_partial_P = partial(self.linear_operator,\
@@ -165,43 +169,54 @@ class PCQuaternionIntegratorGMRES(object):
         mid_location = []
         # Update location and save velocity and rotation
         for i in range(self.dim): 
-          mid_location.append(self.location[i] + (dt/2.0)*velocity_P[3*i:3*(i+1)])         
+          mid_location.append(self.location[i] + 0.5*dt*velocity_P[3*i:3*(i+1)])         
           #self.veltot.append(velocity[3*i:3*(i+1)])
           #self.omegatot.append(omega[3*i:3*(i+1)])
 
 	mid_orientation = []
         for i in range(self.dim):
-          quaternion_dt = Quaternion.from_rotation((omega_P[(i*3):(i*3+3)])*(dt/2.0))
+          quaternion_dt = Quaternion.from_rotation((omega_P[(i*3):(i*3+3)])*(0.5*dt))
           mid_orientation.append(quaternion_dt*self.orientation[i])
 
+	#
+	#########################################
 	# Corrector step
-	# 
+	#########################################
 	#
 
 	(J_tot,self_mobility_body, chol_mobility_blobs_each_body,\
            r_vectors_ite, rotation_matrix_ite) = \
            self.matrices_for_GMRES_ite(mid_location, mid_orientation, self.initial_config)
 
+	#print np.linalg.norm(np.array(mid_location)-np.array(self.location))
+	#print np.linalg.norm(np.array(r_vectors_ite)-np.array(r_vectors_ite_P))
+
         force = self.force_calculator(r_vectors_ite)
         torque = self.torque_calculator(r_vectors_ite, rotation_matrix_ite)
 
+	#print np.linalg.norm(np.array(force)-np.array(force_P))
+
 	# Generate W increments for corrector step
-	W3 = np.random.normal(0.0, 1.0, self.Nblobs*3)
-	Wcorector = W1 + W3;
+	if self.ISstochastic:
+	  W3 = np.random.normal(0.0, 1.0, self.Nblobs*3)
+	  Wcorector = W1 + W3;
 
         # Get slip on each blob
         slip = self.slip_velocity(r_vectors_ite, mid_location)  
 
-	mobility_vector_prod_partial = partial(self.mobility_vector_prod, r_vectors = r_vectors_ite)
-	(rand_slip_C,max_iter) = sf.stochastic_forcing_lanczos(factor = 1,\
-                               tolerance = 1e-06,\
-                               max_iter = 1000,\
-                               name = '',\
-                               dim = None,\
-                               mobility = None,\
-                               mobility_mult = mobility_vector_prod_partial,\
-                               z = Wcorector)
-	slip = slip + np.sqrt(1.0*self.kT/dt)*(rand_slip_C - MnW2)   
+	#print np.linalg.norm(np.array(slip))
+
+	# compute (M^(n))^(1/2)[W1 + W3]
+	if self.ISstochastic:
+	  (rand_slip_C,max_iter) = sf.stochastic_forcing_lanczos(factor = 1,\
+          tolerance = 1e-06,\
+          max_iter = 1000,\
+          name = '',\
+          dim = None,\
+          mobility = None,\
+          mobility_mult = mobility_vector_prod_partial_P,\
+          z = Wcorector)
+	  slip = slip + np.sqrt(1.0*self.kT/dt)*(rand_slip_C - MnW2)   
 
         # Set linear operators
         linear_operator_partial = partial(self.linear_operator,\
@@ -220,15 +235,20 @@ class PCQuaternionIntegratorGMRES(object):
 	P_optim = spla.LinearOperator((Size_system,Size_system),\
                                         matvec = precond_partial,\
                                         dtype='float64' )				
-					  
+			  
         # Set right hand side
+	# compute (K^(n))^T [W2]
 	FT = np.concatenate([force, torque])
-	RandFT = self.K_matrix_T_vector_prod(r_vectors_ite, rotation_matrix_ite, W2)
+	if self.ISstochastic:
+	  RandFT = self.K_matrix_T_vector_prod(r_vectors_ite_P, rotation_matrix_ite_P, W2)
+	  FT = FT + np.sqrt(1.0*self.kT/dt)*RandFT
 
-	RHS = np.concatenate([slip, -1.0*(FT + np.sqrt(1.0*self.kT/dt)*RandFT)])
+	RHS = np.concatenate([slip, -FT])
 
         # Solve preconditioned linear system
 	(sol_precond, info_precond) = spla.gmres(A, RHS,x0=self.first_guess, tol=1e-8, M=P_optim, callback=make_callback())
+
+	#print np.linalg.norm(np.array(sol_precond)-np.array(sol_precond_P))
 	self.first_guess = sol_precond  
 
         # Get bodies velocities
