@@ -65,7 +65,8 @@ class Body(object):
     R has shape (3*Nblobs, 3).
     '''
     rot_matrix = np.empty((self.Nblobs, 3, 3))
-    for k, vec in enumerate(self.reference_configuration):
+    r_vectors = self.get_r_vectors() - self.location
+    for k, vec in enumerate(r_vectors):
       # Create block
       block = np.array([[0.0, vec[2], -1.0 * vec[1]],
                         [-1.0 * vec[2], 0.0, vec[0]],
