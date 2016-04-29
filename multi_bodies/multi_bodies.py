@@ -51,8 +51,12 @@ def mobility_blobs(r_vectors, eta, a):
   Compute dense mobility at the blob level.
   Shape (3*Nblobs, 3*Nblobs).
   '''
+  # Python version, no wall
   # mobility = mb.rotne_prager_tensor(r_vectors, eta, a)
-  mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
+  # Python version
+  mobility = mb.single_wall_fluid_mobility(r_vectors, eta, a)
+  # Boosted version
+  # mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
   return mobility
 
 
@@ -62,11 +66,11 @@ def mobility_vector_prod(r_vectors, vector, eta, a):
   defined at the blob level.
   ''' 
   # Python version
-  # res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
+  res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
   # Boosted version
   # res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
   # Pycuda version
-  res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
   
   return res
 
@@ -221,12 +225,10 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_blob
 
     # 2. Compute rigid body velocity
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-    F -= np.dot(b.calc_K_matrix().T, Lambda_tilde)
-    Y = np.dot(mobility_bodies[k], F)
+    Y = np.dot(mobility_bodies[k], F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
 
     # 3. Solve M*Lambda = (slip + K*Y)
-    slip += np.dot(b.calc_K_matrix(), Y)
-    Lambda = sla.cho_solve((mobility_blobs_cholesky[k], True), slip)
+    Lambda = sla.cho_solve((mobility_blobs_cholesky[k], True), slip + np.dot(b.calc_K_matrix(), Y))
     
     # 4. Set result
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
