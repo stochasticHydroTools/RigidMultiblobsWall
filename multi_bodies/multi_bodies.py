@@ -225,7 +225,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_blob
 
     # 2. Compute rigid body velocity
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-    Y = np.dot(mobility_bodies[k], F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
+    Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
 
     # 3. Solve M*Lambda = (slip + K*Y)
     Lambda = sla.cho_solve((mobility_blobs_cholesky[k], True), slip + np.dot(b.calc_K_matrix(), Y))
