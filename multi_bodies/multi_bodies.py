@@ -10,7 +10,6 @@ sys.path.append('../')
 
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
-from quaternion_integrator.quaternion_integrator_gmres import QuaternionIntegratorGMRES
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
 from body import body 
 from read_input import read_input
