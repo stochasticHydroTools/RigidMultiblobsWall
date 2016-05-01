@@ -244,15 +244,15 @@ def stochastic_forcing_lanczos(factor = 1.0,
         if L_mult is None:
           return (noise, i)
         else:
-          return (np.reshape(mobility_mult(noise), dim), i)
+          return (np.reshape(L_mult(noise), dim), i)
           
     # Save noise to check convergence in the next iteration
     noise_old = np.copy(noise)
 
   # Return UNCONVERGED noise
   if L_mult is None:
-    return (noise, i)
+    return (noise, max_iter)
   else:
-    return (np.reshape(mobility_mult(noise), dim), max_iter)
+    return (np.reshape(L_mult(noise), dim), max_iter)
 
 
