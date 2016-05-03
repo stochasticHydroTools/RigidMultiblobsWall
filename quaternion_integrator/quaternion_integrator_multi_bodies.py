@@ -50,8 +50,11 @@ class QuaternionIntegrator(object):
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses gmres to solve the rigid body equations.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
     ''' 
-    print 'Integrator starting (gmres)' 
     while True: 
       # Calculate slip on blobs
       if self.calc_slip is not None:
@@ -92,7 +95,7 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
-      # self.first_guess = sol_precond  
+      self.first_guess = sol_precond  
 
 
       # Extract velocities
@@ -114,7 +117,6 @@ class QuaternionIntegrator(object):
         return
 
       print 'Invalid configuration'
-
       return
       
 
@@ -175,12 +177,33 @@ class QuaternionIntegrator(object):
         return
 
       print 'Invalid configuration'
+      return
       
   
+  def deterministic_adams_bashforth(self, dt): 
+    ''' 
+    Take a time step of length dt using the deterministic Adams-Bashforth of
+    order two scheme. The function uses gmres to solve the rigid body equations.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Calculate slip on blobs    
+      print 'deterministic_adams_bashforth ---------------------'
+      
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        return
     
-
-
-
+    print 'Invalid configuration'      
+    return
 
 # Callback generator
 def make_callback():

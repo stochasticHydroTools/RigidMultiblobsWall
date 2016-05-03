@@ -53,9 +53,9 @@ def mobility_blobs(r_vectors, eta, a):
   # Python version, no wall
   # mobility = mb.rotne_prager_tensor(r_vectors, eta, a)
   # Python version
-  mobility = mb.single_wall_fluid_mobility(r_vectors, eta, a)
+  # mobility = mb.single_wall_fluid_mobility(r_vectors, eta, a)
   # Boosted version
-  # mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
+  mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
   return mobility
 
 

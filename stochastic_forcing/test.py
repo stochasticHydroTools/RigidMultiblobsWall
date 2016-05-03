@@ -1,7 +1,7 @@
-
 import numpy as np
-import stochastic_forcing as stoch
 from functools import partial
+import stochastic_forcing as stoch
+
 
 import sys
 sys.path.append('..')
@@ -24,7 +24,6 @@ def create_mobility_blobs(r_vectors, eta, a):
       f[i,j] = 1.0
       v = np.reshape(mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, f, eta, a), len(r_vectors)*3)
       mobility.append(v)
-
   return mobility
 
 

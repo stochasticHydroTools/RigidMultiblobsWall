@@ -1,4 +1,5 @@
-scheme		deterministic_forward_euler_dense_algebra
+scheme		deterministic_forward_euler
+#scheme		deterministic_adams_bashforth
 
 # Comment
 dt		0.01
@@ -14,6 +15,7 @@ eta		1 # lksj adjk
 #seed		run.seed
 
 output_name 	run
-structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
+#structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
+structure_names Generated_shells/shell_3d_Nblob_42_radius_0_225
 
 
