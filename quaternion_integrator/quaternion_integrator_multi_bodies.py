@@ -36,7 +36,7 @@ class QuaternionIntegrator(object):
     # Optional variables
     self.calc_slip = None
     self.calc_force_torque = None
-    self.mobility_blobs_cholesky = None
+    self.mobility_inv_blobs = None
     self.first_guess = None
     self.preconditioner = None
     
@@ -189,24 +189,24 @@ class QuaternionIntegrator(object):
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
       # Set preconditioner
-      self.mobility_blobs_cholesky = []
-      # 1. Loop over bodies
+      mobility_inv_blobs = []
+      # Loop over bodies
       for k, b in enumerate(self.bodies):
+        # 1. Compute blobs mobility and invert it
+        M = b.calc_mobility_blobs(self.eta, self.a)
+        M_inv = np.linalg.inv(M)
+        mobility_inv_blobs.append(M_inv)
         # 2. Compute body mobility
-        N = b.calc_mobility_body(self.eta, self.a)
+        N = b.calc_mobility_body(self.eta, self.a, M_inv = M_inv)
         self.mobility_bodies[k] = N
-        # 3. Compute cholesky factorization
-        L = np.empty((3*b.Nblobs, 3*b.Nblobs))
-        L = b.calc_mobility_blobs_cholesky(self.eta, self.a)
-        self.mobility_blobs_cholesky.append(L)
+
       # 4. Pack preconditioner
       PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
-                             mobility_blobs_cholesky=self.mobility_blobs_cholesky, Nblobs=self.Nblobs)
+                             mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      # PC = None
 
       # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60) 
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
       self.first_guess = sol_precond  
 
       # Extract velocities

@@ -65,11 +65,11 @@ def mobility_vector_prod(r_vectors, vector, eta, a):
   defined at the blob level.
   ''' 
   # Python version
-  res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
+  # res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
   # Boosted version
   # res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
   # Pycuda version
-  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
   
   return res
 
@@ -208,7 +208,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   return res
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_blobs_cholesky, Nblobs):
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
   '''
   Block diagonal preconditioner for rigid bodies.
   It solves exactly the mobility problem for each body
@@ -220,14 +220,14 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_blob
   for k, b in enumerate(bodies):
     # 1. Solve M*Lambda_tilde = slip
     slip = vector[3*offset : 3*(offset + b.Nblobs)]
-    Lambda_tilde = sla.cho_solve((mobility_blobs_cholesky[k], True), slip)
+    Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
 
     # 2. Compute rigid body velocity
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
     Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
 
     # 3. Solve M*Lambda = (slip + K*Y)
-    Lambda = sla.cho_solve((mobility_blobs_cholesky[k], True), slip + np.dot(b.calc_K_matrix(), Y))
+    Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
     
     # 4. Set result
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
@@ -350,17 +350,4 @@ if __name__ == '__main__':
 
 
   print '\n\n\n'
-
-  r_vectors = get_blobs_r_vectors(bodies, Nblobs)
-  # print 'r_vectors\n', r_vectors
-  
-  x = np.ones((Nblobs*3+6*len(bodies)))
-  b = linear_operator_rigid(x, bodies, r_vectors, eta, a)
-
-  linear_operator_partial = partial(linear_operator_rigid, bodies=bodies, r_vectors=r_vectors, eta=eta, a=a)
-
-  b_2 = linear_operator_partial(x)
-
-  print 'allclose', np.allclose(b, b_2)
-
   print '# End'
