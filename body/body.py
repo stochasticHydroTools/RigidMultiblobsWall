@@ -156,13 +156,15 @@ class Body(object):
     return self.mobility_blobs(r_vectors, eta, a)
     
 
-  def calc_mobility_body(self, eta, a, M = None):
+  def calc_mobility_body(self, eta, a, M = None, M_inv = None):
     '''
     Calculate the 6x6 body mobility that maps
     forces and torques to velocities and angular
     velocites.
     '''
     K = self.calc_K_matrix()
+    if M_inv is not None:
+      return np.linalg.inv( np.dot(K.T, np.dot(M_inv, K)) )
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
     return np.linalg.inv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
@@ -176,3 +178,4 @@ class Body(object):
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
     return np.linalg.cholesky(M)
+    
