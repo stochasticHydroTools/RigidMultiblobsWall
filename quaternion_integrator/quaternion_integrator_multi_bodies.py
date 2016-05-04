@@ -29,7 +29,10 @@ class QuaternionIntegrator(object):
     self.linear_operator = None
     self.eta = None
     self.a = None
-   
+    self.velocities = None
+    self.velocities_previous_step = None
+    self.first_step = True
+
     # Optional variables
     self.calc_slip = None
     self.calc_force_torque = None
@@ -50,6 +53,115 @@ class QuaternionIntegrator(object):
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses gmres to solve the rigid body equations.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Solve mobility problem
+      velocities = self.solve_mobility_problem()
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location += velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation
+        
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        return
+
+      print 'Invalid configuration'
+      return
+      
+
+  def deterministic_forward_euler_dense_algebra(self, dt): 
+    ''' 
+    Take a time step of length dt using the deterministic forward Euler scheme. 
+    The function uses dense algebra methods to solve the equations.
+    
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Solve mobility problem
+      velocities = self.solve_mobility_problem_dense_algebra()
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location += velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation
+        
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        return
+
+      print 'Invalid configuration'
+      return
+      
+  
+  def deterministic_adams_bashforth(self, dt): 
+    ''' 
+    Take a time step of length dt using the deterministic Adams-Bashforth of
+    order two scheme. The function uses gmres to solve the rigid body equations.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Solve mobility problem
+      velocities = self.solve_mobility_problem()
+
+      # Update location and orientation
+      if self.first_step == False:
+        # Use Adams-Bashforth
+        for k, b in enumerate(self.bodies):
+          b.location += (1.5 * velocities[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3]) * dt
+          quaternion_dt = Quaternion.from_rotation((1.5 * velocities[6*k+3:6*k+6] \
+                                                      - 0.5 * self.velocities_previous_step[6*k+3:6*k+6]) * dt)
+          b.orientation = quaternion_dt * b.orientation
+      else:
+        # Use forward Euler
+        for k, b in enumerate(self.bodies):
+          b.location += velocities[6*k:6*k+3] * dt
+          quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+          b.orientation = quaternion_dt * b.orientation              
+
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function()
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        # Save velocities for next step
+        self.first_step = False
+        self.velocities_previous_step = velocities
+        return
+    
+    print 'Invalid configuration'      
+    return
+
+
+  def solve_mobility_problem(self): 
+    ''' 
+    Solve the mobility problem using preconditioned GMRES. Compute 
+    velocities on the bodies subject to active slip and enternal 
+    forces-torques.
 
     The linear and angular velocities are sorted lile
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -93,37 +205,19 @@ class QuaternionIntegrator(object):
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
       # PC = None
 
-      # Solve preconditioned linear system
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
+      # Solve preconditioned linear system # callback=make_callback()
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60) 
       self.first_guess = sol_precond  
 
-
       # Extract velocities
-      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      return np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
-      # Update location orientation 
-      for k, b in enumerate(self.bodies):
-        b.location += velocities[6*k:6*k+3] * dt
-        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation = quaternion_dt * b.orientation
-        
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function()
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        return
 
-      print 'Invalid configuration'
-      return
-      
-
-  def deterministic_forward_euler_dense_algebra(self, dt): 
+  def solve_mobility_problem_dense_algebra(self): 
     ''' 
-    Take a time step of length dt using the deterministic forward Euler scheme. 
-    The function uses dense algebra methods to solve the equations.
+    Solve the mobility problem using dense algebra methods. Compute 
+    velocities on the bodies subject to active slip and enternal 
+    forces-torques.
     
     The linear and angular velocities are sorted lile
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -159,51 +253,8 @@ class QuaternionIntegrator(object):
       mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
 
       # Compute velocities
-      velocities = np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
+      return np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
 
-      # Update location orientation 
-      for k, b in enumerate(self.bodies):
-        b.location += velocities[6*k:6*k+3] * dt
-        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation = quaternion_dt * b.orientation
-        
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function()
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        return
-
-      print 'Invalid configuration'
-      return
-      
-  
-  def deterministic_adams_bashforth(self, dt): 
-    ''' 
-    Take a time step of length dt using the deterministic Adams-Bashforth of
-    order two scheme. The function uses gmres to solve the rigid body equations.
-
-    The linear and angular velocities are sorted lile
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    ''' 
-    while True: 
-      # Calculate slip on blobs    
-      print 'deterministic_adams_bashforth ---------------------'
-      
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function()
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        return
-    
-    print 'Invalid configuration'      
-    return
 
 # Callback generator
 def make_callback():
