@@ -59,50 +59,8 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
-      # Calculate slip on blobs
-      if self.calc_slip is not None:
-        slip = self.calc_slip(self.bodies, self.Nblobs)
-      else:
-        slip = np.zeros((self.Nblobs, 3))
-
-      # Get blobs coordinates
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-      # Calculate force-torque on bodies
-      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
-
-      # Set right hand side
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
-
-      # Set linear operators 
-      linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
-      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-
-      # Set preconditioner
-      self.mobility_blobs_cholesky = []
-      # 1. Loop over bodies
-      for k, b in enumerate(self.bodies):
-        # 2. Compute body mobility
-        N = b.calc_mobility_body(self.eta, self.a)
-        self.mobility_bodies[k] = N
-        # 3. Compute cholesky factorization
-        L = np.empty((3*b.Nblobs, 3*b.Nblobs))
-        L = b.calc_mobility_blobs_cholesky(self.eta, self.a)
-        self.mobility_blobs_cholesky.append(L)
-      # 4. Pack preconditioner
-      PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
-                             mobility_blobs_cholesky=self.mobility_blobs_cholesky, Nblobs=self.Nblobs)
-      PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      # PC = None
-
-      # Solve preconditioned linear system
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
-      self.first_guess = sol_precond  
-
-
-      # Extract velocities
-      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      # Solve mobility problem
+      velocities = self.solve_mobility_problem()
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -133,36 +91,8 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
-      # Calculate slip on blobs
-      if self.calc_slip is not None:
-        slip = self.calc_slip(self.bodies, self.Nblobs)
-      else:
-        slip = np.zeros((self.Nblobs, 3))
-
-      # Get blobs coordinates
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-      # Calculate mobility (M) at the blob level
-      mobility_blobs = self.mobility_blobs(r_vectors_blobs, self.eta, self.a)
-
-      # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
-      resistance_blobs = np.linalg.inv(mobility_blobs)
-
-      # Calculate constraint force due to slip l = M^{-1}*slip
-      force_slip = np.dot(resistance_blobs, np.reshape(slip, (3*self.Nblobs,1)))
-
-      # Calculate force-torque on bodies
-      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
-
-      # Calculate block-diagonal matrix K
-      K = self.calc_K_matrix(self.bodies, self.Nblobs)
-     
-      # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
-      resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
-      mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
-
-      # Compute velocities
-      velocities = np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
+      # Solve mobility problem
+      velocities = self.solve_mobility_problem_dense_algebra()
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -281,6 +211,49 @@ class QuaternionIntegrator(object):
 
       # Extract velocities
       return np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+
+  def solve_mobility_problem_dense_algebra(self): 
+    ''' 
+    Solve the mobility problem using dense algebra methods. Compute 
+    velocities on the bodies subject to active slip and enternal 
+    forces-torques.
+    
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Calculate slip on blobs
+      if self.calc_slip is not None:
+        slip = self.calc_slip(self.bodies, self.Nblobs)
+      else:
+        slip = np.zeros((self.Nblobs, 3))
+
+      # Get blobs coordinates
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Calculate mobility (M) at the blob level
+      mobility_blobs = self.mobility_blobs(r_vectors_blobs, self.eta, self.a)
+
+      # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
+      resistance_blobs = np.linalg.inv(mobility_blobs)
+
+      # Calculate constraint force due to slip l = M^{-1}*slip
+      force_slip = np.dot(resistance_blobs, np.reshape(slip, (3*self.Nblobs,1)))
+
+      # Calculate force-torque on bodies
+      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
+
+      # Calculate block-diagonal matrix K
+      K = self.calc_K_matrix(self.bodies, self.Nblobs)
+     
+      # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
+      resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
+      mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
+
+      # Compute velocities
+      return np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
 
 
 # Callback generator
