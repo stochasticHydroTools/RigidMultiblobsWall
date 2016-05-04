@@ -350,17 +350,4 @@ if __name__ == '__main__':
 
 
   print '\n\n\n'
-
-  r_vectors = get_blobs_r_vectors(bodies, Nblobs)
-  # print 'r_vectors\n', r_vectors
-  
-  x = np.ones((Nblobs*3+6*len(bodies)))
-  b = linear_operator_rigid(x, bodies, r_vectors, eta, a)
-
-  linear_operator_partial = partial(linear_operator_rigid, bodies=bodies, r_vectors=r_vectors, eta=eta, a=a)
-
-  b_2 = linear_operator_partial(x)
-
-  print 'allclose', np.allclose(b, b_2)
-
   print '# End'
