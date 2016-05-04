@@ -127,19 +127,19 @@ class QuaternionIntegrator(object):
       velocities = self.solve_mobility_problem()
 
       # Update location and orientation
-      if self.first_step == True:
-        # Use forward Euler
-        for k, b in enumerate(self.bodies):
-          b.location += velocities[6*k:6*k+3] * dt
-          quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-          b.orientation = quaternion_dt * b.orientation      
-      else:
+      if self.first_step == False:
         # Use Adams-Bashforth
         for k, b in enumerate(self.bodies):
           b.location += (1.5 * velocities[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3]) * dt
           quaternion_dt = Quaternion.from_rotation((1.5 * velocities[6*k+3:6*k+6] \
                                                       - 0.5 * self.velocities_previous_step[6*k+3:6*k+6]) * dt)
           b.orientation = quaternion_dt * b.orientation
+      else:
+        # Use forward Euler
+        for k, b in enumerate(self.bodies):
+          b.location += velocities[6*k:6*k+3] * dt
+          quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+          b.orientation = quaternion_dt * b.orientation              
 
       # Check positions, if valid return 
       valid_configuration = True
@@ -205,8 +205,8 @@ class QuaternionIntegrator(object):
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
       # PC = None
 
-      # Solve preconditioned linear system
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback())
+      # Solve preconditioned linear system # callback=make_callback()
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60) 
       self.first_guess = sol_precond  
 
       # Extract velocities
