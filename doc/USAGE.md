@@ -1,14 +1,15 @@
 ## Documentation
 This package contains several scripts for doing 
 simulations of rigid bodies made out of "blob" particles rigidly
-connected.  These simulations consider the particles near a single
-wall (floor), which is always at z = 0. The blob mobility used for
-this is that from appendix C of the paper:
+connected (termed "rigid multiblobs").  These simulations consider the particles near a single
+wall (floor), which is always at z = 0. The blob-blob mobility used for
+is the Rotne-Prager-Blake tensor given in appendix C of the paper:
 'Simulation of hydrodynamically interacting particles near a no-slip boundary'
 by James Swan and John Brady, Phys. Fluids 19, 113306 (2007).
 
 For the theory consult:
 
+Donev: Same comment as for README
 1. **Brownian Dynamics of Confined Rigid Bodies**
   S. Delong, F. Balboa Usabiaga and A. Donev. The Journal of Chemical Physics, **143**, 144107 (2015). 
 [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
@@ -25,14 +26,29 @@ library) for speed up. To use the C++ implementation compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
 to be modified slightly to reflect your Python version, etc.).
 To use the pycuda implementation you will need pycuda and a GPU compatible with CUDA.
+Donev: Give more instructions for how to compile the GPU stuff. Do they need to use a different Makefile,
+change the makefile, comment lines out, etc.? Maybe give the link to PyCUDA.
 
 Note, if you do not want to use the C++ or the pycuda implementations
 edit the file `mobility/mobility.py` and comment the lines
 
 `import mobility_ext as me`
+Donev: OK
 
 `import mobility_pycuda`
+Donev: This seems to mix two things: Use C++, and use CUDA. How are the two related. Shouldn't the user choose one OR the other.
 
+Donev: Moved this here
+####WITHOUT BOOST
+If you do not want to use boost for the brownian dynamics simulations,
+the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
+function which is identical to "boosted_single_wall_fluid_mobility"
+but doesn't use boost (and is somewhat slower).  Replace calls to the
+boosted version with calls to the python version wherever mobility of
+a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
+in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
+line from ./fluids/mobility.py and everything should run without having 
+to compile any of the C++ code.
 
 
 ### How to run 
@@ -41,24 +57,31 @@ The main program `multi_bodies/multi_bodies.py` can be run like
 `python multi_bodies inputfile`
 
 `inputfile` contains the options for the simulation (time steps, number of bodies...),
-see `multi_bodies/data.main` for an example. The trajectory data is saved as a list of 
-locations and orientations in the output file `.bodies`. Each timestep is saved as 7 
+see `multi_bodies/data.main`
+Donev: I added some comments also in this file, see it.
+ for an example. The trajectory data is saved as a list of 
+locations and orientations in the output file `.bodies`. 
+Donev: I put a comment in data.main to explain the format .bodies also in data.main. Seems a little confusing to have one file format described here and the other in data.main -- keep it in one place and just indicate here where the file format is described. As I explain in data.main I strongly suggest that .clones and .bodies files be named the same thing and be indexed consistently, so there is really only one file format.
+Each timestep is saved as 7 
 floats per body printed on a separate line, with location as the first 3 floats, and 
 the quaternion representing orientation as the last 4 floats.
 
 You can modify the following
 functions in `multi_bodies/multi_bodies.py`:
 
-* `mobility_blobs`: it computes the blobs mobility matrix **M**. If
-you are not using the C++ implementation select the python version.
+* `mobility_blobs`: it computes the blobs mobility matrix **M**.
+Donev: What is this used for? You mean M is formed as a dense matrix. Where is this used -- in Steven's code? Seems to make no sense here to ever use the C++ code? That only makes sense for a matrix-vector product really to speed up the for loops?
+If you are not using the C++ implementation select the python version.
+Donev: Explain how to "select" -- you mean comment out one line or another?
 
 * `mobility_vector_prod`: it computes the matrix vector product **Mf**.
 If you are not using pycuda select the C++ or the python version.
+Donev: Explain *how* to select this.
 
 * `force_torque_calculator_sort_by_bodies`: it computes the external forces
 and torques on the rigid bodies. The current implementation only
-includes gravity forces plus interactions between the blobs and the wall.
-
+includes gravity forces plus pairwise interactions between the blobs and the wall.
+Donev: Where are the potentials of interaction given. Explain to the user what to change to have different interaction potentials. Where are the parameters of those potentials given -- hard coded into the code or an input file? Somehow it seems there should be a separate input file for the potentials or a section in the input file...this is tricky and without the full machinery IBAMR implements of having sections in the input file may be hard to do. But one needs to think here about how other uses would change this code and allow parameters to be chosen in input files and not hard coded into code.
 
 
 ### Software organization
@@ -79,11 +102,12 @@ multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
 * **stochastic_forcing/**: it contains functions to compute the product
  **M**^{1/2}**z** necessary to perform Brownian simulations.
+ Donev: What happened to Steven's codes for dense N^(1/2) -- did we throw those out?
 * **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
 
-
+Donev: Blaise should put some routines here for visualizing/computing velocity fields on a grid. He already has them but they are useful to everyone.
 
 ### To run the Boomerang example:
 This file permits to simulate the dynamics of a single boomerang close to a wall.
@@ -150,18 +174,6 @@ in  <DATA_DIR>/boomerang.
   python plot_boomerang_msd.py boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl
 
 which will create a (noisy) pdf in the boomerang/figures/ folder.
-
-
-####WITHOUT BOOST
-If you do not want to use boost for the brownian dynamics simulations,
-the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
-function which is identical to "boosted_single_wall_fluid_mobility"
-but doesn't use boost (and is somewhat slower).  Replace calls to the
-boosted version with calls to the python version wherever mobility of
-a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
-in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
-line from ./fluids/mobility.py and everything should run without having 
-to compile any of the C++ code.
 
 
 ### To run the sphere example:

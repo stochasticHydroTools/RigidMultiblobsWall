@@ -4,6 +4,7 @@
 scheme		deterministic_forward_euler
 
 # Set time step, number of steps and save frequency
+Donev: Explain save frequency -- is the file format saved in the same format as the .clones file below? Explain this. Is the time of the snapshot recorded anywhere in the file? How does one restart a run from a previous configuration. Does one need to move or copy the .bodies file into a .clones file? This seems not so nice -- why not let one specify the name of the file to start from. How are the files actually named -- what is the base of the file and how are different snapshots (.bodies) distinguished in the file name? I think it is best to name both files the same thing, e.g., base_name-0000000.clones is the initial configuration (but let the user specify both base name and the number at which to start from, default 0). It is also a good idea (from experience) if the time step counter knows what time step one is at. That is, if one starts from file base-name-0000100.clones, the time step counter starts at 100 so the next snapshot saved is something like base-name-0000200.clones, NOT base-name-0000100.clones, thus overwriting the input file. This allows one to run a simulation in many pieces (we call them restarts), and they all continue seemlessly one after the other without causing confusion. This works very well and it is what we do in the codes with the group at LBL, used by many many users around the world.
 dt		0.01
 n_steps		100
 n_save  	1
@@ -21,7 +22,9 @@ output_name 	run
 
 # Set the rigid bodies (structures). For each kind of rigid body (structure) 
 # the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
-# the initial location and orientation of the rigid bodies. It has one line 
+# the initial location and orientation of the rigid bodies.
+Donev: Does this assume that all bodies are identical? Where is the number of bodies (clones) specified -- is it in the top of the .clones file or is it assumed to be the number of lines in .clones file? I recommend it be specified explicitly.
+# It has one line 
 # per body containing the initial location (3 floats) plus the initial 
 # orientation (4 floats for the quaternion). The ".vertex" file gives the
 # configuration of the blobs in the reference configuration (location=[0 0 0] 
