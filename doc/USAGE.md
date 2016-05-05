@@ -18,8 +18,8 @@ For the theory consult:
 
 
 ### Prepare the mobility functions
-The functions to compute the blob mobility matrix $\bf M$ and the
-product $\bf M \cdot F$ are defined in the directory `mobility/`.
+The functions to compute the blob mobility matrix **M** and the
+product ** M f** are defined in the directory `mobility/`.
 Some of the functions use pycuda or C++ (through the Boost Python
 library) for speed up. To use the C++ implementation compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
@@ -49,10 +49,10 @@ orientation as the last 4 floats.
 You can modify the following
 functions in `multi_bodies/multi_bodies.py`:
 
-* `mobility_blobs`: it computes the blobs mobility matrix $\bf M$. If
+* `mobility_blobs`: it computes the blobs mobility matrix **M**. If
 you are not using the C++ implementation select the python version.
 
-* `mobility_vector_prod`: it computes the matrix vector product $\bf M \cdot F$.
+* `mobility_vector_prod`: it computes the matrix vector product **Mf**.
 If you are not using pycuda select the C++ or the python version.
 
 * `force_torque_calculator_sort_by_bodies`: it computes the external forces
@@ -65,8 +65,8 @@ includes gravity forces plus interactions between the blobs and the wall.
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: See next section.
 * **doc/**: documentation.
-* **mobility/**: it has functions to compute the blob mobility matrix $\bf M$ and the
-product $\bf M \cdot F$.
+* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
+product **Mf**.
 * **multi_bodies/**: the main code to run simulations of rigid bodies.
 * **quaternion_integrator/**: it has a small class to handle quaternions and
 the schemes to integrate the equations.
@@ -78,7 +78,7 @@ Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
 * **stochastic_forcing/**: it contains functions to compute the product
- $\bf M^{1/2} \cdot z$ necessary to perform Brownian simulations.
+ **M**^{1/2}**z** necessary to perform Brownian simulations.
 * **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
