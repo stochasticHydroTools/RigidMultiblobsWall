@@ -1,4 +1,4 @@
-#### Documentation
+## Documentation
 This package contains several scripts for doing 
 simulations of rigid bodies made out of "blob" particles rigidly
 connected.  These simulations consider the particles near a single
@@ -17,12 +17,13 @@ For the theory consult:
   A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
 
-## How to Run
-The main program multi_bodies/multi_bodies.py can be run it like
-python multi_bodies inputfile
+### How to Run
+The main program `multi_bodies/multi_bodies.py  can be run it like
 
-inputfiles contains the options for the simulation (time steps...)
-see the file multi_bodies/data.main for an example.
+`python multi_bodies inputfile`
+
+`inputfiles` contains the options for the simulation (time steps...)
+see the file `multi_bodies/data.main` for an example.
 
 The software is organized as follows.  
 
