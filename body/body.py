@@ -164,10 +164,10 @@ class Body(object):
     '''
     K = self.calc_K_matrix()
     if M_inv is not None:
-      return np.linalg.inv( np.dot(K.T, np.dot(M_inv, K)) )
+      return np.linalg.pinv( np.dot(K.T, np.dot(M_inv, K)) )
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
-    return np.linalg.inv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
+    return np.linalg.pinv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
 
 
   def calc_mobility_blobs_cholesky(self, eta, a, M = None):
