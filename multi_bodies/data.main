@@ -1,21 +1,33 @@
+# Chose integrator between:
+# deterministic_forward_euler, deterministic_forward_euler_dense_algebra
+# deterministic_adams_bashforth
 scheme		deterministic_forward_euler
-#scheme		deterministic_adams_bashforth
 
-# Comment
+# Set time step, number of steps and save frequency
 dt		0.01
-n_steps		2
+n_steps		100
 n_save  	1
-n_relaxation	0
 
-# # # 
-# dt		0.2
+# Set viscosity, gravity and blob radius
+eta		1 
+g		1
+blob_radius	0.25
 
-eta		1 # lksj adjk 
-
+# Seed random number generator
 #seed		run.seed
 
+# Set output name
 output_name 	run
-#structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
-structure_names Generated_shells/shell_3d_Nblob_42_radius_0_225
+
+# Set the rigid bodies (structures). For each kind of rigid body (structure) 
+# the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
+# the initial location and orientation of the rigid bodies. It has one line 
+# per body containing the initial location (3 floats) plus the initial 
+# orientation (4 floats for the quaternion). The ".vertex" file gives the
+# configuration of the blobs in the reference configuration (location=[0 0 0] 
+# and orientation[1 0 0 0]). The first line gives the number of blobs in one 
+# body and then it has one line per blob with its coordinates. See the 
+# provided files for an example.
+structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
 
 
