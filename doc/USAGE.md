@@ -1,4 +1,5 @@
-This package contains several scripts for doing some simple
+## Documentation
+This package contains several scripts for doing 
 simulations of rigid bodies made out of "blob" particles rigidly
 connected.  These simulations consider the particles near a single
 wall (floor), which is always at z = 0. The blob mobility used for
@@ -7,47 +8,85 @@ this is that from appendix C of the paper:
 by James Swan and John Brady, Phys. Fluids 19, 113306 (2007).
 
 For the theory consult:
-[1] "Brownian Dynamics of Confined Rigid Bodies"
-S. Delong, F. Balboa Usabiaga and A. Donev
-Submitted to J. Chem. Phys., 2015 [Arxiv:?.?].
 
-The software is organized as follows.  
+1. **Brownian Dynamics of Confined Rigid Bodies**
+  S. Delong, F. Balboa Usabiaga and A. Donev. The Journal of Chemical Physics, **143**, 144107 (2015). 
+[DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
+2. **Hydrodynamics of suspensions of passive and active rigid particles: a
+  rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
+  A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
-The quaternion_integrator and fluids subfolders have some general
-functions and objects that are used to perform simulations.  
 
-The boomerang folder contains an example with mobilities and functions
-used to simulate the diffusion of a rigid boomerang particle near a
-single wall, as described in Section IV.E in [1].
-It also contains some scripts to analyze trajectory data
-and plot results.
+### Prepare the mobility functions
+The functions to compute the blob mobility matrix **M** and the
+product **Mf** are defined in the directory `mobility/`.
+Some of the functions use pycuda or C++ (through the Boost Python
+library) for speed up. To use the C++ implementation compile
+`mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
+to be modified slightly to reflect your Python version, etc.).
+To use the pycuda implementation you will need pycuda and a GPU compatible with CUDA.
 
-The sphere folder contains an example to simulate a sphere
+Note, if you do not want to use the C++ or the pycuda implementations
+edit the file `mobility/mobility.py` and comment the lines
+
+`import mobility_ext as me`
+
+`import mobility_pycuda`
+
+
+
+### How to run 
+The main program `multi_bodies/multi_bodies.py` can be run like
+
+`python multi_bodies inputfile`
+
+`inputfile` contains the options for the simulation (time steps, number of bodies...),
+see `multi_bodies/data.main` for an example. The trajectory data is saved as a list of 
+locations and orientations in the output file `.bodies`. Each timestep is saved as 7 
+floats per body printed on a separate line, with location as the first 3 floats, and 
+the quaternion representing orientation as the last 4 floats.
+
+You can modify the following
+functions in `multi_bodies/multi_bodies.py`:
+
+* `mobility_blobs`: it computes the blobs mobility matrix **M**. If
+you are not using the C++ implementation select the python version.
+
+* `mobility_vector_prod`: it computes the matrix vector product **Mf**.
+If you are not using pycuda select the C++ or the python version.
+
+* `force_torque_calculator_sort_by_bodies`: it computes the external forces
+and torques on the rigid bodies. The current implementation only
+includes gravity forces plus interactions between the blobs and the wall.
+
+
+
+### Software organization
+* **body/**: it contains a class to handle a single rigid body.
+* **boomerang/**: See next section.
+* **doc/**: documentation.
+* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
+product **Mf**.
+* **multi_bodies/**: the main code to run simulations of rigid bodies.
+* **quaternion_integrator/**: it has a small class to handle quaternions and
+the schemes to integrate the equations of motion.
+* **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
 in the presence of gravity, as described in Section IV.C in [1].
 Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
-
-The utils.py file has some general functions that would be useful for
+* **stochastic_forcing/**: it contains functions to compute the product
+ **M**^{1/2}**z** necessary to perform Brownian simulations.
+* **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
 
-Trajectory data is saved as a list of locations and orientations. Each
-timestep is saved as 7 floats printed on a separate line, with
-location as the first 3 floats, and the quaternion representing
-orientation as the last 4 floats.  The timestep 'dt' and number of
-steps is also saved in the data file, to recreate the time for each
-point in the trajectory.  This is human readable and could be analyzed
-by other codes if this is convenient.  One can also extract the locations,
-orientations, and parameters using the read_trajectory_data_from_txt
-function in utils.py.
 
 
-#################################################
-To run the Boomerang example:
-#################################################
+### To run the Boomerang example:
+This file permits to simulate the dynamics of a single boomerang close to a wall.
 
 1) Define the directory where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
@@ -59,7 +98,6 @@ library for speedup.  There is a Makefile provided in the fluids
 subfolder, which will need to be modified slightly to reflect your
 Python version, etc.  Running make in this folder will then compile
 the .so files used by the python programs.
-
 (NOTE: If you do not have boost, or do not want to
 use it, read the section below entitled "Without Boost").  
 
@@ -114,11 +152,19 @@ in  <DATA_DIR>/boomerang.
 which will create a (noisy) pdf in the boomerang/figures/ folder.
 
 
+####WITHOUT BOOST
+If you do not want to use boost for the brownian dynamics simulations,
+the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
+function which is identical to "boosted_single_wall_fluid_mobility"
+but doesn't use boost (and is somewhat slower).  Replace calls to the
+boosted version with calls to the python version wherever mobility of
+a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
+in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
+line from ./fluids/mobility.py and everything should run without having 
+to compile any of the C++ code.
 
-#################################################
-To run the sphere example:
-#################################################
 
+### To run the sphere example:
 1) Define the directory where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
 liking. (In the future, any additional configuration variables will be set in
@@ -132,20 +178,6 @@ and a fit to the sphere mobility computed from a higher resolution model.
 
 
 
-
-
-#############
-WITHOUT BOOST
-#############
-If you do not want to use boost for the brownian dynamics simulations,
-the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
-function which is identical to "boosted_single_wall_fluid_mobility"
-but doesn't use boost (and is somewhat slower).  Replace calls to the
-boosted version with calls to the python version wherever mobility of
-a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
-in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
-line from ./fluids/mobility.py and everything should run without having 
-to compile any of the C++ code.
 
 
 

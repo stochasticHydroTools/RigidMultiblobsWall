@@ -308,8 +308,9 @@ if __name__ == '__main__':
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = mobility_blobs
-  # integrator.force_torque_calculator = partial(force_torque_calculator, g=g) 
-  integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g=g, repulsion_strength_wall=1.0) 
+  integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g = g, \
+                                                 repulsion_strength_wall = read.repulsion_strength_wall, \
+                                                 debey_length_wall = read.debey_length_wall) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner
