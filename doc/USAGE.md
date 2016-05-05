@@ -19,7 +19,7 @@ For the theory consult:
 
 ### Prepare the mobility functions
 The functions to compute the blob mobility matrix **M** and the
-product ** M f** are defined in the directory `mobility/`.
+product **M f** are defined in the directory `mobility/`.
 Some of the functions use pycuda or C++ (through the Boost Python
 library) for speed up. To use the C++ implementation compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
