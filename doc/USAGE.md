@@ -8,26 +8,26 @@ this is that from appendix C of the paper:
 by James Swan and John Brady, Phys. Fluids 19, 113306 (2007).
 
 For the theory consult:
-* **Brownian Dynamics of Confined Rigid Bodies**
+1. **Brownian Dynamics of Confined Rigid Bodies**
   S. Delong, F. Balboa Usabiaga and A. Donev. The Journal of Chemical Physics, **143**, 144107 (2015). 
 [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
-* **Hydrodynamics of suspensions of passive and active rigid particles: a
+2. **Hydrodynamics of suspensions of passive and active rigid particles: a
   rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
   A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
 
 ### Prepare the mobility functions
 The functions to compute the blob mobility matrix **M** and the
-product **M f** are defined in the directory `mobility/`.
+product **Mf** are defined in the directory `mobility/`.
 Some of the functions use pycuda or C++ (through the Boost Python
 library) for speed up. To use the C++ implementation compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
 to be modified slightly to reflect your Python version, etc.).
-To use the pycuda implementation you will need pycuda and GPU compatible with CUDA.
+To use the pycuda implementation you will need pycuda and a GPU compatible with CUDA.
 
 Note, if you do not want to use the C++ or the pycuda implementations
-edit the file mobility/mobility.py and comment the lines
+edit the file `mobility/mobility.py` and comment the lines
 
 `import mobility_ext as me`
 
@@ -40,11 +40,11 @@ The main program `multi_bodies/multi_bodies.py` can be run like
 
 `python multi_bodies inputfile`
 
-`inputfiles` contains the options for the simulation (time steps, number of bodies...),
-see `multi_bodies/data.main` for an example. Trajectory data is saved as a list of 
-locations and orientations. Each timestep is saved as 7 floats per body printed on a 
-separate line, with location as the first 3 floats, and the quaternion representing
-orientation as the last 4 floats.
+`inputfile` contains the options for the simulation (time steps, number of bodies...),
+see `multi_bodies/data.main` for an example. The trajectory data is saved as a list of 
+locations and orientations in the output file `.bodies`. Each timestep is saved as 7 
+floats per body printed on a separate line, with location as the first 3 floats, and 
+the quaternion representing orientation as the last 4 floats.
 
 You can modify the following
 functions in `multi_bodies/multi_bodies.py`:
@@ -69,7 +69,7 @@ includes gravity forces plus interactions between the blobs and the wall.
 product **Mf**.
 * **multi_bodies/**: the main code to run simulations of rigid bodies.
 * **quaternion_integrator/**: it has a small class to handle quaternions and
-the schemes to integrate the equations.
+the schemes to integrate the equations of motion.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
@@ -87,12 +87,13 @@ data and for logging).
 
 ### To run the Boomerang example:
 This file permits to simulate the dynamics of a single boomerang close to a wall.
-1) Define the directory where you want to save your data by making a copy 
+
+1. Define the directory where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
 liking. (In the future, any additional configuration variables will be set in
 this file.)
 
-2) Some code (the fluid mobility) uses C++ through the Boost Python
+2. Some code (the fluid mobility) uses C++ through the Boost Python
 library for speedup.  There is a Makefile provided in the fluids
 subfolder, which will need to be modified slightly to reflect your
 Python version, etc.  Running make in this folder will then compile
@@ -102,7 +103,7 @@ the .so files used by the python programs.
 use it, read the section below entitled "Without Boost").  
 
 
-3) You should now be ready to run some scripts to produce trajectory
+3. You should now be ready to run some scripts to produce trajectory
 data.  To test this, cd into ./boomerang/, and try to run:
 
    python boomerang.py -dt 0.01 -N 100 -gfactor 1.0 --data-name=testing-1
@@ -125,7 +126,7 @@ One can create frames of this trajectory to make a animation using the script:
 		python plot_boomerang_trajectory boomerang-trajectory-dt-0.01-N-100-scheme-RFD-g-1.0-testing-1.txt
 
 
-4) One can now analyze the scripts to calculate the MSD (new scripts
+4. One can now analyze the scripts to calculate the MSD (new scripts
 can be made to calculate other quantities of interest from trajectory
 data.)  There is a script in ./boomerang which takes command line
 arguments to specify which files to analyze.  From the boomerang
@@ -145,7 +146,7 @@ This will create the file:
   "boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl"
 in  <DATA_DIR>/boomerang.
 
-5) Plotting the MSD can then be done by running:
+5. Plotting the MSD can then be done by running:
   
   python plot_boomerang_msd.py boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl
 
@@ -164,7 +165,7 @@ line from ./fluids/mobility.py and everything should run without having
 to compile any of the C++ code.
 
 
-## To run the sphere example:
+### To run the sphere example:
 1) Define the directory where you want to save your data by making a copy 
 of config.py called "config_local.py" and define DATA_DIR to your
 liking. (In the future, any additional configuration variables will be set in
