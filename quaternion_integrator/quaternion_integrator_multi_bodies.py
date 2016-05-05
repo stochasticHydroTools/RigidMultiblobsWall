@@ -64,17 +64,20 @@ class QuaternionIntegrator(object):
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
-        b.location += velocities[6*k:6*k+3] * dt
+        b.location_new = b.location + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation = quaternion_dt * b.orientation
+        b.orientation_new = quaternion_dt * b.orientation
         
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
-        valid_configuration = b.check_function()
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
         if valid_configuration is False:
           break
       if valid_configuration is True:
+        for b in self.bodies:
+          b.location = b.location_new
+          b.orientation = b.orientation_new
         return
 
       print 'Invalid configuration'
@@ -96,17 +99,20 @@ class QuaternionIntegrator(object):
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
-        b.location += velocities[6*k:6*k+3] * dt
+        b.location_new = b.location + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation = quaternion_dt * b.orientation
+        b.orientation_new = quaternion_dt * b.orientation
         
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
-        valid_configuration = b.check_function()
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
         if valid_configuration is False:
           break
       if valid_configuration is True:
+        for b in self.bodies:
+          b.location = b.location_new
+          b.orientation = b.orientation_new
         return
 
       print 'Invalid configuration'
@@ -130,27 +136,30 @@ class QuaternionIntegrator(object):
       if self.first_step == False:
         # Use Adams-Bashforth
         for k, b in enumerate(self.bodies):
-          b.location += (1.5 * velocities[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3]) * dt
+          b.location_new = b.location + (1.5 * velocities[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3]) * dt
           quaternion_dt = Quaternion.from_rotation((1.5 * velocities[6*k+3:6*k+6] \
                                                       - 0.5 * self.velocities_previous_step[6*k+3:6*k+6]) * dt)
-          b.orientation = quaternion_dt * b.orientation
+          b.orientation_new = quaternion_dt * b.orientation
       else:
         # Use forward Euler
         for k, b in enumerate(self.bodies):
-          b.location += velocities[6*k:6*k+3] * dt
+          b.location_new = b.location + velocities[6*k:6*k+3] * dt
           quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-          b.orientation = quaternion_dt * b.orientation              
+          b.orientation_new = quaternion_dt * b.orientation              
 
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
-        valid_configuration = b.check_function()
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
         if valid_configuration is False:
           break
       if valid_configuration is True:
         # Save velocities for next step
         self.first_step = False
         self.velocities_previous_step = velocities
+        for b in self.bodies:
+          b.location = b.location_new
+          b.orientation = b.orientation_new          
         return
     
     print 'Invalid configuration'      
@@ -264,3 +273,5 @@ def make_callback():
         closure_variables["residuals"].append(residuals)
         print closure_variables["counter"], residuals
     return callback
+
+

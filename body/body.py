@@ -17,8 +17,10 @@ class Body(object):
     '''
     # Location as np.array.shape = 3
     self.location = location
+    self.location_new = np.copy(location)
     # Orientation as Quaternion
     self.orientation = orientation
+    self.orientation_new = np.copy(orientation)
     # Number of blobs
     self.Nblobs = reference_configuration.size / 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
@@ -47,17 +49,22 @@ class Body(object):
   
    
   
-  def get_r_vectors(self):
+  def get_r_vectors(self, location = None, orientation = None):
     '''
     Return the coordinates of the blobs.
     '''
-    rotation_matrix = self.orientation.rotation_matrix()
+    # Get location and orientation
+    if location is None:
+      location = self.location
+    if orientation is None:
+      orientation = self.orientation
+    # Compute blobs coordinates
+    rotation_matrix = orientation.rotation_matrix()
     r_vectors = np.empty([self.Nblobs, 3])
     for i, vec in enumerate(self.reference_configuration):
-      r_vectors[i] = np.dot(rotation_matrix, vec) + self.location
+      r_vectors[i] = np.dot(rotation_matrix, vec) + location
     return r_vectors
-
-
+    
   def calc_rot_matrix(self):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
@@ -93,7 +100,7 @@ class Body(object):
     return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix()], axis=1)
                         
 
-  def check_function(self, distance = None):
+  def check_function(self, location = None, orientation = None, distance = None):
     ''' 
     Function to check that the body didn't cross the wall,
     i.e., all its blobs have z > distance. Default distance is blob_radius.
@@ -101,9 +108,15 @@ class Body(object):
     # Define distance
     if not distance:
       distance = self.blob_radius
+      
+    # Get location and orientation
+    if location is None:
+      location = self.location
+    if orientation is None:
+      orientation = self.orientation      
 
     # Get current configuration
-    r_vectors = self.get_r_vectors()
+    r_vectors = self.get_r_vectors(location, orientation)
 
     # Loop over blobs
     for vec in r_vectors:
