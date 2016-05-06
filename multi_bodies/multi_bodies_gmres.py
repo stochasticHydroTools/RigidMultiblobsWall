@@ -719,9 +719,9 @@ def mobility_vector_prod(r_vectors, vector):
   # Blobs mobility
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3)) 
   # Python version
-  res = mb.single_wall_fluid_mobility_product(r_vec_for_mob, vector, ETA, A)
+  # res = mb.single_wall_fluid_mobility_product(r_vec_for_mob, vector, ETA, A)
   # Boosted version
-  # res = mb.boosted_mobility_vector_product(r_vec_for_mob, ETA, A, vector)
+  res = mb.boosted_mobility_vector_product(r_vec_for_mob, ETA, A, vector)
   # Pycuda version
   # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vec_for_mob, vector, ETA, A)
   

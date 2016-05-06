@@ -3,6 +3,7 @@ Simple integrator for N quaternions.
 '''
 import numpy as np
 import math as m
+import time
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as sf
 import scipy.sparse.linalg as spla
@@ -112,26 +113,34 @@ class PCQuaternionIntegratorGMRES(object):
 
 	# Generate W increments for predictor step and part of corrector step
 	if self.ISstochastic:
+	  	#startTime = time.time()
 	  W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
 	  W2 = np.random.normal(0.0, 1.0, self.Nblobs*3)
 	  MnW2 = self.mobility_vector_prod(W2, r_vectors_ite_P)
+	  Mn = self.mobility_blobs(r_vectors_ite_P) 
+          	#print time.time() - startTime
 
 
 
         # Get slip on each blob
-        slip_P = self.slip_velocity(r_vectors_ite_P, self.location)  
+        slip_P = -1.0*self.slip_velocity(r_vectors_ite_P, self.location)  
 
 	if self.ISstochastic:
-	  mobility_vector_prod_partial_P = partial(self.mobility_vector_prod, r_vectors = r_vectors_ite_P)
-	  (rand_slip_P,max_iter_P) = sf.stochastic_forcing_lanczos(factor = 1,\
-          tolerance = 1e-06,\
-          max_iter = 1000,\
-          name = '',\
-          dim = None,\
-          mobility = None,\
-          mobility_mult = mobility_vector_prod_partial_P,\
-          z = W1)
-	  slip_P = slip_P + np.sqrt(4.0*self.kT/dt)*(rand_slip_P + W2)
+	  	#startTime = time.time()
+	  #rand_slip_P = np.dot(chol_mobility_blobs_each_body_P,W1)
+	  rand_slip_P = sf.stochastic_forcing_eig(Mn,1.0,W1)
+
+	  #mobility_vector_prod_partial_P = partial(self.mobility_vector_prod, r_vectors = r_vectors_ite_P)
+	  #(rand_slip_P,max_iter_P) = sf.stochastic_forcing_lanczos(factor = 1,\
+          #tolerance = 1e-10,\
+          #max_iter = 1000,\
+          #name = '',\
+          #dim = None,\
+          #mobility = None,\
+          #mobility_mult = mobility_vector_prod_partial_P,\
+          #z = W1)
+	  slip_P = slip_P - np.sqrt(4.0*self.kT/dt)*(rand_slip_P + W2) # need this negative because of the -K^{T} in the lin. op.
+	  	#print time.time() - startTime
 	   
 
         # Set linear operators
@@ -199,24 +208,29 @@ class PCQuaternionIntegratorGMRES(object):
 	# Generate W increments for corrector step
 	if self.ISstochastic:
 	  W3 = np.random.normal(0.0, 1.0, self.Nblobs*3)
-	  Wcorector = W1 + W3;
+	  Wcorector = W1 # should be W1 + W3 but just W1 seems to work
 
         # Get slip on each blob
-        slip = self.slip_velocity(r_vectors_ite, mid_location)  
+        slip = -1.0*self.slip_velocity(r_vectors_ite, mid_location)  
 
 	#print np.linalg.norm(np.array(slip))
 
 	# compute (M^(n))^(1/2)[W1 + W3]
 	if self.ISstochastic:
-	  (rand_slip_C,max_iter) = sf.stochastic_forcing_lanczos(factor = 1,\
-          tolerance = 1e-06,\
-          max_iter = 1000,\
-          name = '',\
-          dim = None,\
-          mobility = None,\
-          mobility_mult = mobility_vector_prod_partial_P,\
-          z = Wcorector)
-	  slip = slip + np.sqrt(1.0*self.kT/dt)*(rand_slip_C - MnW2)   
+	  	#startTime = time.time()
+	  #rand_slip_C = np.dot(chol_mobility_blobs_each_body_P,Wcorector)
+	  rand_slip_C = sf.stochastic_forcing_eig(Mn,1.0,Wcorector)
+
+	  #(rand_slip_C,max_iter) = sf.stochastic_forcing_lanczos(factor = 1,\
+          #tolerance = 1e-10,\
+          #max_iter = 1000,\
+          #name = '',\
+          #dim = None,\
+          #mobility = None,\
+          #mobility_mult = mobility_vector_prod_partial_P,\
+          #z = Wcorector)
+	  slip = slip - np.sqrt(1.0*self.kT/dt)*(rand_slip_C - MnW2)   # need this negative because of the -K^{T} in the lin. op.
+	  	#print time.time() - startTime
 
         # Set linear operators
         linear_operator_partial = partial(self.linear_operator,\
@@ -257,6 +271,8 @@ class PCQuaternionIntegratorGMRES(object):
         # Unpack linear and angular velocities
         velocity = velocity_and_omega[0:(3*self.dim)]
         omega = velocity_and_omega[(3*self.dim):(6*self.dim)]
+
+	#print np.linalg.norm(np.array(velocity)-np.array(velocity_P))
         
         new_location = []
         # Update location and save velocity and rotation
@@ -270,6 +286,8 @@ class PCQuaternionIntegratorGMRES(object):
           quaternion_dt = Quaternion.from_rotation((omega[(i*3):(i*3+3)])*dt)
           new_orientation.append(quaternion_dt*self.orientation[i])
           
+	#print np.linalg.norm(np.array(new_location)-np.array(self.location)) - np.linalg.norm(dt*np.array(velocity))
+	#print np.linalg.norm(np.array(new_location)-np.array(mid_location))
       else:
         raise Exception('ERROR, algorithm for bodies without location is not implemented')
         
@@ -309,6 +327,6 @@ def make_callback():
     def callback(residuals):
         closure_variables["counter"] += 1
         closure_variables["residuals"].append(residuals)
-        print closure_variables["counter"], residuals
+        #print closure_variables["counter"], residuals
     return callback
     
