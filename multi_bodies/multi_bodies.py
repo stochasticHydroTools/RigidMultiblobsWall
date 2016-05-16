@@ -67,9 +67,9 @@ def mobility_vector_prod(r_vectors, vector, eta, a):
   # Python version
   # res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
   # Boosted version
-  # res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
+  res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
   # Pycuda version
-  res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
   
   return res
 
@@ -281,10 +281,10 @@ if __name__ == '__main__':
   for structure in structure_names:
     print 'Creating structures = ', structure
     struct_ref_config = read_vertex_file.read_vertex_file(structure + '.vertex')
-    struct_locations, struct_orientations = read_clones_file.read_clones_file(structure + '.clones')
-    body_types.append(len(struct_orientations))
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure + '.clones')
+    body_types.append(num_bodies_struct)
     # Creat each body of tyoe structure
-    for i in range(len(struct_orientations)):
+    for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
       b.mobility_blobs = mobility_blobs
       # Append bodies to total bodies list

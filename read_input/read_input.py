@@ -1,8 +1,8 @@
 '''
 Simple class to read the input files to run a simulation.
 '''
-
 import numpy as np
+import ntpath
 
 class ReadInput(object):
   '''
@@ -46,4 +46,8 @@ class ReadInput(object):
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)
     self.debey_length_wall = float(self.options.get('debey_length_wall') or 1.0)
     
-    
+    # Create structures ID for each kind (remove directory from structure name)
+    self.structure_ID = []
+    for name in self.structure_names:
+      head, tail = ntpath.split(name)
+      self.structure_ID.append(tail)
