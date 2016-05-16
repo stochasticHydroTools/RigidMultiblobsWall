@@ -14,6 +14,7 @@ class ReadInput(object):
     self.entries = entries
     self.input_file = entries
     self.options = {}
+    number_of_structures = 0
 
     # Read input file
     comment_symbols = ['#']   
@@ -28,6 +29,9 @@ class ReadInput(object):
         line = line.strip()
         if line != '':
           option, value = line.split(None, 1)
+          if option == 'structure':
+            option += str(number_of_structures)
+            number_of_structures += 1
           self.options[option] = value
 
     # Set option to file or default values
@@ -46,8 +50,19 @@ class ReadInput(object):
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)
     self.debey_length_wall = float(self.options.get('debey_length_wall') or 1.0)
     
-    # Create structures ID for each kind (remove directory from structure name)
-    self.structure_ID = []
-    for name in self.structure_names:
-      head, tail = ntpath.split(name)
-      self.structure_ID.append(tail)
+    # Create list with [vertex_file, clones_file] for each strcuture
+    self.structures = []
+    for i in range(number_of_structures):
+      option = 'structure' + str(i)
+      vertex_file, clones_file = str.split(str(self.options.get(option)))
+      self.structures.append([vertex_file, clones_file])
+
+    # Create structures ID for each kind 
+    self.structures_ID = []
+    for struct in self.structures:
+      # First, remove directory from structure name
+      head, tail = ntpath.split(struct[1])
+      # then, remove end (.clones)
+      tail = tail[:-7]
+      self.structures_ID.append(tail)
+

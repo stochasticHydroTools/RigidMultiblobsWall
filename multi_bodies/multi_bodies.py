@@ -262,6 +262,8 @@ if __name__ == '__main__':
   output_name = read.output_name 
   structure_names = read.structure_names
   seed = read.seed
+  structures = read.structures
+  structures_ID = read.structures_ID
   
   # Copy input file to output
   subprocess.call(["cp", input_file, output_name + '.inputfile'])
@@ -278,10 +280,10 @@ if __name__ == '__main__':
   # Create rigid bodies
   bodies = []
   body_types = []
-  for structure in structure_names:
-    print 'Creating structures = ', structure
-    struct_ref_config = read_vertex_file.read_vertex_file(structure + '.vertex')
-    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure + '.clones')
+  for structure in structures:
+    print 'Creating structures = ', structure[1]
+    struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     body_types.append(num_bodies_struct)
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
@@ -318,30 +320,52 @@ if __name__ == '__main__':
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
 
-  # Open file to save configuration
-  with open(output_name + '.bodies', 'w') as f:
-    # Loop over time steps
-    start_time = time.time()  
-    for step in range(-n_relaxation, n_steps):
-      # Save data if...
-      if (step % n_save) == 0 and step >= 0:
-        elapsed_time = time.time() - start_time
-        print 'Integrator = ', scheme, ', step = ', step, ', wallclock time = ', time.time() - start_time
-        f.write(str(step * dt) + '\n') # The time
-        for b in bodies:
-          orientation = b.orientation.entries
-          f.write('%s %s %s %s %s %s %s\n' % (b.location[0], b.location[1], b.location[2], orientation[0], orientation[1], orientation[2], orientation[3]))
-      
-      # integrator.deterministic_forward_euler_time_step(dt)
-      integrator.advance_time_step(dt)
+  # Loop over time steps
+  start_time = time.time()  
+  for step in range(-n_relaxation, n_steps):
+    # Save data if...
+    if (step % n_save) == 0 and step >= 0:
+      elapsed_time = time.time() - start_time
+      print 'Integrator = ', scheme, ', step = ', step, ', wallclock time = ', time.time() - start_time
+      # For each type of structure save locations and orientations to one file
+      body_offset = 0
+      for i, ID in enumerate(structures_ID):
+        name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
+        with open(name, 'w') as f_ID:
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                   bodies[body_offset + j].location[1], 
+                                                   bodies[body_offset + j].location[2], 
+                                                   orientation[0], 
+                                                   orientation[1], 
+                                                   orientation[2], 
+                                                   orientation[3]))
+          body_offset += body_types[i]
+        
+    # integrator.deterministic_forward_euler_time_step(dt)
+    integrator.advance_time_step(dt)
 
-    # Save final data if...
-    if ((step+1) % n_save) == 0 and step >= 0:
-      print 'Integrator = ', scheme, ', step = ', step+1, ', wallclock time = ', time.time() - start_time
-      f.write(str((step+1) * dt) + '\n') # The time
-      for b in bodies:
-        orientation = b.orientation.entries
-        f.write('%s %s %s %s %s %s %s\n' % (b.location[0], b.location[1], b.location[2], orientation[0], orientation[1], orientation[2], orientation[3]))
+  # Save final data if...
+  if ((step+1) % n_save) == 0 and step >= 0:
+    print 'Integrator = ', scheme, ', step = ', step+1, ', wallclock time = ', time.time() - start_time
+    # For each type of structure save locations and orientations to one file
+    body_offset = 0
+    for i, ID in enumerate(structures_ID):
+      name = output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
+      with open(name, 'w') as f_ID:
+        f_ID.write(str(body_types[i]) + '\n')
+        for j in range(body_types[i]):
+          orientation = bodies[body_offset + j].orientation.entries
+          f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                 bodies[body_offset + j].location[1], 
+                                                 bodies[body_offset + j].location[2], 
+                                                 orientation[0], 
+                                                 orientation[1], 
+                                                 orientation[2], 
+                                                 orientation[3]))
+        body_offset += body_types[i]
 
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
