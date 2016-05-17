@@ -8,7 +8,7 @@ mobility_blobs_implementation	         boost  # Options: python, boost
 mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycuda
 
 # Define implementation to compute the blobs-blob force and pass its arguments
-blob_blob_force_implementation	         None # Options: None, python, boost, pycuda
+blob_blob_force_implementation	         pycuda # Options: None, python, boost, pycuda
 repulsion_strength	   		 1.0
 debey_length	   			 1.0
 
@@ -19,11 +19,11 @@ n_save  				 1
 
 # Set viscosity, gravity and blob radius
 eta					 1.0 
-g					 1.0
+g					 0.0
 blob_radius				 0.25
 
 # Set interaction with the wall
-repulsion_strength_wall			 1.0
+repulsion_strength_wall			 0.0
 debey_length_wall	   		 1.0
 
 # Seed random number generator
@@ -47,3 +47,4 @@ output_name				 data/clean/run
 structure	Generated_boomerang/boomerang_3d_Nblob_15.vertex Generated_boomerang/boomerang_3d_Nblob_15.clones
 structure	Generated_shells/shell_3d_Nblob_42_radius_0_225.vertex Generated_shells/shell_3d_Nblob_42_radius_0_225.clones
 structure	active_body.vertex active_body.clones
+# structure 	one_blob.vertex	   one_blob.clones

@@ -34,7 +34,7 @@ __device__ void blob_blob_force(const double rx,
                                 const double b){
 
   double r = sqrt(rx*rx + ry*ry + rz*rz);
-  double f = ((eps / b) + (eps / r)) * exp(-r / b) / (r*r);
+  double f = -((eps / b) + (eps / r)) * exp(-r / b) / (r*r);
   fx += f * rx;
   fy += f * ry;
   fz += f * rz;

@@ -5,16 +5,11 @@ blobs-blobs interactions, the forces and torques on the rigid
 bodies or the slip on the blobs.
 '''
 import numpy as np
-
-#import time
 import sys
-#sys.path.append('../')
 
 import forces_pycuda
-#from mobility import mobility as mb
+import forces_ext
 from quaternion_integrator.quaternion import Quaternion
-#from body import body 
-
 
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
   return np.zeros((r_vectors.size / 3, 3))
@@ -151,7 +146,7 @@ def set_blob_blob_forces(implementation):
   elif implementation == 'python':
     return calc_blob_blob_forces_python
   elif implementation == 'boost':
-    return forces_boost.calc_blob_blob_forces
+    return calc_blob_blob_forces_boost 
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
 
@@ -176,7 +171,7 @@ def blob_blob_force(r, *args, **kwargs):
   
   # Compute force
   r_norm = np.linalg.norm(r)
-  return ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
+  return -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
   
 
 def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
@@ -197,6 +192,22 @@ def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
       force_blobs[j] -= force
 
   return force_blobs
+
+
+def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
+  '''
+  Call a boost function to compute the blob-blob forces.
+  '''
+  # Get parameters from arguments
+  eps = kwargs.get('repulsion_strength')
+  b = kwargs.get('debey_length')  
+
+  number_of_blobs = r_vectors.size / 3
+  r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
+  forces = np.empty(r_vectors.size)
+
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs) 
+  return np.reshape(forces, (number_of_blobs, 3))
 
 
 def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
