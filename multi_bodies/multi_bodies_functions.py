@@ -15,12 +15,15 @@ from quaternion_integrator.quaternion import Quaternion
 #from body import body 
 
 
-def default_zero_blobs(body):
+def default_zero_r_vectors(r_vectors, *args, **kwargs):
+  return np.zeros((r_vectors.size / 3, 3))
+
+def default_zero_blobs(body, *args, **kwargs):
   ''' 
   Return a zero array of shape (body.Nblobs, 3)
   '''
   return np.zeros((body.Nblobs, 3))
-
+  
 
 def set_slip_by_ID(body):
   '''
@@ -130,6 +133,71 @@ def calc_one_blob_forces(r_vectors, *args, **kwargs):
   return force_blobs
 
 
+def set_blob_blob_forces(implementation):
+  '''
+  Set the function to compute the blob-blob forces
+  to the rigth.
+
+  The implementation in pycuda is much faster than the
+  one in boost, which is much faster than the one python; 
+  To use the pycuda implementation is necessary to have 
+  installed pycuda and a GPU with CUDA capabilities. To
+  use the boost implementation the user has to compile 
+  the file blob_blob_forces_ext.cc.   
+  '''
+  if implementation == 'None':
+    return default_zero_r_vectors
+  elif implementation == 'python':
+    return calc_blob_blob_forces_python
+  elif implementation == 'boost':
+    return forces_boost.calc_blob_blob_forces
+  elif implementation == 'pycuda':
+    return forces_pycuda.calc_blob_blob_forces
+
+
+def blob_blob_force(r, *args, **kwargs):
+  '''
+  This function compute the force between two blobs
+  with vector between blob centers r.
+
+  In this example the force is derived from a Yukawa potential
+  
+  U = eps * exp(-r_norm / b) / r_norm
+  
+  with
+  eps = potential strength
+  r_norm = distance between blobs
+  b = Debey length
+  '''
+  # Get parameters from arguments
+  eps = kwargs.get('repulsion_strength')
+  b = kwargs.get('debey_length')
+  
+  # Compute force
+  r_norm = np.linalg.norm(r)
+  return ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
+  
+
+def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
+  '''
+  This function computes the blob-blob forces and returns
+  an array with shape (Nblobs, 3).
+  '''
+  Nblobs = r_vectors.size / 3
+  force_blobs = np.zeros((Nblobs, 3))
+
+  # Double loop over blobs to compute forces
+  for i in range(Nblobs-1):
+    for j in range(i+1, Nblobs):
+      # Compute vector from j to u
+      r = r_vectors[j] - r_vectors[i]
+      force = blob_blob_force(r, *args, **kwargs)
+      force_blobs[i] += force
+      force_blobs[j] -= force
+
+  return force_blobs
+
+
 def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   '''
   Return the forces and torque in each body with
@@ -144,10 +212,11 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   blob_radius = bodies[0].blob_radius
 
   # Compute one-blob forces (same function for all blobs)
-  force_blobs = calc_one_blob_forces(r_vectors, blob_radius = blob_radius, blob_mass = blob_mass, *args, **kwargs)
+  force_blobs += calc_one_blob_forces(r_vectors, blob_radius = blob_radius, blob_mass = blob_mass, *args, **kwargs)
 
   # Compute blob-blob forces (same function for all blobs)
-  
+  force_blobs += calc_blob_blob_forces(r_vectors, blob_radius = blob_radius, *args, **kwargs)  
+
   # Compute body force-torque forces from blob forces
   offset = 0
   for k, b in enumerate(bodies):
@@ -162,6 +231,34 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   force_torque_bodies += bodies_external_force_torque(bodies, r_vectors, *args, **kwargs)
   
   return force_torque_bodies
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def force_torque_calculator_sort_by_bodies_(bodies, r_vectors, *args, **kwargs):

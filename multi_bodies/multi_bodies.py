@@ -90,32 +90,6 @@ def set_mobility_vector_prod(implementation):
     return mb.single_wall_mobility_trans_times_force_pycuda
 
 
-def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.0, debey_length_wall=1.0):
-  '''
-  Return the forces and torque in each body with
-  format (forces, torques) and shape (2*Nbodies, 3).
-  '''
-  force_torque_bodies = np.zeros((2*len(bodies), 3))
-  offset = 0
-  for k, b in enumerate(bodies):
-    R = b.calc_rot_matrix()
-    force_blobs = np.zeros((b.Nblobs, 3))
-    # Compute forces on each blob
-    for blob in range(b.Nblobs):
-      h = r_vectors[offset+blob, 2]
-      # Force on blob (wall repulsion + gravity)
-      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debey_length_wall + 1.0) * \
-                                                        np.exp(-1.0*(h - b.blob_radius)/debey_length_wall) / ((h - b.blob_radius)**2))])
-      force_blobs[blob:(blob+1)] += - g * np.array([0.0, 0.0, b.blob_masses[blob]])
-
-    # Add force to the body
-    force_torque_bodies[k:(k+1)] += sum(force_blobs)
-    # Add torque to the body
-    force_torque_bodies[len(bodies)+k:len(bodies)+(k+1)] += np.dot(R.T, np.reshape(force_blobs, 3*b.Nblobs))
-    offset += b.Nblobs
-  return force_torque_bodies
-
-
 def calc_K_matrix(bodies, Nblobs):
   '''
   Calculate the geometric block-diagonal matrix K.
@@ -253,6 +227,7 @@ if __name__ == '__main__':
   structures = read.structures
   structures_ID = read.structures_ID
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
+  multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
 
   # Copy input file to output
   subprocess.call(["cp", input_file, output_name + '.inputfile'])
@@ -304,7 +279,9 @@ if __name__ == '__main__':
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, \
                                                  g = g, \
                                                  repulsion_strength_wall = read.repulsion_strength_wall, \
-                                                 debey_length_wall = read.debey_length_wall) 
+                                                 debey_length_wall = read.debey_length_wall, \
+                                                 repulsion_strength = read.repulsion_strength, \
+                                                 debey_length = read.debey_length) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner

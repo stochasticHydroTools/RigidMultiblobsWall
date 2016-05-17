@@ -1,31 +1,36 @@
 # Chose integrator between:
 # deterministic_forward_euler, deterministic_forward_euler_dense_algebra
 # deterministic_adams_bashforth
-scheme		deterministic_forward_euler
+scheme					 deterministic_forward_euler
 
-# Define implementation for the blobs mobility
+# Define implementation to compute the blobs mobility 
 mobility_blobs_implementation	         boost  # Options: python, boost
 mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycuda
 
+# Define implementation to compute the blobs-blob force and pass its arguments
+blob_blob_force_implementation	         python # Options: None, python, boost, pycuda
+repulsion_strength	   		 1.0
+debey_length	   			 1.0
+
 # Set time step, number of steps and save frequency
-dt		0.1
-n_steps		100
-n_save  	1
+dt		 	   	     	 0.1
+n_steps					 10
+n_save  				 1
 
 # Set viscosity, gravity and blob radius
-eta		1 
-g		1.0
-blob_radius	0.25
+eta					 1.0 
+g					 1.0
+blob_radius				 0.25
 
 # Set interaction with the wall
-repulsion_strength_wall	   1.0
-debey_length_wall	   1.0
+repulsion_strength_wall			 1.0
+debey_length_wall	   		 1.0
 
 # Seed random number generator
-#seed		run.seed
+#seed					 run.seed
 
 # Set output name
-output_name 	data/clean/run
+output_name				 data/clean/run
 
 # Set the rigid bodies (structures). For each kind of rigid body (structure) 
 # the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
