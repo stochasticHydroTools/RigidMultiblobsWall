@@ -116,33 +116,6 @@ def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.
   return force_torque_bodies
 
 
-def force_torque_calculator_sort_by_bodies(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.0, debey_length_wall=1.0):
-  '''
-  Return the forces and torque in each body with
-  format [f_1, t_1, f_2, t_2, ...] and shape (2*Nbodies, 3),
-  where f_i and t_i are the force and torque in the body i.
-  '''
-  force_torque_bodies = np.zeros((2*len(bodies), 3))
-  offset = 0
-  for k, b in enumerate(bodies):
-    R = b.calc_rot_matrix()
-    force_blobs = np.zeros((b.Nblobs, 3))
-    # Compute forces on each blob
-    for blob in range(b.Nblobs):
-      h = r_vectors[offset+blob, 2]
-      # Force on blob (wall repulsion + gravity)
-      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debey_length_wall + 1.0) * \
-                                                        np.exp(-1.0*(h - b.blob_radius)/debey_length_wall) / ((h - b.blob_radius)**2))])
-      force_blobs[blob:(blob+1)] += - g * np.array([0.0, 0.0, b.blob_masses[blob]])
-
-    # Add force to the body
-    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs)
-    # Add torque to the body
-    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs, 3*b.Nblobs))
-    offset += b.Nblobs
-  return force_torque_bodies
-
-
 def calc_K_matrix(bodies, Nblobs):
   '''
   Calculate the geometric block-diagonal matrix K.
@@ -328,7 +301,8 @@ if __name__ == '__main__':
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs
-  integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g = g, \
+  integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, \
+                                                 g = g, \
                                                  repulsion_strength_wall = read.repulsion_strength_wall, \
                                                  debey_length_wall = read.debey_length_wall) 
   integrator.calc_K_matrix = calc_K_matrix
