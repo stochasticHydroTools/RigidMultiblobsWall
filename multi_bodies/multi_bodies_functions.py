@@ -67,14 +67,14 @@ def active_body_slip(body):
   return slip
 
 
-def external_force_torque_one_body(body, r_vectors, *args, **kwargs):
+def bodies_external_force_torque(bodies, r_vectors, *args, **kwargs):
   '''
   This function returns the external force-torques acting on the bodies.
-  It returns an array with shape (2, 3)
+  It returns an array with shape (2*len(bodies), 3)
   
   In this is example we just set it to zero.
   '''
-  return np.zeros((2, 3))
+  return np.zeros((2*len(bodies), 3))
   
 
 def blob_external_force(r_vectors, *args, **kwargs):
@@ -159,8 +159,8 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
     offset += b.Nblobs
 
   # Add one-body external force-torque
-  force_torque_bodies += external_force_torque_one_body(body, r_vectors, *args, **kwargs)
-
+  force_torque_bodies += bodies_external_force_torque(bodies, r_vectors, *args, **kwargs)
+  
   return force_torque_bodies
 
 
