@@ -8,7 +8,7 @@ mobility_blobs_implementation	         boost  # Options: python, boost
 mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycuda
 
 # Define implementation to compute the blobs-blob force and pass its arguments
-blob_blob_force_implementation	         python # Options: None, python, boost, pycuda
+blob_blob_force_implementation	         None # Options: None, python, boost, pycuda
 repulsion_strength	   		 1.0
 debey_length	   			 1.0
 

@@ -10,6 +10,7 @@ import numpy as np
 import sys
 #sys.path.append('../')
 
+import forces_pycuda
 #from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 #from body import body 
@@ -152,7 +153,7 @@ def set_blob_blob_forces(implementation):
   elif implementation == 'boost':
     return forces_boost.calc_blob_blob_forces
   elif implementation == 'pycuda':
-    return forces_pycuda.calc_blob_blob_forces
+    return forces_pycuda.calc_blob_blob_forces_pycuda
 
 
 def blob_blob_force(r, *args, **kwargs):
