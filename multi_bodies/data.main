@@ -9,7 +9,7 @@ mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycud
 
 # Set time step, number of steps and save frequency
 dt		0.1
-n_steps		10
+n_steps		100
 n_save  	1
 
 # Set viscosity, gravity and blob radius
