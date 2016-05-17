@@ -8,6 +8,7 @@ import sys
 import time
 sys.path.append('../')
 
+import multi_bodies_functions
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
@@ -280,7 +281,7 @@ if __name__ == '__main__':
   # Create rigid bodies
   bodies = []
   body_types = []
-  for structure in structures:
+  for ID, structure in enumerate(structures):
     print 'Creating structures = ', structure[1]
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
@@ -289,6 +290,8 @@ if __name__ == '__main__':
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
       b.mobility_blobs = mobility_blobs
+      b.ID = structures_ID[ID]
+      multi_bodies_functions.set_slip_by_ID(b)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)
