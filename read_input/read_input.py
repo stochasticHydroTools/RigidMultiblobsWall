@@ -49,6 +49,8 @@ class ReadInput(object):
     self.seed = self.options.get('seed')
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)
     self.debey_length_wall = float(self.options.get('debey_length_wall') or 1.0)
+    self.mobility_blobs_implementation = str(self.options.get('mobility_blobs_implementation') or 'python')
+    self.mobility_vector_prod_implementation = str(self.options.get('mobility_vector_prod_implementation') or 'python')
     
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []

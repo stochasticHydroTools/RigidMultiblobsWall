@@ -3,6 +3,10 @@
 # deterministic_adams_bashforth
 scheme		deterministic_forward_euler
 
+# Define implementation for the blobs mobility
+mobility_blobs_implementation	         python  # Options: python, boost
+mobility_vector_prod_implementation      python  # Options: python, boost, pycuda
+
 # Set time step, number of steps and save frequency
 dt		0.1
 n_steps		10
@@ -14,7 +18,7 @@ g		0
 blob_radius	0.25
 
 # Set interaction with the wall
-repulsion_strength_wall	   0
+repulsion_strength_wall	   1.0
 debey_length_wall	   1.0
 
 # Seed random number generator
@@ -35,6 +39,6 @@ output_name 	data/clean/run
 # structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
 
 
-#structure	Generated_boomerang/boomerang_3d_Nblob_15.vertex Generated_boomerang/boomerang_3d_Nblob_15.clones
-#structure	Generated_shells/shell_3d_Nblob_42_radius_0_225.vertex Generated_shells/shell_3d_Nblob_42_radius_0_225.clones
+structure	Generated_boomerang/boomerang_3d_Nblob_15.vertex Generated_boomerang/boomerang_3d_Nblob_15.clones
+structure	Generated_shells/shell_3d_Nblob_42_radius_0_225.vertex Generated_shells/shell_3d_Nblob_42_radius_0_225.clones
 structure	active_body.vertex active_body.clones

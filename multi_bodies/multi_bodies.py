@@ -46,34 +46,48 @@ def get_blobs_r_vectors(bodies, Nblobs):
   return r_vectors
 
 
-def mobility_blobs(r_vectors, eta, a):
+def set_mobility_blobs(implementation):
   '''
-  Compute dense mobility at the blob level.
-  Shape (3*Nblobs, 3*Nblobs).
+  Set the function to compute the dense mobility
+  at the blob level to the right implementation.
+  The implementation in boost is much faster than 
+  the one python; to use it the user should compile 
+  the file mobility/mobility_ext.cc.
+
+  These functions return an array with shape 
+  (3*Nblobs, 3*Nblobs).
   '''
-  # Python version, no wall
-  # mobility = mb.rotne_prager_tensor(r_vectors, eta, a)
-  # Python version
-  # mobility = mb.single_wall_fluid_mobility(r_vectors, eta, a)
-  # Boosted version
-  mobility =  mb.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
-  return mobility
+  # Implementations without wall
+  if implementation == 'python_no_wall':
+    return mb.rotne_prager_tensor
+
+  # Implementations with wall
+  elif implementation == 'python':
+    return mb.single_wall_fluid_mobility
+  elif implementation == 'boost':
+    return  mb.boosted_single_wall_fluid_mobility
 
 
-def mobility_vector_prod(r_vectors, vector, eta, a):
+def set_mobility_vector_prod(implementation):
   '''
-  This function compute the product M*F with the mobility matrix 
-  defined at the blob level.
-  ''' 
-  # Python version
-  # res = mb.single_wall_fluid_mobility_product(r_vectors, vector, eta, a)
-  # Boosted version
-  res = mb.boosted_mobility_vector_product(r_vectors, eta, a, vector)
-  # Pycuda version
-  # res = mb.single_wall_mobility_trans_times_force_pycuda(r_vectors, vector, eta, a)
+  Set the function to compute the matrix-vector
+  product (M*F) with the mobility defined at the blob 
+  level to the right implementation.
   
-  return res
-
+  The implementation in pycuda is much faster than the
+  one in boost, which is much faster than the one python; 
+  To use the pycuda implementation is necessary to have 
+  installed pycuda and a GPU with CUDA capabilities. To
+  use the boost implementation the user has to compile 
+  the file mobility/mobility_ext.cc.  
+  ''' 
+  # Implementations with wall
+  if implementation == 'python':
+    return mb.single_wall_fluid_mobility_product
+  elif implementation == 'boost':
+    return mb.boosted_mobility_vector_product
+  elif implementation == 'pycuda':
+    return mb.single_wall_mobility_trans_times_force_pycuda
 
 
 def force_torque_calculator(bodies, r_vectors, g=1.0, repulsion_strength_wall=0.0, debey_length_wall=1.0):
@@ -265,7 +279,8 @@ if __name__ == '__main__':
   seed = read.seed
   structures = read.structures
   structures_ID = read.structures_ID
-  
+  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
+
   # Copy input file to output
   subprocess.call(["cp", input_file, output_name + '.inputfile'])
 
@@ -289,7 +304,7 @@ if __name__ == '__main__':
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
-      b.mobility_blobs = mobility_blobs
+      b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = structures_ID[ID]
       multi_bodies_functions.set_slip_by_ID(b)
       # Append bodies to total bodies list
@@ -312,7 +327,7 @@ if __name__ == '__main__':
   integrator = QuaternionIntegrator(bodies, Nblobs, scheme) 
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
-  integrator.mobility_blobs = mobility_blobs
+  integrator.mobility_blobs = set_mobility_blobs
   integrator.force_torque_calculator = partial(force_torque_calculator_sort_by_bodies, g = g, \
                                                  repulsion_strength_wall = read.repulsion_strength_wall, \
                                                  debey_length_wall = read.debey_length_wall) 

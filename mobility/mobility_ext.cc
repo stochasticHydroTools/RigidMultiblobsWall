@@ -133,7 +133,8 @@ void MobilityVectorProduct_optimized(bp::list r_vectors,
 //////////////////////////////////////////////////////////////////////////////////////////
 void MobilityVectorProduct(bp::numeric::array r_vectors, 
 			   double eta,
-			   double a, int num_particles,
+			   double a, 
+			   int num_particles,
                            bp::numeric::array vector,
                            bp::numeric::array vector_res ) {
   // Create the mobility of particles in a fluid with a single wall at z = 0.
