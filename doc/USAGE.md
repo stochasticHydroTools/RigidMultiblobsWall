@@ -1,12 +1,12 @@
-## Documentation
-This package contains several scripts for doing 
-simulations of rigid bodies made out of "blob" particles rigidly
-connected.  These simulations consider the particles near a single
-wall (floor), which is always at z = 0. The blob mobility used for
-this is that from appendix C of the paper:
-'Simulation of hydrodynamically interacting particles near a no-slip boundary'
-by James Swan and John Brady, Phys. Fluids 19, 113306 (2007).
+# Documentation
+This package contains several python codes to run simulations of 
+rigid bodies made out of _blob particles_ rigidly connected near
+a single wall (floor). These codes allow the user to calculate the
+mobility of complex shape objects, solve mobility or resistance problems
+for suspension of rigid bodies or run deterministic or stochastic 
+dynamic simulations.
 
+We explain in the next sections how to use the package.
 For the theory consult:
 
 1. **Brownian Dynamics of Confined Rigid Bodies**
@@ -17,7 +17,13 @@ For the theory consult:
   A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
 
-### Prepare the mobility functions
+## 1. Prepare the package
+<!-- ### Prepare the mobility functions -->
+We have implemented most of the code in python and it is not necessary to compile 
+the package to start using the codes. However, we provide alternative
+implementations in _C_ and _pycuda_ for some of the 
+
+
 The functions to compute the blob mobility matrix **M** and the
 product **Mf** are defined in the directory `mobility/`.
 Some of the functions use pycuda or C++ (through the Boost Python
