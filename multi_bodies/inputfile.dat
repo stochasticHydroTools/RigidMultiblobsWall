@@ -1,5 +1,5 @@
 # Select mobility or resistance problem
-scheme				mobility
+scheme				resistance
 
 # Define implementation to compute the blobs mobility 
 mobility_blobs_implementation	         boost  # Options: python, boost
@@ -17,7 +17,7 @@ output_name				 data/clean/run.mobility
 # Input files
 # slip_file				 slip.dat
 force_file				 force.dat
-# velocity_file				 velocity.dat
+velocity_file				 velocity.dat
 
 # Save more info
 save_bodies_mobility			 False

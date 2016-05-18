@@ -29,6 +29,14 @@ from read_input import read_clones_file
 
 
 
+# Callback generator
+def make_callback():
+  closure_variables = dict(counter=0, residuals=[]) 
+  def callback(residuals):
+    closure_variables["counter"] += 1
+    closure_variables["residuals"].append(residuals)
+    print closure_variables["counter"], residuals
+  return callback
 
 
 
@@ -71,6 +79,7 @@ if __name__ ==  '__main__':
   Nblobs = sum([x.Nblobs for x in bodies])
   multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
+  multi_bodies.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
 
   # Write bodies information
   with open(read.output_name + '.bodies_info', 'w') as f:
@@ -135,7 +144,7 @@ if __name__ ==  '__main__':
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Solve preconditioned linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
+    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
     
     # Extract velocities
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
@@ -146,6 +155,32 @@ if __name__ ==  '__main__':
 
   # If scheme == resistance solve resistance problem
   elif read.scheme == 'resistance':
-    pass
+    # Get blobs coordinates
+    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    
+    # Calculate block-diagonal matrix K
+    K = multi_bodies.calc_K_matrix(bodies, Nblobs)
+
+    # Set right hand side
+    slip += multi_bodies.K_matrix_vector_prod(bodies, velocity, Nblobs) 
+    RHS = np.reshape(slip, slip.size)
+    
+    # Calculate mobility (M) at the blob level
+    mobility_blobs = multi_bodies.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
+
+    # Compute constraint forces 
+    force_blobs = np.linalg.solve(mobility_blobs, RHS)
+
+    # Compute force-torques on bodies
+    force = np.reshape(multi_bodies.K_matrix_T_vector_prod(bodies, force_blobs, Nblobs), (num_bodies, 6))
+    
+    # Save force
+    name = read.output_name + '.force.dat'
+    np.savetxt(name, force, delimiter='  ')
+
 
   print '\n\n\n# End'
+
+
+
+
