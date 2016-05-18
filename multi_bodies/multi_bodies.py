@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
   # Loop over time steps
   start_time = time.time()  
-  for step in range(-n_relaxation, n_steps):
+  for step in range(read.initial_step, n_steps):
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time

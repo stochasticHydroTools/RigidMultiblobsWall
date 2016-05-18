@@ -15,6 +15,7 @@ debey_length	   			 1.0
 # Set time step, number of steps and save frequency
 dt		 	   	     	 0.1
 n_steps					 10
+initial_step				 0
 n_save  				 1
 
 # Set viscosity, gravity and blob radius

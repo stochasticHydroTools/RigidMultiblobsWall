@@ -36,6 +36,7 @@ class ReadInput(object):
 
     # Set option to file or default values
     self.n_steps = int(self.options.get('n_steps') or 0)
+    self.initial_step = int(self.options.get('initial_step') or 0)
     self.n_save = int(self.options.get('n_save') or 1)
     self.n_relaxation = int(self.options.get('n_relaxation') or 0)
     self.dt = float(self.options.get('dt') or 0.0)
@@ -55,6 +56,7 @@ class ReadInput(object):
     self.debey_length = float(self.options.get('debey_length') or 1.0)
     self.blob_blob_force_implementation = str(self.options.get('blob_blob_force_implementation') or 'None')
     
+    
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):
@@ -70,4 +72,11 @@ class ReadInput(object):
       # then, remove end (.clones)
       tail = tail[:-7]
       self.structures_ID.append(tail)
+
+    # If we are restarting a simulation (initial_step > 0)
+    # look for the .clones file in the output directory
+    if self.initial_step > 0:
+      for k, struct in enumerate(self.structures):
+        recovery_file = self.output_name + '.'  + self.structures_ID[k] + '.' + str(self.initial_step).zfill(8) + '.clones'
+        struct[1] = recovery_file
 
