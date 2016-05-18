@@ -55,11 +55,14 @@ class ReadInput(object):
     self.repulsion_strength = float(self.options.get('repulsion_strength') or 1.0)
     self.debey_length = float(self.options.get('debey_length') or 1.0)
     self.blob_blob_force_implementation = str(self.options.get('blob_blob_force_implementation') or 'None')
-    self.save_bodies_mobility = str(self.options.get('save_bodies_mobility') or False)
-    self.save_blobs_mobility = str(self.options.get('save_blobs_mobility') or False)
-    self.save_velocities = str(self.options.get('save_velocities') or False)
-    
-    
+    self.save_bodies_mobility = str(self.options.get('save_bodies_mobility') or 'False')
+    self.save_blobs_mobility = str(self.options.get('save_blobs_mobility') or 'False')
+    self.save_velocities = str(self.options.get('save_velocities') or 'False')
+    self.slip_file = self.options.get('slip_file')
+    self.force_file = self.options.get('force_file')
+    self.velocity_file = self.options.get('velocity_file')
+    self.solver_tolerance = float(self.options.get('solver_tolerance' or 1e-08))
+        
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):
