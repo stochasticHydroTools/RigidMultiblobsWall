@@ -33,6 +33,10 @@ debey_length_wall	   		 1.0
 # Set output name
 output_name				 data/clean/run
 
+# Save more info
+save_bodies_mobility			 False
+save_blobs_mobility			 False
+
 # Set the rigid bodies (structures). For each kind of rigid body (structure) 
 # the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
 # the initial location and orientation of the rigid bodies. It has one line 

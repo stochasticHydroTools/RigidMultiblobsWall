@@ -275,7 +275,7 @@ if __name__ == '__main__':
   integrator = QuaternionIntegrator(bodies, Nblobs, scheme) 
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
-  integrator.mobility_blobs = set_mobility_blobs
+  integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, \
                                                  g = g, \
                                                  repulsion_strength_wall = read.repulsion_strength_wall, \
@@ -312,8 +312,23 @@ if __name__ == '__main__':
                                                    orientation[2], 
                                                    orientation[3]))
           body_offset += body_types[i]
+
+      # Save mobilities
+      if read.save_blobs_mobility == 'True' or read.save_bodies_mobility == 'True':
+        r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
+        mobility_blobs = integrator.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
+        if read.save_blobs_mobility == 'True':
+          name = output_name + '.blobs_mobility.' + str(step).zfill(8) + '.dat'
+          np.savetxt(name, mobility_blobs, delimiter='  ')
+        if read.save_bodies_mobility == 'True':
+          resistance_blobs = np.linalg.inv(mobility_blobs)
+          K = integrator.calc_K_matrix(bodies, Nblobs)
+          resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
+          mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
+          name = output_name + '.bodies_mobility.' + str(step).zfill(8) + '.dat'
+          np.savetxt(name, mobility_bodies, delimiter='  ')
         
-    # integrator.deterministic_forward_euler_time_step(dt)
+    # Advance time step
     integrator.advance_time_step(dt)
 
   # Save final data if...
@@ -335,7 +350,21 @@ if __name__ == '__main__':
                                                  orientation[2], 
                                                  orientation[3]))
         body_offset += body_types[i]
-
+    # Save mobilities
+    if read.save_blobs_mobility == 'True' or read.save_bodies_mobility == 'True':
+      r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
+      mobility_blobs = integrator.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
+      if read.save_blobs_mobility == 'True':
+        name = output_name + '.blobs_mobility.' + str(step+1).zfill(8) + '.dat'
+        np.savetxt(name, mobility_blobs, delimiter='  ')
+      if read.save_bodies_mobility == 'True':
+        resistance_blobs = np.linalg.inv(mobility_blobs)
+        K = integrator.calc_K_matrix(bodies, Nblobs)
+        resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
+        mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
+        name = output_name + '.bodies_mobility.' + str(step+1).zfill(8) + '.dat'
+        np.savetxt(name, mobility_bodies, delimiter='  ')
+        
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')

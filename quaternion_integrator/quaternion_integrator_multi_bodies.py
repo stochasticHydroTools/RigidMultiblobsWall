@@ -259,7 +259,7 @@ class QuaternionIntegrator(object):
      
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
       resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
-      mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
+      mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
 
       # Compute velocities
       return np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))
