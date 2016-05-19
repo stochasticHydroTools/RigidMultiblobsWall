@@ -114,6 +114,7 @@ if __name__ ==  '__main__':
 
   # If scheme == mobility solve mobility problem
   if read.scheme == 'mobility':
+    start_time = time.time()  
     # Get blobs coordinates
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
 
@@ -152,9 +153,11 @@ if __name__ ==  '__main__':
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
+    print 'Time to solve mobility problem =', time.time() - start_time   
 
   # If scheme == resistance solve resistance problem
   elif read.scheme == 'resistance':
+    start_time = time.time()  
     # Get blobs coordinates
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
     
@@ -177,7 +180,19 @@ if __name__ ==  '__main__':
     # Save force
     name = read.output_name + '.force.dat'
     np.savetxt(name, force, delimiter='  ')
-
+    print 'Time to solve resistance problem =', time.time() - start_time  
+  
+  elif read.scheme == 'bodies_mobility': 
+    start_time = time.time()
+    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    mobility_blobs = multi_bodies.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
+    resistance_blobs = np.linalg.inv(mobility_blobs)
+    K = multi_bodies.calc_K_matrix(bodies, Nblobs)
+    resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
+    mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
+    name = read.output_name + '.bodies_mobility.dat'
+    np.savetxt(name, mobility_bodies, delimiter='  ')
+    print 'Time to compute bodies mobility =', time.time() - start_time
 
   print '\n\n\n# End'
 

@@ -4,8 +4,8 @@
 scheme					 deterministic_forward_euler
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         boost  # Options: python, boost
-mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycuda
+mobility_blobs_implementation	         python  # Options: python, boost
+mobility_vector_prod_implementation      python  # Options: python, boost, pycuda
 
 # Define implementation to compute the blobs-blob force and pass its arguments
 blob_blob_force_implementation	         pycuda # Options: None, python, boost, pycuda

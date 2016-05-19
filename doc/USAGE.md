@@ -7,7 +7,7 @@ for suspension of rigid bodies or run deterministic or stochastic
 dynamic simulations.
 
 We explain in the next sections how to use the package.
-For the theory consult:
+For the theory consult the references:
 
 1. **Brownian Dynamics of Confined Rigid Bodies**
   S. Delong, F. Balboa Usabiaga and A. Donev. The Journal of Chemical Physics, **143**, 144107 (2015). 
@@ -25,23 +25,96 @@ want to take fully advantage of this package.
 
 
 ### 1.1 Prepare the mobility functions
-Some parts of the code uses functions to compute the blob mobility matrix **M** and the
-product matrix vector product **Mf**. 
+The codes use functions to compute the blob mobility matrix **M** and the
+matrix vector product **Mf**. For some functions we provide
+a _C_ implementation which can be around 5 times faster than the python version. We also
+provide _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
+To use the _C_ implementation move to the directory `mobility/` and compile
+`mobility_ext.cc` to a `.so` file using the Makefile provided (which you will need 
+to modified slightly to reflect your Python version, etc.).
+
+To use the _pycuda_ implementation all you need is _pycuda_ and a GPU compatible with CUDA;
+you don't need to compile any additional file in this package.
+
+### 1.2 Blob-blob forces
+In dynamical simulations it is possible to include blob-blob interactions to,
+for example, simulate a colloid suspension with a given steric repulsion. 
+Again, we provide versions in _python_, _C_ and _pycuda_. To use the _C_
+version move to the directory `multi_bodies/` and compile `forces_ext.cc` to
+a `.so` file using the Makefile provided (which you will need 
+to modified slightly to reflect your Python version, etc.).
+
+To use the _pycuda_ implementation all you need is _pycuda_ and a GPU compatible with CUDA;
+you don't need to compile any additional file in this package.
+
+## 2. Rigid bodies configuration
+We use a vector (3 numbers) and a quaternion (4 numbers) to represent the 
+location and orientation of each body, see Ref. [1](http://dx.doi.org/10.1063/1.4932062) for details.
+This information is saved by the code in the `*.clones` files,
+with format:
+
+```
+number_of_rigid_bodies
+vector_location_body_0 quaternion_body_0
+vector_location_body_1 quaternion_body_1
+.
+.
+.
+```
+
+For example, see the file `multi_bodies/Structures/boomerang_N_15.clones` to 
+see the representation of a boomerang-like particle with location (0, 0, 10)
+and orientation given by the quaternion (0.5, 0.5, 0.5, 0.5).
+
+The coordinates of the blobs forming a rigid body in the default configuration
+(location (0, 0, 0) and default quaternion (1, 0, 0, 0)) are given to the codes 
+with `*.vertex` files. The format of these files is:
+
+```
+number_of_blobs_in_rigid_body
+vector_location_blob_0
+vector_location_blob_1
+.
+.
+.
+```
+
+For example, the file `multi_bodies/Structures/boomerang_N_15.vertex` gives the
+structure of a boomerang-like particle formed by 15 blobs.
 
 
-are defined in the directory `mobility/`.
-Some of the functions use pycuda or C++ (through the Boost Python
-library) for speed up. To use the C++ implementation compile
-`mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 
-to be modified slightly to reflect your Python version, etc.).
-To use the pycuda implementation you will need pycuda and a GPU compatible with CUDA.
 
-Note, if you do not want to use the C++ or the pycuda implementations
-edit the file `mobility/mobility.py` and comment the lines
+## 3. Run static simulations
+We start explaining how to compute the mobility of a rigid body close to a wall.
+First, move to the directory `multi_bodies/` and inspect the input file 
+`inputfile_bodies_mobility.dat`:
 
-`import mobility_ext as me`
+---
 
-`import mobility_pycuda`
+```
+# Select problem to solve
+scheme                                   bodies_mobility
+
+# Select implementation to compute the blobs mobility 
+# Options: python and boost
+mobility_blobs_implementation            python
+
+# Set fluid viscosity (eta) and blob radius
+eta                                      1.0 
+blob_radius                              0.25
+
+# Set output name
+output_name                              data/run.bodies_mobility
+
+# Load rigid bodies configuration
+structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+```
+
+---
+
+Now, to run the code, use
+
+`python multi_bodies_utilities.py --input-fule inputfile.dat`
 
 
 

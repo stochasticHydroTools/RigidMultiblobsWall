@@ -1,0 +1,17 @@
+# Select problem to solve
+scheme                                   bodies_mobility
+
+# Select implementation to compute the blobs mobility 
+# Options: python and boost
+mobility_blobs_implementation            python
+
+# Set fluid viscosity (eta) and blob radius
+eta                                      1.0 
+blob_radius                              0.25
+
+# Set output name
+output_name                              data/run.bodies_mobility
+
+# Load rigid bodies configuration
+structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+
