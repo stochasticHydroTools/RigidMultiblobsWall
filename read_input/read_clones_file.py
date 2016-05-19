@@ -22,7 +22,8 @@ def read_clones_file(name_file):
   with open(name_file, 'r') as f:
     locations = []
     orientations = []
-    for i, line in enumerate(f):
+    i = 0
+    for line in f:
       # Strip comments
       if comment_symbols[0] in line:
         line, comment = line.split(comment_symbols[0], 1)
@@ -40,6 +41,7 @@ def read_clones_file(name_file):
           q = Quaternion(orientation / norm_orientation)
           locations.append(location)
           orientations.append(q)
+        i += 1
 
     # Creat and return numpy arrays
     locations = np.array(locations)

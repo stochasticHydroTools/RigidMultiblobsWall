@@ -1,5 +1,5 @@
 # Select mobility or resistance problem
-scheme				bodies_mobility
+scheme				mobility
 
 # Define implementation to compute the blobs mobility 
 mobility_blobs_implementation	         boost  # Options: python, boost

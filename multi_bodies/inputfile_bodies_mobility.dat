@@ -13,5 +13,5 @@ blob_radius                              0.25
 output_name                              data/run.bodies_mobility
 
 # Load rigid bodies configuration
-structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
-
+# structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure	one_blob.vertex			 one_blob.clones

@@ -1,55 +1,35 @@
-# Chose integrator between:
-# deterministic_forward_euler, deterministic_forward_euler_dense_algebra
-# deterministic_adams_bashforth
-scheme					 deterministic_forward_euler
+# Select integrator 
+scheme                                   deterministic_adams_bashforth
 
-# Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         python  # Options: python, boost
-mobility_vector_prod_implementation      python  # Options: python, boost, pycuda
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python  
+mobility_vector_prod_implementation      python  
 
-# Define implementation to compute the blobs-blob force and pass its arguments
-blob_blob_force_implementation	         pycuda # Options: None, python, boost, pycuda
-repulsion_strength	   		 1.0
-debey_length	   			 1.0
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
 
 # Set time step, number of steps and save frequency
-dt		 	   	     	 0.1
-n_steps					 10
-initial_step				 0
-n_save  				 1
+dt                                       0.1
+n_steps                                  10
+n_save                                   1
 
-# Set viscosity, gravity and blob radius
-eta					 1.0 
-g					 0.0
-blob_radius				 0.25
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0 
+g                                        1.0
+blob_radius                              0.25
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       1.0
+debey_length                             1.0
 
 # Set interaction with the wall
-repulsion_strength_wall			 0.0
-debey_length_wall	   		 1.0
-
-# Seed random number generator
-#seed					 run.seed
+repulsion_strength_wall                  0.0
+debey_length_wall                        1.0
 
 # Set output name
-output_name				 data/clean/run
+output_name                              data/run
 
-# Save more info
-save_bodies_mobility			 False
-save_blobs_mobility			 False
-
-# Set the rigid bodies (structures). For each kind of rigid body (structure) 
-# the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
-# the initial location and orientation of the rigid bodies. It has one line 
-# per body containing the initial location (3 floats) plus the initial 
-# orientation (4 floats for the quaternion). The ".vertex" file gives the
-# configuration of the blobs in the reference configuration (location=[0 0 0] 
-# and orientation[1 0 0 0]). The first line gives the number of blobs in one 
-# body and then it has one line per blob with its coordinates. See the 
-# provided files for an example.
-# structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
-
-
-structure	Generated_boomerang/boomerang_3d_Nblob_15.vertex Generated_boomerang/boomerang_3d_Nblob_15.clones
-structure	Generated_shells/shell_3d_Nblob_42_radius_0_225.vertex Generated_shells/shell_3d_Nblob_42_radius_0_225.clones
-structure	active_body.vertex active_body.clones
-# structure 	one_blob.vertex	   one_blob.clones
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure Structures/shell_N_12_Rg_1.vertex Structures/shell_N_12_Rg_1.clones
