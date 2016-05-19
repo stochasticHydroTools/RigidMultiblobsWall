@@ -1,12 +1,10 @@
 '''
 This module compute the blob-blob forces using pycuda.
 '''
-
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
-
 
 mod = SourceModule("""
 #include <stdio.h>

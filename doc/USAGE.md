@@ -18,14 +18,18 @@ For the theory consult:
 
 
 ## 1. Prepare the package
-<!-- ### Prepare the mobility functions -->
-We have implemented most of the code in python and it is not necessary to compile 
-the package to start using the codes. However, we provide alternative
-implementations in _C_ and _pycuda_ for some of the 
+The codes are implemented in python and it is not necessary to compile the package to use it. 
+However, we provide alternative implementations in _C_ and _pycuda_ for some of the most computationally 
+expensive functions. You can skip to section 2 but come back if you
+want to take fully advantage of this package.
 
 
-The functions to compute the blob mobility matrix **M** and the
-product **Mf** are defined in the directory `mobility/`.
+### 1.1 Prepare the mobility functions
+Some parts of the code uses functions to compute the blob mobility matrix **M** and the
+product matrix vector product **Mf**. 
+
+
+are defined in the directory `mobility/`.
 Some of the functions use pycuda or C++ (through the Boost Python
 library) for speed up. To use the C++ implementation compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which will need 

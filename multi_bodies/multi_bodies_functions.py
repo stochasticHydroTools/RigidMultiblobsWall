@@ -6,10 +6,22 @@ bodies or the slip on the blobs.
 '''
 import numpy as np
 import sys
+import imp
 
-import forces_pycuda
-import forces_ext
 from quaternion_integrator.quaternion import Quaternion
+# Try to import the forces boost implementation
+try:
+  import forces_ext
+except ImportError:
+  pass
+# If pycuda is installed import forces_pycuda
+try: 
+  imp.find_module('pycuda')
+  found_pycuda = True
+except ImportError:
+  found_pycyda = False
+if found_pycuda:
+  import forces_pycuda  
 
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
   return np.zeros((r_vectors.size / 3, 3))

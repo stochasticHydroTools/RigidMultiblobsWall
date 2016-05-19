@@ -61,7 +61,7 @@ class ReadInput(object):
     self.slip_file = self.options.get('slip_file')
     self.force_file = self.options.get('force_file')
     self.velocity_file = self.options.get('velocity_file')
-    self.solver_tolerance = float(self.options.get('solver_tolerance' or 1e-08))
+    self.solver_tolerance = float(self.options.get('solver_tolerance') or 1e-08)
         
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []

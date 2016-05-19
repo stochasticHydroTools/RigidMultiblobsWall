@@ -3,9 +3,21 @@ import numpy as np
 import sys
 sys.path.append('..')
 import time
+import imp
 
-import mobility_ext as me
-import mobility_pycuda
+# Try to import the mobility boost implementation
+try:
+  import mobility_ext as me
+except ImportError:
+  pass
+# If pycuda is installed import mobility_pycuda
+try: 
+  imp.find_module('pycuda')
+  found_pycuda = True
+except ImportError:
+  found_pycyda = False
+if found_pycuda:
+  import mobility_pycuda
 
 ETA = 1.0 # Viscosity
 

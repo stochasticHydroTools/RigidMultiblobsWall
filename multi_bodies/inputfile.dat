@@ -1,5 +1,5 @@
 # Select mobility or resistance problem
-scheme				resistance
+scheme				mobility
 
 # Define implementation to compute the blobs mobility 
 mobility_blobs_implementation	         boost  # Options: python, boost
@@ -9,7 +9,7 @@ mobility_vector_prod_implementation      pycuda  # Options: python, boost, pycud
 eta					 1.0 
 g					 0.0 
 blob_radius				 0.25
-solver_tolerance			 1e-08
+solver_tolerance			 1e-04
 
 # Set output name
 output_name				 data/clean/run.mobility
