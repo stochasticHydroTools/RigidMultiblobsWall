@@ -19,4 +19,4 @@ many small related scripts and tests.
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
 
-For usage see **doc/USAGE.md**.
+For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
