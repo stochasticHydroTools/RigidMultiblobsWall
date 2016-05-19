@@ -288,6 +288,7 @@ if __name__ == '__main__':
   integrator.eta = eta
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
+  integrator.tolerance = read.solver_tolerance
 
   # Loop over time steps
   start_time = time.time()  

@@ -19,7 +19,8 @@ For the theory consult the references:
 
 ## 1. Prepare the package
 The codes are implemented in python and it is not necessary to compile the package to use it. 
-However, we provide alternative implementations in _C_ and _pycuda_ for some of the most computationally 
+However, we provide alternative implementations in _C_ (through the Boost Python
+library) and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you
 want to take fully advantage of this package.
 
@@ -176,11 +177,12 @@ corresponding to linear (first three) and angular velocities (last three).
 
 
 
-## Run dynamic simulations 
+## 4. Run dynamic simulations 
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run Brownian simulations for a single body. 
 See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
-code which allows to run deterministic simulations for many bodies.
+code which allows to run deterministic simulations for many bodies. In the
+future we will extend this code to allow for stochastic simulations of many bodies.
 
 First, move to the directory `multi_bodies/` and inspect the input file
 `data.main`:
@@ -225,43 +227,113 @@ structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
 structure Structures/shell_N_42_Rg_0_225.vertex Structures/shell_N_42_Rg_0_225.clones
 ```
 
-This input file will run a simulation for three rigid bodies,
-one with a boomerang shape and two with a spherical shape.
-To run the simulation just use
+---
+
+With this input we can run a simulation for three rigid bodies,
+one with a boomerang shape and two with a spherical shape;
+see structures given in the options `structure`. To run the simulation just use
 
 `
 python multi_bodies --input-file data.main
 `
 
----
+Now, you can inspect the output, `ls data/run.*`. The output files are:
 
-### How to run 
-The main program `multi_bodies/multi_bodies.py` can be run like
+* `.bodies`: it contains the number of bodies and blobs in the simulation.
+Also how many types of bodies (i.e. different shapes) and how many
+bodies of each type.
 
-`python multi_bodies inputfile`
+* `.clones`: For each time step saved and each structure type the
+code saves a file with the location and orientation of the rigid 
+bodies. The name format is (output_name + structure_name + time_step + .clones)
+The format of the files is the same that in the input .clones files.
 
-`inputfile` contains the options for the simulation (time steps, number of bodies...),
-see `multi_bodies/data.main` for an example. The trajectory data is saved as a list of 
-locations and orientations in the output file `.bodies`. Each timestep is saved as 7 
-floats per body printed on a separate line, with location as the first 3 floats, and 
-the quaternion representing orientation as the last 4 floats.
+* `inputfile`: a copy of the input file.
 
-You can modify the following
-functions in `multi_bodies/multi_bodies.py`:
+* `seed`: it saves the state of the random generator.
 
-* `mobility_blobs`: it computes the blobs mobility matrix **M**. If
-you are not using the C++ implementation select the python version.
+* `time`: the wall-clock time elapsed during the simulation, in seconds.
 
-* `mobility_vector_prod`: it computes the matrix vector product **Mf**.
-If you are not using pycuda select the C++ or the python version.
+List of options for the input file:
 
-* `force_torque_calculator_sort_by_bodies`: it computes the external forces
-and torques on the rigid bodies. The current implementation only
-includes gravity forces plus interactions between the blobs and the wall.
+* `scheme`: Options: `deterministic_forward_euler, deterministic_forward_euler_dense_algebra,
+deterministic_adams_bashforth`. It selects the scheme to integrate the equation of motion
+and solve the mobility problem. The `*forward_euler*` schemes are first order accurate
+while `*adams_bashforth*` is second order accurate. The scheme `*dense_algebra` use
+dense algebra methods to solve the mobility problem and therefore the computational
+cost scales like (number_of_blobs)**3. The other schemes use preconditioned GMRES
+to solve the mobility problem and are more efficient.
+
+* `mobility_blobs_implementation`: Options: `python and boost`. This option
+indicates which implementation is used to compute the dense blobs mobility 
+matrix **M**. See section 1 to use the boost version.
+
+* `mobility_vector_prod_implementation`: Options: `python, boost and pycuda`.
+This option select the implementation to compute the matrix vector product
+**Mf**. See section 1 to use the boost or pycuda implementation.
+
+* `blob_blob_force_implementation`: Options: `None, python, boost and pycuda`.
+Select the implementation to compute the blob-blob interactions. If None is 
+selected the code does not compute blob-blob interactions.
+
+* `eta`: (float) the fluid viscosity.
+
+* `blob_radius`: (float) the hydrodynamic radius of the blobs.
+
+* `solver_tolerance`: (float) the tolerance for the iterative mobility solver.
+
+* `output_name`: (string) the prefix used to save the output files.
+
+* `dt`: (float) time step length to advance the simulation.
+
+* `n_steps`: (int) number of time steps.
+
+* `initial_step`: (int (default 0)) use value `step` to restart a simulation
+from the time step `step`. The code will try to load `*.clones` of the form
+(output_name + structure_name + step + .clones) instead of the name given
+in the option `structure`.
+
+* `n_save`: (int) it indicates to save the bodies configuration every `n_save` steps. 
+
+* `repulsion_strength`: (float) the blobs interact with a Yukawa potential,
+this is the strength of the potential (see section 4.1 to modified blobs interactions).
+
+* `debey_length`: (float) the blobs interact with a Yukawa potential,
+this is the characteristic length of the potential (see section 4.1 to modified blobs interactions).
+
+* `repulsion_strength_wall`: (float) the blobs interact with the wall with a hard sphere + Yukawa
+potential. This is the strength of the Yukawa potential (see section 4.1 to modified blobs interactions).
+
+* `debey_length_wall`: (float) the blobs interact with the wall with a hard sphere + Yukawa
+potential. This is the characteristic length of the Yukawa potential (see section 4.1 to modified blobs interactions).
+
+* `seed`: (string) name of a file with the state of a random generator from a previous simulation.
+It can be use to generate the same random numbers in different simulations.
+
+* `structure`: (two strings) name of the vertex and clones files with the rigid 
+bodies configuration, see section 2. To simulate bodies with different
+shapes add to the input file one `structure` option per each kind of body 
+and give their `vertex` and `clones` files.
 
 
+### 4.1 Modified the codes
+Right now, the interactions between blobs and between blobs and the wall are hard-coded
+in the codes. We explain here how the user can change these interactions.
 
-### Software organization
+* blob-blob interactions: to modified the _python_ implementation edit
+the function `blob_blob_force` in the file `multi_bodies/multi_bodies_functions.py`.
+To modified the _C_ implementation edit the function `blobBlobForce` in the
+file `multi_bodies/forces_ext.cc` and recompile the _C_ code.
+To modified the _pycuda_ version edit the function 
+`blob_blob_force` in the file `multi_bodies/forces_pycuda.py`
+
+* blob-wall interaction: to modified the _python_ implementation edit
+the function `blob_external_force` in the file `multi_bodies/multi_bodies_functions.py`.
+There are not _C_ or _pycuda_ versions of this function since
+it is not an expensive operation.
+
+
+## 5. Software organization
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: See next section.
 * **doc/**: documentation.
@@ -285,102 +357,3 @@ data and for logging).
 
 
 
-### To run the Boomerang example:
-This file permits to simulate the dynamics of a single boomerang close to a wall.
-
-1) Define the directory where you want to save your data by making a copy 
-of config.py called "config_local.py" and define DATA_DIR to your
-liking. (In the future, any additional configuration variables will be set in
-this file.)
-
-2) Some code (the fluid mobility) uses C++ through the Boost Python
-library for speedup.  There is a Makefile provided in the fluids
-subfolder, which will need to be modified slightly to reflect your
-Python version, etc.  Running make in this folder will then compile
-the .so files used by the python programs.
-(NOTE: If you do not have boost, or do not want to
-use it, read the section below entitled "Without Boost").  
-
-
-3) You should now be ready to run some scripts to produce trajectory
-data.  To test this, cd into ./boomerang/, and try to run:
-
-   python boomerang.py -dt 0.01 -N 100 -gfactor 1.0 --data-name=testing-1
-
-You should see a log tracking the progress of this run in
-./boomerang/logs/, and after its conclusion, you should have a few .txt
-trajectory data file in <DATA_DIR>/boomerang/. 
-
-To get a description of all command line arguments available for
-boomerang.py, run:
-
-	 python boomerang.py --help
-	 
-Note that when running multiple runs to be analyzed for MSD, you
-*MUST* end data-name with a hyphen and an integer, starting at 1 and 
-increasing successively.  e.g. --data-name=heavy-masses-1, 
---data-name=heavy-masses-2, etc.
-
-One can create frames of this trajectory to make a animation using the script:
-		python plot_boomerang_trajectory boomerang-trajectory-dt-0.01-N-100-scheme-RFD-g-1.0-testing-1.txt
-
-
-4) One can now analyze the scripts to calculate the MSD (new scripts
-can be made to calculate other quantities of interest from trajectory
-data.)  There is a script in ./boomerang which takes command line
-arguments to specify which files to analyze.  From the boomerang
-directory, run:
-		 
-	python boomerang.py -dt 0.01 -N 1000 -gfactor 1.0 --data-name=testing-1
-	python boomerang.py -dt 0.01 -N 1000 -gfactor 1.0 --data-name=testing-2
-
-	(These above might take some time to run)
-
-	Then when the trajectories are done, run:
-
-	python calculate_boomerang_msd_from_trajectories.py -dt 0.01 -N 1000
-	--data-name=testing -n_runs 2 -gfactor 1.0 -end 1.0
-
-This will create the file:
-  "boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl"
-in  <DATA_DIR>/boomerang.
-
-5) Plotting the MSD can then be done by running:
-  
-  python plot_boomerang_msd.py boomerang-msd-dt-0.01-N-1000-end-1.0-scheme-RFD-g-1.0-runs-2-testing.pkl
-
-which will create a (noisy) pdf in the boomerang/figures/ folder.
-
-
-####WITHOUT BOOST
-If you do not want to use boost for the brownian dynamics simulations,
-the ./fluids/mobility.py file has a "single_wall_fluid_mobility"
-function which is identical to "boosted_single_wall_fluid_mobility"
-but doesn't use boost (and is somewhat slower).  Replace calls to the
-boosted version with calls to the python version wherever mobility of
-a rigid body is calculated (for example in "force_and_torque_boomerang_mobility"
-in ./boomerang/boomerang.py).  Then remove the "import mobility_ext as me" 
-line from ./fluids/mobility.py and everything should run without having 
-to compile any of the C++ code.
-
-
-### To run the sphere example:
-1) Define the directory where you want to save your data by making a copy 
-of config.py called "config_local.py" and define DATA_DIR to your
-liking. (In the future, any additional configuration variables will be set in
-this file.)
-
-2) Define the sphere mobility function. In the file "sphere/sphere.py",
-chose one of the two mobility functions implemented. One function is based on an 
-expansion in terms of "h", the sphere-wall distance, to order "h**5". 
-The other function use a combination of theories (see function for details)
-and a fit to the sphere mobility computed from a higher resolution model.
-
-
-
-
-
-
-
-
-				
