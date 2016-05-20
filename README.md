@@ -13,7 +13,7 @@ dynamic simulations.
 
 For the theory behind the numerical methods consult the references:
 
-* **Brownian Dynamics of Confined Rigid Bodies**, S. Delong, F. Balboa Usabiaga, and A. Donev,
+1. **Brownian Dynamics of Confined Rigid Bodies**, S. Delong, F. Balboa Usabiaga, and A. Donev,
 The Journal of Chemical Physics, **143**, 144107 (2015). 
 [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
