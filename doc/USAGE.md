@@ -9,13 +9,12 @@ dynamic simulations.
 We explain in the next sections how to use the package.
 For the theory consult the references:
 
-Donev: Same comment as for README
-1. **Brownian Dynamics of Confined Rigid Bodies**
-  S. Delong, F. Balboa Usabiaga and A. Donev. The Journal of Chemical Physics, **143**, 144107 (2015). 
-[DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
+1. **Brownian Dynamics of Confined Rigid Bodies** S. Delong, F. Balboa Usabiaga and A. Donev. 
+The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
+
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
-  rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
-  A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
+A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
 
 ## 1. Prepare the package
