@@ -1,0 +1,35 @@
+# Select integrator 
+scheme                                   deterministic_adams_bashforth
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python
+mobility_vector_prod_implementation      python
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       0.1
+n_steps                                  10
+n_save                                   1
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0 
+g                                        1.0
+blob_radius                              0.25
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       1.0
+debey_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  1.0
+debey_length_wall                        1.0
+
+# Set output name
+output_name                              data/run
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure Structures/shell_N_12_Rg_1.vertex Structures/shell_N_12_Rg_1.clones
