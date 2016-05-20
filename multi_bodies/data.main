@@ -23,7 +23,7 @@ repulsion_strength                       1.0
 debey_length                             1.0
 
 # Set interaction with the wall
-repulsion_strength_wall                  0.0
+repulsion_strength_wall                  1.0
 debey_length_wall                        1.0
 
 # Set output name
