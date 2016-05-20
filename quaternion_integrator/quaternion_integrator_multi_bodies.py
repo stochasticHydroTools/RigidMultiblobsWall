@@ -215,7 +215,7 @@ class QuaternionIntegrator(object):
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
       # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=1e-8, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
       self.first_guess = sol_precond  
 
       # Extract velocities
@@ -259,7 +259,7 @@ class QuaternionIntegrator(object):
      
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
       resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
-      mobility_bodies = np.linalg.inv(np.dot(K.T, np.dot(resistance_blobs, K)))
+      mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
 
       # Compute velocities
       return np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies)))

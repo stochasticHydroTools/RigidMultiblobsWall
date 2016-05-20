@@ -3,9 +3,21 @@ import numpy as np
 import sys
 sys.path.append('..')
 import time
+import imp
 
-import mobility_ext as me
-import mobility_pycuda
+# Try to import the mobility boost implementation
+try:
+  import mobility_ext as me
+except ImportError:
+  pass
+# If pycuda is installed import mobility_pycuda
+try: 
+  imp.find_module('pycuda')
+  found_pycuda = True
+except ImportError:
+  found_pycyda = False
+if found_pycuda:
+  import mobility_pycuda
 
 ETA = 1.0 # Viscosity
 
@@ -97,7 +109,7 @@ def boosted_infinite_fluid_mobility(r_vectors, eta, a):
   return fluid_mobility
 
    
-def boosted_mobility_vector_product(r_vectors, eta, a, vector):
+def boosted_mobility_vector_product(r_vectors, vector, eta, a):
   ''' 
   Compute a mobility * vector product boosted in C++ for a
   speedup. It includes wall corrections.
@@ -109,7 +121,7 @@ def boosted_mobility_vector_product(r_vectors, eta, a, vector):
   ## WITH BOOST
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
-  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3)) 
+  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
   return vector_res
 

@@ -45,7 +45,7 @@ class Body(object):
     self.function_torque = self.default_none
     self.function_force_blobs = self.default_zero_blobs
     self.mobility_blobs_cholesky = None
-    
+    self.ID = None
   
    
   
@@ -129,7 +129,7 @@ class Body(object):
     '''
     Return the slip on the blobs.
     '''
-    return self.function_slip()
+    return self.function_slip(self)
 
 
   def calc_force(self):
@@ -153,11 +153,11 @@ class Body(object):
     return self.function_force_blobs()
   
 
-  def default_zero_blobs(self):
+  def default_zero_blobs(self, *args, **kwargs):
     return np.zeros((self.Nblobs, 3))
 
 
-  def default_none(self):
+  def default_none(self, *args, **kwargs):
     return None
 
 

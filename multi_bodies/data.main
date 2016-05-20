@@ -1,36 +1,35 @@
-# Chose integrator between:
-# deterministic_forward_euler, deterministic_forward_euler_dense_algebra
-# deterministic_adams_bashforth
-scheme		deterministic_forward_euler
+# Select integrator 
+scheme                                   deterministic_adams_bashforth
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python
+mobility_vector_prod_implementation      python
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
 
 # Set time step, number of steps and save frequency
-Donev: Explain save frequency -- is the file format saved in the same format as the .clones file below? Explain this. Is the time of the snapshot recorded anywhere in the file? How does one restart a run from a previous configuration. Does one need to move or copy the .bodies file into a .clones file? This seems not so nice -- why not let one specify the name of the file to start from. How are the files actually named -- what is the base of the file and how are different snapshots (.bodies) distinguished in the file name? I think it is best to name both files the same thing, e.g., base_name-0000000.clones is the initial configuration (but let the user specify both base name and the number at which to start from, default 0). It is also a good idea (from experience) if the time step counter knows what time step one is at. That is, if one starts from file base-name-0000100.clones, the time step counter starts at 100 so the next snapshot saved is something like base-name-0000200.clones, NOT base-name-0000100.clones, thus overwriting the input file. This allows one to run a simulation in many pieces (we call them restarts), and they all continue seemlessly one after the other without causing confusion. This works very well and it is what we do in the codes with the group at LBL, used by many many users around the world.
-dt		0.01
-n_steps		100
-n_save  	1
+dt                                       0.1
+n_steps                                  10
+n_save                                   1
 
-# Set viscosity, gravity and blob radius
-eta		1 
-g		1
-blob_radius	0.25
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0 
+g                                        1.0
+blob_radius                              0.25
 
-# Seed random number generator
-#seed		run.seed
+# Set parameters for the blob-blob interation
+repulsion_strength                       1.0
+debey_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  1.0
+debey_length_wall                        1.0
 
 # Set output name
-output_name 	run
+output_name                              data/run
 
-# Set the rigid bodies (structures). For each kind of rigid body (structure) 
-# the code reads a ".clones" and a ".vertex" file. The ".clones" file gives
-# the initial location and orientation of the rigid bodies.
-Donev: Does this assume that all bodies are identical? Where is the number of bodies (clones) specified -- is it in the top of the .clones file or is it assumed to be the number of lines in .clones file? I recommend it be specified explicitly.
-# It has one line 
-# per body containing the initial location (3 floats) plus the initial 
-# orientation (4 floats for the quaternion). The ".vertex" file gives the
-# configuration of the blobs in the reference configuration (location=[0 0 0] 
-# and orientation[1 0 0 0]). The first line gives the number of blobs in one 
-# body and then it has one line per blob with its coordinates. See the 
-# provided files for an example.
-structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
-
-
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure Structures/shell_N_12_Rg_1.vertex Structures/shell_N_12_Rg_1.clones

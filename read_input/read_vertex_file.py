@@ -11,7 +11,8 @@ def read_vertex_file(name_file):
   comment_symbols = ['#']   
   coor = []
   with open(name_file, 'r') as f:
-    for i, line in enumerate(f):
+    i = 0
+    for line in f:
       # Strip comments
       if comment_symbols[0] in line:
         line, comment = line.split(comment_symbols[0], 1)
@@ -25,6 +26,7 @@ def read_vertex_file(name_file):
           data = line.split()
           location = [float(data[0]), float(data[1]), float(data[2])]
           coor.append(location)
+        i += 1
 
   coor = np.array(coor)
   return coor

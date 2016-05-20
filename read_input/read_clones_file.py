@@ -22,6 +22,7 @@ def read_clones_file(name_file):
   with open(name_file, 'r') as f:
     locations = []
     orientations = []
+    i = 0
     for line in f:
       # Strip comments
       if comment_symbols[0] in line:
@@ -30,15 +31,19 @@ def read_clones_file(name_file):
       # Ignore blank lines
       line = line.strip()
       if line != '':
-        data = line.split()
-        location = [float(data[0]), float(data[1]), float(data[2])]
-        orientation = [float(data[3]), float(data[4]), float(data[5]), float(data[6])]
-        norm_orientation = np.linalg.norm(orientation)
-        q = Quaternion(orientation / norm_orientation)
-        locations.append(location)
-        orientations.append(q)
+        if i == 0:
+          number_of_bodies = int(line.split()[0])
+        else:
+          data = line.split()
+          location = [float(data[0]), float(data[1]), float(data[2])]
+          orientation = [float(data[3]), float(data[4]), float(data[5]), float(data[6])]
+          norm_orientation = np.linalg.norm(orientation)
+          q = Quaternion(orientation / norm_orientation)
+          locations.append(location)
+          orientations.append(q)
+        i += 1
 
     # Creat and return numpy arrays
     locations = np.array(locations)
     orientations = np.array(orientations)
-    return locations, orientations
+    return number_of_bodies, locations, orientations
