@@ -50,7 +50,7 @@ def set_mobility_blobs(implementation):
   '''
   Set the function to compute the dense mobility
   at the blob level to the right implementation.
-  The implementation in boost is much faster than 
+  The implementation in C++ is much faster than 
   the one python; to use it the user should compile 
   the file mobility/mobility_ext.cc.
 
@@ -64,7 +64,7 @@ def set_mobility_blobs(implementation):
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility
-  elif implementation == 'boost':
+  elif implementation == 'C++':
     return  mb.boosted_single_wall_fluid_mobility
 
 
@@ -75,16 +75,16 @@ def set_mobility_vector_prod(implementation):
   level to the right implementation.
   
   The implementation in pycuda is much faster than the
-  one in boost, which is much faster than the one python; 
+  one in C++, which is much faster than the one python; 
   To use the pycuda implementation is necessary to have 
   installed pycuda and a GPU with CUDA capabilities. To
-  use the boost implementation the user has to compile 
+  use the C++ implementation the user has to compile 
   the file mobility/mobility_ext.cc.  
   ''' 
   # Implementations with wall
   if implementation == 'python':
     return mb.single_wall_fluid_mobility_product
-  elif implementation == 'boost':
+  elif implementation == 'C++':
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda

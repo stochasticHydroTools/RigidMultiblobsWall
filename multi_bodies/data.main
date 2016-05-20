@@ -2,8 +2,8 @@
 scheme                                   deterministic_adams_bashforth
 
 # Select implementation to compute M and M*f
-mobility_blobs_implementation            python  
-mobility_vector_prod_implementation      python  
+mobility_blobs_implementation            python
+mobility_vector_prod_implementation      python
 
 # Select implementation to compute the blobs-blob interactions
 blob_blob_force_implementation           python

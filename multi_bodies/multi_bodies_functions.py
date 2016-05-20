@@ -147,17 +147,17 @@ def set_blob_blob_forces(implementation):
   to the rigth.
 
   The implementation in pycuda is much faster than the
-  one in boost, which is much faster than the one python; 
+  one in C++, which is much faster than the one python; 
   To use the pycuda implementation is necessary to have 
   installed pycuda and a GPU with CUDA capabilities. To
-  use the boost implementation the user has to compile 
+  use the C++ implementation the user has to compile 
   the file blob_blob_forces_ext.cc.   
   '''
   if implementation == 'None':
     return default_zero_r_vectors
   elif implementation == 'python':
     return calc_blob_blob_forces_python
-  elif implementation == 'boost':
+  elif implementation == 'C++':
     return calc_blob_blob_forces_boost 
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
