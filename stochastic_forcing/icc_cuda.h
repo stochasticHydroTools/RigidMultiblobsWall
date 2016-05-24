@@ -1,4 +1,6 @@
 #include <iostream>
+#include <stdio.h>
+#include "cusparse.h"
 using namespace std;
 
 class icc{
@@ -8,7 +10,10 @@ public:
     and compute the Cholesky factorization M=L*L.T
     where L is a lower triangular matrix.
   */
-  icc();
+  icc(const double blob_radius, 
+      const double eta, 
+      const int number_of_blobs,
+      const double *x);
 
   /*
     Destructor: free memory on the GPU and CPU.
@@ -16,19 +21,25 @@ public:
   ~icc();
 
   /*
+    Build sparse mobility matrix M.
+  */
+  int buildSparseMobilityMatrix();
+
+  /*
     Muliply by Cholesky factorization L.
   */
-  int mult_L();
+  int multL();
 
   /*
     Muliply by inverse of the Cholesky factorization L^{-1}.
   */
-  int mult_invL();
+  int multInvL();
 
 private:
   int d_icc_is_initialized;
   double d_blob_radius, d_eta;
   int d_number_of_blobs;
+  const double *d_x;
 };
 
 
