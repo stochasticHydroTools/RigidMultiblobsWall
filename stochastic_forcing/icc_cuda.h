@@ -12,6 +12,7 @@ public:
   */
   icc(const double blob_radius, 
       const double eta, 
+      const double cutoff,
       const int number_of_blobs,
       const double *x);
 
@@ -38,13 +39,16 @@ public:
 private:
   // CPU variables
   int d_icc_is_initialized;
-  double d_blob_radius, d_eta;
+  double d_blob_radius, d_eta, d_cutoff;
   int d_number_of_blobs;
   const double *d_x;
   int d_threads_per_block, d_num_blocks;
-
+  unsigned long long int d_nnz;
+  
   // GPU variables
   double *d_x_gpu;
+  unsigned long long int *d_nnz_gpu;
+  double *d_cooValA_gpu, *d_cooRowIndA_gpu, *d_cooColIndA_gpu;
 };
 
 

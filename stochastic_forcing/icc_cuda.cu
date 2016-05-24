@@ -13,60 +13,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 
 /*
-  Constructor: build the sparse mobility matrix M
-  and compute the Cholesky factorization M=L*L.T
-  where L is a lower triangular matrix.
-*/
-icc::icc(const double blob_radius, 
-	 const double eta, 
-	 const int number_of_blobs,
-	 const double *x){
-  d_blob_radius = blob_radius;
-  d_eta = eta;
-  d_number_of_blobs = number_of_blobs;
-  d_x = x;
-
-  // Determine number of blocks and threads for the GPU
-  d_threads_per_block = 512;
-  if((d_number_of_blobs / d_threads_per_block) < 512){
-    d_threads_per_block = 256;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 256){
-    d_threads_per_block = 128;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 128){
-    d_threads_per_block = 128;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 128){
-    d_threads_per_block = 64;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 32){
-    d_threads_per_block = 128;
-  }
-  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
-}
-
-/*
-  Destructor: free memory on the GPU and CPU.
-*/
-icc::~icc(){
-  // Free GPU memory
-  chkErrq(cudaFree(d_x_gpu));
-}
-
-/*
-  Build sparse mobility matrix M.
-*/
-int icc::buildSparseMobilityMatrix(){
-  // Allocate GPU memory
-  chkErrq(cudaMalloc((void**)&d_x_gpu, d_number_of_blobs * 3 *sizeof(double)));
-
-  // Build sparse mobility matrix
-  
-  return 0;
-}
-
-/*
  mobilityUFRPY computes the 3x3 RPY mobility
  between blobs i and j normalized with 8 pi eta a
 */
@@ -127,6 +73,7 @@ __device__ void mobilityUFRPY(double rx,
   } 
   return;
 }
+
 
 /*
  mobilityRPY computes the 3x3 mobility correction due to a wall
@@ -207,10 +154,13 @@ __global__ void countNnz(const double *x, unsigned long long int *nnzGPU, const 
     
     // If blobs are close increse nnz
     if(r2 < cutoff*cutoff){
-      atomicAdd(nnzGPU, 9);
+      printf("i = %i, j = %i \n", i, j);
+      unsigned long long int nnz_old = atomicAdd(nnzGPU, 9);
+      printf("nnz = %i \n", nnz_old);
     }
   }
 }
+
 
 /*
   Build a sparse matrix with coordinated format (COO). See cuSparse documentation.
@@ -306,13 +256,93 @@ __global__ void buildCOOMatrix(const double *x,
 } 
 
 
+/*
+  Constructor: build the sparse mobility matrix M
+  and compute the Cholesky factorization M=L*L.T
+  where L is a lower triangular matrix.
+*/
+icc::icc(const double blob_radius, 
+	 const double eta, 
+	 const double cutoff,
+	 const int number_of_blobs,
+	 const double *x){
+  d_blob_radius = blob_radius;
+  d_eta = eta;
+  d_cutoff = cutoff;
+  d_number_of_blobs = number_of_blobs;
+  d_x = x;
+
+  // Determine number of blocks and threads for the GPU
+  d_threads_per_block = 512;
+  if((d_number_of_blobs / d_threads_per_block) < 512){
+    d_threads_per_block = 256;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 256){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 64;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 32){
+    d_threads_per_block = 128;
+  }
+  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
+}
+
+/*
+  Destructor: free memory on the GPU and CPU.
+*/
+icc::~icc(){
+  // Free GPU memory
+  chkErrq(cudaFree(d_x_gpu));
+  chkErrq(cudaFree(d_nnz_gpu));
+  chkErrq(cudaFree(d_cooValA_gpu));
+  chkErrq(cudaFree(d_cooRowIndA_gpu));
+  chkErrq(cudaFree(d_cooColIndA_gpu));
+}
+
+/*
+  Build sparse mobility matrix M.
+*/
+int icc::buildSparseMobilityMatrix(){
+  // Allocate GPU memory
+  chkErrq(cudaMalloc((void**)&d_x_gpu, d_number_of_blobs * 3 * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_nnz_gpu, sizeof(unsigned long long int)));
+
+  // Copy data from CPU to GPU
+  chkErrq(cudaMemcpy(d_x_gpu, d_x, d_number_of_blobs * 3 * sizeof(double), cudaMemcpyHostToDevice));
+  d_nnz = 0;
+  chkErrq(cudaMemcpy(d_nnz_gpu, &d_nnz, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
+
+  // Count non-zero elements in mobility matrix
+  countNnz<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu, d_nnz_gpu, d_cutoff, d_number_of_blobs);
+  chkErrq(cudaPeekAtLastError());
+  chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
+  cout << "nnz = " << d_nnz << endl;
+
+  // Allocate GPU memory for the sparse mobility matrix
+  chkErrq(cudaMalloc((void**)&d_cooValA_gpu, d_nnz * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_cooRowIndA_gpu, d_nnz * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_cooColIndA_gpu, d_nnz * sizeof(double)));
+
+  // Build sparse mobility matrix
+  
+  
+  return 0;
+}
+
+
 int main(){
 
   // Define parameters
   int status;
   double blob_radius = 1.0;
   double eta = 1.0;
-  int number_of_blobs = 2;
+  double cutoff = 100;
+  int number_of_blobs = 1;
 
   // Create CPU arrays
   double *x = new double [number_of_blobs * 3];
@@ -322,7 +352,7 @@ int main(){
   }
  
   // Create icc object
-  icc icc_obj = icc(blob_radius, eta, number_of_blobs, x);
+  icc icc_obj = icc(blob_radius, eta, cutoff, number_of_blobs, x);
   
   // Build sparse mobility matrix
   status = icc_obj.buildSparseMobilityMatrix();
