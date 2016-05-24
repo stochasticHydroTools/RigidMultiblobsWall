@@ -1,10 +1,10 @@
 # location of the Python header files
-PYTHON_VERSION = 2.6
+PYTHON_VERSION = ???
 PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
 
 # location of the Boost Python include files and library
-BOOST_INC = /usr/include/boost
-BOOST_LIB = /usr/lib64/boost
+BOOST_INC = ???
+BOOST_LIB = ???
 
 
 # compile mesh classes

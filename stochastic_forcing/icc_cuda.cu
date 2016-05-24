@@ -1,5 +1,17 @@
 #include "icc_cuda.h"
 
+#define chkErrq(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+  if (code != cudaSuccess) 
+  {
+    // printf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    cout << "GPUasser: " << cudaGetErrorString(code) << "   "  << file << "  "  << line << endl;
+    if (abort) exit(code);
+  }
+}
+
+
 /*
   Constructor: build the sparse mobility matrix M
   and compute the Cholesky factorization M=L*L.T
@@ -13,23 +25,41 @@ icc::icc(const double blob_radius,
   d_eta = eta;
   d_number_of_blobs = number_of_blobs;
   d_x = x;
+
+  // Determine number of blocks and threads for the GPU
+  d_threads_per_block = 512;
+  if((d_number_of_blobs / d_threads_per_block) < 512){
+    d_threads_per_block = 256;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 256){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 64;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 32){
+    d_threads_per_block = 128;
+  }
+  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
 }
 
 /*
   Destructor: free memory on the GPU and CPU.
 */
 icc::~icc(){
-
+  // Free GPU memory
+  chkErrq(cudaFree(d_x_gpu));
 }
 
 /*
   Build sparse mobility matrix M.
 */
 int icc::buildSparseMobilityMatrix(){
-
   // Allocate GPU memory
-
-  // Determine number of threads and blocks
+  chkErrq(cudaMalloc((void**)&d_x_gpu, d_number_of_blobs * 3 *sizeof(double)));
 
   // Build sparse mobility matrix
   

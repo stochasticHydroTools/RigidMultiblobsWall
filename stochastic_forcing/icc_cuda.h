@@ -36,10 +36,15 @@ public:
   int multInvL();
 
 private:
+  // CPU variables
   int d_icc_is_initialized;
   double d_blob_radius, d_eta;
   int d_number_of_blobs;
   const double *d_x;
+  int d_threads_per_block, d_num_blocks;
+
+  // GPU variables
+  double *d_x_gpu;
 };
 
 
