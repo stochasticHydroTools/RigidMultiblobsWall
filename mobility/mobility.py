@@ -15,7 +15,7 @@ try:
   imp.find_module('pycuda')
   found_pycuda = True
 except ImportError:
-  found_pycyda = False
+  found_pycuda = False
 if found_pycuda:
   import mobility_pycuda
 
