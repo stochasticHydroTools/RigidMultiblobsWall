@@ -1,4 +1,6 @@
 #include "icc_cuda.h"
+// #include </usr/include/python2.6/Python.h>
+// #include <boost/python.hpp>
 
 #define chkErrq(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -366,11 +368,16 @@ int icc::buildSparseMobilityMatrix(){
 
   // Sort matrix to COO format
   {
-    size_t pBufferSizeInBytes = 0;
-    void *pBuffer = NULL;
-    int *p = NULL;
+    // Py_Initialize();
+    
+    // Py_Finalize();
+  }
+  {
+    // size_t pBufferSizeInBytes = 0;
+    // void *pBuffer = NULL;
+    // int *p = NULL;
     // Allocate buffer
-    chkErrqCusparse(cusparseXcoosort_bufferSizeExt(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, &pBufferSizeInBytes));
+    // chkErrqCusparse(cusparseXcoosort_bufferSizeExt(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, &pBufferSizeInBytes));
     // chkErrq(cudaMalloc( &pBuffer, sizeof(char)* pBufferSizeInBytes));
     // Setup permutation vector p to identity
     // chkErrq(cudaMalloc( &p, sizeof(int) * d_nnz));
