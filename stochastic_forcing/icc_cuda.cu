@@ -1,4 +1,12 @@
 #include "icc_cuda.h"
+#include <thrust/version.h>
+// #include <thrust/reduce.h>
+// #include <thrust/extrema.h>
+#include <thrust/device_vector.h>
+#include <thrust/device_ptr.h>
+// #include <thrust/transform_reduce.h>
+// #include <thrust/functional.h>
+#include <thrust/sort.h>
 // #include </usr/include/python2.6/Python.h>
 // #include <boost/python.hpp>
 
@@ -20,6 +28,23 @@ inline void cusparseAssert(cusparseStatus_t code, const char *file, int line, bo
     cout << "cuSparseasser: " << code << "   "  << file << "  "  << line << endl;
     if (abort) exit(code);
   }
+}
+
+struct saxpy_functor
+{
+  const int m;
+  saxpy_functor(int _m) : m(_m) {}
+
+    __host__ __device__
+    unsigned long long int operator()(const int& x, const unsigned long long int& y) const { 
+      return m * x + y;
+    }
+};
+
+void saxpy_fast(int m, thrust::device_vector<int>& X, thrust::device_vector<unsigned long long int>& Y)
+{
+  // Y <- m * X + Y
+  thrust::transform(X.begin(), X.end(), Y.begin(), Y.begin(), saxpy_functor(m));
 }
 
 
@@ -305,8 +330,13 @@ icc::icc(const double blob_radius,
   Destructor: free memory on the GPU and CPU.
 */
 icc::~icc(){
-  // Delete cusparse handle
+  // Delete cusparse objects
+  cout << "destroying " << endl;
+  cusparseDestroyMatDescr(d_descr_M);
+  cout << "DDD" << endl;
+  cusparseDestroySolveAnalysisInfo(d_info_M); 
   chkErrqCusparse(cusparseDestroy(d_cusp_handle));
+  cout << "AAA " << endl;
 
   // Free GPU memory
   chkErrq(cudaFree(d_x_gpu));
@@ -368,9 +398,63 @@ int icc::buildSparseMobilityMatrix(){
 
   // Sort matrix to COO format
   {
-    // Py_Initialize();
+    thrust::device_vector<int> vec_col(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
+    thrust::device_vector<int> vec_row(d_cooRowInd_gpu, d_cooRowInd_gpu + d_nnz);
+    thrust::device_vector<double> vec_val(d_cooVal_gpu, d_cooVal_gpu + d_nnz);
+    thrust::device_vector<int> vec_col_sorted(d_nnz);
+    thrust::device_vector<int> vec_row_sorted(d_nnz);
+    thrust::device_vector<double> vec_val_sorted(d_nnz);
+    thrust::device_vector<unsigned long long int> vec_global_index(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
+
+    cout << "Print values  ";
+    thrust::copy(vec_val.begin(), vec_val.end(), std::ostream_iterator<double>(std::cout, " "));
+    cout << endl;
+    cout << "Print columns ";
+    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
+    cout << endl;
+    cout << "Print rows    ";
+    thrust::copy(vec_row.begin(), vec_row.end(), std::ostream_iterator<int>(std::cout, " "));
+    cout << endl;
+    // thrust::sort(d_cooRowInd, d_cooRowInd + d_nnz);
+    // Create global index = row*N + col
+    saxpy_fast(N, vec_row, vec_global_index);
+    // thrust::host_vector<unsigned long long int> vec_global_index_host = vec_global_index;
+    cout << "Print index  ";
+    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
+    cout << endl;
+
+    // Initialize vector to [0, 1, 2, ...]
+    thrust::counting_iterator<int> iter(0);
+    thrust::device_vector<int> indices(d_nnz);
+    thrust::copy(iter, iter + indices.size(), indices.begin());
+
+    // Sort the indices using the global index as the key
+    // thrust::sort_by_key(vec_index.begin()
+    thrust::sort_by_key(vec_global_index.begin(), vec_global_index.end(), indices.begin());
+    cout << "Print index  ";
+    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, "  "));
+    cout << endl;
+
+    // Sort rows, columns and values with the indices
+    thrust::gather(indices.begin(), indices.end(), vec_col.begin(), vec_col_sorted.begin());
+    thrust::gather(indices.begin(), indices.end(), vec_row.begin(), vec_row_sorted.begin());
+    thrust::gather(indices.begin(), indices.end(), vec_val.begin(), vec_val_sorted.begin());
+
+    cout << endl << endl << endl;
+    cout << "Print columns ";
+    thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
+    cout << endl;
+    cout << "Print rows    ";
+    thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
+    cout << endl;
+    cout << "Print values  ";
+    thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), std::ostream_iterator<double>(std::cout, " "));
+    cout << endl;
     
-    // Py_Finalize();
+    // Copy thrust vectors to arrays
+    thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), d_cooColInd_gpu);
+    thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), d_cooRowInd_gpu);
+    thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), d_cooVal_gpu);
   }
   {
     // size_t pBufferSizeInBytes = 0;
@@ -392,14 +476,12 @@ int icc::buildSparseMobilityMatrix(){
   }
 
   // Transform sparse matrix to CSR format
-  // chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, (3 * d_number_of_blobs), d_csrRowPtr_gpu, d_base));
-  d_cusp_status =cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, (3 * d_number_of_blobs), d_csrRowPtr_gpu, d_base);
+  chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base));
+  // d_cusp_status = cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base);
   cout << "status --------------- " << d_cusp_status << endl;
   
-  
-
   // Copy matrix to the CPU
-  if(1){
+  if(0){
     d_cooVal = new double [d_nnz];
     d_cooRowInd = new int [d_nnz];
     d_cooColInd = new int [d_nnz];
@@ -408,6 +490,7 @@ int icc::buildSparseMobilityMatrix(){
     chkErrq(cudaMemcpy(d_cooRowInd, d_cooRowInd_gpu, d_nnz * sizeof(int), cudaMemcpyDeviceToHost));
     chkErrq(cudaMemcpy(d_cooColInd, d_cooColInd_gpu, d_nnz * sizeof(int), cudaMemcpyDeviceToHost));
     chkErrq(cudaMemcpy(d_csrRowPtr, d_csrRowPtr_gpu, ((3 * d_number_of_blobs) + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+    
     for(int i=0; i<d_nnz; i++){
       cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
     }
@@ -419,6 +502,35 @@ int icc::buildSparseMobilityMatrix(){
     delete[] d_cooColInd;
     delete[] d_csrRowPtr;
   }
+
+  // Create descriptor for matrix M
+  chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
+  cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO);
+  cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL);
+
+  // Create info structure
+  // cusparseCreateCsric02Info(&d_info_M); for version 7.5
+  // cusparseCreateSolveAnalysisInfo(&d_info_M);
+  cusparseOperation_t operation = CUSPARSE_OPERATION_NON_TRANSPOSE;
+  cout << "AAA " << endl;
+  if(1){
+    chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
+					    operation, /*CUSPARSE_OPERATION_NON_TRANSPOSE*/
+					    N, 
+					    d_descr_M, 
+					    d_cooVal_gpu,
+					    d_csrRowPtr_gpu, 
+					    d_cooColInd_gpu,
+					    d_info_M));
+  }
+  cout << "BBB " << endl;
+  
+
+
+  // Compute incomplete cholesky 
+  
+
+    
 
   return 0;
 }
@@ -449,6 +561,7 @@ int main(){
   
 
   // Free CPU memory
+  cout << "before x" << endl;
   delete[] x;
   cout << "# End" << endl;
   return 0;

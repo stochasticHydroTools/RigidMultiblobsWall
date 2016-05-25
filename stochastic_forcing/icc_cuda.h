@@ -49,12 +49,16 @@ private:
   cusparseStatus_t d_cusp_status;
   double *d_cooVal;
   int *d_cooRowInd, *d_cooColInd, *d_csrRowPtr;
-  
+  cusparseMatDescr_t d_descr_M;  
+  // csric02Info_t d_info_M; for version cuda 7.5
+  cusparseSolveAnalysisInfo_t d_info_M;
+
   // GPU variables
   double *d_x_gpu;
   unsigned long long int *d_nnz_gpu;
   double *d_cooVal_gpu;
   int *d_cooRowInd_gpu, *d_cooColInd_gpu, *d_csrRowPtr_gpu, *d_cooVal_sorted_gpu;
+  unsigned long long int *d_index_gpu;
 };
 
 
