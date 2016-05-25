@@ -5,8 +5,17 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 {
   if (code != cudaSuccess) 
   {
-    // printf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
     cout << "GPUasser: " << cudaGetErrorString(code) << "   "  << file << "  "  << line << endl;
+    if (abort) exit(code);
+  }
+}
+
+#define chkErrqCusparse(ans) { cusparseAssert((ans), __FILE__, __LINE__); }
+inline void cusparseAssert(cusparseStatus_t code, const char *file, int line, bool abort=true)
+{
+  if (code != 0) 
+  {
+    cout << "cuSparseasser: " << code << "   "  << file << "  "  << line << endl;
     if (abort) exit(code);
   }
 }
@@ -154,9 +163,7 @@ __global__ void countNnz(const double *x, unsigned long long int *nnzGPU, const 
     
     // If blobs are close increse nnz
     if(r2 < cutoff*cutoff){
-      printf("i = %i, j = %i \n", i, j);
       unsigned long long int nnz_old = atomicAdd(nnzGPU, 9);
-      printf("nnz = %i \n", nnz_old);
     }
   }
 }
@@ -296,24 +303,31 @@ icc::icc(const double blob_radius,
   Destructor: free memory on the GPU and CPU.
 */
 icc::~icc(){
+  // Delete cusparse handle
+  chkErrqCusparse(cusparseDestroy(d_cusp_handle));
+
   // Free GPU memory
   chkErrq(cudaFree(d_x_gpu));
   chkErrq(cudaFree(d_nnz_gpu));
-  chkErrq(cudaFree(d_cooValA_gpu));
-  chkErrq(cudaFree(d_cooRowIndA_gpu));
-  chkErrq(cudaFree(d_cooColIndA_gpu));
+  chkErrq(cudaFree(d_cooVal_gpu));
+  chkErrq(cudaFree(d_cooVal_sorted_gpu));
+  chkErrq(cudaFree(d_cooRowInd_gpu));
+  chkErrq(cudaFree(d_cooColInd_gpu));
+  chkErrq(cudaFree(d_csrRowPtr_gpu));
 }
 
 /*
   Build sparse mobility matrix M.
 */
 int icc::buildSparseMobilityMatrix(){
+  int N = d_number_of_blobs * 3;
+  
   // Allocate GPU memory
-  chkErrq(cudaMalloc((void**)&d_x_gpu, d_number_of_blobs * 3 * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_x_gpu, N * sizeof(double)));
   chkErrq(cudaMalloc((void**)&d_nnz_gpu, sizeof(unsigned long long int)));
 
   // Copy data from CPU to GPU
-  chkErrq(cudaMemcpy(d_x_gpu, d_x, d_number_of_blobs * 3 * sizeof(double), cudaMemcpyHostToDevice));
+  chkErrq(cudaMemcpy(d_x_gpu, d_x, N * sizeof(double), cudaMemcpyHostToDevice));
   d_nnz = 0;
   chkErrq(cudaMemcpy(d_nnz_gpu, &d_nnz, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
 
@@ -324,13 +338,81 @@ int icc::buildSparseMobilityMatrix(){
   cout << "nnz = " << d_nnz << endl;
 
   // Allocate GPU memory for the sparse mobility matrix
-  chkErrq(cudaMalloc((void**)&d_cooValA_gpu, d_nnz * sizeof(double)));
-  chkErrq(cudaMalloc((void**)&d_cooRowIndA_gpu, d_nnz * sizeof(double)));
-  chkErrq(cudaMalloc((void**)&d_cooColIndA_gpu, d_nnz * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_cooVal_gpu, d_nnz * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_cooVal_sorted_gpu, d_nnz * sizeof(double)));
+  chkErrq(cudaMalloc((void**)&d_cooRowInd_gpu, d_nnz * sizeof(int)));
+  chkErrq(cudaMalloc((void**)&d_cooColInd_gpu, d_nnz * sizeof(int)));
+  chkErrq(cudaMalloc((void**)&d_csrRowPtr_gpu, ((3 * d_number_of_blobs) + 1) * sizeof(int)));
 
   // Build sparse mobility matrix
+  d_nnz = 0;
+  chkErrq(cudaMemcpy(d_nnz_gpu, &d_nnz, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
+  buildCOOMatrix<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu,
+							d_cooVal_gpu,
+							d_cooRowInd_gpu,
+							d_cooColInd_gpu,
+							d_nnz_gpu,
+							d_eta,
+							d_blob_radius,
+							d_cutoff,
+							d_number_of_blobs);
+  chkErrq(cudaPeekAtLastError());
+  chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
+  cout << "nnz = " << d_nnz << endl;
+  
+  // Init cuSparse
+  chkErrqCusparse(cusparseCreate(&d_cusp_handle));
+  d_base = cusparseIndexBase_t(0);
+
+  // Sort matrix to COO format
+  {
+    size_t pBufferSizeInBytes = 0;
+    void *pBuffer = NULL;
+    int *p = NULL;
+    // Allocate buffer
+    chkErrqCusparse(cusparseXcoosort_bufferSizeExt(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, &pBufferSizeInBytes));
+    // chkErrq(cudaMalloc( &pBuffer, sizeof(char)* pBufferSizeInBytes));
+    // Setup permutation vector p to identity
+    // chkErrq(cudaMalloc( &p, sizeof(int) * d_nnz));
+    // chkErrqCusparse(cusparseCreateIdentityPermutation(d_cusp_handle, d_nnz, p));
+    // Sort COO format by Row
+    // chkErrqCusparse(cusparseXcoosortByRow(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, p, pBuffer));
+    // Gather sorted cooVals
+    // chkErrq(cusparseDgthr(d_cusp_handle, d_nnz, d_cooValInd_gpu, d_cooVals_gpu_sorted, p, CUSPARSE_INDEX_BASE_ZERO));
+    // Free memory
+    // chkErrq(cudaFree(pBuffer));
+    // chkErrq(cudaFree(p));
+  }
+
+  // Transform sparse matrix to CSR format
+  // chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, (3 * d_number_of_blobs), d_csrRowPtr_gpu, d_base));
+  d_cusp_status =cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, (3 * d_number_of_blobs), d_csrRowPtr_gpu, d_base);
+  cout << "status --------------- " << d_cusp_status << endl;
   
   
+
+  // Copy matrix to the CPU
+  if(1){
+    d_cooVal = new double [d_nnz];
+    d_cooRowInd = new int [d_nnz];
+    d_cooColInd = new int [d_nnz];
+    d_csrRowPtr = new int [(N) + 1];
+    chkErrq(cudaMemcpy(d_cooVal, d_cooVal_gpu, d_nnz * sizeof(double), cudaMemcpyDeviceToHost));
+    chkErrq(cudaMemcpy(d_cooRowInd, d_cooRowInd_gpu, d_nnz * sizeof(int), cudaMemcpyDeviceToHost));
+    chkErrq(cudaMemcpy(d_cooColInd, d_cooColInd_gpu, d_nnz * sizeof(int), cudaMemcpyDeviceToHost));
+    chkErrq(cudaMemcpy(d_csrRowPtr, d_csrRowPtr_gpu, ((3 * d_number_of_blobs) + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+    for(int i=0; i<d_nnz; i++){
+      cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+    }
+    for(int i=0; i < ((N) + 1); i++){
+      cout << i << " --- " << d_csrRowPtr[i] << endl;
+    }
+    delete[] d_cooVal;
+    delete[] d_cooRowInd;
+    delete[] d_cooColInd;
+    delete[] d_csrRowPtr;
+  }
+
   return 0;
 }
 
@@ -341,8 +423,8 @@ int main(){
   int status;
   double blob_radius = 1.0;
   double eta = 1.0;
-  double cutoff = 100;
-  int number_of_blobs = 1;
+  double cutoff = 10;
+  int number_of_blobs = 2;
 
   // Create CPU arrays
   double *x = new double [number_of_blobs * 3];
