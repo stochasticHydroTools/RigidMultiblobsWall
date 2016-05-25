@@ -332,9 +332,11 @@ icc::icc(const double blob_radius,
 icc::~icc(){
   // Delete cusparse objects
   cout << "destroying " << endl;
+  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_M)); 
+  cout << "vvvv" << endl;
   cusparseDestroyMatDescr(d_descr_M);
   cout << "DDD" << endl;
-  cusparseDestroySolveAnalysisInfo(d_info_M); 
+
   chkErrqCusparse(cusparseDestroy(d_cusp_handle));
   cout << "AAA " << endl;
 
@@ -505,18 +507,19 @@ int icc::buildSparseMobilityMatrix(){
 
   // Create descriptor for matrix M
   chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
-  cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO);
-  cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL);
+  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
+  chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
+  chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_LOWER));
 
   // Create info structure
   // cusparseCreateCsric02Info(&d_info_M); for version 7.5
-  // cusparseCreateSolveAnalysisInfo(&d_info_M);
+  cusparseCreateSolveAnalysisInfo(&d_info_M);
   cusparseOperation_t operation = CUSPARSE_OPERATION_NON_TRANSPOSE;
   cout << "AAA " << endl;
   if(1){
     chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
 					    operation, /*CUSPARSE_OPERATION_NON_TRANSPOSE*/
-					    N, 
+					    N,
 					    d_descr_M, 
 					    d_cooVal_gpu,
 					    d_csrRowPtr_gpu, 
