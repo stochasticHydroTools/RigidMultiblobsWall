@@ -424,22 +424,26 @@ int icc::buildSparseMobilityMatrix(){
     thrust::device_vector<double> vec_val_sorted(d_nnz);
     thrust::device_vector<unsigned long long int> vec_global_index(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
 
-    cout << "Print values  ";
-    thrust::copy(vec_val.begin(), vec_val.end(), std::ostream_iterator<double>(std::cout, " "));
-    cout << endl;
-    cout << "Print columns ";
-    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
-    cout << endl;
-    cout << "Print rows    ";
-    thrust::copy(vec_row.begin(), vec_row.end(), std::ostream_iterator<int>(std::cout, " "));
-    cout << endl;
-    // thrust::sort(d_cooRowInd, d_cooRowInd + d_nnz);
+    if(0){
+      cout << "Print values  ";
+      thrust::copy(vec_val.begin(), vec_val.end(), std::ostream_iterator<double>(std::cout, " "));
+      cout << endl;
+      cout << "Print columns ";
+      thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
+      cout << endl;
+      cout << "Print rows    ";
+      thrust::copy(vec_row.begin(), vec_row.end(), std::ostream_iterator<int>(std::cout, " "));
+      cout << endl;
+      // thrust::sort(d_cooRowInd, d_cooRowInd + d_nnz);
+    }
     // Create global index = row*N + col
     saxpy_fast(N, vec_row, vec_global_index);
-    // thrust::host_vector<unsigned long long int> vec_global_index_host = vec_global_index;
-    cout << "Print index  ";
-    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
-    cout << endl;
+    if(0){
+      // thrust::host_vector<unsigned long long int> vec_global_index_host = vec_global_index;
+      cout << "Print index  ";
+      thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, " "));
+      cout << endl;
+    }
 
     // Initialize vector to [0, 1, 2, ...]
     thrust::counting_iterator<int> iter(0);
@@ -449,54 +453,38 @@ int icc::buildSparseMobilityMatrix(){
     // Sort the indices using the global index as the key
     // thrust::sort_by_key(vec_index.begin()
     thrust::sort_by_key(vec_global_index.begin(), vec_global_index.end(), indices.begin());
-    cout << "Print index  ";
-    thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, "  "));
-    cout << endl;
+    if(0){
+      cout << "Print index  ";
+      thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, "  "));
+      cout << endl;
+    }
 
     // Sort rows, columns and values with the indices
     thrust::gather(indices.begin(), indices.end(), vec_col.begin(), vec_col_sorted.begin());
     thrust::gather(indices.begin(), indices.end(), vec_row.begin(), vec_row_sorted.begin());
     thrust::gather(indices.begin(), indices.end(), vec_val.begin(), vec_val_sorted.begin());
 
-    cout << endl << endl << endl;
-    cout << "Print columns ";
-    thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
-    cout << endl;
-    cout << "Print rows    ";
-    thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
-    cout << endl;
-    cout << "Print values  ";
-    thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), std::ostream_iterator<double>(std::cout, " "));
-    cout << endl;
+    if(0){
+      cout << endl << endl << endl;
+      cout << "Print columns ";
+      thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
+      cout << endl;
+      cout << "Print rows    ";
+      thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), std::ostream_iterator<int>(std::cout, " "));
+      cout << endl;
+      cout << "Print values  ";
+      thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), std::ostream_iterator<double>(std::cout, " "));
+      cout << endl;
+    }
     
     // Copy thrust vectors to arrays
     thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), d_cooColInd_gpu);
     thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), d_cooRowInd_gpu);
     thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), d_cooVal_gpu);
   }
-  {
-    // size_t pBufferSizeInBytes = 0;
-    // void *pBuffer = NULL;
-    // int *p = NULL;
-    // Allocate buffer
-    // chkErrqCusparse(cusparseXcoosort_bufferSizeExt(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, &pBufferSizeInBytes));
-    // chkErrq(cudaMalloc( &pBuffer, sizeof(char)* pBufferSizeInBytes));
-    // Setup permutation vector p to identity
-    // chkErrq(cudaMalloc( &p, sizeof(int) * d_nnz));
-    // chkErrqCusparse(cusparseCreateIdentityPermutation(d_cusp_handle, d_nnz, p));
-    // Sort COO format by Row
-    // chkErrqCusparse(cusparseXcoosortByRow(d_cusp_handle, N, N, d_nnz, d_cooRowInd_gpu, d_cooColInd_gpu, p, pBuffer));
-    // Gather sorted cooVals
-    // chkErrq(cusparseDgthr(d_cusp_handle, d_nnz, d_cooValInd_gpu, d_cooVals_gpu_sorted, p, CUSPARSE_INDEX_BASE_ZERO));
-    // Free memory
-    // chkErrq(cudaFree(pBuffer));
-    // chkErrq(cudaFree(p));
-  }
 
   // Transform sparse matrix to CSR format
   chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base));
-  // d_cusp_status = cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base);
-  cout << "status --------------- " << d_cusp_status << endl;
   
   // Copy matrix to the CPU
   if(0){
@@ -546,10 +534,6 @@ int icc::buildSparseMobilityMatrix(){
 					    d_info_M));
     chkErrq(cudaDeviceSynchronize());
   }
-  cout << "BBB " << endl;
-  int version;
-  cusparseGetVersion(d_cusp_handle, &version);
-  cout << "cusparse version --- " << version << endl;
 
   // Compute incomplete cholesky 
   if(1){
