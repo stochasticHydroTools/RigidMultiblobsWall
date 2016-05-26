@@ -63,6 +63,39 @@ void saxpy_fast(int m, thrust::device_vector<int>& X, thrust::device_vector<unsi
   thrust::transform(X.begin(), X.end(), Y.begin(), Y.begin(), saxpy_functor(m));
 }
 
+int print_csr_matrix_in_dense_format(cusparseHandle_t handle, 
+				     int num_rows, 
+				     int num_col, 
+				     int nnz,
+				     const cusparseMatDescr_t descr,
+				     const double *csrVal, 
+				     const int *csrRowPtr,
+				     const int *csrColInd){
+  int size = num_rows * num_col;
+  // Allocate memory
+  double *A = new double [size];
+  double *A_gpu;
+  chkErrq(cudaMalloc((void**)&A_gpu, size * sizeof(double)));
+  // Copy matrix to dense format and print
+  cusparseMatrixType_t mat_type = cusparseGetMatType(descr);
+  chkErrqCusparse(cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+  cusparseDcsr2dense(handle, num_rows, num_col, descr, csrVal, csrRowPtr, csrColInd, A_gpu, num_rows);
+  chkErrqCusparse(cusparseSetMatType(descr, mat_type));
+  chkErrq(cudaMemcpy(A, A_gpu, size * sizeof(double), cudaMemcpyDeviceToHost));  
+  printf("Matrix = \n");
+  for(int i=0; i<num_rows; i++){
+    for(int j=0; j<num_col; j++){
+      printf("%010f  ", A[i*num_col + j]);
+    }
+    printf("\n");
+  }
+  printf("\n\n");
+  // Free memory
+  chkErrq(cudaFree(A_gpu));
+  delete[] A;  
+  return 0;
+}
+				      
 
 /*
  mobilityUFRPY computes the 3x3 RPY mobility
@@ -486,6 +519,17 @@ int icc::buildSparseMobilityMatrix(){
   // Transform sparse matrix to CSR format
   chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base));
   
+  // Create descriptor for matrix M
+  chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
+  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
+  // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
+  chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
+  chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_LOWER));
+  chkErrqCusparse(cusparseSetMatDiagType(d_descr_M, CUSPARSE_DIAG_TYPE_NON_UNIT));
+
+  // Print matrix 
+  print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu);
+
   // Copy matrix to the CPU
   if(0){
     d_cooVal = new double [d_nnz];
@@ -509,19 +553,10 @@ int icc::buildSparseMobilityMatrix(){
     delete[] d_csrRowPtr;
   }
 
-  // Create descriptor for matrix M
-  chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
-  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
-  // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
-  chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
-  chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_LOWER));
-  chkErrqCusparse(cusparseSetMatDiagType(d_descr_M, CUSPARSE_DIAG_TYPE_NON_UNIT));
-
   // Create info structure
   // cusparseCreateCsric02Info(&d_info_M); for version 7.5
   cusparseCreateSolveAnalysisInfo(&d_info_M);
   cusparseOperation_t operation = CUSPARSE_OPERATION_NON_TRANSPOSE;
-  cout << "AAA " << endl;
   if(1){
     chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
 					    operation, /*CUSPARSE_OPERATION_NON_TRANSPOSE*/
@@ -549,7 +584,8 @@ int icc::buildSparseMobilityMatrix(){
   }
   chkErrq(cudaDeviceSynchronize());
 
-    
+  // Print matrix 
+  print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu);    
 
   return 0;
 }
