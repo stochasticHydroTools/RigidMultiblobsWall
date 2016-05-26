@@ -25,7 +25,23 @@ inline void cusparseAssert(cusparseStatus_t code, const char *file, int line, bo
 {
   if (code != 0) 
   {
-    cout << "cuSparseasser: " << code << "   "  << file << "  "  << line << endl;
+    if(code == 1)
+      cout << code << " cusparseStatusNotInitialized " << file << "  " << line << endl;
+    else if(code == 2)
+      cout << code << " cusparseStatusAllocFailed " << file << "  " << line << endl;
+    else if (code == 3)
+      cout << code << " cusparseStatusInvalidValue " << file << "  " << line << endl;
+    else if (code == 4)
+      cout << code << " cusparseStatusArchMismatch " << file << "  " << line << endl;
+    else if (code == 5)
+      cout << code << " cusparseStatusMappingError " << file << "  " << line << endl;
+    else if (code == 6)
+      cout << code << " cusparseStatusExecutionFailed " << file << "  " << line << endl;
+    else if (code == 7)
+      cout << code << " cusparseStatusInternalError " << file << "  " << line << endl;
+    else if (code == 8)
+      cout << code << " cusparseStatusMatrixTypeNotSupported " << file << "  " << line << endl;
+    // cout << "cuSparseasser: " << code << "   "  << file << "  "  << line << endl;
     if (abort) exit(code);
   }
 }
@@ -508,8 +524,10 @@ int icc::buildSparseMobilityMatrix(){
   // Create descriptor for matrix M
   chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
   chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
-  chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
+  // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
+  chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
   chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_LOWER));
+  chkErrqCusparse(cusparseSetMatDiagType(d_descr_M, CUSPARSE_DIAG_TYPE_NON_UNIT));
 
   // Create info structure
   // cusparseCreateCsric02Info(&d_info_M); for version 7.5
@@ -520,18 +538,32 @@ int icc::buildSparseMobilityMatrix(){
     chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
 					    operation, /*CUSPARSE_OPERATION_NON_TRANSPOSE*/
 					    N,
+					    d_nnz,
 					    d_descr_M, 
 					    d_cooVal_gpu,
 					    d_csrRowPtr_gpu, 
 					    d_cooColInd_gpu,
 					    d_info_M));
+    chkErrq(cudaDeviceSynchronize());
   }
   cout << "BBB " << endl;
-  
-
+  int version;
+  cusparseGetVersion(d_cusp_handle, &version);
+  cout << "cusparse version --- " << version << endl;
 
   // Compute incomplete cholesky 
-  
+  if(1){
+    // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
+    chkErrqCusparse(cusparseDcsric0(d_cusp_handle,
+				    operation,
+				    N,
+				    d_descr_M,
+				    d_cooVal_gpu,
+				    d_csrRowPtr_gpu,
+				    d_cooColInd_gpu,
+				    d_info_M));
+  }
+  chkErrq(cudaDeviceSynchronize());
 
     
 

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdio.h>
-#include "cusparse.h"
+#include "cusparse_v2.h"
 using namespace std;
 
 class icc{
