@@ -39,12 +39,12 @@ public:
   /*
     Solve with Cholesky factor L
   */
-  int solveL();
+  int solveL(double *x_gpu);
   
   /*
     Solve with Cholesky factor transpose L^T
   */
-  int solveLT();
+  int solveLT(double *x_gpu);
 
 
 private:

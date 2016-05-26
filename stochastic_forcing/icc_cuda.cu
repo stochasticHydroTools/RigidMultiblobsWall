@@ -805,16 +805,41 @@ int icc::buildSparseMobilityMatrix(){
 
 /*
   Solve with Cholesky factor L
+  L*y = x
 */
-int icc::solveL(){
-
+int icc::solveL(double *x_gpu){
+  
+  int N = d_number_of_blobs * 3;
+  double alpha = 1;
+  double *alpha_gpu, *y_gpu;
+  alpha = 1;
+  chkErrq(cudaMalloc((void**)&alpha_gpu,  sizeof(double)));
+  chkErrq(cudaMemcpy(alpha_gpu, &alpha, sizeof(double), cudaMemcpyHostToDevice)); 
+  chkErrq(cudaMalloc((void**)&y_gpu, N * sizeof(double)));
+  chkErrqCusparse(cusparseDcsrsv_solve(d_cusp_handle,
+				       CUSPARSE_OPERATION_NON_TRANSPOSE,
+				       N, 
+				       alpha_gpu,
+				       d_descr_L,
+				       d_cooVal_gpu,
+				       d_csrRowPtr_gpu, 
+				       d_cooColInd_gpu,
+				       d_info_L,
+				       x_gpu, 
+				       y_gpu));
+  chkErrq(cudaDeviceSynchronize());
+  chkErrq(cudaMemcpy(x_gpu, y_gpu, N * sizeof(double), cudaMemcpyDeviceToDevice));
+  chkErrq(cudaFree(y_gpu));
+  chkErrq(cudaFree(alpha_gpu));
+  return 0;
 }
 
 /*
   Solve with Cholesky factor transpose L^T
 */
-int icc::solveLT(){
+int icc::solveLT(double *x_gpu){
 
+  return 0;
 }
 
 
