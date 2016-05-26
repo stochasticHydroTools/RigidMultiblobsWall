@@ -246,6 +246,171 @@ __global__ void countNnz(const double *x, unsigned long long int *nnzGPU, const 
 
 
 /*
+  Build a sparse lower triangular matrix with coordinated format (COO). See cuSparse documentation.
+*/
+__global__ void buildLowerTriangularCOOMatrix(const double *x,
+			                      double *cooValA,
+                                              int *cooRowIndA,
+                                              int *cooColIndA,
+                                              unsigned long long int *nnzGPU,
+			                      const double eta,
+			                      const double a,
+			                      const double cutoff,
+			                      const int N){
+
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= N) return;   
+
+  double pi = 4.0 * atan(1.0);
+  double norm_fact = 1.0 / (8 * pi * eta * a);  
+  double inva = 1.0 / a;
+  double rx, ry, rz, r2;
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+  double Mxx, Mxy, Mxz;
+  double Myx, Myy, Myz;
+  double Mzx, Mzy, Mzz;
+
+  // Loop over columns
+  for(int j=i; j<N; j++){
+    joffset = j * NDIM;
+    
+    // Compute vector between blobs i and j
+    rx = x[ioffset    ] - x[joffset    ];
+    ry = x[ioffset + 1] - x[joffset + 1];
+    rz = x[ioffset + 2] - x[joffset + 2];
+    r2 = (rx*rx + ry*ry + rz*rz);
+    
+    // If blobs are close compute pair-mobility
+    if(r2 < cutoff*cutoff){
+      mobilityUFRPY(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, i,j, inva);
+      Myx = Mxy;
+      Mzx = Mxz;
+      Mzy = Myz;
+      mobilityUFSingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, i,j, inva, x[joffset+2]/a);
+      
+      if( i != j){
+        int nnz_old = atomicAdd(nnzGPU, 9);      
+        cooValA[nnz_old] = Mxx * norm_fact;
+        cooRowIndA[nnz_old] = ioffset;
+        cooColIndA[nnz_old] = joffset;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mxy * norm_fact;
+        cooRowIndA[nnz_old] = ioffset;
+        cooColIndA[nnz_old] = joffset + 1;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mxz * norm_fact;
+        cooRowIndA[nnz_old] = ioffset;
+        cooColIndA[nnz_old] = joffset + 2;
+
+        nnz_old++;
+        cooValA[nnz_old] = Myx * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 1;
+        cooColIndA[nnz_old] = joffset;
+
+        nnz_old++;
+        cooValA[nnz_old] = Myy * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 1;
+        cooColIndA[nnz_old] = joffset + 1;
+
+        nnz_old++;
+        cooValA[nnz_old] = Myz * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 1;
+        cooColIndA[nnz_old] = joffset + 2;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mzx * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 2;
+        cooColIndA[nnz_old] = joffset ;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mzy * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 2;
+        cooColIndA[nnz_old] = joffset + 1;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mzz * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 2;
+        cooColIndA[nnz_old] = joffset + 2;
+      }
+      else{
+        int nnz_old = atomicAdd(nnzGPU, 3);
+        cooValA[nnz_old] = Mxx * norm_fact;
+        cooRowIndA[nnz_old] = ioffset;
+        cooColIndA[nnz_old] = joffset;
+
+        // nnz_old++;
+        // cooValA[nnz_old] = Mxy * norm_fact;
+        // cooRowIndA[nnz_old] = ioffset;
+        // cooColIndA[nnz_old] = joffset + 1;
+
+        // nnz_old++;
+        // cooValA[nnz_old] = Mxz * norm_fact;
+        // cooRowIndA[nnz_old] = ioffset;
+        // cooColIndA[nnz_old] = joffset + 2;
+
+        nnz_old++;
+        cooValA[nnz_old] = Myy * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 1;
+        cooColIndA[nnz_old] = joffset + 1;
+
+        // nnz_old++;
+        // cooValA[nnz_old] = Myz * norm_fact;
+        // cooRowIndA[nnz_old] = ioffset + 1;
+        // cooColIndA[nnz_old] = joffset + 2;
+
+        nnz_old++;
+        cooValA[nnz_old] = Mzz * norm_fact;
+        cooRowIndA[nnz_old] = ioffset + 2;
+        cooColIndA[nnz_old] = joffset + 2;
+      }
+    } 
+  }  
+} 
+
+
+/*
+  Determine number of non-zero elements (nnz) in a lower
+  Triangular matrix.
+*/
+__global__ void countLowerTriangularNnz(const double *x, unsigned long long int *nnzGPU, const double cutoff, const int N){
+
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= N) return;   
+
+  double rx, ry, rz, r2;
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+  
+  // Loop over columns
+  for(int j=i; j<N; j++){
+    joffset = j * NDIM;
+    
+    // Compute vector between blobs i and j
+    rx = x[ioffset    ] - x[joffset    ];
+    ry = x[ioffset + 1] - x[joffset + 1];
+    rz = x[ioffset + 2] - x[joffset + 2];
+    r2 = (rx*rx + ry*ry + rz*rz);
+    
+    // If blobs are close increse nnz
+    if(r2 < cutoff*cutoff){
+      if( i != j){
+        atomicAdd(nnzGPU, 9);
+      }
+      else{
+        atomicAdd(nnzGPU, 3);
+      }
+    }
+  }
+}
+
+
+
+/*
   Build a sparse matrix with coordinated format (COO). See cuSparse documentation.
 */
 __global__ void buildCOOMatrix(const double *x,
@@ -573,6 +738,7 @@ int icc::buildSparseMobilityMatrix(){
   // Compute incomplete cholesky 
   if(1){
     // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
+    // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
     chkErrqCusparse(cusparseDcsric0(d_cusp_handle,
 				    operation,
 				    N,
