@@ -337,30 +337,30 @@ __global__ void buildLowerTriangularCOOMatrix(const double *x,
         cooColIndA[nnz_old] = joffset + 2;
       }
       else{
-        int nnz_old = atomicAdd(nnzGPU, 3);
+        int nnz_old = atomicAdd(nnzGPU, 6); //
         cooValA[nnz_old] = Mxx * norm_fact;
         cooRowIndA[nnz_old] = ioffset;
         cooColIndA[nnz_old] = joffset;
 
-        // nnz_old++;
-        // cooValA[nnz_old] = Mxy * norm_fact;
-        // cooRowIndA[nnz_old] = ioffset;
-        // cooColIndA[nnz_old] = joffset + 1;
+	nnz_old++; //
+	cooValA[nnz_old] = Mxy * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset;      //
+	cooColIndA[nnz_old] = joffset + 1;  //
 
-        // nnz_old++;
-        // cooValA[nnz_old] = Mxz * norm_fact;
-        // cooRowIndA[nnz_old] = ioffset;
-        // cooColIndA[nnz_old] = joffset + 2;
+	nnz_old++; //
+	cooValA[nnz_old] = Mxz * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset; //
+	cooColIndA[nnz_old] = joffset + 2; //
 
         nnz_old++;
         cooValA[nnz_old] = Myy * norm_fact;
         cooRowIndA[nnz_old] = ioffset + 1;
         cooColIndA[nnz_old] = joffset + 1;
 
-        // nnz_old++;
-        // cooValA[nnz_old] = Myz * norm_fact;
-        // cooRowIndA[nnz_old] = ioffset + 1;
-        // cooColIndA[nnz_old] = joffset + 2;
+	nnz_old++; //
+	cooValA[nnz_old] = Myz * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset + 1; //
+	cooColIndA[nnz_old] = joffset + 2; //
 
         nnz_old++;
         cooValA[nnz_old] = Mzz * norm_fact;
@@ -402,7 +402,7 @@ __global__ void countLowerTriangularNnz(const double *x, unsigned long long int 
         atomicAdd(nnzGPU, 9);
       }
       else{
-        atomicAdd(nnzGPU, 3);
+        atomicAdd(nnzGPU, 6); //
       }
     }
   }
@@ -580,7 +580,8 @@ int icc::buildSparseMobilityMatrix(){
   chkErrq(cudaMemcpy(d_nnz_gpu, &d_nnz, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
 
   // Count non-zero elements in mobility matrix
-  countNnz<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu, d_nnz_gpu, d_cutoff, d_number_of_blobs);
+  countLowerTriangularNnz<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu, d_nnz_gpu, d_cutoff, d_number_of_blobs);
+  // countNnz<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu, d_nnz_gpu, d_cutoff, d_number_of_blobs);
   chkErrq(cudaPeekAtLastError());
   chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
   cout << "nnz = " << d_nnz << endl;
@@ -595,15 +596,28 @@ int icc::buildSparseMobilityMatrix(){
   // Build sparse mobility matrix
   d_nnz = 0;
   chkErrq(cudaMemcpy(d_nnz_gpu, &d_nnz, sizeof(unsigned long long int), cudaMemcpyHostToDevice));
-  buildCOOMatrix<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu,
-							d_cooVal_gpu,
-							d_cooRowInd_gpu,
-							d_cooColInd_gpu,
-							d_nnz_gpu,
-							d_eta,
-							d_blob_radius,
-							d_cutoff,
-							d_number_of_blobs);
+  if(1){
+    buildLowerTriangularCOOMatrix<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu,
+									 d_cooVal_gpu,
+									 d_cooRowInd_gpu,
+									 d_cooColInd_gpu,
+									 d_nnz_gpu,
+									 d_eta,
+									 d_blob_radius,
+									 d_cutoff,
+									 d_number_of_blobs);
+  }
+  else{
+    buildCOOMatrix<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu,
+							  d_cooVal_gpu,
+							  d_cooRowInd_gpu,
+							  d_cooColInd_gpu,
+							  d_nnz_gpu,
+							  d_eta,
+							  d_blob_radius,
+							  d_cutoff,
+							  d_number_of_blobs);
+  }
   chkErrq(cudaPeekAtLastError());
   chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
   cout << "nnz = " << d_nnz << endl;
@@ -686,10 +700,10 @@ int icc::buildSparseMobilityMatrix(){
   
   // Create descriptor for matrix M
   chkErrqCusparse(cusparseCreateMatDescr(&d_descr_M));
-  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
   // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
   chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
-  chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_LOWER));
+  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_M, CUSPARSE_INDEX_BASE_ZERO));
+  chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_UPPER)); // or LOWER
   chkErrqCusparse(cusparseSetMatDiagType(d_descr_M, CUSPARSE_DIAG_TYPE_NON_UNIT));
 
   // Print matrix 
@@ -763,7 +777,7 @@ int main(){
   int status;
   double blob_radius = 1.0;
   double eta = 1.0;
-  double cutoff = 10;
+  double cutoff = 100;
   int number_of_blobs = 2;
 
   // Create CPU arrays
