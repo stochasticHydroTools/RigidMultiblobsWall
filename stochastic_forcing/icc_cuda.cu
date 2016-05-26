@@ -546,13 +546,12 @@ icc::icc(const double blob_radius,
 icc::~icc(){
   // Delete cusparse objects
   cout << "destroying " << endl;
+  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_LT)); 
+  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_L)); 
   chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_M)); 
-  cout << "vvvv" << endl;
+  cusparseDestroyMatDescr(d_descr_L);
   cusparseDestroyMatDescr(d_descr_M);
-  cout << "DDD" << endl;
-
   chkErrqCusparse(cusparseDestroy(d_cusp_handle));
-  cout << "AAA " << endl;
 
   // Free GPU memory
   chkErrq(cudaFree(d_x_gpu));
@@ -732,7 +731,7 @@ int icc::buildSparseMobilityMatrix(){
     delete[] d_csrRowPtr;
   }
 
-  // Create info structure
+  // Create info structure for incomplete Cholesky
   // cusparseCreateCsric02Info(&d_info_M); for version 7.5
   cusparseCreateSolveAnalysisInfo(&d_info_M);
   cusparseOperation_t operation = CUSPARSE_OPERATION_NON_TRANSPOSE;
@@ -767,7 +766,55 @@ int icc::buildSparseMobilityMatrix(){
   // Print matrix 
   print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu);    
 
+  // Create descriptor for matrix Cholesky factor L
+  chkErrqCusparse(cusparseCreateMatDescr(&d_descr_L));
+  // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_GENERAL));
+  chkErrqCusparse(cusparseSetMatType(d_descr_L, CUSPARSE_MATRIX_TYPE_TRIANGULAR));
+  chkErrqCusparse(cusparseSetMatIndexBase(d_descr_L, CUSPARSE_INDEX_BASE_ZERO));
+  chkErrqCusparse(cusparseSetMatFillMode(d_descr_L, CUSPARSE_FILL_MODE_UPPER)); // or LOWER
+  chkErrqCusparse(cusparseSetMatDiagType(d_descr_L, CUSPARSE_DIAG_TYPE_NON_UNIT));
+
+  // Create info to solve with L (Cholesky factor)
+  cusparseCreateSolveAnalysisInfo(&d_info_L);
+  chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
+					  CUSPARSE_OPERATION_NON_TRANSPOSE,
+					  N,
+					  d_nnz,
+					  d_descr_L, 
+					  d_cooVal_gpu,
+					  d_csrRowPtr_gpu, 
+					  d_cooColInd_gpu,
+					  d_info_L));
+  chkErrq(cudaDeviceSynchronize());
+
+  // Create info to solve with L^T
+  cusparseCreateSolveAnalysisInfo(&d_info_LT);
+  chkErrqCusparse(cusparseDcsrsv_analysis(d_cusp_handle, 
+					  CUSPARSE_OPERATION_TRANSPOSE,
+					  N,
+					  d_nnz,
+					  d_descr_L, 
+					  d_cooVal_gpu,
+					  d_csrRowPtr_gpu, 
+					  d_cooColInd_gpu,
+					  d_info_LT));
+  chkErrq(cudaDeviceSynchronize());
+  
   return 0;
+}
+
+/*
+  Solve with Cholesky factor L
+*/
+int icc::solveL(){
+
+}
+
+/*
+  Solve with Cholesky factor transpose L^T
+*/
+int icc::solveLT(){
+
 }
 
 

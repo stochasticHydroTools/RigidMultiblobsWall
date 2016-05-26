@@ -36,6 +36,17 @@ public:
   */
   int multInvL();
 
+  /*
+    Solve with Cholesky factor L
+  */
+  int solveL();
+  
+  /*
+    Solve with Cholesky factor transpose L^T
+  */
+  int solveLT();
+
+
 private:
   // CPU variables
   int d_icc_is_initialized;
@@ -49,9 +60,9 @@ private:
   cusparseStatus_t d_cusp_status;
   double *d_cooVal;
   int *d_cooRowInd, *d_cooColInd, *d_csrRowPtr;
-  cusparseMatDescr_t d_descr_M;  
+  cusparseMatDescr_t d_descr_M, d_descr_L;
   // csric02Info_t d_info_M; for version cuda 7.5
-  cusparseSolveAnalysisInfo_t d_info_M;
+  cusparseSolveAnalysisInfo_t d_info_M, d_info_L, d_info_LT;
 
   // GPU variables
   double *d_x_gpu;
