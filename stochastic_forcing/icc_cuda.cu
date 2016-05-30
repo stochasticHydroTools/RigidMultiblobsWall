@@ -215,6 +215,68 @@ __device__ void mobilityUFSingleWallCorrection(double rx,
 
 
 /*
+ velocity_from_force computes the product
+ U = M*F
+*/
+__global__ void velocity_from_force(const double *x,
+                                    const double *f,					
+                                    double *u,
+				    int number_of_blobs,
+                                    double eta,
+                                    double a){
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= number_of_blobs) return;   
+
+  double invaGPU = 1.0 / a;
+
+  double Ux=0;
+  double Uy=0;
+  double Uz=0;
+
+  double rx, ry, rz;
+
+  double Mxx, Mxy, Mxz;
+  double Myx, Myy, Myz;
+  double Mzx, Mzy, Mzz;
+
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+  
+  for(int j=0; j<number_of_blobs; j++){
+    joffset = j * NDIM;
+
+    // Compute vector between particles i and j
+    rx = x[ioffset    ] - x[joffset    ];
+    ry = x[ioffset + 1] - x[joffset + 1];
+    rz = x[ioffset + 2] - x[joffset + 2];
+
+    // 1. Compute mobility for pair i-j
+    mobilityUFRPY(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, i,j, invaGPU);
+    Myx = Mxy;
+    Mzx = Mxz;
+    Mzy = Myz;
+    mobilityUFSingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, i,j, invaGPU, x[joffset+2]/a);
+
+    //2. Compute product M_ij * F_j
+    Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1] + Mxz * f[joffset + 2]);
+    Uy = Uy + (Myx * f[joffset] + Myy * f[joffset + 1] + Myz * f[joffset + 2]);
+    Uz = Uz + (Mzx * f[joffset] + Mzy * f[joffset + 1] + Mzz * f[joffset + 2]);
+  }
+  //LOOP END
+
+  //3. Save velocity U_i
+  double pi = 4.0 * atan(1.0);
+  double norm_fact_f = 8 * pi * eta * a;
+  u[ioffset    ] = Ux / norm_fact_f;
+  u[ioffset + 1] = Uy / norm_fact_f;
+  u[ioffset + 2] = Uz / norm_fact_f;
+
+  return;
+}
+
+
+/*
   Determine number of non-zero elements (nnz)
 */
 __global__ void countNnz(const double *x, unsigned long long int *nnzGPU, const double cutoff, const int N){
@@ -803,44 +865,86 @@ int icc::buildSparseMobilityMatrix(){
   return 0;
 }
 
+
+/*
+  Muliply by Cholesky factorization L.
+  L*x = b
+  x_gpu and solution b_gpu are on the GPU
+*/
+int icc::multL_gpu(const double *x_gpu, double *b_gpu, cusparseOperation_t operation){
+  int N = d_number_of_blobs * 3;
+  cusparseMatrixType_t mat_type = cusparseGetMatType(d_descr_L);
+  double alpha = 1;
+  double beta = 0;
+  chkErrqCusparse(cusparseSetMatType(d_descr_L, CUSPARSE_MATRIX_TYPE_GENERAL));
+  chkErrqCusparse(cusparseDcsrmv(d_cusp_handle, 
+   				 operation,
+   				 N,
+   				 N,
+   				 d_nnz,
+				 &alpha,
+				 d_descr_L,
+				 d_cooVal_gpu,
+				 d_csrRowPtr_gpu,
+				 d_cooColInd_gpu,
+				 x_gpu,
+				 &beta,
+				 b_gpu));
+  chkErrq(cudaDeviceSynchronize());
+  chkErrqCusparse(cusparseSetMatType(d_descr_L, mat_type));
+  return 0;
+}
+
+
 /*
   Solve with Cholesky factor L
-  L*y = x
+  L*x = b
+  solution x_gpu and RHS b_gpu are in the GPU
 */
-int icc::solveL(double *x_gpu){
-  
+int icc::solveL_gpu(const double *b_gpu, double *x_gpu){
   int N = d_number_of_blobs * 3;
   double alpha = 1;
-  double *alpha_gpu, *y_gpu;
   alpha = 1;
-  chkErrq(cudaMalloc((void**)&alpha_gpu,  sizeof(double)));
-  chkErrq(cudaMemcpy(alpha_gpu, &alpha, sizeof(double), cudaMemcpyHostToDevice)); 
-  chkErrq(cudaMalloc((void**)&y_gpu, N * sizeof(double)));
   chkErrqCusparse(cusparseDcsrsv_solve(d_cusp_handle,
 				       CUSPARSE_OPERATION_NON_TRANSPOSE,
 				       N, 
-				       alpha_gpu,
+				       &alpha,
 				       d_descr_L,
 				       d_cooVal_gpu,
 				       d_csrRowPtr_gpu, 
 				       d_cooColInd_gpu,
 				       d_info_L,
-				       x_gpu, 
-				       y_gpu));
+				       b_gpu, 
+				       x_gpu));
   chkErrq(cudaDeviceSynchronize());
-  chkErrq(cudaMemcpy(x_gpu, y_gpu, N * sizeof(double), cudaMemcpyDeviceToDevice));
-  chkErrq(cudaFree(y_gpu));
-  chkErrq(cudaFree(alpha_gpu));
   return 0;
 }
 
 /*
-  Solve with Cholesky factor transpose L^T
+  Solve with Cholesky (transpose) factor L^T
+  L^T*x = b
+  solution x_gpu and RHS b_gpu are on the GPU
 */
-int icc::solveLT(double *x_gpu){
-
+int icc::solveLT_gpu(const double *b_gpu, double *x_gpu){
+  int N = d_number_of_blobs * 3;
+  double alpha = 1;
+  alpha = 1;
+  chkErrqCusparse(cusparseDcsrsv_solve(d_cusp_handle,
+				       CUSPARSE_OPERATION_TRANSPOSE,
+				       N, 
+				       &alpha,
+				       d_descr_L,
+				       d_cooVal_gpu,
+				       d_csrRowPtr_gpu, 
+				       d_cooColInd_gpu,
+				       d_info_LT,
+				       b_gpu, 
+				       x_gpu));
+  chkErrq(cudaDeviceSynchronize());
   return 0;
 }
+
+
 
 
 int main(){
@@ -851,10 +955,11 @@ int main(){
   double eta = 1.0;
   double cutoff = 100;
   int number_of_blobs = 2;
+  int N = number_of_blobs * 3;
 
   // Create CPU arrays
-  double *x = new double [number_of_blobs * 3];
-  for(int i=0; i<(number_of_blobs * 3); i++){
+  double *x = new double [N];
+  for(int i=0; i<(N); i++){
     x[i] = 10.0 * rand() / RAND_MAX;
     cout << i << "  " << x[i] << endl;
   }
@@ -866,8 +971,64 @@ int main(){
   status = icc_obj.buildSparseMobilityMatrix();
   cout << "Build sparse mobility matrix = " << status << endl;
   
+  // Test solve L*x = b
+  double *b = new double[N];
+  for(int i=0; i<N; i++){
+    b[i] = 1.0;
+  }
+  double *b_gpu, *x_gpu;
+  chkErrq(cudaMalloc((void**)&b_gpu, N * sizeof(double)));  
+  chkErrq(cudaMalloc((void**)&x_gpu, N * sizeof(double)));  
+  // Move info to gpu
+  chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
+  chkErrq(cudaMemcpy(b_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));      
 
+  // Compute RHS = L*x
+  cusparseOperation_t operation = CUSPARSE_OPERATION_NON_TRANSPOSE;
+  icc_obj.multL_gpu(x_gpu, b_gpu, operation);
+  chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
+  for(int i=0; i<N; i++){
+    cout << "i, b = " << i << "    " << b[i] << endl;
+  }
+  // Solve system L*x = RHS
+  icc_obj.solveL_gpu(b_gpu, x_gpu);
+  chkErrq(cudaMemcpy(x, x_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
+  chkErrq(cudaDeviceSynchronize());
+  for(int i=0; i<N; i++){
+    cout << "i, x = " << i << "    " << x[i] << endl;
+    b[i] = 1.0;
+  }
+  chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
+
+  cout << endl;
+  if(1){
+    // Compute RHS = L.T*x
+    operation = CUSPARSE_OPERATION_TRANSPOSE;
+    icc_obj.multL_gpu(x_gpu, b_gpu, operation);
+    chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
+    for(int i=0; i<N; i++){
+      cout << "i, b = " << i << "    " << b[i] << endl;
+    }
+    // Solve system L*x = RHS
+    icc_obj.solveLT_gpu(b_gpu, x_gpu);
+    chkErrq(cudaMemcpy(x, x_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
+    chkErrq(cudaDeviceSynchronize());
+    for(int i=0; i<N; i++){
+      cout << "i, x = " << i << "    " << x[i] << endl;
+      b[i] = 1.0;
+    }
+    chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
+  }
+
+
+  
+
+
+  // Free GPU memory
+  chkErrq(cudaFree(x_gpu));
+  chkErrq(cudaFree(b_gpu));
   // Free CPU memory
+  delete[] b;
   cout << "before x" << endl;
   delete[] x;
   cout << "# End" << endl;

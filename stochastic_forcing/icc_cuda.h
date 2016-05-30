@@ -28,24 +28,25 @@ public:
 
   /*
     Muliply by Cholesky factorization L.
+    L*x = b
+    x_gpu and solution b_gpu are on the GPU
   */
-  int multL();
-
-  /*
-    Muliply by inverse of the Cholesky factorization L^{-1}.
-  */
-  int multInvL();
+  int multL_gpu(const double *x_gpu, double *b_gpu, cusparseOperation_t operation);
 
   /*
     Solve with Cholesky factor L
+    L*x = b
+    solution x_gpu and RHS b_gpu are on the GPU
   */
-  int solveL(double *x_gpu);
-  
-  /*
-    Solve with Cholesky factor transpose L^T
-  */
-  int solveLT(double *x_gpu);
+  int solveL_gpu(const double *b_gpu, double *x_gpu);
 
+
+  /*
+    Solve with Cholesky (transpose) factor L^T
+    L^T*x = b
+    solution x_gpu and RHS b_gpu are on the GPU
+  */
+  int solveLT_gpu(const double *b_gpu, double *x_gpu);
 
 private:
   // CPU variables
