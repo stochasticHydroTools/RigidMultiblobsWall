@@ -31,7 +31,7 @@ public:
     L*x = b
     x_gpu and solution b_gpu are on the GPU
   */
-  int multL_gpu(const double *x_gpu, double *b_gpu, cusparseOperation_t operation);
+  int multL_gpu(const double *x_gpu, double *b_gpu, const cusparseOperation_t operation);
 
   /*
     Solve with Cholesky factor L
@@ -40,13 +40,18 @@ public:
   */
   int solveL_gpu(const double *b_gpu, double *x_gpu);
 
-
   /*
     Solve with Cholesky (transpose) factor L^T
     L^T*x = b
     solution x_gpu and RHS b_gpu are on the GPU
   */
   int solveLT_gpu(const double *b_gpu, double *x_gpu);
+
+  /*
+    Apply preconditioner mobility
+    L^{-T} * M * L^{-1} * x = b
+   */
+  int mult_precondM_gpu(const double *x_gpu, double *b_gpu);
 
 private:
   // CPU variables
@@ -66,7 +71,7 @@ private:
   cusparseSolveAnalysisInfo_t d_info_M, d_info_L, d_info_LT;
 
   // GPU variables
-  double *d_x_gpu;
+  double *d_x_gpu, *d_aux_gpu;
   unsigned long long int *d_nnz_gpu;
   double *d_cooVal_gpu;
   int *d_cooRowInd_gpu, *d_cooColInd_gpu, *d_csrRowPtr_gpu, *d_cooVal_sorted_gpu;

@@ -618,6 +618,7 @@ icc::~icc(){
   // Free GPU memory
   chkErrq(cudaFree(d_x_gpu));
   chkErrq(cudaFree(d_nnz_gpu));
+  chkErrq(cudaFree(d_aux_gpu));
   chkErrq(cudaFree(d_cooVal_gpu));
   chkErrq(cudaFree(d_cooVal_sorted_gpu));
   chkErrq(cudaFree(d_cooRowInd_gpu));
@@ -630,10 +631,10 @@ icc::~icc(){
 */
 int icc::buildSparseMobilityMatrix(){
   int N = d_number_of_blobs * 3;
-  
   // Allocate GPU memory
   chkErrq(cudaMalloc((void**)&d_x_gpu, N * sizeof(double)));
   chkErrq(cudaMalloc((void**)&d_nnz_gpu, sizeof(unsigned long long int)));
+  chkErrq(cudaMalloc((void**)&d_aux_gpu, N * sizeof(double))); 
 
   // Copy data from CPU to GPU
   chkErrq(cudaMemcpy(d_x_gpu, d_x, N * sizeof(double), cudaMemcpyHostToDevice));
@@ -945,6 +946,26 @@ int icc::solveLT_gpu(const double *b_gpu, double *x_gpu){
 }
 
 
+/*
+  Apply preconditioner mobility
+  L^{-T} * M * L^{-1} * x = b
+*/
+int icc::mult_precondM_gpu(const double *x_gpu, double *b_gpu){
+  // First, solve L*b=x
+  solveL_gpu(x_gpu, d_aux_gpu);
+  // Second, apply mobility M*x = b
+  velocity_from_force<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu,
+							     d_aux_gpu,					
+							     b_gpu,
+							     d_number_of_blobs,
+							     d_eta,
+							     d_blob_radius);
+  chkErrq(cudaDeviceSynchronize());
+  chkErrq(cudaMemcpy(d_aux_gpu, b_gpu, 3 * d_number_of_blobs * sizeof(double), cudaMemcpyDeviceToDevice)); 
+  // Third, solve L.T*b = x
+  solveLT_gpu(d_aux_gpu, b_gpu);
+  return 0;
+}
 
 
 int main(){
@@ -1019,7 +1040,15 @@ int main(){
     }
     chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
   }
+  cout << endl;
 
+  if(1){
+    icc_obj.mult_precondM_gpu(x_gpu, b_gpu);
+    chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
+    for(int i=0; i<N; i++){
+      cout << "i, b = " << i << "    " << b[i] << endl;
+    }
+  }
 
   
 
