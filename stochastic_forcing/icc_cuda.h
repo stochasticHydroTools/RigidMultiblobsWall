@@ -58,6 +58,13 @@ public:
   int multL_gpu(const double *x_gpu, double *b_gpu, const cusparseOperation_t operation);
 
   /*
+    Muliply by Cholesky factorization L.
+    L*x = b
+    x_gpu and solution b_gpu are on the GPU
+  */
+  int multL(const bp::object x_obj, bp::object b_obj);
+
+  /*
     Solve with Cholesky factor L
     L*x = b
     solution x_gpu and RHS b_gpu are on the GPU
@@ -76,6 +83,12 @@ public:
     L^{-T} * M * L^{-1} * x = b
    */
   int mult_precondM_gpu(const double *x_gpu, double *b_gpu);
+
+  /*
+    Apply preconditioner mobility
+    L^{-T} * M * L^{-1} * x = b
+   */
+  int mult_precondM(const bp::object x_obj, bp::object b_obj);
 
 private:
   // CPU variables
