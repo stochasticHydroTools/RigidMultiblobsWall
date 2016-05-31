@@ -1,7 +1,10 @@
 #include <iostream>
 #include <stdio.h>
 #include "cusparse_v2.h"
+#include <boost/python.hpp>
+
 using namespace std;
+namespace bp = boost::python;
 
 class icc{
 public:
@@ -17,6 +20,27 @@ public:
       const double *x);
 
   /*
+    Constructor: build the sparse mobility matrix M
+    and compute the Cholesky factorization M=L*L.T
+    where L is a lower triangular matrix.
+  */
+  icc(const double blob_radius, 
+      const double eta, 
+      const double cutoff,
+      const int number_of_blobs,
+      bp::object x_obj);
+
+
+  /*
+    Empty constructor to use with python
+  */
+  icc();
+  icc(const double blob_radius,
+      const double eta, 
+      const double cutoff,
+      const int number_of_blobs);
+
+  /*
     Destructor: free memory on the GPU and CPU.
   */
   ~icc();
@@ -24,7 +48,7 @@ public:
   /*
     Build sparse mobility matrix M.
   */
-  int buildSparseMobilityMatrix();
+  int init_icc();
 
   /*
     Muliply by Cholesky factorization L.

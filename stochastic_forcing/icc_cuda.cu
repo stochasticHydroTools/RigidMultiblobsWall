@@ -8,7 +8,6 @@
 // #include <thrust/functional.h>
 #include <thrust/sort.h>
 // #include </usr/include/python2.6/Python.h>
-// #include <boost/python.hpp>
 
 #define chkErrq(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -576,6 +575,7 @@ icc::icc(const double blob_radius,
 	 const double cutoff,
 	 const int number_of_blobs,
 	 const double *x){
+  d_icc_is_initialized = 0;
   d_blob_radius = blob_radius;
   d_eta = eta;
   d_cutoff = cutoff;
@@ -602,34 +602,117 @@ icc::icc(const double blob_radius,
   d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
 }
 
+
+/*
+  Constructor: build the sparse mobility matrix M
+  and compute the Cholesky factorization M=L*L.T
+  where L is a lower triangular matrix.
+*/
+icc::icc(const double blob_radius, 
+	 const double eta, 
+	 const double cutoff,
+	 const int number_of_blobs,
+	 bp::object x_obj){
+  d_icc_is_initialized = 0;
+  d_blob_radius = blob_radius;
+  d_eta = eta;
+  d_cutoff = cutoff;
+  d_number_of_blobs = number_of_blobs;
+
+  PyObject* pobj = x_obj.ptr();
+  Py_buffer pybuf;
+  PyObject_GetBuffer(pobj, &pybuf, PyBUF_SIMPLE);
+  void *buf = pybuf.buf;
+  double *x = (double*)buf;
+  d_x = x;
+
+  // Determine number of blocks and threads for the GPU
+  d_threads_per_block = 512;
+  if((d_number_of_blobs / d_threads_per_block) < 512){
+    d_threads_per_block = 256;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 256){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 64;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 32){
+    d_threads_per_block = 128;
+  }
+  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
+}
+
+
+/*
+  Empty constructor to use with python
+*/
+icc::icc(){
+}
+icc::icc(const double blob_radius,
+	 const double eta, 
+	 const double cutoff,
+	 const int number_of_blobs){
+  d_icc_is_initialized = 0;
+  d_blob_radius = blob_radius;
+  d_eta = eta;
+  d_cutoff = cutoff;
+  d_number_of_blobs = number_of_blobs;
+  // Determine number of blocks and threads for the GPU
+  d_threads_per_block = 512;
+  if((d_number_of_blobs / d_threads_per_block) < 512){
+    d_threads_per_block = 256;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 256){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 128;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 128){
+    d_threads_per_block = 64;
+  }
+  if((d_number_of_blobs / d_threads_per_block) < 32){
+    d_threads_per_block = 128;
+  }
+  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
+}
+
+
 /*
   Destructor: free memory on the GPU and CPU.
 */
 icc::~icc(){
   // Delete cusparse objects
-  cout << "destroying " << endl;
-  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_LT)); 
-  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_L)); 
-  chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_M)); 
-  cusparseDestroyMatDescr(d_descr_L);
-  cusparseDestroyMatDescr(d_descr_M);
-  chkErrqCusparse(cusparseDestroy(d_cusp_handle));
+  cout << "~icc STARTS " << endl;
+  if(d_icc_is_initialized){
+    chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_LT)); 
+    chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_L)); 
+    chkErrqCusparse(cusparseDestroySolveAnalysisInfo(d_info_M)); 
+    cusparseDestroyMatDescr(d_descr_L);
+    cusparseDestroyMatDescr(d_descr_M);
+    chkErrqCusparse(cusparseDestroy(d_cusp_handle));
 
-  // Free GPU memory
-  chkErrq(cudaFree(d_x_gpu));
-  chkErrq(cudaFree(d_nnz_gpu));
-  chkErrq(cudaFree(d_aux_gpu));
-  chkErrq(cudaFree(d_cooVal_gpu));
-  chkErrq(cudaFree(d_cooVal_sorted_gpu));
-  chkErrq(cudaFree(d_cooRowInd_gpu));
-  chkErrq(cudaFree(d_cooColInd_gpu));
-  chkErrq(cudaFree(d_csrRowPtr_gpu));
+    // Free GPU memory
+    chkErrq(cudaFree(d_x_gpu));
+    chkErrq(cudaFree(d_nnz_gpu));
+    chkErrq(cudaFree(d_aux_gpu));
+    chkErrq(cudaFree(d_cooVal_gpu));
+    chkErrq(cudaFree(d_cooVal_sorted_gpu));
+    chkErrq(cudaFree(d_cooRowInd_gpu));
+    chkErrq(cudaFree(d_cooColInd_gpu));
+    chkErrq(cudaFree(d_csrRowPtr_gpu));
+  }
+  cout << "~icc DONE" << endl;
 }
 
 /*
   Build sparse mobility matrix M.
 */
-int icc::buildSparseMobilityMatrix(){
+int icc::init_icc(){
   int N = d_number_of_blobs * 3;
   // Allocate GPU memory
   chkErrq(cudaMalloc((void**)&d_x_gpu, N * sizeof(double)));
@@ -862,7 +945,7 @@ int icc::buildSparseMobilityMatrix(){
 					  d_cooColInd_gpu,
 					  d_info_LT));
   chkErrq(cudaDeviceSynchronize());
-  
+  d_icc_is_initialized = 1;  
   return 0;
 }
 
@@ -989,7 +1072,7 @@ int main(){
   icc icc_obj = icc(blob_radius, eta, cutoff, number_of_blobs, x);
   
   // Build sparse mobility matrix
-  status = icc_obj.buildSparseMobilityMatrix();
+  status = icc_obj.init_icc();
   cout << "Build sparse mobility matrix = " << status << endl;
   
   // Test solve L*x = b
@@ -1062,4 +1145,20 @@ int main(){
   delete[] x;
   cout << "# End" << endl;
   return 0;
+}
+
+
+
+
+BOOST_PYTHON_MODULE(icc_ext)
+{
+  using namespace boost::python;
+  boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+  class_<icc>("icc", init<const double, const double, const double, const int, const double*>())
+    .def(init<const double, const double, const double, const int>())
+    .def(init<>())
+    .def(init<const double, const double, const double, const int, bp::object>())
+    .def("init_icc", &icc::init_icc)
+    .def("mult_precondM_gpu", &icc::mult_precondM_gpu)
+    ;
 }
