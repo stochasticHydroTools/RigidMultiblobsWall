@@ -627,6 +627,7 @@ icc::icc(const double blob_radius,
   d_cutoff = cutoff;
   d_number_of_blobs = number_of_blobs;
 
+  // Extract pointer
   PyObject* pobj = x_obj.ptr();
   Py_buffer pybuf;
   PyObject_GetBuffer(pobj, &pybuf, PyBUF_SIMPLE);
@@ -653,42 +654,6 @@ icc::icc(const double blob_radius,
   }
   d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
 }
-
-
-/*
-  Empty constructor to use with python
-*/
-icc::icc(){
-}
-icc::icc(const double blob_radius,
-	 const double eta, 
-	 const double cutoff,
-	 const int number_of_blobs){
-  d_icc_is_initialized = 0;
-  d_blob_radius = blob_radius;
-  d_eta = eta;
-  d_cutoff = cutoff;
-  d_number_of_blobs = number_of_blobs;
-  // Determine number of blocks and threads for the GPU
-  d_threads_per_block = 512;
-  if((d_number_of_blobs / d_threads_per_block) < 512){
-    d_threads_per_block = 256;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 256){
-    d_threads_per_block = 128;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 128){
-    d_threads_per_block = 128;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 128){
-    d_threads_per_block = 64;
-  }
-  if((d_number_of_blobs / d_threads_per_block) < 32){
-    d_threads_per_block = 128;
-  }
-  d_num_blocks = (d_number_of_blobs - 1) / d_threads_per_block + 1;
-}
-
 
 /*
   Destructor: free memory on the GPU and CPU.
@@ -722,16 +687,12 @@ icc::~icc(){
 */
 int icc::init_icc(){
   int N = d_number_of_blobs * 3;
-  // cout << "N = " << N << endl;
+
   // Allocate GPU memory
   chkErrq(cudaMalloc((void**)&d_x_gpu, N * sizeof(double)));
   chkErrq(cudaMalloc((void**)&d_nnz_gpu, sizeof(unsigned long long int)));
   chkErrq(cudaMalloc((void**)&d_aux_gpu, N * sizeof(double))); 
-
-  // for(int i=0; i<d_number_of_blobs; i++){
-  // cout << "i = " << i << "  x = " << d_x[3*i] << "  " << d_x[3*i+1] << "  " << d_x[3*i+2] << endl;
-  // }
-  
+ 
   // Copy data from CPU to GPU
   chkErrq(cudaMemcpy(d_x_gpu, d_x, N * sizeof(double), cudaMemcpyHostToDevice));
   d_nnz = 0;
@@ -1173,7 +1134,6 @@ int icc::mult_precondM(const bp::object x_obj, bp::object b_obj){
 
 
 int main(){
-
   // Define parameters
   int status;
   double aux;
@@ -1296,8 +1256,6 @@ BOOST_PYTHON_MODULE(icc_ext)
   using namespace boost::python;
   boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
   class_<icc>("icc", init<const double, const double, const double, const int, const double*>())
-    .def(init<const double, const double, const double, const int>())
-    .def(init<>())
     .def(init<const double, const double, const double, const int, bp::object>())
     .def("init_icc", &icc::init_icc)
     .def("mult_precondM_gpu", &icc::mult_precondM_gpu)

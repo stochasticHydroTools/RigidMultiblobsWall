@@ -30,16 +30,6 @@ public:
       const int number_of_blobs,
       bp::object x_obj);
 
-
-  /*
-    Empty constructor to use with python
-  */
-  icc();
-  icc(const double blob_radius,
-      const double eta, 
-      const double cutoff,
-      const int number_of_blobs);
-
   /*
     Destructor: free memory on the GPU and CPU.
   */
