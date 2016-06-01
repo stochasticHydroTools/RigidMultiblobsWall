@@ -53,7 +53,7 @@ struct saxpy_functor
 
     __host__ __device__
     unsigned long long int operator()(const int& x, const unsigned long long int& y) const { 
-      return m * x + y;
+      return (unsigned long long) m * (unsigned long long) x + y;
     }
 };
 
@@ -86,15 +86,9 @@ int print_csr_matrix_in_dense_format(cusparseHandle_t handle,
   printf("Matrix = \n");
   for(int i=0; i<num_rows; i++){
     for(int j=0; j<num_col; j++){
-      // printf("%010f  ", A[i*num_col + j]);
-      if(isnan(A[i*num_col + j])){
-	cout << "problem in print matrix " << i << "  " << j << "  " << A[i*num_col + j] << endl;
-	cout << "x " << i << "  " << x[(i/3)*3] << "  " << x[(i/3)*3+1] << "  "  << x[(i/3)*3+2] << endl;
-	cout << "x " << j << "  " << x[(j/3)*3] << "  " << x[(j/3)*3+1] << "  "  << x[(j/3)*3+2] << endl;
-	exit(1);
-      }
+      printf("%010f  ", A[i*num_col + j]);
     }
-    // printf("\n");
+    printf("\n");
   }
   printf("\n\n");
   // Free memory
@@ -747,28 +741,20 @@ int icc::init_icc(){
   
   // Sort matrix to COO format
   {
-    cout << "AAA 0 " << endl;
     thrust::device_vector<int> vec_col(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 1 " << endl;
     thrust::device_vector<int> vec_row(d_cooRowInd_gpu, d_cooRowInd_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 2 " << endl;
     thrust::device_vector<double> vec_val(d_cooVal_gpu, d_cooVal_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 3 " << endl;
     thrust::device_vector<int> vec_col_sorted(d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 4 " << endl;
     thrust::device_vector<int> vec_row_sorted(d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 5 " << endl;
     thrust::device_vector<double> vec_val_sorted(d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 6 " << endl;
     thrust::device_vector<unsigned long long int> vec_global_index(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 7 " << endl;
     if(0){
       cout << "Print values  ";
       thrust::copy(vec_val.begin(), vec_val.end(), std::ostream_iterator<double>(std::cout, " "));
@@ -793,17 +779,13 @@ int icc::init_icc(){
     // Initialize vector to [0, 1, 2, ...]
     thrust::counting_iterator<int> iter(0);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 8 " << endl;
     thrust::device_vector<int> indices(d_nnz);
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 9 " << endl;
     thrust::copy(iter, iter + indices.size(), indices.begin());
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 9 1" << endl;
     // Sort the indices using the global index as the key
     thrust::sort_by_key(vec_global_index.begin(), vec_global_index.end(), indices.begin());
     chkErrq(cudaPeekAtLastError());
-    cout << "AAA 9 2" << endl;
     if(0){
       cout << "Print index  ";
       thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, "  "));
@@ -812,11 +794,8 @@ int icc::init_icc(){
 
     // Sort rows, columns and values with the indices
     thrust::gather(indices.begin(), indices.end(), vec_col.begin(), vec_col_sorted.begin());
-    cout << "AAA 9 3" << endl;
     thrust::gather(indices.begin(), indices.end(), vec_row.begin(), vec_row_sorted.begin());
-    cout << "AAA 9 4" << endl;
     thrust::gather(indices.begin(), indices.end(), vec_val.begin(), vec_val_sorted.begin());
-    cout << "AAA 9 5" << endl;
     if(0){
       cout << endl << endl << endl;
       cout << "Print columns ";
@@ -832,11 +811,8 @@ int icc::init_icc(){
     
     // Copy thrust vectors to arrays
     thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), d_cooColInd_gpu);
-    cout << "AAA 9 6" << endl;
     thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), d_cooRowInd_gpu);
-    cout << "AAA 9 7" << endl;
     thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), d_cooVal_gpu);
-    cout << "AAA 10" << endl;
   }
   // Transform sparse matrix to CSR format
   chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base));
@@ -862,20 +838,20 @@ int icc::init_icc(){
     chkErrq(cudaMemcpy(d_cooColInd, d_cooColInd_gpu, d_nnz * sizeof(int), cudaMemcpyDeviceToHost));
     chkErrq(cudaMemcpy(d_csrRowPtr, d_csrRowPtr_gpu, ((3 * d_number_of_blobs) + 1) * sizeof(int), cudaMemcpyDeviceToHost));
     
-    for(int i=0; i<d_nnz; i++){
-      if(isnan(d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i])){
-	cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
-	cout << "problem in d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i]) " << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
-	exit(1);
-      }
-    }
-    for(int i=0; i < ((N) + 1); i++){
-      if(isnan(d_csrRowPtr[i])){
-	cout << i << " --- " << d_csrRowPtr[i] << endl;
-	cout << "problem in d_csrRowPtr[i] " << i << "  " << d_csrRowPtr[i] << endl;
-	exit(1);
-      }
-    }
+    // for(int i=0; i<d_nnz; i++){
+    //   if(isnan(d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i])){
+    // 	cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+    // 	cout << "problem in d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i]) " << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+    // 	exit(1);
+    //   }
+    // }
+    // for(int i=0; i < ((N) + 1); i++){
+    //   if(isnan(d_csrRowPtr[i])){
+    // 	cout << i << " --- " << d_csrRowPtr[i] << endl;
+    // 	cout << "problem in d_csrRowPtr[i] " << i << "  " << d_csrRowPtr[i] << endl;
+    // 	exit(1);
+    //   }
+    // }
     delete[] d_cooVal;
     delete[] d_cooRowInd;
     delete[] d_cooColInd;
@@ -899,7 +875,6 @@ int icc::init_icc(){
     chkErrq(cudaDeviceSynchronize());
   }
 
-  cout << "before cholesky" << endl;
   // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu, d_x);    
   // Compute incomplete cholesky 
   if(1){
@@ -917,7 +892,6 @@ int icc::init_icc(){
   chkErrq(cudaDeviceSynchronize());
 
   // Print matrix 
-  cout << "after cholesky" << endl;
   // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu, d_x);    
 
   // Create descriptor for matrix Cholesky factor L
@@ -1149,7 +1123,6 @@ int main(){
     x = new double [N];
     for(int i=0; i<(N); i++){
       x[i] = 1000.0 * rand() / RAND_MAX;
-      // cout << i << "  " << x[i] << endl;
     }
   }
   else{
@@ -1157,11 +1130,9 @@ int main(){
     coor >> number_of_blobs;
     N = number_of_blobs * 3;
     x = new double [N];
-    cout << "NNNNNNN = " << N << endl;
     for(int i=0; i<number_of_blobs; i++){
       coor >> x[i*3] >> x[i*3+1] >> x[i*3+2];
       coor >> aux >> aux >> aux >> aux;
-      // cout << x[i*3] << "  " << x[i*3+1] << "  " <<  x[i*3+2] << endl;
     }
     coor.close();
   }
