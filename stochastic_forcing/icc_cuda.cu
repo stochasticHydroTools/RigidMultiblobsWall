@@ -1,4 +1,5 @@
 #include "icc_cuda.h"
+#include <fstream>
 #include <thrust/version.h>
 // #include <thrust/reduce.h>
 // #include <thrust/extrema.h>
@@ -69,7 +70,8 @@ int print_csr_matrix_in_dense_format(cusparseHandle_t handle,
 				     const cusparseMatDescr_t descr,
 				     const double *csrVal, 
 				     const int *csrRowPtr,
-				     const int *csrColInd){
+				     const int *csrColInd,
+				     const double *x){
   int size = num_rows * num_col;
   // Allocate memory
   double *A = new double [size];
@@ -84,9 +86,15 @@ int print_csr_matrix_in_dense_format(cusparseHandle_t handle,
   printf("Matrix = \n");
   for(int i=0; i<num_rows; i++){
     for(int j=0; j<num_col; j++){
-      printf("%010f  ", A[i*num_col + j]);
+      // printf("%010f  ", A[i*num_col + j]);
+      if(isnan(A[i*num_col + j])){
+	cout << "problem in print matrix " << i << "  " << j << "  " << A[i*num_col + j] << endl;
+	cout << "x " << i << "  " << x[(i/3)*3] << "  " << x[(i/3)*3+1] << "  "  << x[(i/3)*3+2] << endl;
+	cout << "x " << j << "  " << x[(j/3)*3] << "  " << x[(j/3)*3+1] << "  "  << x[(j/3)*3+2] << endl;
+	exit(1);
+      }
     }
-    printf("\n");
+    // printf("\n");
   }
   printf("\n\n");
   // Free memory
@@ -734,7 +742,7 @@ int icc::init_icc(){
   // countNnz<<<d_num_blocks, d_threads_per_block>>>(d_x_gpu, d_nnz_gpu, d_cutoff, d_number_of_blobs);
   chkErrq(cudaPeekAtLastError());
   chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
-  // cout << "nnz = " << d_nnz << endl;
+  cout << "nnz = " << d_nnz << endl;
 
   // Allocate GPU memory for the sparse mobility matrix
   chkErrq(cudaMalloc((void**)&d_cooVal_gpu, d_nnz * sizeof(double)));
@@ -770,7 +778,7 @@ int icc::init_icc(){
   }
   chkErrq(cudaPeekAtLastError());
   chkErrq(cudaMemcpy(&d_nnz, d_nnz_gpu, sizeof(unsigned long long int), cudaMemcpyDeviceToHost));
-  // cout << "nnz = " << d_nnz << endl;
+  cout << "nnz = " << d_nnz << endl;
   
   // Init cuSparse
   chkErrqCusparse(cusparseCreate(&d_cusp_handle));
@@ -778,17 +786,28 @@ int icc::init_icc(){
   
   // Sort matrix to COO format
   {
+    cout << "AAA 0 " << endl;
     thrust::device_vector<int> vec_col(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
+    cout << "AAA 1 " << endl;
     thrust::device_vector<int> vec_row(d_cooRowInd_gpu, d_cooRowInd_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
+    cout << "AAA 2 " << endl;
     thrust::device_vector<double> vec_val(d_cooVal_gpu, d_cooVal_gpu + d_nnz);
     chkErrq(cudaPeekAtLastError());
+    cout << "AAA 3 " << endl;
     thrust::device_vector<int> vec_col_sorted(d_nnz);
     chkErrq(cudaPeekAtLastError());
+    cout << "AAA 4 " << endl;
     thrust::device_vector<int> vec_row_sorted(d_nnz);
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 5 " << endl;
     thrust::device_vector<double> vec_val_sorted(d_nnz);
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 6 " << endl;
     thrust::device_vector<unsigned long long int> vec_global_index(d_cooColInd_gpu, d_cooColInd_gpu + d_nnz);
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 7 " << endl;
     if(0){
       cout << "Print values  ";
       thrust::copy(vec_val.begin(), vec_val.end(), std::ostream_iterator<double>(std::cout, " "));
@@ -812,11 +831,18 @@ int icc::init_icc(){
 
     // Initialize vector to [0, 1, 2, ...]
     thrust::counting_iterator<int> iter(0);
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 8 " << endl;
     thrust::device_vector<int> indices(d_nnz);
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 9 " << endl;
     thrust::copy(iter, iter + indices.size(), indices.begin());
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 9 1" << endl;
     // Sort the indices using the global index as the key
-    // thrust::sort_by_key(vec_index.begin()
     thrust::sort_by_key(vec_global_index.begin(), vec_global_index.end(), indices.begin());
+    chkErrq(cudaPeekAtLastError());
+    cout << "AAA 9 2" << endl;
     if(0){
       cout << "Print index  ";
       thrust::copy(vec_global_index.begin(), vec_global_index.end(), std::ostream_iterator<unsigned long long int>(std::cout, "  "));
@@ -825,8 +851,11 @@ int icc::init_icc(){
 
     // Sort rows, columns and values with the indices
     thrust::gather(indices.begin(), indices.end(), vec_col.begin(), vec_col_sorted.begin());
+    cout << "AAA 9 3" << endl;
     thrust::gather(indices.begin(), indices.end(), vec_row.begin(), vec_row_sorted.begin());
+    cout << "AAA 9 4" << endl;
     thrust::gather(indices.begin(), indices.end(), vec_val.begin(), vec_val_sorted.begin());
+    cout << "AAA 9 5" << endl;
     if(0){
       cout << endl << endl << endl;
       cout << "Print columns ";
@@ -842,8 +871,11 @@ int icc::init_icc(){
     
     // Copy thrust vectors to arrays
     thrust::copy(vec_col_sorted.begin(), vec_col_sorted.end(), d_cooColInd_gpu);
+    cout << "AAA 9 6" << endl;
     thrust::copy(vec_row_sorted.begin(), vec_row_sorted.end(), d_cooRowInd_gpu);
+    cout << "AAA 9 7" << endl;
     thrust::copy(vec_val_sorted.begin(), vec_val_sorted.end(), d_cooVal_gpu);
+    cout << "AAA 10" << endl;
   }
   // Transform sparse matrix to CSR format
   chkErrqCusparse(cusparseXcoo2csr(d_cusp_handle, d_cooRowInd_gpu, d_nnz, N, d_csrRowPtr_gpu, d_base));
@@ -856,10 +888,10 @@ int icc::init_icc(){
   chkErrqCusparse(cusparseSetMatFillMode(d_descr_M, CUSPARSE_FILL_MODE_UPPER)); // or LOWER
   chkErrqCusparse(cusparseSetMatDiagType(d_descr_M, CUSPARSE_DIAG_TYPE_NON_UNIT));
   // Print matrix 
-  // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu);
+  // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu, d_x);
 
   // Copy matrix to the CPU
-  if(0){
+  if(1){
     d_cooVal = new double [d_nnz];
     d_cooRowInd = new int [d_nnz];
     d_cooColInd = new int [d_nnz];
@@ -870,10 +902,18 @@ int icc::init_icc(){
     chkErrq(cudaMemcpy(d_csrRowPtr, d_csrRowPtr_gpu, ((3 * d_number_of_blobs) + 1) * sizeof(int), cudaMemcpyDeviceToHost));
     
     for(int i=0; i<d_nnz; i++){
-      cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+      if(isnan(d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i])){
+	cout << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+	cout << "problem in d_cooRowInd[i]) || isnan(d_cooColInd[i]) || isnan(d_cooVal[i]) " << i << " --- " << d_cooRowInd[i] << "  " << d_cooColInd[i] << "  " << d_cooVal[i] << endl;
+	exit(1);
+      }
     }
     for(int i=0; i < ((N) + 1); i++){
-      cout << i << " --- " << d_csrRowPtr[i] << endl;
+      if(isnan(d_csrRowPtr[i])){
+	cout << i << " --- " << d_csrRowPtr[i] << endl;
+	cout << "problem in d_csrRowPtr[i] " << i << "  " << d_csrRowPtr[i] << endl;
+	exit(1);
+      }
     }
     delete[] d_cooVal;
     delete[] d_cooRowInd;
@@ -898,6 +938,8 @@ int icc::init_icc(){
     chkErrq(cudaDeviceSynchronize());
   }
 
+  cout << "before cholesky" << endl;
+  // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu, d_x);    
   // Compute incomplete cholesky 
   if(1){
     // chkErrqCusparse(cusparseSetMatType(d_descr_M, CUSPARSE_MATRIX_TYPE_SYMMETRIC));
@@ -914,7 +956,8 @@ int icc::init_icc(){
   chkErrq(cudaDeviceSynchronize());
 
   // Print matrix 
-  // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu);    
+  cout << "after cholesky" << endl;
+  // print_csr_matrix_in_dense_format(d_cusp_handle, N, N, d_nnz, d_descr_M, d_cooVal_gpu, d_csrRowPtr_gpu, d_cooColInd_gpu, d_x);    
 
   // Create descriptor for matrix Cholesky factor L
   chkErrqCusparse(cusparseCreateMatDescr(&d_descr_L));
@@ -1133,17 +1176,34 @@ int main(){
 
   // Define parameters
   int status;
+  double aux;
   double blob_radius = 1.0;
   double eta = 1.0;
-  double cutoff = 1;
-  int number_of_blobs = 2;
+  double cutoff = 75;
+  int number_of_blobs = 1000;
   int N = number_of_blobs * 3;
 
   // Create CPU arrays
-  double *x = new double [N];
-  for(int i=0; i<(N); i++){
-    x[i] = 10.0 * rand() / RAND_MAX;
-    cout << i << "  " << x[i] << endl;
+  double *x; 
+  if(0){
+    x = new double [N];
+    for(int i=0; i<(N); i++){
+      x[i] = 1000.0 * rand() / RAND_MAX;
+      // cout << i << "  " << x[i] << endl;
+    }
+  }
+  else{
+    ifstream coor("shell_3d_Nblob_1_R_h_1.clones");
+    coor >> number_of_blobs;
+    N = number_of_blobs * 3;
+    x = new double [N];
+    cout << "NNNNNNN = " << N << endl;
+    for(int i=0; i<number_of_blobs; i++){
+      coor >> x[i*3] >> x[i*3+1] >> x[i*3+2];
+      coor >> aux >> aux >> aux >> aux;
+      // cout << x[i*3] << "  " << x[i*3+1] << "  " <<  x[i*3+2] << endl;
+    }
+    coor.close();
   }
  
   // Create icc object
@@ -1170,14 +1230,17 @@ int main(){
   icc_obj.multL_gpu(x_gpu, b_gpu, operation);
   chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
   for(int i=0; i<N; i++){
-    cout << "i, b = " << i << "    " << b[i] << endl;
+    if(isnan(b[i])){
+      cout << "icc_obj.multL_gpu -- i, b = " << i << "    " << b[i] << endl;
+      exit(1);
+    }
   }
   // Solve system L*x = RHS
   icc_obj.solveL_gpu(b_gpu, x_gpu);
   chkErrq(cudaMemcpy(x, x_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
   chkErrq(cudaDeviceSynchronize());
   for(int i=0; i<N; i++){
-    cout << "i, x = " << i << "    " << x[i] << endl;
+    cout << "icc_obj.solveL_gpu i, x = " << i << "    " << x[i] << endl;
     b[i] = 1.0;
   }
   chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
@@ -1189,14 +1252,14 @@ int main(){
     icc_obj.multL_gpu(x_gpu, b_gpu, operation);
     chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
     for(int i=0; i<N; i++){
-      cout << "i, b = " << i << "    " << b[i] << endl;
+      cout << "icc_obj.multL_gpu TRANSPOSE i, b = " << i << "    " << b[i] << endl;
     }
     // Solve system L*x = RHS
     icc_obj.solveLT_gpu(b_gpu, x_gpu);
     chkErrq(cudaMemcpy(x, x_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
     chkErrq(cudaDeviceSynchronize());
     for(int i=0; i<N; i++){
-      cout << "i, x = " << i << "    " << x[i] << endl;
+      cout << "icc_obj.solveLT_gpu TRANSPOSE i, x = " << i << "    " << x[i] << endl;
       b[i] = 1.0;
     }
     chkErrq(cudaMemcpy(x_gpu, b, N * sizeof(double), cudaMemcpyHostToDevice));    
@@ -1207,7 +1270,7 @@ int main(){
     icc_obj.mult_precondM_gpu(x_gpu, b_gpu);
     chkErrq(cudaMemcpy(b, b_gpu, N * sizeof(double), cudaMemcpyDeviceToHost));    
     for(int i=0; i<N; i++){
-      cout << "i, b = " << i << "    " << b[i] << endl;
+      cout << "icc_obj.mult_precondM_gpu i, b = " << i << "    " << b[i] << endl;
     }
   }
 
