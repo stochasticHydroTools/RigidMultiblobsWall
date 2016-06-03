@@ -12,10 +12,10 @@ namespace bp = boost::python;
 
 
 void MobilityVectorProduct_optimized(bp::list r_vectors, 
-			   double eta,
-			   double a, int num_particles,
-                           bp::numeric::array vector,
-                           bp::numeric::array vector_res ) {
+				     double eta,
+				     double a, int num_particles,
+				     bp::numeric::array vector,
+				     bp::numeric::array vector_res ) {
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
