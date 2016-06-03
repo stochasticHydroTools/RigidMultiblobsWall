@@ -400,30 +400,30 @@ __global__ void buildLowerTriangularCOOMatrix(const double *x,
         cooColIndA[nnz_old] = joffset + 2;
       }
       else{
-        int nnz_old = atomicAdd(nnzGPU, 3); //
+        int nnz_old = atomicAdd(nnzGPU, 6); //
         cooValA[nnz_old] = Mxx * norm_fact;
         cooRowIndA[nnz_old] = ioffset;
         cooColIndA[nnz_old] = joffset;
 
-	// nnz_old++; //
-	// cooValA[nnz_old] = Mxy * norm_fact; //
-	// cooRowIndA[nnz_old] = ioffset;      //
-	// cooColIndA[nnz_old] = joffset + 1;  //
+	nnz_old++; //
+	cooValA[nnz_old] = Mxy * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset;      //
+	cooColIndA[nnz_old] = joffset + 1;  //
 
-	// nnz_old++; //
-	// cooValA[nnz_old] = Mxz * norm_fact; //
-	// cooRowIndA[nnz_old] = ioffset; //
-	// cooColIndA[nnz_old] = joffset + 2; //
+	nnz_old++; //
+	cooValA[nnz_old] = Mxz * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset; //
+	cooColIndA[nnz_old] = joffset + 2; //
 
         nnz_old++;
         cooValA[nnz_old] = Myy * norm_fact;
         cooRowIndA[nnz_old] = ioffset + 1;
         cooColIndA[nnz_old] = joffset + 1;
 
-	// nnz_old++; //
-	// cooValA[nnz_old] = Myz * norm_fact; //
-	// cooRowIndA[nnz_old] = ioffset + 1; //
-	// cooColIndA[nnz_old] = joffset + 2; //
+	nnz_old++; //
+	cooValA[nnz_old] = Myz * norm_fact; //
+	cooRowIndA[nnz_old] = ioffset + 1; //
+	cooColIndA[nnz_old] = joffset + 2; //
 
         nnz_old++;
         cooValA[nnz_old] = Mzz * norm_fact;
@@ -465,7 +465,7 @@ __global__ void countLowerTriangularNnz(const double *x, unsigned long long int 
         atomicAdd(nnzGPU, 9);
       }
       else{
-        atomicAdd(nnzGPU, 3); //
+        atomicAdd(nnzGPU, 6); //
       }
     }
   }
