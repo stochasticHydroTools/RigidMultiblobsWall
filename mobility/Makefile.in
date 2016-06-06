@@ -6,9 +6,20 @@ PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
 BOOST_INC = ???
 BOOST_LIB = ???
 
+# Location of Fortran libraries
+FORTRAN_LIB = --link-fopenmp -L/path/to/stfmmlib3d-1.2/ -lstfmm3d 
 
-# compile mesh classes
+# 
 TARGET = mobility_ext
+TARGET_FORTRAN = mobility_fmm
+
+all: $(TARGET).so
+ifneq ($(FORTRAN_LIB),)
+all: $(TARGET_FORTRAN).so
+endif
+
+$(TARGET_FORTRAN).so: $(TARGET_FORTRAN).f90
+	f2py $(FORTRAN_LIB) -c $(TARGET_FORTRAN).f90 -m $(TARGET_FORTRAN)
 
 $(TARGET).so: $(TARGET).o
 	g++ -shared  -dynamiclib $(TARGET).o -L$(BOOST_LIB)  -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) -o $(TARGET).so
@@ -17,4 +28,4 @@ $(TARGET).o: $(TARGET).cc
 	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cc
 
 clean: 
-	rm -f $(TARGET).o $(TARGET).so
+	rm -f $(TARGET).o $(TARGET).so $(TARGET_FORTRAN).o $(TARGET_FORTRAN).so
