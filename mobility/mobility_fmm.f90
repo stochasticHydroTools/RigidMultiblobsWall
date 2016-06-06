@@ -33,16 +33,5 @@ subroutine fmm_stokeslet_half(x, F, U, ier, iprec, RH, viscosity, N)
      U(2,i) = U(2,i) / (4 * pi * viscosity) + F(2,i) / (6 * pi * viscosity * RH)
      U(3,i) = U(3,i) / (4 * pi * viscosity) + F(3,i) / (6 * pi * viscosity * RH)
   end do
-
-
-  write(*,*) 'fmm_Stokeslet_half DONE'
 end subroutine fmm_stokeslet_half
 
-
-
-program test
-  implicit none
-
-
-  write(*,*) "# DONE"
-end program test
