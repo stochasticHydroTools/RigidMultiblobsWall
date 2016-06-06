@@ -1,7 +1,7 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
 import sys
-sys.path.append('..')
+sys.path.append('../')
 import time
 import imp
 
@@ -18,6 +18,11 @@ except ImportError:
   found_pycuda = False
 if found_pycuda:
   import mobility_pycuda
+# Try to import the mobility fmm implementation
+try:
+  import mobility_fmm as fmm
+except ImportError:
+  pass
 
 ETA = 1.0 # Viscosity
 
@@ -405,6 +410,24 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
                                       (15./64.)*(h**(-3))*(l == m)*(l != 2)
                                       + (3./32.)*(h**(-3))*(m == 2)*(l == 2))))
   return fluid_mobility
+
+
+def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
+  ''' 
+  Compute the Stokeslet interaction plus self mobility
+  II/(6*pi*eta*a) in the presence of a wall at z=0.
+  It uses the fmm implemented in the library stfmm3d.
+  Must compile mobility_fmm.f90 before this will work
+  (see Makefile).
+  ''' 
+  num_particles = r_vectors.size / 3
+  ier = 0
+  iprec = 5
+  r_vectors_fortran = np.copy(r_vectors.T, order='F')
+  force_fortran = np.reshape(np.copy(force.T, order='F'), (3, num_particles))
+  u_fortran = np.empty_like(r_vectors_fortran, order='F')
+  fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
+  return u_fortran.T
 
   
 def epsilon_tensor(i, j, k):
