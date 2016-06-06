@@ -412,6 +412,7 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
   return fluid_mobility
 
 
+# def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
 def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
   ''' 
   Compute the Stokeslet interaction plus self mobility
@@ -424,12 +425,12 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
   ier = 0
   iprec = 5
   r_vectors_fortran = np.copy(r_vectors.T, order='F')
-  force_fortran = np.reshape(np.copy(force.T, order='F'), (3, num_particles))
+  force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
   u_fortran = np.empty_like(r_vectors_fortran, order='F')
   fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
-  return u_fortran.T
-
+  return np.reshape(u_fortran.T, u_fortran.size)
   
+
 def epsilon_tensor(i, j, k):
   ''' 
   Epsilon tensor (cross product).  Only works for arguments
