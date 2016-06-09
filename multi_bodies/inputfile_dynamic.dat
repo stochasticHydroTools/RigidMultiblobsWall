@@ -27,7 +27,7 @@ repulsion_strength_wall                  1.0
 debye_length_wall                        1.0
 
 # Set output name
-output_name                              data/run1
+output_name                              data/run
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files

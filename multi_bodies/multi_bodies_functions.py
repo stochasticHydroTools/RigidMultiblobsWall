@@ -23,14 +23,23 @@ except ImportError:
 if found_pycuda:
   import forces_pycuda  
 
+
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
   return np.zeros((r_vectors.size / 3, 3))
+
 
 def default_zero_blobs(body, *args, **kwargs):
   ''' 
   Return a zero array of shape (body.Nblobs, 3)
   '''
   return np.zeros((body.Nblobs, 3))
+
+
+def default_zero_bodies(bodies, *args, **kwargs):
+  ''' 
+  Return a zero array of shape (2*len(bodies), 3)
+  '''
+  return np.zeros((2*len(bodies), 3))
   
 
 def set_slip_by_ID(body):
@@ -144,7 +153,7 @@ def calc_one_blob_forces(r_vectors, *args, **kwargs):
 def set_blob_blob_forces(implementation):
   '''
   Set the function to compute the blob-blob forces
-  to the rigth.
+  to the right function.
 
   The implementation in pycuda is much faster than the
   one in C++, which is much faster than the one python; 
@@ -222,6 +231,68 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   return np.reshape(forces, (number_of_blobs, 3))
 
 
+def set_body_body_forces_torques(implementation):
+  '''
+  Set the function to compute the body-body forces
+  to the right function. 
+  '''
+  if implementation == 'None':
+    return default_zero_bodies
+  elif implementation == 'python':
+    return calc_body_body_forces_torques_python
+
+
+def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
+  '''
+  This function compute the force between two bodies
+  with vector between locations r.
+
+  In this example the torque is zero and the force 
+  is derived from a Yukawa potential
+  
+  U = eps * exp(-r_norm / b) / r_norm
+  
+  with
+  eps = potential strength
+  r_norm = distance between bodies' location
+  b = Debye length
+  '''
+  force_torque = np.zeros((2, 3))
+
+  # Get parameters from arguments
+  eps = kwargs.get('repulsion_strength')
+  b = kwargs.get('debye_length')
+  
+  # Compute force
+  r_norm = np.linalg.norm(r)
+  force_torque[0] = -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2 
+  return force_torque
+
+
+def calc_body_body_forces_torques_python(bodies, r_vectors, *args, **kwargs):
+  '''
+  This function computes the body-body forces and torques and returns
+  an array with shape (2*Nblobs, 3).
+  '''
+  Nbodies = len(bodies)
+  force_torque_bodies = np.zeros((2*len(bodies), 3))
+  
+  # Double loop over bodies to compute forces
+  for i in range(Nbodies-1):
+    for j in range(i+1, Nbodies):
+      # Compute vector from j to u
+      r = bodies[j].location - bodies[i].location
+      force_torque = body_body_force_torque(r, bodies[i].orientation, bodies[j].orientation, *args, **kwargs)
+      # Add forces
+      force_torque_bodies[2*i] += force_torque[0]
+      force_torque_bodies[2*j] -= force_torque[0]
+      # Add torques
+      force_torque_bodies[2*i+1] += force_torque[1]
+      force_torque_bodies[2*j+1] -= force_torque[1]
+
+  return force_torque_bodies
+
+
 def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   '''
   Return the forces and torque in each body with
@@ -255,7 +326,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   force_torque_bodies += bodies_external_force_torque(bodies, r_vectors, *args, **kwargs)
 
   # Add body-body forces (same for all pair of bodies)
-  # NOT IMPLEMENTED YET
+  force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
 
   return force_torque_bodies
 

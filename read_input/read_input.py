@@ -56,6 +56,7 @@ class ReadInput(object):
     self.repulsion_strength = float(self.options.get('repulsion_strength') or 1.0)
     self.debye_length = float(self.options.get('debye_length') or 1.0)
     self.blob_blob_force_implementation = str(self.options.get('blob_blob_force_implementation') or 'None')
+    self.body_body_force_torque_implementation = str(self.options.get('body_body_force_torque_implementation') or 'None')
     self.save_body_mobility = str(self.options.get('save_body_mobility') or 'False')
     self.save_blobs_mobility = str(self.options.get('save_blobs_mobility') or 'False')
     self.save_velocities = str(self.options.get('save_velocities') or 'False')

@@ -308,6 +308,17 @@ Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
 The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
 
+* `body_body_force_torque_implementation`: Options: `None and python`.
+Select the implementation to compute the body-body interactions between all
+pairs of bodies. This function provides and alternative way to
+compute force between bodies without iterating over all the blobs
+in the system. Note that this force will be added to the forces coming
+from other terms like blob-blob interactions.
+If None is selected the code does not compute body-body interactions directly
+but it can compute blob-blob interactions which lead to effective 
+body-body interactions.
+The cost of this function scales like (number_of_bodies)**2.
+
 * `eta`: (float) the fluid viscosity.
 
 * `blob_radius`: (float) the hydrodynamic radius of the blobs.
