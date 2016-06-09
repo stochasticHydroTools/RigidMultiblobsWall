@@ -74,7 +74,7 @@ vector_location_body_1 quaternion_body_1
 ```
 
 For example, the file `multi_bodies/Structures/boomerang_N_15.clones` represents
-the configuration for a single body with location (0, 0, 10)
+the configuration of a single body with location (0, 0, 10)
 and orientation given by the quaternion (0.5, 0.5, 0.5, 0.5).
 
 
@@ -94,15 +94,26 @@ vector_location_blob_1
 For example, the file `multi_bodies/Structures/boomerang_N_15.vertex` gives the
 structure of a boomerang-like particle formed by 15 blobs.
 
-# Donev: This is missing an explanation of active slip, maybe you added this recently after I pulled this.
-# Please don't forget to add it here also
-# Maybe you and Blaise can work together to put an input file here corresponding to the example from the paper
-# about a pair of dimers of active rods that spins
+## 3. Active slip
+The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170), 
+therefore we can simulate the dynamics of active bodies like bacteria
+or self-propelled colloids. The code assigns a slip function to each body depending
+on its structure ID; the structure ID is the name of the
+`*.clones` file without the _path_ or the ending _.clones_ 
+(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
+Therefore all the bodies passed to the code in the same `.clones` file
+will have the same slip. This way it is easy to combine active and passive bodies in the same simulation
+by just using different `.clones` files for active and passive bodies. 
+
+Right now, the code only has two active slip functions implemented;
+for bodies with structure ID _active_body_ all blobs have a
+slip along the x-axis in the reference configuration. 
+For bodies with any other structure ID the slip is set to zero,
+i.e., they are passive bodies. It is easy to generalize the code to include other kind of slips,
+see Section 5.1 for details.
 
 
-## 3. Slip
-
-## 3. Run static simulations
+## 4. Run static simulations
 We start explaining how to compute the mobility of a rigid body close to a wall.
 First, move to the directory `multi_bodies/` and inspect the input file 
 `inputfile_body_mobility.dat`: 
@@ -194,7 +205,7 @@ corresponding to linear (first three) and angular velocities (last three).
 
 
 
-## 4. Run dynamic simulations 
+## 5. Run dynamic simulations 
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
 See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
@@ -297,14 +308,6 @@ Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
 The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
 
-# Donev: This is not urgent (and is not trivial) but since we may be doing a lot of stuff with spheres it would
-# be nice to add an option where the user specifies the *body*-*body* and body-wall force instead of the blob-blob
-# force. As you know specifying a force between blobs leads to loss of rotational invariance, and is also considerably
-# more expensive.
-# What I suggest is adding another option body_body_force_implementation (with None being one of the options)
-# and then one can specify one or the other and the forces are just added up in the end
-# As an example you can just do spheres interacting via Yukawa
-
 * `eta`: (float) the fluid viscosity.
 
 * `blob_radius`: (float) the hydrodynamic radius of the blobs.
@@ -355,7 +358,7 @@ bodies configuration, see section 2. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body.
 
 
-### 4.1 Modify the codes
+### 5.1 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between blobs and the wall are hard-coded
 in the codes. We explain here how the user can change these functions.
 
@@ -371,20 +374,19 @@ the function `blob_external_force` in the file `multi_bodies/multi_bodies_functi
 There are not _C++_ or _pycuda_ versions of this function since
 it is not an expensive operation.
 
-* active slip: the blobs can have an active slip (or swimming gait) as
-described in the Ref. [2](http://arxiv.org/abs/1602.02170). With this
-option we can simulate the dynamics of active bodies like bacteria
-or self-propelled colloids. 
-The code assigns a slip function to each body depending
-on his ID (the name of the clones file without the path
-or the end `.clones`). The default slip is zero for all the
-blobs. The user can generalize this slip by editing the function 
+* active slip: The code assigns a slip function to each body depending
+on its structure ID; the structure ID is the name of the
+`*.clones` file without the _path_ or the ending _.clones_ 
+(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
+Therefore all the bodies passed to the code in the same `.clones` file
+will have the same slip.  
+The user can generalize the slip functions by editing the function 
 `set_slip_by_ID` in the file `multi_bodies/multi_bodies_functions.py`.
 We provide an example of how to add a constant slip to all the blobs
 of an active body in the function `active_body_slip` in the same file.
 
 
-## 5. Software organization
+## 6. Software organization
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
