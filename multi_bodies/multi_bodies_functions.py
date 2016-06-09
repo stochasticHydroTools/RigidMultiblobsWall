@@ -226,7 +226,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   '''
   Return the forces and torque in each body with
   format [f_1, t_1, f_2, t_2, ...] and shape (2*Nbodies, 3),
-  where f_i and t_i are the force and torque in the body i.
+  where f_i and t_i are the force and torque on the body i.
   '''
   # Create auxiliar variables
   Nblobs = r_vectors.size / 3
@@ -238,7 +238,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   # Compute one-blob forces (same function for all blobs)
   force_blobs += calc_one_blob_forces(r_vectors, blob_radius = blob_radius, blob_mass = blob_mass, *args, **kwargs)
 
-  # Compute blob-blob forces (same function for all blobs)
+  # Compute blob-blob forces (same function for all pair of blobs)
   force_blobs += calc_blob_blob_forces(r_vectors, blob_radius = blob_radius, *args, **kwargs)  
 
   # Compute body force-torque forces from blob forces
@@ -253,7 +253,10 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   # Add one-body external force-torque
   force_torque_bodies += bodies_external_force_torque(bodies, r_vectors, *args, **kwargs)
-  
+
+  # Add body-body forces (same for all pair of bodies)
+  # NOT IMPLEMENTED YET
+
   return force_torque_bodies
 
 

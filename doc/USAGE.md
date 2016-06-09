@@ -6,7 +6,7 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
 dynamic simulations.
 
-Note: We are still working on stochastic methods for suspensions of many rigid bodies
+Note: We are still working on stochastic methods for suspensions of many rigid bodies.
 For now, the codes can do deterministic simulations for many bodies (see paper 2 below)
 but can only do Brownian Dynamics for a single rigid body (see paper 1 below).
 
@@ -20,7 +20,8 @@ The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org
 rigid multiblob approach**, F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
 A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
-Note: The key blob-blob mobility in the presence of a wall is computed here using the Rotne-Prager-Blake tensor in the appendix of:
+Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
+the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
 James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi.org/10.1063/1.2803837).
 Note that this does not include correction for blobs that overlap the wall, only for blobs that overlap each other.
@@ -198,9 +199,7 @@ code which allows to run deterministic simulations for many bodies. In the
 future we will extend this code to allow for stochastic simulations of many bodies.
 
 First, move to the directory `multi_bodies/` and inspect the input file
-`data.main`:
-# I would strongly suggest renaming data.main into something more descriptive
-
+`inputfile_dynamic.dat`:
 
 ---
 
@@ -249,7 +248,7 @@ one with a boomerang shape and two with a spherical shape;
 see structures given to the options `structure`. To run the simulation use
 
 `
-python multi_bodies --input-file data.main
+python multi_bodies --input-file inputfile_dynamic.dat
 `
 
 Now, you can inspect the output, `ls data/run.*`. The output files are:
@@ -266,6 +265,7 @@ The format of the files is the same that in the input .clones files.
 * `.inputfile`: a copy of the input file.
 
 * `.random_state`: it saves the state of the random generator at the start of the simulation. 
+It can be used to run a simulation with the same random numbers.
 
 * `.time`: the wall-clock time elapsed during the simulation (in seconds).
 
@@ -353,8 +353,8 @@ shapes add to the input file one `structure` option per each kind of body.
 
 
 ### 4.1 Modify the codes
-Right now, the interactions between blobs and between blobs and the wall are hard-coded
-in the codes. We explain here how the user can change these interactions.
+Right now, the slip on the rigid bodies and the interactions between blobs and between blobs and the wall are hard-coded
+in the codes. We explain here how the user can change these functions.
 
 * blob-blob interactions: to modify the _python_ implementation edit
 the function `blob_blob_force` in the file `multi_bodies/multi_bodies_functions.py`.
@@ -367,6 +367,18 @@ To modify the _pycuda_ version edit the function
 the function `blob_external_force` in the file `multi_bodies/multi_bodies_functions.py`.
 There are not _C++_ or _pycuda_ versions of this function since
 it is not an expensive operation.
+
+* active slip: the blobs can have an active slip (or swimming gait) as
+described in the Ref. [2](http://arxiv.org/abs/1602.02170). With this
+option we can simulate the dynamics of active bodies like bacteria
+or self-propelled colloids. 
+The code assigns a slip function to each body depending
+on his ID (the name of the clones file without the path
+or the end `.clones`). The default slip is zero for all the
+blobs. The user can generalize this slip by editing the function 
+`set_slip_by_ID` in the file `multi_bodies/multi_bodies_functions.py`.
+We provide an example of how to add a constant slip to all the blobs
+of an active body in the function `active_body_slip` in the same file.
 
 
 ## 5. Software organization
@@ -381,7 +393,7 @@ the schemes to integrate the equations of motion.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
-in the presence of gravity, as described in Section IV.C in [1].
+in the presence of gravity, as described in Section IV.C in [1](http://dx.doi.org/10.1063/1.4932062).
 Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
