@@ -2,8 +2,8 @@
 scheme				mobility
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         boost  # Options: python, boost
-mobility_vector_prod_implementation      python  # Options: python, boost, pycuda
+mobility_blobs_implementation	         python  # Options: python, C++
+mobility_vector_prod_implementation      python  # Options: python, C++, pycuda
 
 # Set viscosity, gravity and blob radius
 eta					 1.0 
@@ -15,17 +15,16 @@ solver_tolerance			 1e-08
 output_name				 data/clean/run.mobility
 
 # Input files
-# slip_file				 slip.dat
 force_file				 force.dat
-velocity_file				 velocity.dat
+#velocity_file				 velocity.dat
 
 # Save more info
 save_body_mobility			 False
 save_blobs_mobility			 False
 
-structure	Generated_boomerang/boomerang_3d_Nblob_15.vertex Generated_boomerang/boomerang_3d_Nblob_15.clones
-structure	Generated_shells/shell_3d_Nblob_42_radius_0_225.vertex Generated_shells/shell_3d_Nblob_42_radius_0_225.clones
-structure	active_body.vertex active_body.clones
+structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure	Structures/shell_N_42_Rg_0_225.vertex Structures/shell_N_42_Rg_0_225.clones
+
 
 
 

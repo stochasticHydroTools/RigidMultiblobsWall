@@ -99,6 +99,9 @@ structure of a boomerang-like particle formed by 15 blobs.
 # Maybe you and Blaise can work together to put an input file here corresponding to the example from the paper
 # about a pair of dimers of active rods that spins
 
+
+## 3. Slip
+
 ## 3. Run static simulations
 We start explaining how to compute the mobility of a rigid body close to a wall.
 First, move to the directory `multi_bodies/` and inspect the input file 
@@ -129,7 +132,7 @@ structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
 
 Now, to run the code, use
 
-`python multi_bodies_utilities.py --input-fule inputfile.dat`
+`python multi_bodies_utilities.py --input-file inputfile.dat`
 
 The code writes the results in files with the prefix `data/run.body_mobility`.
 You can inspect the file `*.body_mobility.dat` to see the 6x6 rigid body mobility.

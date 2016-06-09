@@ -88,13 +88,12 @@ if __name__ ==  '__main__':
     f.write('num_bodies         ' + str(num_bodies) + '\n')
     f.write('num_blobs          ' + str(Nblobs) + '\n')
 
-  # Read slip file
-  slip = np.zeros((Nblobs, 3))
-  if read.slip_file is not None:
-    with open(read.slip_file, 'r') as f:
-      for k, line in enumerate(f):
-        slip[k] = np.array(map(float, line.split()))
-  
+  # Calculate slip on blobs
+  if multi_bodies.calc_slip is not None:
+    slip = multi_bodies.calc_slip(bodies, Nblobs)
+  else:
+    slip = np.zeros((Nblobs, 3))
+
   # Read forces file
   force_torque = np.zeros((num_bodies, 6))
   if read.force_file is not None:
