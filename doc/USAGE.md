@@ -370,8 +370,21 @@ shapes add to the input file one `structure` option per each kind of body.
 
 
 ### 5.1 Modify the codes
-Right now, the slip on the rigid bodies and the interactions between blobs and between blobs and the wall are hard-coded
-in the codes. We explain here how the user can change these functions.
+Right now, the slip on the rigid bodies and the interactions between blobs and between blobs and 
+bodies are hard-coded in the codes. We explain here how the user can change these functions.
+First, we provide two alternatives to compute the interactions between
+bodies. A direct method that uses the locations
+and orientations of the bodies and a indirect form that compute
+the forces between all the blobs forming the rigid bodies and then it uses
+these forces to compute the forces and torques on the bodies
+as explaned in the Refs [1](http://dx.doi.org/10.1063/1.4932062) 
+and [2](http://arxiv.org/abs/1602.02170).
+The second approach can be more expensive, since in general
+`number_of_blobs >> number_of_bodies` but it can
+be used with bodies with arbitrary shapes, while the first
+method it is hard to generalize to non-spherical bodies.
+Note that the code can used both methods at the same time.
+You can modify the following functions:
 
 * blob-blob interactions: to modify the _python_ implementation edit
 the function `blob_blob_force` in the file `multi_bodies/multi_bodies_functions.py`.
@@ -384,6 +397,14 @@ To modify the _pycuda_ version edit the function
 the function `blob_external_force` in the file `multi_bodies/multi_bodies_functions.py`.
 There are not _C++_ or _pycuda_ versions of this function since
 it is not an expensive operation.
+
+* body-body interactions: to modify the _python_ implementation
+edit the function `body_body_force_torque` in the file `multi_bodies/multi_bodies_functions.py`.
+
+* body external forces: to modify the one-body forces,
+for example gravity or interactions with the wall, edit the 
+function `bodies_external_force_torque` in the file
+`multi_bodies/multi_bodies_functions.py`.
 
 * active slip: The code assigns a slip function to each body depending
 on its structure ID; the structure ID is the name of the
