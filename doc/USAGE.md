@@ -266,12 +266,6 @@ The format of the files is the same that in the input .clones files.
 * `.inputfile`: a copy of the input file.
 
 * `.random_state`: it saves the state of the random generator at the start of the simulation. 
-# Donev: For my edification: Seed to most people means something used to initialize the integer
-# Many RNGs have a rather large state (e.g., 600+ integers for the Marsenne Twister) -- is this what is saved?
-# How is the actual initial seed set, i.e., how is the RNG initialized (it is useful to mention this in the documentation)
-# We usually allow as an input a "seed" (integer) that is used to initialize the RNG, this is different from the state
-# Basically every RNG comes with a routine that converts a seed (an integer or so) into a valid state (can be many integers)
-# Allowing users to input a whole state is error prone so not done (but saving/reading to file for restarts is fine)
 
 * `.time`: the wall-clock time elapsed during the simulation (in seconds).
 
@@ -327,22 +321,27 @@ If `initial_step > 0` the code will run from time step `initial_step` to
 
 * `n_save`: (int) save the bodies configuration every `n_save` steps. 
 
-# Donev: It would be better to write down somewhere the potential and using the names of the parameters in the formula below instead of describing in words
-# I know it is in multi_bodies/multi_bodies_functions.py but maybe repeat here
-* `repulsion_strength`: (float) the blobs interact through a Yukawa potential,
-this is the strength of the potential (see section 4.1 to modify blobs interactions).
+* `repulsion_strength`: (float) the blobs interact through a Yukawa potential of the
+form (`U = eps * exp(-r / b) / r`) where `r` is the distance between blobs, `b` is the characteristic
+length and `eps` is the strength. This is the strength of the potential,
+`eps` in the above expression (see section 4.1 to modify blobs interactions).
 
-* `debye_length`: (float) the blobs interact through a Yukawa potential,
-this is the characteristic length of the potential (see section 4.1 to modify blobs interactions).
+* `debye_length`: (float) the blobs interact through a Yukawa potential (`U = eps * exp(-r / b) / r`),
+this is the characteristic length of the potential, `b` in the above expression
+(see section 4.1 to modify blobs interactions).
 
-# That is not really hard core, so the documentation is confusing -- I changed to Yukawa-like. Better write the potential in documentation
-* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential that imitates a hard core
-potential. This is the strength of the Yukawa potential (see section 4.1 to modify blobs interactions). Note that the hard-core repulsion here is important since the Swan-Brady blob mobility is not well-behaved when the blobs overlap the wall.
+* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential 
+that imitates a hard core potential. The potential is
+(`U = eps * a * exp(-(h-a) / b) / (h - a)`) where `h` is the distance between the wall and
+the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
+This is the strength of the Yukawa potential, `eps` in the above formula (see section 4.1 to modify blobs interactions). 
+Note that the hard-core repulsion here is important since the Swan-Brady blob mobility is not well-behaved when the blobs overlap the wall.
 
-* `debye_length_wall`: (float) the blobs interact with the wall with a hard sphere + Yukawa
-potential. This is the characteristic length of the Yukawa potential (see section 4.1 to modify blobs interactions).
+* `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
+potential (`U = eps * a * exp(-(h-a) / b) / (h - a)`). 
+This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 4.1 to modify blobs interactions).
 
-* `random_state`: (string) name of a file with the state of a random generator from a previous simulation.
+* `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
 
 * `seed`: (unsigned int) seed for the random number generator. It is not used
