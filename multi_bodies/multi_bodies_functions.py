@@ -103,7 +103,7 @@ def blob_external_force(r_vectors, *args, **kwargs):
   e = repulsion_strength_wall
   a = blob_radius
   h = distance to the wall
-  b = debey_length_wall
+  b = debye_length_wall
   '''
   f = np.zeros(3)
 
@@ -112,7 +112,7 @@ def blob_external_force(r_vectors, *args, **kwargs):
   blob_radius = kwargs.get('blob_radius')
   g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
-  debey_length_wall = kwargs.get('debey_length_wall')
+  debye_length_wall = kwargs.get('debye_length_wall')
   
   # Add gravity
   f += -g * blob_mass * np.array([0., 0., 1.0])
@@ -120,8 +120,8 @@ def blob_external_force(r_vectors, *args, **kwargs):
   # Add wall interaction
   h = r_vectors[2]
   f += np.array([0., 0., (repulsion_strength_wall * \
-                            ((h - blob_radius) / debey_length_wall + 1.0) * \
-                            np.exp(-1.0 * (h - blob_radius) / debey_length_wall) / \
+                            ((h - blob_radius) / debye_length_wall + 1.0) * \
+                            np.exp(-1.0 * (h - blob_radius) / debye_length_wall) / \
                             ((h - blob_radius)**2))])
   return f
 
@@ -175,11 +175,11 @@ def blob_blob_force(r, *args, **kwargs):
   with
   eps = potential strength
   r_norm = distance between blobs
-  b = Debey length
+  b = Debye length
   '''
   # Get parameters from arguments
   eps = kwargs.get('repulsion_strength')
-  b = kwargs.get('debey_length')
+  b = kwargs.get('debye_length')
   
   # Compute force
   r_norm = np.linalg.norm(r)
@@ -212,7 +212,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   '''
   # Get parameters from arguments
   eps = kwargs.get('repulsion_strength')
-  b = kwargs.get('debey_length')  
+  b = kwargs.get('debye_length')  
 
   number_of_blobs = r_vectors.size / 3
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
@@ -293,7 +293,7 @@ def force_torque_calculator_sort_by_bodies_(bodies, r_vectors, *args, **kwargs):
   '''
   g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
-  debey_length_wall = kwargs.get('debey_length_wall')
+  debye_length_wall = kwargs.get('debye_length_wall')
 
   force_torque_bodies = np.zeros((2*len(bodies), 3))
   offset = 0
@@ -304,8 +304,8 @@ def force_torque_calculator_sort_by_bodies_(bodies, r_vectors, *args, **kwargs):
     for blob in range(b.Nblobs):
       h = r_vectors[offset+blob, 2]
       # Force on blob (wall repulsion + gravity)
-      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debey_length_wall + 1.0) * \
-                                                        np.exp(-1.0*(h - b.blob_radius)/debey_length_wall) / ((h - b.blob_radius)**2))])
+      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debye_length_wall + 1.0) * \
+                                                        np.exp(-1.0*(h - b.blob_radius)/debye_length_wall) / ((h - b.blob_radius)**2))])
       force_blobs[blob:(blob+1)] += - g * np.array([0.0, 0.0, b.blob_masses[blob]])
 
     # Add force to the body

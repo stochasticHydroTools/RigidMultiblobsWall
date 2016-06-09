@@ -1,7 +1,7 @@
 '''
 This modules solves the mobility or the resistance problem for one
 configuration of a multibody supensions and it can save some data like
-the velocities or forces on the bodies, the mobility of the bodies or
+the velocities or forces on the bodies, the mobility of a body or
 the mobility of the blobs.
 '''
 import argparse
@@ -182,7 +182,7 @@ if __name__ ==  '__main__':
     np.savetxt(name, force, delimiter='  ')
     print 'Time to solve resistance problem =', time.time() - start_time  
   
-  elif read.scheme == 'bodies_mobility': 
+  elif read.scheme == 'body_mobility': 
     start_time = time.time()
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
     mobility_blobs = multi_bodies.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
@@ -190,9 +190,9 @@ if __name__ ==  '__main__':
     K = multi_bodies.calc_K_matrix(bodies, Nblobs)
     resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
-    name = read.output_name + '.bodies_mobility.dat'
+    name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
-    print 'Time to compute bodies mobility =', time.time() - start_time
+    print 'Time to compute body mobility =', time.time() - start_time
 
   print '\n\n\n# End'
 

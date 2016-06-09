@@ -20,7 +20,7 @@ namespace bp = boost::python;
   with
   eps = potential strength
   r_norm = distance between blobs
-  b = Debey length
+  b = Debye length
  */
 void blobBlobForce(double *r,
 		   double *f,
@@ -41,7 +41,7 @@ void blobBlobForce(double *r,
 void calcBlobBlobForces(bp::numeric::array r_vectors,
 			bp::numeric::array force,
 			double repulsion_strength,
-			double debey_length,
+			double debye_length,
 			int number_of_blobs){
 
   
@@ -66,7 +66,7 @@ void calcBlobBlobForces(bp::numeric::array r_vectors,
         r[l] = (bp::extract<double>(r_vector_j[l]) - bp::extract<double>(r_vector_i[l]));
       }
       // Compute force between blobs i and j
-      blobBlobForce(r, f, repulsion_strength, debey_length);
+      blobBlobForce(r, f, repulsion_strength, debye_length);
       for (int l = 0; l<3; l++){
 	force[blob_i * 3 + l] += f[l];
 	force[blob_j * 3 + l] -= f[l];
