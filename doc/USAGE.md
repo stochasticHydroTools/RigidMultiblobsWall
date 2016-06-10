@@ -143,7 +143,7 @@ structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
 
 Now, to run the code, use
 
-`python multi_bodies_utilities.py --input-file inputfile.dat`
+`python multi_bodies_utilities.py --input-file inputfile_body_mobility.dat`
 
 The code writes the results in files with the prefix `data/run.body_mobility`.
 You can inspect the file `*.body_mobility.dat` to see the 6x6 rigid body mobility.

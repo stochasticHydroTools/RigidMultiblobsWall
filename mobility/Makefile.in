@@ -6,8 +6,9 @@ PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
 BOOST_INC = ???
 BOOST_LIB = ???
 
-# Location of Fortran libraries
-FORTRAN_LIB = --link-fopenmp -L/path/to/stfmmlib3d-1.2/ -lstfmm3d 
+# Location of Fortran libraries,
+# uncomment to use the Fast Multipole Metho library dstfmmlib3d-1.2
+# FORTRAN_LIB = --link-fopenmp -L/path/to/stfmmlib3d-1.2/ -lstfmm3d 
 
 # 
 TARGET = mobility_ext
