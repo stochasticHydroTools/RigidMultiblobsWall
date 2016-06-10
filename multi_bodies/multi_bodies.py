@@ -223,22 +223,24 @@ if __name__ == '__main__':
   scheme  = read.scheme 
   output_name = read.output_name 
   structure_names = read.structure_names
-  seed = read.seed
   structures = read.structures
   structures_ID = read.structures_ID
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
+  multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
   subprocess.call(["cp", input_file, output_name + '.inputfile'])
 
   # Set random generator state
-  if seed is not None:
-    with open(seed, 'rb') as f:
+  if read.random_state is not None:
+    with open(read.random_state, 'rb') as f:
       np.random.set_state(cPickle.load(f))
+  elif read.seed is not None:
+    np.random.seed(int(read.seed))
   
   # Save random generator state
-  with open(output_name + '.seed', 'wb') as f:
+  with open(output_name + '.random_state', 'wb') as f:
     cPickle.dump(np.random.get_state(), f)
 
   # Create rigid bodies
@@ -279,9 +281,9 @@ if __name__ == '__main__':
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, \
                                                  g = g, \
                                                  repulsion_strength_wall = read.repulsion_strength_wall, \
-                                                 debey_length_wall = read.debey_length_wall, \
+                                                 debye_length_wall = read.debye_length_wall, \
                                                  repulsion_strength = read.repulsion_strength, \
-                                                 debey_length = read.debey_length) 
+                                                 debye_length = read.debye_length) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner
@@ -315,18 +317,18 @@ if __name__ == '__main__':
           body_offset += body_types[i]
 
       # Save mobilities
-      if read.save_blobs_mobility == 'True' or read.save_bodies_mobility == 'True':
+      if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
         r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
         mobility_blobs = integrator.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
         if read.save_blobs_mobility == 'True':
           name = output_name + '.blobs_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_blobs, delimiter='  ')
-        if read.save_bodies_mobility == 'True':
+        if read.save_body_mobility == 'True':
           resistance_blobs = np.linalg.inv(mobility_blobs)
           K = integrator.calc_K_matrix(bodies, Nblobs)
           resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
           mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
-          name = output_name + '.bodies_mobility.' + str(step).zfill(8) + '.dat'
+          name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Advance time step
@@ -352,18 +354,18 @@ if __name__ == '__main__':
                                                  orientation[3]))
         body_offset += body_types[i]
     # Save mobilities
-    if read.save_blobs_mobility == 'True' or read.save_bodies_mobility == 'True':
+    if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
       r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
       mobility_blobs = integrator.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
       if read.save_blobs_mobility == 'True':
         name = output_name + '.blobs_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_blobs, delimiter='  ')
-      if read.save_bodies_mobility == 'True':
+      if read.save_body_mobility == 'True':
         resistance_blobs = np.linalg.inv(mobility_blobs)
         K = integrator.calc_K_matrix(bodies, Nblobs)
         resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
         mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
-        name = output_name + '.bodies_mobility.' + str(step+1).zfill(8) + '.dat'
+        name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
   # Save wallclock time 

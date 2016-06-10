@@ -20,7 +20,7 @@ mod = SourceModule("""
   with
   eps = potential strength
   r_norm = distance between blobs
-  b = Debey length
+  b = Debye length
 */
 __device__ void blob_blob_force(const double rx, 
                                 const double ry, 
@@ -44,7 +44,7 @@ __device__ void blob_blob_force(const double rx,
 __global__ void calc_blob_blob_force(const double *x, 
                                      double *f, 
                                      const double repulsion_strength, 
-                                     const double debey_length,
+                                     const double debye_length,
                                      const int number_of_blobs){
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -67,7 +67,7 @@ __global__ void calc_blob_blob_force(const double *x,
 
     // Compute force between blobs i and j
     if(i != j){
-      blob_blob_force(rx, ry, rz, fx, fy, fz, repulsion_strength, debey_length);
+      blob_blob_force(rx, ry, rz, fx, fy, fz, repulsion_strength, debye_length);
     }
   }
   
@@ -107,7 +107,7 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
 
   # Get parameters from arguments
   eps = kwargs.get('repulsion_strength')
-  b = kwargs.get('debey_length')
+  b = kwargs.get('debye_length')
 
   # Reshape arrays
   x = np.reshape(r_vectors, number_of_blobs * 3)

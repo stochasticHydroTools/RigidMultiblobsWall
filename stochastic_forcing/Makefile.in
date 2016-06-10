@@ -1,0 +1,29 @@
+# location of the Python header files
+PYTHON_VERSION = ???
+PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
+
+# location of the Boost Python include files and library
+BOOST_INC = ???
+BOOST_LIB = ???
+
+
+# compile mesh classes
+TARGET = icc_ext
+TARGET_CUDA = icc_cuda
+
+all: $(TARGET_CUDA).exe $(TARGET).so
+
+$(TARGET_CUDA).exe: $(TARGET_CUDA).o
+	nvcc -arch=sm_20 -lcusparse -lcurand -L/usr/local/cuda/cuda/lib64 -L$(BOOST_LIB) -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) $(TARGET_CUDA).o -o $(TARGET_CUDA).exe
+
+$(TARGET).so: $(TARGET_CUDA).o
+	nvcc  -arch=sm_20 -Xlinker -lcusparse -lcurand -L/usr/local/cuda/cuda/lib64 -shared -L$(BOOST_LIB) -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) $(TARGET_CUDA).o -o $(TARGET).so
+
+$(TARGET).o: $(TARGET).cc
+	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cc
+
+$(TARGET_CUDA).o: $(TARGET_CUDA).cu $(TARGET_CUDA).h
+	nvcc -arch=sm_20 -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -lcusparse -lcurand -shared -Xcompiler -fPIC -c $(TARGET_CUDA).cu 
+
+clean: 
+	rm -f $(TARGET).o $(TARGET_CUDA).o $(TARGET).so $(TARGET_CUDA).exe
