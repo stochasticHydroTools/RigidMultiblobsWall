@@ -25,3 +25,26 @@ Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
 
 For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
+
+### Software organization
+* **body/**: it contains a class to handle a single rigid body.
+* **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
+* **doc/**: documentation.
+* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
+product **Mf**.
+* **multi_bodies/**: codes to run simulations of rigid bodies.
+* **quaternion_integrator/**: it has a small class to handle quaternions and
+the schemes to integrate the equations of motion.
+* **sphere/**: the folder contains an example to simulate a sphere
+whose center of mass is displaced from the geometric center
+(i.e., gravity generates a torque), sedimented near a no-slip wall
+in the presence of gravity, as described in Section IV.C in [1](http://dx.doi.org/10.1063/1.4932062).
+Unlike the boomerang example this code does not use a rigid
+multiblob model of the sphere but rather uses the best known
+(semi)analytical approximations to the sphere mobility.
+See documentation `doc/boomerang.txt`.
+* **stochastic_forcing/**: it contains functions to compute the product
+ **M**^{1/2}**z** necessary to perform Brownian simulations.
+* **utils.py**: this file has some general functions that would be useful for
+general rigid bodies (mostly for analyzing and reading trajectory
+data and for logging).
