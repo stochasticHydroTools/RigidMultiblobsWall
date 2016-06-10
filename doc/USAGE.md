@@ -318,6 +318,7 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
+See Section 5.1 for more details.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -341,28 +342,30 @@ If `initial_step > 0` the code will run from time step `initial_step` to
 * `repulsion_strength`: (float) the blobs interact through a Yukawa potential of the
 form (`U = eps * exp(-r / b) / r`) where `r` is the distance between blobs, `b` is the characteristic
 length and `eps` is the strength. This is the strength of the potential,
-`eps` in the above expression (see section 4.1 to modify blobs interactions).
+`eps` in the above expression (see section 5.1 to modify blobs interactions).
 
 * `debye_length`: (float) the blobs interact through a Yukawa potential (`U = eps * exp(-r / b) / r`),
 this is the characteristic length of the potential, `b` in the above expression
-(see section 4.1 to modify blobs interactions).
+(see section 5.1 to modify blobs interactions).
 
 * `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential 
 that imitates a hard core potential. The potential is
 (`U = eps * a * exp(-(h-a) / b) / (h - a)`) where `h` is the distance between the wall and
 the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
-This is the strength of the Yukawa potential, `eps` in the above formula (see section 4.1 to modify blobs interactions). 
+This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
 Note that the hard-core repulsion here is important since the Swan-Brady blob mobility is not well-behaved when the blobs overlap the wall.
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
 potential (`U = eps * a * exp(-(h-a) / b) / (h - a)`). 
-This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 4.1 to modify blobs interactions).
+This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.1 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
 
 * `seed`: (unsigned int) seed for the random number generator. It is not used
-if a `random_state` is defined in the input file.
+if a `random_state` is defined in the input file. If neither `seed` nor 
+`random_state` are defined the code will automatically initialized
+to a pseudorandom state (see documentation for numpy.random.RandomState).
 
 * `structure`: (two strings) name of the vertex and clones files with the rigid 
 bodies configuration, see section 2. To simulate bodies with different
@@ -370,13 +373,13 @@ shapes add to the input file one `structure` option per each kind of body.
 
 
 ### 5.1 Modify the codes
-Right now, the slip on the rigid bodies and the interactions between blobs and between blobs and 
+Right now, the slip on the rigid bodies and the interactions between blobs and between  
 bodies are hard-coded in the codes. We explain here how the user can change these functions.
 First, we provide two alternatives to compute the interactions between
 bodies. A direct method that uses the locations
 and orientations of the bodies and a indirect form that compute
 the forces between all the blobs forming the rigid bodies and then it uses
-these forces to compute the forces and torques on the bodies
+those forces to compute the forces and torques on the bodies
 as explaned in the Refs [1](http://dx.doi.org/10.1063/1.4932062) 
 and [2](http://arxiv.org/abs/1602.02170).
 The second approach can be more expensive, since in general
