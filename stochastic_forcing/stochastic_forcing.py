@@ -161,6 +161,9 @@ def stochastic_forcing_lanczos(factor = 1.0,
     dim = len(z)
 
   # Create matrix v (initial column is random)
+  # Note: v will have shape (iteration, dim);
+  # in the standard notation used in the Lanczos
+  # scheme v will be the matrix V^T
   if z is None:
     v = np.random.randn(1, dim)
   else:
@@ -221,6 +224,11 @@ def stochastic_forcing_lanczos(factor = 1.0,
 
     # Compute noise approximation as in Eq. 16 of Ando et al. 2012
     noise = np.dot(v.T, np.dot(eig_vectors, v_norm * factor * eig_values_sqrt * np.dot(eig_vectors.T, e_1)))
+
+    # Orthogonalize base with modified Gram-Schmidt;
+    # we use that norm(v[i])=norm(w)=1
+    for row in v:
+      w = w - (np.dot(row, w)) * row 
 
     # v(i+1) = w
     v = np.concatenate([v, [w]])
