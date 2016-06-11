@@ -466,7 +466,6 @@ void RPYInfiniteFluidMobility(bp::list r_vectors,
   double pi = 3.1415926535897932;
   double C1, C2;
   double R[3];
-
   for (int j = 0; j < num_particles; ++j) {
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
     for (int k = j+1; k < num_particles; ++k) {
@@ -543,7 +542,6 @@ void MobilityVectorProductOneParticle(bp::list r_vectors,
   double Mlm;
   double R[3];
   double Rim[3];
-
   //double vectemp[num_particles*3];
   //for(int i =0; i< num_particles*3; ++i){
 	//  vectemp[i]=0.0;
