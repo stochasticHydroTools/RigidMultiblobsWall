@@ -214,9 +214,16 @@ class QuaternionIntegrator(object):
                              mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
+      # Scale RHS to norm 1
+      RHS_norm = np.linalg.norm(RHS)
+      RHS = RHS / RHS_norm
+
       # Solve preconditioned linear system # callback=make_callback()
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
       self.first_guess = sol_precond  
+
+      # Scale solution with RHS norm
+      sol_precond = sol_precond * RHS_norm
 
       # Extract velocities
       return np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
