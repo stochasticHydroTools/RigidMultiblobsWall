@@ -301,20 +301,44 @@ if __name__ == '__main__':
       print 'Integrator = ', scheme, ', step = ', step, ', wallclock time = ', time.time() - start_time
       # For each type of structure save locations and orientations to one file
       body_offset = 0
-      for i, ID in enumerate(structures_ID):
-        name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
-        with open(name, 'w') as f_ID:
-          f_ID.write(str(body_types[i]) + '\n')
-          for j in range(body_types[i]):
-            orientation = bodies[body_offset + j].orientation.entries
-            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                   bodies[body_offset + j].location[1], 
-                                                   bodies[body_offset + j].location[2], 
-                                                   orientation[0], 
-                                                   orientation[1], 
-                                                   orientation[2], 
-                                                   orientation[3]))
-          body_offset += body_types[i]
+      if read.save_clones == 'one_file_per_step':
+        for i, ID in enumerate(structures_ID):
+          name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
+          with open(name, 'w') as f_ID:
+            f_ID.write(str(body_types[i]) + '\n')
+            for j in range(body_types[i]):
+              orientation = bodies[body_offset + j].orientation.entries
+              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                     bodies[body_offset + j].location[1], 
+                                                     bodies[body_offset + j].location[2], 
+                                                     orientation[0], 
+                                                     orientation[1], 
+                                                     orientation[2], 
+                                                     orientation[3]))
+            body_offset += body_types[i]
+      elif read.save_clones == 'one_file':
+        for i, ID in enumerate(structures_ID):
+          name = output_name + '.' + ID + '.config'
+          if step == 0:
+            status = 'w'
+          else:
+            status = 'a'
+          with open(name, status) as f_ID:
+            f_ID.write(str(body_types[i]) + '\n')
+            for j in range(body_types[i]):
+              orientation = bodies[body_offset + j].orientation.entries
+              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                     bodies[body_offset + j].location[1], 
+                                                     bodies[body_offset + j].location[2], 
+                                                     orientation[0], 
+                                                     orientation[1], 
+                                                     orientation[2], 
+                                                     orientation[3]))
+            body_offset += body_types[i]
+      else:
+        print 'Error, save_clones =', read.save_clones, 'is not implemented.'
+        print 'Use \"one_file_per_step\" or \"one_file\". \n'
+        break
 
       # Save mobilities
       if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
@@ -339,20 +363,45 @@ if __name__ == '__main__':
     print 'Integrator = ', scheme, ', step = ', step+1, ', wallclock time = ', time.time() - start_time
     # For each type of structure save locations and orientations to one file
     body_offset = 0
-    for i, ID in enumerate(structures_ID):
-      name = output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
-      with open(name, 'w') as f_ID:
-        f_ID.write(str(body_types[i]) + '\n')
-        for j in range(body_types[i]):
-          orientation = bodies[body_offset + j].orientation.entries
-          f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                 bodies[body_offset + j].location[1], 
-                                                 bodies[body_offset + j].location[2], 
-                                                 orientation[0], 
-                                                 orientation[1], 
-                                                 orientation[2], 
-                                                 orientation[3]))
-        body_offset += body_types[i]
+    if read.save_clones == 'one_file_per_step':
+      for i, ID in enumerate(structures_ID):
+        name = output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
+        with open(name, 'w') as f_ID:
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                   bodies[body_offset + j].location[1], 
+                                                   bodies[body_offset + j].location[2], 
+                                                   orientation[0], 
+                                                   orientation[1], 
+                                                   orientation[2], 
+                                                   orientation[3]))
+          body_offset += body_types[i]
+      
+    elif read.save_clones == 'one_file':
+      for i, ID in enumerate(structures_ID):
+        name = output_name + '.' + ID + '.config'
+        if step == 0:
+          status = 'w'
+        else:
+          status = 'a'
+        with open(name, status) as f_ID:
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                   bodies[body_offset + j].location[1], 
+                                                   bodies[body_offset + j].location[2], 
+                                                   orientation[0], 
+                                                   orientation[1], 
+                                                   orientation[2], 
+                                                   orientation[3]))
+          body_offset += body_types[i]
+    else:
+      print 'Error, save_clones =', read.save_clones, 'is not implemented.'
+      print 'Use \"one_file_per_step\" or \"one_file\". \n'
+
     # Save mobilities
     if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
       r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
