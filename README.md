@@ -19,7 +19,7 @@ The Journal of Chemical Physics, **143**, 144107 (2015).
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
   rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
-  A. Pal Singh Bhalla, B. E. Griffith, and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+  A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, submitted to CAMCoS. [arXiv](http://arxiv.org/abs/1602.02170)
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
