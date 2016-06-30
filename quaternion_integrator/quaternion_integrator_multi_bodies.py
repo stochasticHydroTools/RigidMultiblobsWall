@@ -192,8 +192,8 @@ class QuaternionIntegrator(object):
 
       # Update configuration for rfd
       for k, b in enumerate(self.bodies):
-        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * self.rf_delta * self.blob_radius
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * self.blob_radius)
+        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * self.rf_delta
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta)
         b.orientation_new = quaternion_dt * b.orientation
 
       # Compute bodies' mobility at new configuration
@@ -221,7 +221,7 @@ class QuaternionIntegrator(object):
       mobility_bodies_new = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
 
       # Add thermal drift to velocity
-      velocities += (self.kT / (self.rf_delta * self.blob_radius)) * np.dot(mobility_bodies_new - mobility_bodies, rfd_noise) 
+      velocities += (self.kT / self.rf_delta) * np.dot(mobility_bodies_new - mobility_bodies, rfd_noise) 
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
