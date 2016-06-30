@@ -429,6 +429,24 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
   u_fortran = np.empty_like(r_vectors_fortran, order='F')
   fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
   return np.reshape(u_fortran.T, u_fortran.size)
+
+
+def fmm_rpy(r_vectors, force, eta, a):
+  ''' 
+  Compute the Stokes interaction using the Rotner-Prager
+  tensor. Here there is no wall.
+  It uses the fmm implemented in the library rpyfmm.
+  Must compile mobility_fmm.f90 before this will work
+  (see Makefile).
+  ''' 
+  num_particles = r_vectors.size / 3
+  ier = 0
+  iprec = 1
+  r_vectors_fortran = np.copy(r_vectors.T, order='F')
+  force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
+  u_fortran = np.empty_like(r_vectors_fortran, order='F')
+  fmm.fmm_rpy(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
+  return np.reshape(u_fortran.T, u_fortran.size)
   
 
 def epsilon_tensor(i, j, k):
