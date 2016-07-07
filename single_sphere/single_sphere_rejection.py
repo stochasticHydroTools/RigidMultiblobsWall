@@ -23,16 +23,16 @@ f = open(outFile, 'w')
 
 start_time = time.time() 
 # generate appropriate normalization constant
-partitionZ = s.generate_partition_function()
+partitionZ = s.generate_partition()
 for i in range(n_steps):
 	# get a position from rejection function
-	sample_state = s.single_sphere_generate_equilibrium_sample_rejection(partitionZ)
+	sample_state = s.single_sphere_rejection(partitionZ)
 	# send that position to the data file
 	f.write(str(sample_state[2]) + '\n')
 f.close()
 
 end_time = time.time() - start_time
-print end_time # should take somewhere around 75 seconds for one million heights
+print end_time # should take somewhere around 80 seconds for one million heights
 
 x, y = s.analytical_distribution() # calculate points for the analytical curve
-s.plot_distribution(outFile, x, y) # generate historgram and analytical curve
+s.plot_distribution(outFile, x, y, n_steps) # generate historgram and analytical curve
