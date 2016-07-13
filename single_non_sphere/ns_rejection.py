@@ -28,7 +28,7 @@ orientation = Quaternion(theta/np.linalg.norm(theta)) # orientation is a quatern
 location = [0., 0., 1.1] # the position of the particle
 #sample = [location, orientation]
 
-n_steps = 1000000 # the number of height positions to be generated
+n_steps = 10000 # the number of height positions to be generated
 f = open(outFile, 'w')
 
 start_time = time.time() 

@@ -152,7 +152,6 @@ def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
 	# so there is a throwaway variable trash
 	numBars = int(max_height // (n_steps**(-1/5.)))
 	binValue, xBinLocations, trash = plt.hist(heights, numBars, normed=1, facecolor='green', alpha=0.75)
-	#plt.plot(analytical_x, analytical_y, 'b-', linewidth=1.5)
 	
 	# add error bars to histogram	Nx = # samples in bin	h = bin width
 	# N = total number of samples generated
@@ -166,7 +165,23 @@ def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
 		confidence.append( (4 * np.sqrt(numSamples)) / (binWidth * n_steps)) 
 	plt.errorbar(xError,yError,yerr=confidence,fmt='r.')
 
-	plt.title('Probability distribution of the height z of a single sphere near a wall\n' + 
+	p, q = [], []
+	skip = 100
+	size = 100000
+	for i in range(0, size-skip, skip):
+		average = 0.
+		for j in range(i,i+skip):
+			average += analytical_y[j]
+			#print j
+		average /= float(skip)
+		#print("%f   %f" % (analytical_x[i], average))
+		p.append(analytical_x[i])
+		q.append(average)
+
+	#plt.plot(analytical_x, analytical_y, 'bo', linewidth=1.5)
+	plt.plot(p, q, 'b-', linewidth=2)
+
+	plt.title('Probability distribution of the height z of a single boomerang near a wall\n' + 
 			  'Green: histogram of sampled heights  Blue: GB distribution')
 	plt.xlabel('z (microns)')
 	plt.ylabel('P(z)')
