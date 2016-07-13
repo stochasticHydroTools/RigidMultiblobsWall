@@ -6,7 +6,6 @@ Prints the time taken for all the calculations'''
 import numpy as np
 import time
 import sphere as s
-import matplotlib.pyplot as plt
 
 outFile = 'rejection_locations.txt'
 # constants listed for convenience, none here are changed from what is in sphere.py
@@ -22,8 +21,11 @@ n_steps = 1000000 # the number of height positions to be generated
 f = open(outFile, 'w')
 
 start_time = time.time() 
+
 # generate appropriate normalization constant
-partitionZ = s.generate_partition()
+partition_steps = 10000 # number of samples generated for Z
+partitionZ = s.generate_partition(partition_steps)
+
 for i in range(n_steps):
 	# get a position from rejection function
 	sample_state = s.single_sphere_rejection(partitionZ)
@@ -34,5 +36,7 @@ f.close()
 end_time = time.time() - start_time
 print end_time # should take somewhere around 80 seconds for one million heights
 
-x, y = s.analytical_distribution() # calculate points for the analytical curve
+num_points = 100000
+x, y = s.analytical_distribution(num_points) # calculate points for the analytical curve
+
 s.plot_distribution(outFile, x, y, n_steps) # generate historgram and analytical curve

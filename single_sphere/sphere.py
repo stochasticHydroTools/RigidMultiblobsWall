@@ -58,12 +58,12 @@ def single_sphere_rejection(partitionZ):
 # constant to use in single_sphere_rejection
 # the function uses the maximum sample for the partition function and multiplies by the 
 # constant 2 in order to ensure that the acceptance probability is below 1, always
-def generate_partition():
+def generate_partition(partition_steps):
 	partitionZ = 0
 	#for i in range(100):
 	#	new_location = [0., 0., np.random.uniform(A, max_height)]
 	#	partitionZ += single_sphere_GB(location,new_location)
-	for i in range(10000):
+	for i in range(partition_steps):
 		new_location = [0., 0., np.random.uniform(A, max_height)]
 		sample = single_sphere_GB(new_location)
 		if sample > partitionZ:
@@ -79,7 +79,8 @@ def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
 	heights = np.loadtxt(locationsFile, float)
 	# the hist function returned a 3rd item and I'm not sure how best to handle it yet
 	# so there is a throwaway variable trash
-	binValue, xBinLocations, trash = plt.hist(heights, 357, normed=1, facecolor='green', alpha=0.75)
+	numBars = int(max_height // (n_steps**(-1/5.)))
+	binValue, xBinLocations, trash = plt.hist(heights, numBars, normed=1, facecolor='green', alpha=0.75)
 	plt.plot(analytical_x, analytical_y, 'b-', linewidth=1.5)
 	
 	# add error bars to histogram	Nx = # samples in bin	h = bin width
@@ -102,16 +103,15 @@ def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
 	plt.show()
 
 
-# calculate an input_size numbver of points given by directly computing the Gibbs-Boltzmann distribution
+# calculate an num_points numbver of points given by directly computing the Gibbs-Boltzmann distribution
 # P(h) = exp(-U(h)/KT) / integral(exp(U(h)/KT)dh)
 # calculated using the trapezoidal rule
-def analytical_distribution():
+def analytical_distribution(num_points):
 	# heights are sampled evenly from the chosen bounds, using linspace
 	# because linspace includes starting value A, the first index in x is ignored
 	# if x[0] is included, then in the calculation of potential energy U, h-A = 0
 	# and an exception will be thrown
-	input_size = 100000
-	x = np.linspace(A, max_height, input_size) 
+	x = np.linspace(A, max_height, num_points) 
 	y = []
 	deltaX = x[1] - x[0] 
 	numerator, denominator = 0., 0.
@@ -121,8 +121,8 @@ def analytical_distribution():
 	integral = 0.5*(single_sphere_GB([0., 0., x[1]]) + 
 					single_sphere_GB([0., 0., max_height]))
 	# iterate over the rest of the heights
-	for k in np.linspace(x[2], x[input_size-2], input_size-3):
-		integral += single_sphere_GB([0., 0., k])
+	for k in range(2,num_points):
+		integral += single_sphere_GB([0., 0., x[k]])
 	# multiply by the change in x to complete the integral calculation
 	integral *= deltaX
 
