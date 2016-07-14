@@ -53,6 +53,14 @@ def get_boomerang_r_vectors(location, orientation):
 	x-y plane, with  arm 1-2-3  pointing in the positive x direction, and arm
 	4-5-6 pointing in the positive y direction.
 	Seperation between blobs is currently hard coded at 0.525 um
+        
+        Donev: Even if you hard code a value (which I recommend against -- 
+        you will learn some new programming skills trying to figure out how to pass this as an argument.
+        Ask Floren -- python supports optional arguments with default values. He has had to do something like this.
+        But even if hard-coded, write
+        const=0.525
+        and then use const in the code. This way you can change it with one-line.
+        It is a really really bad idea to hard-code values like this...
 	'''
 	
 	initial_configuration = [np.array([1.575, 0., 0.]),
@@ -85,7 +93,14 @@ def generate_non_sphere_partition(partition_steps):
 		sample = non_sphere_GB(new_location, orientation)
 		if sample > partitionZ:
 			partitionZ = sample
-	return partitionZ*1.1
+	return partitionZ*1.1 # Donev: It is better if this returns partitionZ,
+        # and the *caller* multiplies by 1.1 or whatever *they* want to do
+        # This makes the code modular and separated. This code accepts partition_steps and returns an honest value
+        # The caller decides if they need to call again with more steps or multiply by a safety or whatever
+        # In programming this is called "contract" -- an agreement that a routine does something
+        # without the caller neededing to know what goes on inside in detail
+        # You define what arguments go in, what comes out, and what side-effects the routine has, and this is the contract
+        # you can then change the implementation to something more efficient but not change the calling code
 
 
 
@@ -106,6 +121,7 @@ def non_sphere_rejection(partitionZ):
 # calculate an num_points numbver of points given by directly computing the Gibbs-Boltzmann distribution
 # P(h) = exp(-U(h)/KT) / integral(exp(U(h)/KT)dh)
 # calculated using the trapezoidal rule
+# Donev: Explain to me in person what this does
 def analytical_distribution_non_sphere(num_points):
 	# heights are sampled evenly from the chosen bounds, using linspace
 	# because linspace includes starting value A, the first index in x is ignored
@@ -142,7 +158,7 @@ def analytical_distribution_non_sphere(num_points):
 
 
 
-	# generate the histogram of the heights by reading in the heights from the given file to x
+# generate the histogram of the heights by reading in the heights from the given file to x
 # and plot the analytical distribution curve given by x and y
 # bar width h chosen to be approximately n_steps^(-1/5)
 # so for 1,000,000 steps, 357 bars are used for max_height ~ 22.5 um
