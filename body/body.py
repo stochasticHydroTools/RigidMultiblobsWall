@@ -65,14 +65,14 @@ class Body(object):
       r_vectors[i] = np.dot(rotation_matrix, vec) + location
     return r_vectors
     
-  def calc_rot_matrix(self):
+  def calc_rot_matrix(self, location = None, orientation = None):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
     (R_i x) = -1 (r_i cross x).
     R has shape (3*Nblobs, 3).
     '''
     rot_matrix = np.empty((self.Nblobs, 3, 3))
-    r_vectors = self.get_r_vectors() - self.location
+    r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
     for k, vec in enumerate(r_vectors):
       # Create block
       block = np.array([[0.0, vec[2], -1.0 * vec[1]],
@@ -93,11 +93,11 @@ class Body(object):
       J[i] = np.eye(3)
     return np.reshape(J, (3*self.Nblobs, 3))
 
-  def calc_K_matrix(self):
+  def calc_K_matrix(self, location = None, orientation = None):
     '''
     Return geometric matrix K = [J, rot] with shape (3*Nblobs, 6)
     '''
-    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix()], axis=1)
+    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
                         
 
   def check_function(self, location = None, orientation = None, distance = None):

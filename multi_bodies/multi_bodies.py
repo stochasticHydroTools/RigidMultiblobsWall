@@ -219,7 +219,6 @@ if __name__ == '__main__':
   eta = read.eta 
   g = read.g 
   a = read.blob_radius
-  kT = read.kT
   scheme  = read.scheme 
   output_name = read.output_name 
   structure_names = read.structure_names
@@ -291,6 +290,7 @@ if __name__ == '__main__':
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.tolerance = read.solver_tolerance
+  integrator.kT = read.kT
 
   # Loop over time steps
   start_time = time.time()  
