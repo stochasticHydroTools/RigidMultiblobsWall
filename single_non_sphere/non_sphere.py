@@ -60,7 +60,7 @@ def get_boomerang_r_vectors(location, orientation):
         But even if hard-coded, write
         const=0.525
         and then use const in the code. This way you can change it with one-line.
-        It is a really really bad idea to hard-code values like this...
+        It is a really really bad idea to hard-code values like this..
 	'''
 	
 	initial_configuration = [np.array([1.575, 0., 0.]),
