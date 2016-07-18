@@ -16,9 +16,7 @@ try:
   found_pycuda = True
 except ImportError:
   found_pycuda = False
-print '-----------------------------------------------------F', found_pycuda
 if found_pycuda:
-  print '-----------------------------------------------------k'
   import mobility_pycuda
 # Try to import the mobility fmm implementation
 try:
@@ -129,15 +127,6 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a):
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
-
-  print '\n\n eta', eta
-  print 'a', a
-  print 'num_particles', num_particles
-  print 'vector_res', vector_res.shape
-  print 'r_vec_for_mob', r_vec_for_mob.shape
-  print 'vector', vector.shape, '\n\n'
-
-
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
   return vector_res
 

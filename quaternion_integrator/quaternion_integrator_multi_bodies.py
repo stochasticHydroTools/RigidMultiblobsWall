@@ -8,6 +8,9 @@ from functools import partial
 
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
+from mobility import mobility as mob
+
+import scipy
 
 class QuaternionIntegrator(object):
   '''
@@ -193,21 +196,18 @@ class QuaternionIntegrator(object):
       # Set function M*f at the blob level
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       def mult_mobility_blobs(force = None, r_vectors = None, eta = None, a = None):
-        self.mobility_vector_prod(r_vectors, force, eta, a)
-      mobility_mult = partial(mult_mobility_blobs, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a) 
+        return self.mobility_vector_prod(r_vectors, force, eta, a)
+      mobility_mult_partial = partial(mult_mobility_blobs, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a) 
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
-      print 'Nblobs', self.Nblobs
-      print 'r_vectors', r_vectors_blobs.size, r_vectors_blobs.shape
-      kk = mobility_mult(np.random.randn(0., 1., self.Nblobs * 3))
-      print 'kk', kk.size, kk.shape
-      velocities += stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                          tolerance = self.tolerance, 
-                                                          dim = self.Nblobs * 3, 
-                                                          mobility_mult = mobility_mult)
+      velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                           tolerance = self.tolerance, 
+                                                                           dim = self.Nblobs * 3, 
+                                                                           mobility_mult = mobility_mult_partial)
 
       # Add thermal drift contribution with N at x
-      velocities_drift = -(self.kT / self.rf_delta) * self.solve_mobility_problem(RHS = rfd_noise) 
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      velocities_drift = -(self.kT / self.rf_delta) * self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
@@ -216,10 +216,9 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation
 
       # Add thermal drift contribution with N at x = x + random_displacement
-      velocities_drift += (self.kT / self.rf_delta) * self.solve_mobility_problem(RHS = rfd_noise)  
-
+      velocities_drift += (self.kT / self.rf_delta) * self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
       # Add all velocity contributions
-      velocities += velocities_drift
+      velocities += velocities_drift + velocities_noise
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -333,6 +332,8 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+
       # Get blobs coordinates
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
@@ -343,12 +344,9 @@ class QuaternionIntegrator(object):
           slip = self.calc_slip(self.bodies, self.Nblobs)
         else:
           slip = np.zeros((self.Nblobs, 3))
-
         # Calculate force-torque on bodies
         force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
-
         # Set right hand side
-        System_size = self.Nblobs * 3 + len(self.bodies) * 6
         RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
 
       # Set linear operators 
@@ -378,7 +376,7 @@ class QuaternionIntegrator(object):
         RHS = RHS / RHS_norm
 
       # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=self.tolerance, M=PC, maxiter=1000, callback=make_callback()) 
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
       self.first_guess = sol_precond  
 
       # Scale solution with RHS norm
