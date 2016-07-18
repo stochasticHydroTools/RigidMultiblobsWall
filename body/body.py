@@ -18,9 +18,11 @@ class Body(object):
     # Location as np.array.shape = 3
     self.location = location
     self.location_new = np.copy(location)
+    self.location_old = np.copy(location)
     # Orientation as Quaternion
     self.orientation = orientation
     self.orientation_new = np.copy(orientation)
+    self.orientation_old = np.copy(orientation)
     # Number of blobs
     self.Nblobs = reference_configuration.size / 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]

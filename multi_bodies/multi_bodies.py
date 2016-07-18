@@ -291,6 +291,7 @@ if __name__ == '__main__':
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.tolerance = read.solver_tolerance
   integrator.kT = read.kT
+  integrator.mobility_vector_prod = mobility_vector_prod
 
   # Loop over time steps
   start_time = time.time()  
