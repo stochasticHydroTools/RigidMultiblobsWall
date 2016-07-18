@@ -84,7 +84,7 @@ class QuaternionIntegrator(object):
         return
 
       print 'Invalid configuration'
-      return
+    return
       
 
   def deterministic_forward_euler_dense_algebra(self, dt): 
@@ -119,7 +119,7 @@ class QuaternionIntegrator(object):
         return
 
       print 'Invalid configuration'
-      return
+    return
       
   
   def deterministic_adams_bashforth(self, dt): 
@@ -165,7 +165,7 @@ class QuaternionIntegrator(object):
           b.orientation = b.orientation_new          
         return
     
-    print 'Invalid configuration'      
+      print 'Invalid configuration'      
     return
 
 
@@ -187,8 +187,8 @@ class QuaternionIntegrator(object):
       rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
-      # velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
-      velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
+      velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
+      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update configuration for rfd
       for k, b in enumerate(self.bodies):
@@ -218,7 +218,7 @@ class QuaternionIntegrator(object):
         offset += b.Nblobs
      
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
-      mobility_bodies_new = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
+      mobility_bodies_new = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
 
       # Add thermal drift to velocity
       velocities += (self.kT / self.rf_delta) * np.dot(mobility_bodies_new - mobility_bodies, rfd_noise) 
@@ -242,7 +242,7 @@ class QuaternionIntegrator(object):
         return
 
       print 'Invalid configuration'
-      return
+    return
 
   def solve_mobility_problem(self): 
     ''' 
@@ -345,7 +345,7 @@ class QuaternionIntegrator(object):
       K = self.calc_K_matrix(self.bodies, self.Nblobs)
      
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
-      mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
+      mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
 
       # Compute velocities
       return (np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies))), mobility_bodies)
