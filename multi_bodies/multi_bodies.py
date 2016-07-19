@@ -274,6 +274,8 @@ if __name__ == '__main__':
 
   # Create integrator
   integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+  # integrator.tolerance = read.solver_tolerance
+  # integrator.rf_delta = read.rf_delta
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)

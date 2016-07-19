@@ -49,7 +49,7 @@ class QuaternionIntegrator(object):
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
-      self.rf_delta = 0.1 * np.sqrt(self.tolerance)
+      self.rf_delta = 0.1 * np.power(self.tolerance, 1.0/3.0)
     return 
 
   def advance_time_step(self, dt):
@@ -70,7 +70,10 @@ class QuaternionIntegrator(object):
     ''' 
     while True: 
       # Solve mobility problem
-      velocities = self.solve_mobility_problem()
+      sol_precond = self.solve_mobility_problem()
+      
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -140,7 +143,10 @@ class QuaternionIntegrator(object):
     ''' 
     while True: 
       # Solve mobility problem
-      velocities = self.solve_mobility_problem()
+      sol_precond = self.solve_mobility_problem()
+
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update location and orientation
       if self.first_step == False:
@@ -186,6 +192,8 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      print 'delta', self.rf_delta
+      print 'tol', self.tolerance
       # Save initial configuration
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
@@ -207,20 +215,39 @@ class QuaternionIntegrator(object):
                                                                            mobility_mult = mobility_mult_partial)
 
       # Solve mobility problem
-      velocities = self.solve_mobility_problem(noise = velocities_noise)
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
 
-      # Add thermal drift contribution with N at x
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      velocities_drift = -1.0 * self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location + rfd_noise[k*6 : k*6+3] * self.rf_delta
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta)
-        b.orientation = quaternion_dt * b.orientation
+        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Add thermal drift contribution with N at x = x - random_displacement
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
+
+      # Update configuration for rfd 
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Modify RHS for drift solve
+      # Set linear operators 
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+      linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
+      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
+      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
-      velocities_drift += self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
+      sol_precond = self.solve_mobility_problem(RHS = RHS)
+
+      # Extract velocities
+      velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Add all velocity contributions
       velocities += (self.kT / self.rf_delta) * velocities_drift
@@ -326,7 +353,7 @@ class QuaternionIntegrator(object):
       print 'Invalid configuration'
     return
 
-  def solve_mobility_problem(self, RHS = None, noise = None): 
+  def solve_mobility_problem(self, RHS = None, noise = None, x0 = None, save_first_guess = False): 
     ''' 
     Solve the mobility problem using preconditioned GMRES. Compute 
     velocities on the bodies subject to active slip and enternal 
@@ -385,15 +412,16 @@ class QuaternionIntegrator(object):
         RHS = RHS / RHS_norm
 
       # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=self.first_guess, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
-      self.first_guess = sol_precond  
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
 
       # Scale solution with RHS norm
       if RHS_norm > 0:
         sol_precond = sol_precond * RHS_norm
+      if save_first_guess:
+        self.first_guess = sol_precond  
       
-      # Extract velocities
-      return np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      # Return solution
+      return sol_precond
 
 
   def solve_mobility_problem_dense_algebra(self): 
