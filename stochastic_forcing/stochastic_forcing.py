@@ -249,7 +249,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
           f.write(data)
 
       # Check convergence and return if difference < tolerance
-      if diff_norm / noise_old_norm < tolerance:
+      if diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps) < tolerance:
         if L_mult is None:
           return (noise, i)
         else:

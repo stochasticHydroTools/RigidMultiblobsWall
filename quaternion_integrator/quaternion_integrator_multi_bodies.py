@@ -192,8 +192,6 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
-      print 'delta', self.rf_delta
-      print 'tol', self.tolerance
       # Save initial configuration
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
@@ -212,7 +210,8 @@ class QuaternionIntegrator(object):
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_mult_partial)
+                                                                           mobility_mult = mobility_mult_partial,
+                                                                           max_iter=500)
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
@@ -228,7 +227,7 @@ class QuaternionIntegrator(object):
 
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)))
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
@@ -241,7 +240,7 @@ class QuaternionIntegrator(object):
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), rfd_noise]), (System_size)) - A * sol_precond
+      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
       sol_precond = self.solve_mobility_problem(RHS = RHS)
