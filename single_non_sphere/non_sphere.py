@@ -63,7 +63,7 @@ def get_boomerang_r_vectors(location, orientation, blob_distance = .525):
         But even if hard-coded, write
         const=0.525
         and then use const in the code. This way you can change it with one-line.
-        It is a really really bad idea to hard-code values like this...
+        It is a really really bad idea to hard-code values like this..
 	'''
 	num_blobs = 7
 	initial_configuration = [  np.array([3*blob_distance, 0., 0.]),
