@@ -273,7 +273,9 @@ if __name__ == '__main__':
     f.write('num_blobs          ' + str(Nblobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, Nblobs, scheme) 
+  integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+  # integrator.tolerance = read.solver_tolerance
+  # integrator.rf_delta = read.rf_delta
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -289,8 +291,8 @@ if __name__ == '__main__':
   integrator.eta = eta
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
-  integrator.tolerance = read.solver_tolerance
   integrator.kT = read.kT
+  integrator.mobility_vector_prod = mobility_vector_prod
 
   # Loop over time steps
   start_time = time.time()  
