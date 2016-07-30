@@ -1,0 +1,19 @@
+scheme		deterministic_forward_euler_dense_algebra
+
+# Comment
+dt		0.01
+n_steps		2
+n_save  	1
+n_relaxation	0
+
+# # # 
+# dt		0.2
+
+eta		1 # lksj adjk 
+
+#seed		run.seed
+
+output_name 	run
+structure_names Generated_boomerang/boomerang_3d_Nblob_15 Generated_shells/shell_3d_Nblob_42_radius_0_225
+
+
