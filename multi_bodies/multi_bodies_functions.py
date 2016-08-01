@@ -235,6 +235,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   Call a boost function to compute the blob-blob forces.
   '''
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')  
 
@@ -242,7 +243,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs, L) 
   return np.reshape(forces, (number_of_blobs, 3))
 
 
