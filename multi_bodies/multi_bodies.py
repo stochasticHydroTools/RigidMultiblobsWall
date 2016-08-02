@@ -145,7 +145,7 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs):
   return result
 
 
-def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
+def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   '''
   Return the action of the linear operator of the rigid body on vector v.
   The linear operator is
@@ -153,6 +153,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   | -K^T  0|
   ''' 
   # Reserve memory for the solution and create some variables
+  L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
   Nblobs = r_vectors.size / 3
   Ncomp_bodies = 6 * len(bodies)
@@ -160,7 +161,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   v = np.reshape(vector, (vector.size/3, 3))
   
   # Compute the "slip" part
-  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a) 
+  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
   K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*len(bodies)], Nblobs) 
   res[0:Ncomp_blobs] -= np.reshape(K_times_U, (3*Nblobs))
 
@@ -294,6 +295,7 @@ if __name__ == '__main__':
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
+  integrator.periodic_length = read.periodic_length
 
   # Loop over time steps
   start_time = time.time()  

@@ -114,7 +114,7 @@ def boosted_infinite_fluid_mobility(r_vectors, eta, a):
   return fluid_mobility
 
    
-def boosted_mobility_vector_product(r_vectors, vector, eta, a):
+def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   ''' 
   Compute a mobility * vector product boosted in C++ for a
   speedup. It includes wall corrections.
@@ -130,17 +130,22 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a):
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
   return vector_res
 
-def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
+def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level by the force 
   on the blobs.
   Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
   Blake paper point particle result. 
-  
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
   This function makes use of pycuda.
   '''
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a) 
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs) 
   return velocities
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
@@ -251,8 +256,7 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
 
 
   
-def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, \
-                                                 index_particle):
+def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
   ''' 
   Compute a mobility * vector product for only one particle. Return the 
   velocity of of the desired particle. It includes wall corrections.
@@ -335,11 +339,12 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
 
 
 def rotne_prager_tensor(r_vectors, eta, a):
-  ''' Calculate free rotne prager tensor for particles at locations given by
-  r_vectors (list of 3 dimensional locations) of radius a.'''
+  ''' 
+  Calculate free rotne prager tensor for particles at locations given by
+  r_vectors (list of 3 dimensional locations) of radius a.
+  '''
   num_particles = len(r_vectors)
-  fluid_mobility = np.array([np.zeros(3*num_particles) 
-                             for _ in range(3*num_particles)])
+  fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
   for j in range(num_particles):
     for k in range(num_particles):
       if j != k:
@@ -367,7 +372,8 @@ def rotne_prager_tensor(r_vectors, eta, a):
 
 
 def single_wall_fluid_mobility_product(r_vectors, vector, eta, a):
-  ''' Product (Mobility * vector). Mobility for particles near a wall.  
+  ''' 
+  Product (Mobility * vector). Mobility for particles near a wall.  
   This uses the expression from the Swan and Brady paper for a finite 
   size particle, as opposed to the Blake paper point particle result. 
   '''
