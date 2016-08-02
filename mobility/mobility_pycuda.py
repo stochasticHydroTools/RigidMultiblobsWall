@@ -164,16 +164,12 @@ __global__ void velocity_from_force(const double *x,
   int periodic_x = 0, periodic_y = 0, periodic_z = 0;
   if(Lx > 0){
     periodic_x = 1;
-    Lx =  Lx;
   }
   if(Ly > 0){
     periodic_y = 1;
-    Ly =  Ly;
   }
   if(Lz > 0){
     periodic_z = 1;
-    Lz =  Lz;
-    printf("Lz = %f\\n", Lz);
   }
   
   // Loop over image boxes and then over particles
@@ -217,7 +213,7 @@ __global__ void velocity_from_force(const double *x,
 	  Myx = Mxy;
 	  Mzx = Mxz;
 	  Mzy = Myz;
-	  mobilityUFSingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, i,j_image, invaGPU, x[joffset+2]/a);
+	  // mobilityUFSingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, i,j_image, invaGPU, x[joffset+2]/a);
 	  
 	  //2. Compute product M_ij * F_j
 	  Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1] + Mxz * f[joffset + 2]);
@@ -231,10 +227,10 @@ __global__ void velocity_from_force(const double *x,
 
   //3. Save velocity U_i
   double pi = 4.0 * atan(1.0);
-  double norm_fact_f = 8 * pi * eta * a;
-  u[ioffset    ] = Ux / norm_fact_f;
-  u[ioffset + 1] = Uy / norm_fact_f;
-  u[ioffset + 2] = Uz / norm_fact_f;
+  double norm_fact_f = 1.0 / (8 * pi * eta * a);
+  u[ioffset    ] = Ux * norm_fact_f;
+  u[ioffset + 1] = Uy * norm_fact_f;
+  u[ioffset + 2] = Uz * norm_fact_f;
 
   return;
 }

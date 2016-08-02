@@ -124,10 +124,11 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
   ## WITH BOOST
+  L = kwargs.get('periodic_length')
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
-  me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
+  me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   return vector_res
 
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):

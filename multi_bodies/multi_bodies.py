@@ -387,7 +387,7 @@ if __name__ == '__main__':
     elif read.save_clones == 'one_file':
       for i, ID in enumerate(structures_ID):
         name = output_name + '.' + ID + '.config'
-        if step == 0:
+        if step+1 == 0:
           status = 'w'
         else:
           status = 'a'
