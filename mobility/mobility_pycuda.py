@@ -1157,7 +1157,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
   # Get parameters from arguments
-  L = kwargs.get('periodic_length')
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
 
   # Reshape arrays
   x = np.reshape(r_vectors, number_of_blobs * 3)
@@ -1181,7 +1181,6 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   # Copy data from GPU to CPU (device to host)
   u = np.empty_like(force)
   cuda.memcpy_dtoh(u, u_gpu)
-
   return u
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
