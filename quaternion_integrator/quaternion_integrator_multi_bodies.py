@@ -41,6 +41,7 @@ class QuaternionIntegrator(object):
     self.rf_delta = 1e-05
 
     # Optional variables
+    self.build_stochastic_block_diagonal_preconditioner = None
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_inv_blobs = None
@@ -200,63 +201,19 @@ class QuaternionIntegrator(object):
       # Generate random vector
       rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
 
-      # Get blobs coordinates at initial location
+      # Get blobs vectors
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Here build preconditioner for the Lanczos algorithm
-      use_preconditioner_in_lanczos_algorithm = False
-      mobility_blobs_cholesky = None
-      mobility_blobs_cholesky_inv = None
-      mobility_blobs_cholesky_inv_T = None     
-      if use_preconditioner_in_lanczos_algorithm:
-        mobility_blobs_cholesky = []
-        mobility_blobs_cholesky_inv = []
-        mobility_blobs_cholesky_inv_T = []
-        # 1. Loop over bodies
-        for k, b in enumerate(self.bodies):
-          # 2. Compute cholesky factorization
-          L = b.calc_mobility_blobs_cholesky(self.eta, self.a)
-          mobility_blobs_cholesky.append(L)  
-          # 3. Compute inverse of cholesky factorization
-          L_inv = np.linalg.inv(L)
-          mobility_blobs_cholesky_inv.append(L_inv)
-          mobility_blobs_cholesky_inv_T.append(L_inv.T)
-
-      def multiply_L(force = None, bodies = None, L = None):
-        if L is None:
-          return force
-        else:
-          result = np.empty(force.size)
-          offset = 0
-          for k, b in enumerate(bodies):
-            result[3*offset : 3 * (offset + b.Nblobs)] = np.dot(L[k], force[3*offset : 3 * (offset + b.Nblobs)])
-            offset += b.Nblobs
-          return result
-      multiply_L_partial = partial(multiply_L, bodies = self.bodies, L = mobility_blobs_cholesky)
-
-      def mult_mobility_blobs(force = None, r_vectors = None, eta = None, a = None, bodies = None, L_inv = None, L_inv_T = None):
-        '''
-        Multiply by matrix L_inv*M*L_inv.T
-        '''
-        result = np.empty(force.size)
-        # Multiply by L_inv
-        result = multiply_L(force = force, bodies = bodies, L = L_inv_T)
-        # Multiply by M
-        result_2 = self.mobility_vector_prod(r_vectors, result, eta, a)
-        # Multiply by L
-        return multiply_L(force = np.reshape(result_2, result_2.size), bodies = bodies, L = L_inv)
-
-      mobility_mult_partial = partial(mult_mobility_blobs, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a, bodies = self.bodies, 
-                                      L_inv = mobility_blobs_cholesky_inv, L_inv_T = mobility_blobs_cholesky_inv_T) 
+      # Build stochastic preconditioner
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.eta, self.a)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_mult_partial,
-                                                                           L_mult = multiply_L_partial,
-                                                                           max_iter=500)
-      
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult)
+
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
 
@@ -456,12 +413,12 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system # callback=make_callback()
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
+      if save_first_guess:
+        self.first_guess = sol_precond  
 
       # Scale solution with RHS norm
       if RHS_norm > 0:
         sol_precond = sol_precond * RHS_norm
-      if save_first_guess:
-        self.first_guess = sol_precond  
       
       # Return solution
       return sol_precond
