@@ -412,12 +412,12 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system # callback=make_callback()
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
+      if save_first_guess:
+        self.first_guess = sol_precond  
 
       # Scale solution with RHS norm
       if RHS_norm > 0:
         sol_precond = sol_precond * RHS_norm
-      if save_first_guess:
-        self.first_guess = sol_precond  
       
       # Return solution
       return sol_precond
