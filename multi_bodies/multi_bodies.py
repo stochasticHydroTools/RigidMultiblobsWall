@@ -197,6 +197,69 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
     offset += b.Nblobs
   return result
 
+def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a):
+  '''
+  Build block diagonal preconditioner to generate the noise
+  for rigid bodies. If the mobility of a body at the blob
+  level is M=V*S*V.T we form the preconditioners
+  
+  P = S^{-1/2} * V.T
+  P_inv = V * S^{1/2}
+  
+  and return the functions to compute matrix vector product
+  y = (P * M * P.T) * x
+  y = P_inv * x
+  '''
+  P = []
+  P_inv = []
+  for b in bodies:
+    # Compute blobs mobility for one body
+    mobility = b.calc_mobility_blobs(eta, a)
+    
+    # Compute eigenvalues and eigenvectors 
+    eig_values, eig_vectors = np.linalg.eigh(mobility)
+    
+    # Compute the inverse of the square root of positive eigenvalues and set to zero otherwise
+    eig_values_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 0 else 0 for x in eig_values])
+    eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
+    
+    # Form preconditioners, version P = S^{-1/2} * V.T
+    # P.append(np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T))
+    # P_inv.append(np.dot(eig_vectors, (np.eye(3 * b.Nblobs) * eig_values_sqrt)))
+    # Form preconditioners version P = V * S^{-1/2} * V.T
+    P.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T)))
+    P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))
+    
+  # Define preconditioned mobility matrix product
+  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+    result = np.empty_like(w)
+    # Multiply by P.T
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    # Multiply by M
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a) 
+    # Multiply by P
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return result
+  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
+  
+  # Define inverse preconditioner P_inv
+  def P_inv_mult(w, bodies = None, P_inv = None):
+    offset = 0
+    for k, b in enumerate(bodies):
+      w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return w
+  P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
+
+  # Return preconditioner functions
+  return mobility_pc_partial, P_inv_mult_partial
+
 
 if __name__ == '__main__':
   # Get command line arguments
@@ -293,6 +356,7 @@ if __name__ == '__main__':
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
+  integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
 
   # Loop over time steps
   start_time = time.time()  

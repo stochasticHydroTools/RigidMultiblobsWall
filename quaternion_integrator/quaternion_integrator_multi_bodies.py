@@ -41,6 +41,7 @@ class QuaternionIntegrator(object):
     self.rf_delta = 1e-05
 
     # Optional variables
+    self.build_stochastic_block_diagonal_preconditioner = None
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_inv_blobs = None
@@ -200,18 +201,18 @@ class QuaternionIntegrator(object):
       # Generate random vector
       rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
 
-      # Set function M*f at the blob level
+      # Get blobs vectors
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      def mult_mobility_blobs(force = None, r_vectors = None, eta = None, a = None):
-        return self.mobility_vector_prod(r_vectors, force, eta, a)
-      mobility_mult_partial = partial(mult_mobility_blobs, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a) 
+
+      # Build stochastic preconditioner
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.eta, self.a)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_mult_partial,
-                                                                           max_iter=500)
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult)
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
@@ -412,12 +413,12 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system # callback=make_callback()
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
+      if save_first_guess:
+        self.first_guess = sol_precond  
 
       # Scale solution with RHS norm
       if RHS_norm > 0:
         sol_precond = sol_precond * RHS_norm
-      if save_first_guess:
-        self.first_guess = sol_precond  
       
       # Return solution
       return sol_precond
