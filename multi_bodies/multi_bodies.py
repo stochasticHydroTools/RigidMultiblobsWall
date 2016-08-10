@@ -1,4 +1,4 @@
-import argparse
+gimport argparse
 import numpy as np
 import scipy.linalg as sla
 import subprocess
@@ -223,12 +223,17 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a):
     eig_values_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 0 else 0 for x in eig_values])
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     
+    # Form preconditioners version P = identity matrix (no preconditioner)
+    P.append(np.eye(3 * b.Nblobs))
+    P_inv.append(np.eye(3 * b.Nblobs))
+
     # Form preconditioners, version P = S^{-1/2} * V.T
     # P.append(np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T))
     # P_inv.append(np.dot(eig_vectors, (np.eye(3 * b.Nblobs) * eig_values_sqrt)))
+    
     # Form preconditioners version P = V * S^{-1/2} * V.T
     P.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T)))
-    P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))
+    P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))   
     
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
@@ -239,7 +244,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
-    result_2 = mobility_vector_prod(r_vectors, result, eta, a) 
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a)
     # Multiply by P
     offset = 0
     for k, b in enumerate(bodies):
