@@ -331,3 +331,21 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   return force_torque_bodies
 
 
+def preprocess(bodies, *args, **kwargs):
+  '''
+  This function is call at the start of the schemes.
+  The default version do nothing, it should be modify by
+  the user if he wants to change the schemes.
+  '''
+  return
+
+def postprocess(bodies, *args, **kwargs):
+  '''
+  This function is call at the end of the schemes but
+  before checking if the postions are a valid configuration.
+  The default version do nothing, it should be modify by
+  the user if he wants to change the schemes.
+  '''
+  return
+
+

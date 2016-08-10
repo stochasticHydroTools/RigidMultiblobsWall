@@ -1,4 +1,4 @@
-gimport argparse
+import argparse
 import numpy as np
 import scipy.linalg as sla
 import subprocess
@@ -362,6 +362,8 @@ if __name__ == '__main__':
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
+  integrator.preprocess = multi_bodies_functions.preprocess
+  integrator.postprocess = multi_bodies_functions.postprocess
 
   # Loop over time steps
   start_time = time.time()  

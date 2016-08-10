@@ -70,8 +70,12 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem()
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+      # sol_precond = self.solve_mobility_problem()
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -82,6 +86,9 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation
         
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
@@ -108,6 +115,9 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
       # Solve mobility problem
       velocities, mobility_bodies = self.solve_mobility_problem_dense_algebra()
 
@@ -117,6 +127,9 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation
         
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
@@ -143,8 +156,11 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem()
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
 
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -163,6 +179,9 @@ class QuaternionIntegrator(object):
           b.location_new = b.location + velocities[6*k:6*k+3] * dt
           quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
           b.orientation_new = quaternion_dt * b.orientation              
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
       valid_configuration = True
@@ -193,6 +212,9 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+      
       # Save initial configuration
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
@@ -258,6 +280,9 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation_old
         
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
@@ -289,6 +314,9 @@ class QuaternionIntegrator(object):
     where v_i and w_i are the linear and angular velocities of body i.
     ''' 
     while True: 
+      # Call preprocess
+      preprocessor_result = self.preprocess(self.bodies)
+
       # Solve mobility problem
       velocities, mobility_bodies = self.solve_mobility_problem_dense_algebra()
 
@@ -338,6 +366,9 @@ class QuaternionIntegrator(object):
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation
         
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
       # Check positions, if valid return 
       valid_configuration = True
       for b in self.bodies:
@@ -405,7 +436,7 @@ class QuaternionIntegrator(object):
       PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
                              mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-
+      
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:
@@ -456,9 +487,16 @@ class QuaternionIntegrator(object):
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
+      # Add slip force looping over bodies
+      offset = 0
+      for k, b in enumerate(self.bodies):
+        K = b.calc_K_matrix()
+        force_torque[2*k : 2*(k+1)] -= np.reshape(np.dot(K.T, force_slip[3*offset : 3*(offset+b.Nblobs)]), (2, 3))
+        offset += b.Nblobs    
+
       # Calculate block-diagonal matrix K
       K = self.calc_K_matrix(self.bodies, self.Nblobs)
-     
+    
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
       mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
 
