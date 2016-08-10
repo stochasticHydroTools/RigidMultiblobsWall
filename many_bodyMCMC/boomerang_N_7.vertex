@@ -1,0 +1,15 @@
+# The format is:
+# number of blobs
+# vector_location_blob_0
+# vector_location_blob_1
+# .
+# .
+# .
+7
+1.575  0.  0.
+1.050  0.  0.
+0.525  0.  0.
+0.  0.  0.
+0.  0.525  0.
+0.  1.050  0.
+0.  1.575  0.

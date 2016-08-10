@@ -1,0 +1,4 @@
+# input file for many body MCMC
+# to be read by read_input.py
+structure boomerang_N_7.vertex boomerang_N_7.clones
+n_steps 10000
