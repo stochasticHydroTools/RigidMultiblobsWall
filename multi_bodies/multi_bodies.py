@@ -224,8 +224,8 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a):
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     
     # Form preconditioners version P = identity matrix (no preconditioner)
-    P.append(np.eye(3 * b.Nblobs))
-    P_inv.append(np.eye(3 * b.Nblobs))
+    # P.append(np.eye(3 * b.Nblobs))
+    # P_inv.append(np.eye(3 * b.Nblobs))
 
     # Form preconditioners, version P = S^{-1/2} * V.T
     # P.append(np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T))
