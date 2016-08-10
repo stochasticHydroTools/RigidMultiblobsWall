@@ -153,9 +153,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
-  
   return rot
 
 def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
@@ -168,9 +166,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
-  
   return rot
 
 def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
@@ -183,9 +179,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-  
   return rot
 
 def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
@@ -198,9 +192,7 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-  
   return rot
 
 def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
@@ -213,9 +205,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   
   This function makes use of pycuda.
   '''
-
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
-  
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a) 
   return velocities
 
 
@@ -229,9 +219,7 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   
   This function makes use of pycuda.
   '''
-
-  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
-  
+  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a) 
   return velocities
 
 def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a):
@@ -244,11 +232,22 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   
   This function makes use of pycuda.
   '''
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
-  
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)  
   return velocities
 
 
+def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a)
+  return velocities
 
   
 def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, \
@@ -281,9 +280,7 @@ def single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   velocities = mobility_pycuda.single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a)
-  
   return velocities
 
 
