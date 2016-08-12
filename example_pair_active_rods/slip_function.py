@@ -13,6 +13,8 @@ def slip_extensile_rod(body):
 
   # Slip speed
   speed = -20.0
+  
+  # Identify blobs at the extremities depending on the resolution
   if body.Nblobs == 14:
    Nblobs_covering_ends = 0
    Nlobs_perimeter = 0
@@ -28,21 +30,26 @@ def slip_extensile_rod(body):
   # Get rod orientation
   r_vectors = body.get_r_vectors()
     
+  # Compute end-to-end vector  
   if body.Nblobs>14:
     axis = r_vectors[body.Nblobs- 2*Nblobs_covering_ends-2] - r_vectors[Nlobs_perimeter-2]
   else:
     axis = r_vectors[body.Nblobs-1] - r_vectors[0]
-
+  
   length_rod = np.linalg.norm(axis)+2.0*body.blob_radius
+  
+  # axis = orientation vector
   axis = axis / np.sqrt(np.dot(axis, axis))
   
-  distance_from_center = 0.8
-  lower_bound = length_rod/2.0 - distance_from_center   
+  # Choose the portion of the surface covered with a tangential slip
+  length_covered = 0.8
+  lower_bound = length_rod/2.0 - covered   
   upper_bound = length_rod/2.0
 
   # Create slip  
   slip_blob = []
   for i in range(body.Nblobs):
+  	   # Blobs at the extremities are passive
 		if (Nblobs_covering_ends>0) and (i>=body.Nblobs-2*Nblobs_covering_ends):
 			slip_blob = [0., 0., 0.]
 		else:

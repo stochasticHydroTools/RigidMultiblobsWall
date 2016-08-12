@@ -2,8 +2,8 @@
 scheme				mobility
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         C++  # Options: python, C++
-mobility_vector_prod_implementation      pycuda  # Options: python, C++, pycuda
+mobility_blobs_implementation	         python # Options: python, C++
+mobility_vector_prod_implementation      python  # Options: python, C++, pycuda
 
 # Set viscosity, gravity and blob radius
 eta					 1e-3 
@@ -13,7 +13,7 @@ solver_tolerance			 1e-08
 n_steps      1
 
 # Set output name
-output_name				 data/clean/run.mobility
+output_name				 data/run_high_res
 
 # Input files
 force_file				 ../example_pair_active_rods/force_high_resolution.dat
