@@ -124,7 +124,7 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
   ## WITH BOOST
-  L = kwargs.get('periodic_length')
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
