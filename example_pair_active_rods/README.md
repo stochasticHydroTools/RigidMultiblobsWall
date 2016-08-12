@@ -16,13 +16,13 @@ Each resolution has a specific `inputfiles_*.dat` and `force*.dat` file.
 To generate the apropriate slip distribution on the rod surface, a special `slip_function.py` has been created. 
 This function generate a tangential slip velocity on a given portion of the rod surface which does not include the extremities.
 
-Each resolution has its own `.vertex` and `.clone` file in the folder `multi_bodies/Structures`.
+Each resolution has its own `.vertex` and `.clones` file in the folder `multi_bodies/Structures`.
 
 
 
 ## 2. How to run the example (e.g. with the low resolution)
 
-To run a given resolution you just need the command: 
+To run a given resolution you just need to move to the folder `multi_bodies` and use the command: 
 
 `python multi_bodies_utilities.py --input-file ../example_pair_active_rods/inputfile_low_resolution.dat`
 

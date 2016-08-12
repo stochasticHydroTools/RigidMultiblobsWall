@@ -2,7 +2,7 @@
 scheme				mobility
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         python # Options: python, C++
+mobility_blobs_implementation	         python  # Options: python, C++
 mobility_vector_prod_implementation      python  # Options: python, C++, pycuda
 
 # Set viscosity, gravity and blob radius
@@ -11,13 +11,11 @@ g					 0.0
 blob_radius				 0.183228708092682
 solver_tolerance			 1e-08
 
-
 # Set output name
 output_name				 data/run_low_res
 
 # Input files
 force_file				 ../example_pair_active_rods/force_low_resolution.dat
-
 
 # Save more info
 save_body_mobility			 False

@@ -43,7 +43,7 @@ def slip_extensile_rod(body):
   
   # Choose the portion of the surface covered with a tangential slip
   length_covered = 0.8
-  lower_bound = length_rod/2.0 - covered   
+  lower_bound = length_rod/2.0 - length_covered
   upper_bound = length_rod/2.0
 
   # Create slip  
