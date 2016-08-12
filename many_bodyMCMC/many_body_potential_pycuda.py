@@ -25,17 +25,32 @@ __device__ void repulsionPart(double rx,
                   int j,
                   double debye_part,
                   double kbT,
+                  double epsilon,
                   double diam){
                 
   if(i != j){
     double r = sqrt(rx*rx + ry*ry + rz*rz);
-    double invR = 1.0 / r;
-    double r_diam = r - diam;
+    //double invR = 1.0 / r;
+    //double r_diam = r - diam;
     //if(r_diam < 0)
       //  u += 100;
     //else
-        u += 2*kbT * diam * invR * exp(-debye_part * r_diam * diam);
+    //Yukawa potential used because it is soft
+        //u += 2*kbT * diam * invR * exp(-debye_part * r_diam * diam);
+    u += epsilon * exp(-r / debye_part) / r;
+    return;
   }
+}
+//////////harmonic spring at crosspoints///////////////////
+__device__ void cross_point_spring_potential(double dx,
+                                        double dy,
+                                        double dz,
+                                        double &u,
+                                        double k,
+                                        double r_equilibrium){
+  double r = sqrt(dx*dx + dy*dy + dz*dz);
+  double r2 = (r- r_equilibrium) * (r - r_equilibrium);
+  u += 0.5 * k * r2;
 }
 /*
  force_from_position computes paiwise and wall interactions
@@ -50,6 +65,9 @@ __global__ void potential_from_position(const double *x,
                     double debye_part,
                     double weight,
                     double kbT,
+                    double epsilon,
+                    int cross1_index,
+                    int cross2_index,
                     double diam,
                     double a){
 
@@ -82,9 +100,23 @@ __global__ void potential_from_position(const double *x,
         ry = ry - Ly*trunc(ry/Ly_over_2);
       }
       //2. Compute particle-particle repulsion
-      repulsionPart(rx, ry, rz, u, i,j, debye_part, kbT, diam);
+      repulsionPart(rx, ry, rz, u, i,j, debye_part, kbT, epsilon, diam);
     }
     //LOOP END
+    if(i == cross1_index){
+      double r_eq = 1.0;
+      double dx = x[ioffset] - x[cross2_index*3];
+      double dy = x[ioffset+1] - x[cross2_index*3 + 1];
+      double dz = x[ioffset+2] - x[cross2_index*3+ 2 ];
+      cross_point_spring_potential(dx, dy, dz, u, kbT, r_eq);
+    }
+    else if(i == cross2_index){
+      double r_eq = 1.0;
+      double dx = x[ioffset] - x[cross1_index*3];
+      double dy = x[ioffset+1] - x[cross1_index*3 + 1];
+      double dz = x[ioffset+2] - x[cross1_index*3 + 2 ];
+      cross_point_spring_potential(dx, dy, dz, u, kbT, r_eq);
+    }
   }
   else
   {
@@ -107,6 +139,9 @@ def many_body_potential(r_vectors,\
 				     debye_part,\
 				     weight,\
                      kbT,\
+                     epsilon,\
+                     cross1_index,\
+                     cross2_index,\
 				     diam, a):
    
     # Determine number of threads and blocks for the GPU
@@ -151,6 +186,9 @@ def many_body_potential(r_vectors,\
 		      np.float64(debye_part),\
 		      np.float64(weight),\
               np.float64(kbT),\
+              np.float64(epsilon),\
+              np.int32(cross1_index),\
+              np.int32(cross2_index),\
               np.float64(diam), np.float64(a),\
 		      block=(threads_per_block, 1, 1),\
 		      grid=(num_blocks, 1)) 

@@ -15,13 +15,14 @@ if len(sys.argv) != 2: # script takes input file containing .vertex and .clones 
 	sys.exit()
 input_file = sys.argv[1]
 movie_file = 'movies/movie_trajectories.txt' # file storing trajectories used in steven's animation code
-histogram_file = "hist_heights.txt"
 trajectory_location, trajectory_orientation = [], [] # trajectory lists for steven's animation code
+crosspoint_distances = []
+angles_list = []
 A = 0.265*np.sqrt(3./2.)
 DIAM = 2*A
-Lx = 100. # size of periodic boundary for x
-Ly = 100.
-max_translation = 1
+Lx = 0. # size of periodic boundary for x
+Ly = 0.
+max_translation = 1.
 max_angle_shift = 0.1
 VISCOSITY = 8.9e-4
 WEIGHT = 1.*0.0000000002*(9.8*1e6)/7. # weight of blob
@@ -30,6 +31,8 @@ REPULSION_STRENGTH = 7.5 * KT
 DEBYE_LENGTH_WALL = 0.5*A
 DEBYE_LENGTH_PART = 0.5*A
 max_starting_height = KT/(WEIGHT*7)*12 + A + 4.*DEBYE_LENGTH_WALL
+epsilon = 0.095713728509
+boom1_cross, boom2_cross = 6, 21 # for two size 15 boomerangs
 
 input_blobs = ReadInput(input_file) # ReadInput object will parse input file
 n_steps = input_blobs.n_steps
@@ -45,7 +48,6 @@ for i in range(num_structures):
 	#print body_orientations
 	for j in range(numBodies):
 		body.append( Body(body_locations[j], body_orientations[j], body_vectors, A) )
-
 
 # before MCMC begins, give all bodies random locations and orientations
 # and initialize master array of r_vectors for all blobs in the simulation
@@ -71,6 +73,9 @@ current_state_energy = pycuda.many_body_potential(sample_r_vectors,\
                                                   REPULSION_STRENGTH,\
                                                   DEBYE_LENGTH_PART,\
                                                   WEIGHT, KT,\
+                                                  epsilon,\
+                                                  boom1_cross,\
+                                                  boom2_cross,\
                                                   DIAM, A)
 quaternion_shift = Quaternion(np.array([1,0,0,0])) # quaternion to be used for disturbing the orientation of each body
 # for each step in the Markov chain, disturb each body's location and orientation and obtain the new list of r_vectors
@@ -78,6 +83,7 @@ quaternion_shift = Quaternion(np.array([1,0,0,0])) # quaternion to be used for d
 # 1. if Ej < Ei, always accept the state  2. if Ej < Ei, accept the state according to the probability determined by
 # exp(-(Ej-Ei)/KT). Then record data.
 # Important: record data also when staying in the same state (i.e. when a sample state is rejected)
+
 for step in range(n_steps):
 	blob_index = 0
 	for i in range(numBodies): # distrub bodies
@@ -95,6 +101,9 @@ for step in range(n_steps):
                                                   REPULSION_STRENGTH,\
                                                   DEBYE_LENGTH_PART,\
                                                   WEIGHT, KT,\
+                                                  epsilon,\
+                                                  boom1_cross,\
+                                                  boom2_cross,\
                                                   DIAM, A)
 	# accept or reject the sample state and collect data accordingly
 	if np.random.uniform(0.,1.) < np.exp(-(sample_state_energy - current_state_energy) / KT):
@@ -103,9 +112,20 @@ for step in range(n_steps):
 		# gather locations and orientations for movie made by plot_boomerang_trajectories.py
 		for i in range(numBodies):
 			body[i].location, body[i].orientation = body[i].location_new, body[i].orientation_new
+	
+	# collect data
 	for i in range(numBodies):
 		trajectory_location.append(body[i].location)
 		trajectory_orientation.append(np.concatenate((np.array([body[i].orientation.s]), body[i].orientation.p)))
+
+	crosspoint_distances.append(np.linalg.norm(body[0].get_r_vectors()[7]-body[1].get_r_vectors()[7]))
+
+	#rint body[0].orientation.rotation_matrix()
+	vec = np.matrix(((0,0,1)))
+	angles_list.append(np.linalg.norm(vec * body[0].orientation.rotation_matrix()))
+	angles_list.append(np.linalg.norm(vec * body[1].orientation.rotation_matrix()))
+	#print body[0].get_r_vectors()[6]
+	#print body[1].get_r_vectors()[6]
 	#print current_state_energy
 	#if current_state_energy == 0.:
 	#	break
@@ -118,8 +138,23 @@ utils.write_trajectory_to_txt(movie_file, [trajectory_location,trajectory_orient
 end_time = time.time() - start_time
 print end_time
 
+histogram_z_file = "hist_heights.txt"
 # make histogram of collected heights
-with open(histogram_file, 'w') as f:
+with open(histogram_z_file, 'w') as f:
 	for boom_height in trajectory_location:
 		f.write(str(boom_height[2]) + '\n')
-non_sphere.plot_distribution(histogram_file, [], [], n_steps)
+non_sphere.plot_distribution(histogram_z_file, [], [], n_steps, 'green')
+
+histogram_r_file = "hist_r.txt"
+# make histogram of collected r vectors between crosspoints
+with open(histogram_r_file, 'w') as f:
+	for r in crosspoint_distances:
+		f.write(str(r) + '\n')
+non_sphere.plot_distribution(histogram_r_file, [], [], n_steps, 'green')
+
+histogram_angle_file = "hist_angle.txt"
+# make histogram of collected angles
+with open(histogram_angle_file, 'w') as f:
+	for angle in angles_list:
+		f.write(str(angle) + '\n')
+non_sphere.plot_distribution(histogram_angle_file, [], [], n_steps, 'green')

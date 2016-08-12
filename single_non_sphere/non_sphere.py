@@ -202,13 +202,13 @@ def analytical_distribution_non_sphere(num_points):
 # and plot the analytical distribution curve given by x and y
 # bar width h chosen to be approximately n_steps^(-1/5)
 # so for 1,000,000 steps, 357 bars are used for max_height ~ 22.5 um
-def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
+def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps, color):
 	heights = np.loadtxt(locationsFile, float)
 	# the hist function returned a 3rd item and I'm not sure how best to handle it yet
 	# so there is a throwaway variable trash
 	numBars = int(max_height // (n_steps**(-1/5.)))
-	binValue, xBinLocations, trash = plt.hist(heights, numBars, normed=1, facecolor='green', alpha=0.75)
-	
+	binValue, xBinLocations, trash = plt.hist(heights, numBars, normed=1, facecolor=color, alpha=0.75)
+	plt.hist(heights, numBars, normed=1, facecolor=color, alpha=0.75)
 	# add error bars to histogram	Nx = # samples in bin	h = bin width
 	# N = total number of samples generated
 	# error bar length = (4 * sqrt(Nx)) / (h*N)
@@ -219,7 +219,7 @@ def plot_distribution(locationsFile, analytical_x, analytical_y, n_steps):
 		yError.append(binValue[i]) # height of bin i
 		numSamples = binWidth * binValue[i] * n_steps # samples in bin i
 		confidence.append( (4 * np.sqrt(numSamples)) / (binWidth * n_steps)) 
-	plt.errorbar(xError,yError,yerr=confidence,fmt='r.')
+	#plt.errorbar(xError,yError,yerr=confidence,fmt='r.')
 
 #	p, q = [], []
 #	skip = 1000
