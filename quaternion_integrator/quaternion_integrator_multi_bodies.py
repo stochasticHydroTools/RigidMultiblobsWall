@@ -231,8 +231,7 @@ class QuaternionIntegrator(object):
       mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
                                                                                             r_vectors_blobs, 
                                                                                             self.eta, 
-                                                                                            self.a, 
-                                                                                            periodic_length = self.periodic_length)
+                                                                                            self.a)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),

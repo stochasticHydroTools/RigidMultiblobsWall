@@ -198,7 +198,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
     offset += b.Nblobs
   return result
 
-def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a):
+def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
   '''
   Build block diagonal preconditioner to generate the noise
   for rigid bodies. If the mobility of a body at the blob
