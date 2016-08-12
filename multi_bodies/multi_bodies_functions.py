@@ -24,6 +24,19 @@ if found_pycuda:
   import forces_pycuda  
 
 
+def project_to_periodic_image(r, L):
+  '''
+  Project a vector r to the minimal image representation
+  centered around (0,0,0) and of size L=(Lx, Ly, Lz). If 
+  any dimension of L is equal or smaller than zero the 
+  box is assumed to be infinite in that direction.
+  '''
+  if L is not None:
+    for i in range(3):
+      if(L[i] > 0):
+        r[i] = r[i] - int(r[i] / L[i] + 0.5 * (int(r[i]>0) - int(r[i]<0))) * L[i]
+  return r
+
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
   return np.zeros((r_vectors.size / 3, 3))
 
@@ -187,12 +200,14 @@ def blob_blob_force(r, *args, **kwargs):
   b = Debye length
   '''
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
   
   # Compute force
+  project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
-  return -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
+  return ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
   
 
 def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
@@ -209,8 +224,8 @@ def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
       # Compute vector from j to u
       r = r_vectors[j] - r_vectors[i]
       force = blob_blob_force(r, *args, **kwargs)
-      force_blobs[i] += force
-      force_blobs[j] -= force
+      force_blobs[i] -= force
+      force_blobs[j] += force
 
   return force_blobs
 
@@ -220,6 +235,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   Call a boost function to compute the blob-blob forces.
   '''
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')  
 
@@ -227,7 +243,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs, L) 
   return np.reshape(forces, (number_of_blobs, 3))
 
 
@@ -265,7 +281,7 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   
   # Compute force
   r_norm = np.linalg.norm(r)
-  force_torque[0] = -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2 
+  force_torque[0] = ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2  
   return force_torque
 
 
@@ -284,11 +300,11 @@ def calc_body_body_forces_torques_python(bodies, r_vectors, *args, **kwargs):
       r = bodies[j].location - bodies[i].location
       force_torque = body_body_force_torque(r, bodies[i].orientation, bodies[j].orientation, *args, **kwargs)
       # Add forces
-      force_torque_bodies[2*i] += force_torque[0]
-      force_torque_bodies[2*j] -= force_torque[0]
+      force_torque_bodies[2*i] -= force_torque[0]
+      force_torque_bodies[2*j] += force_torque[0]
       # Add torques
-      force_torque_bodies[2*i+1] += force_torque[1]
-      force_torque_bodies[2*j+1] -= force_torque[1]
+      force_torque_bodies[2*i+1] -= force_torque[1]
+      force_torque_bodies[2*j+1] += force_torque[1]
 
   return force_torque_bodies
 

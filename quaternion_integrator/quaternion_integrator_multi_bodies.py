@@ -42,6 +42,7 @@ class QuaternionIntegrator(object):
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
+    self.periodic_length = None
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_inv_blobs = None
@@ -227,7 +228,11 @@ class QuaternionIntegrator(object):
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
       # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.eta, self.a)
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
+                                                                                            r_vectors_blobs, 
+                                                                                            self.eta, 
+                                                                                            self.a, 
+                                                                                            periodic_length = self.periodic_length)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -261,7 +266,12 @@ class QuaternionIntegrator(object):
       # Modify RHS for drift solve
       # Set linear operators 
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
+      linear_operator_partial = partial(self.linear_operator, 
+                                        bodies=self.bodies, 
+                                        r_vectors=r_vectors_blobs, 
+                                        eta=self.eta, 
+                                        a=self.a, 
+                                        periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
       RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
 
@@ -417,7 +427,12 @@ class QuaternionIntegrator(object):
         RHS[0:r_vectors_blobs.size] -= noise
 
       # Set linear operators 
-      linear_operator_partial = partial(self.linear_operator, bodies=self.bodies, r_vectors=r_vectors_blobs, eta=self.eta, a=self.a)
+      linear_operator_partial = partial(self.linear_operator, 
+                                        bodies=self.bodies, 
+                                        r_vectors=r_vectors_blobs, 
+                                        eta=self.eta, 
+                                        a=self.a, 
+                                        periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
       # Set preconditioner

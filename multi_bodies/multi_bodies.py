@@ -145,7 +145,7 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs):
   return result
 
 
-def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
+def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   '''
   Return the action of the linear operator of the rigid body on vector v.
   The linear operator is
@@ -153,6 +153,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   | -K^T  0|
   ''' 
   # Reserve memory for the solution and create some variables
+  L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
   Nblobs = r_vectors.size / 3
   Ncomp_bodies = 6 * len(bodies)
@@ -160,7 +161,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a):
   v = np.reshape(vector, (vector.size/3, 3))
   
   # Compute the "slip" part
-  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a) 
+  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
   K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*len(bodies)], Nblobs) 
   res[0:Ncomp_blobs] -= np.reshape(K_times_U, (3*Nblobs))
 
@@ -347,12 +348,13 @@ if __name__ == '__main__':
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
-  integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, \
-                                                 g = g, \
-                                                 repulsion_strength_wall = read.repulsion_strength_wall, \
-                                                 debye_length_wall = read.debye_length_wall, \
-                                                 repulsion_strength = read.repulsion_strength, \
-                                                 debye_length = read.debye_length) 
+  integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
+                                               g = g, 
+                                               repulsion_strength_wall = read.repulsion_strength_wall, 
+                                               debye_length_wall = read.debye_length_wall, 
+                                               repulsion_strength = read.repulsion_strength, 
+                                               debye_length = read.debye_length, 
+                                               periodic_length = read.periodic_length) 
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner
@@ -364,6 +366,7 @@ if __name__ == '__main__':
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
   integrator.preprocess = multi_bodies_functions.preprocess
   integrator.postprocess = multi_bodies_functions.postprocess
+  integrator.periodic_length = read.periodic_length
 
   # Loop over time steps
   start_time = time.time()  
@@ -455,7 +458,7 @@ if __name__ == '__main__':
     elif read.save_clones == 'one_file':
       for i, ID in enumerate(structures_ID):
         name = output_name + '.' + ID + '.config'
-        if step == 0:
+        if step+1 == 0:
           status = 'w'
         else:
           status = 'a'
