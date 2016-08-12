@@ -276,10 +276,12 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   force_torque = np.zeros((2, 3))
 
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
   
   # Compute force
+  project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
   force_torque[0] = ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2  
   return force_torque
