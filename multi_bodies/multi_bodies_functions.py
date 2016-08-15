@@ -9,6 +9,7 @@ import sys
 import imp
 
 from quaternion_integrator.quaternion import Quaternion
+from example_pair_active_rods import slip_function as ex_rods_slip
 # Try to import the forces boost implementation
 try:
   import forces_ext
@@ -69,8 +70,13 @@ def set_slip_by_ID(body):
   '''
   if body.ID == 'active_body':
     body.function_slip = active_body_slip
+  elif (body.ID == 'Cylinder_N_14_Lg_1_9295_Rg_0_18323') \
+        or (body.ID == 'Cylinder_N_86_Lg_1_9384_Rg_0_1484') \
+        or (body.ID == 'Cylinder_N_324_Lg_2_0299_Rg_0_1554'):
+    body.function_slip = ex_rods_slip.slip_extensile_rod  
   else:
     body.function_slip = default_zero_blobs
+  return
 
 
 def active_body_slip(body):
