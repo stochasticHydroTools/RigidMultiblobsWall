@@ -289,7 +289,7 @@ def single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a):
   return velocities
 
 
-def single_wall_fluid_mobility(r_vectors, eta, a):
+def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
   Blake paper point particle result. '''
@@ -369,7 +369,7 @@ def rotne_prager_tensor(r_vectors, eta, a):
   return fluid_mobility
 
 
-def single_wall_fluid_mobility_product(r_vectors, vector, eta, a):
+def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwargs):
   ''' 
   Product (Mobility * vector). Mobility for particles near a wall.  
   This uses the expression from the Swan and Brady paper for a finite 
