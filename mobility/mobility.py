@@ -149,7 +149,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs) 
   return velocities
 
-def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
+def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -175,7 +175,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
   return rot
 
-def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
+def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -188,7 +188,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
   return rot
 
-def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
+def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -242,7 +242,7 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   return velocities
 
 
-def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a):
+def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.

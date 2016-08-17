@@ -139,7 +139,7 @@ def blob_external_force(r_vectors, *args, **kwargs):
   blob_mass = kwargs.get('blob_mass')
   blob_radius = kwargs.get('blob_radius')
   g = kwargs.get('g')
-  repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
+  repulsion_strength_wall = kwargs.get('repulsion_strength_wall') 
   debye_length_wall = kwargs.get('debye_length_wall')
 
   # Add gravity
@@ -209,7 +209,7 @@ def blob_blob_force(r, *args, **kwargs):
   L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
-  
+
   # Compute force
   project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
