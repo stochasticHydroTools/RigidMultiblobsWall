@@ -32,7 +32,7 @@ __device__ void blob_blob_force(const double rx,
                                 const double b){
 
   double r = sqrt(rx*rx + ry*ry + rz*rz);
-  double f = ((eps / b) + (eps / r)) * exp(-r / b) / (r*r);
+  double f = -((eps / b) + (eps / r)) * exp(-r / b) / (r*r);
   fx += f * rx;
   fy += f * ry;
   fz += f * rz;
@@ -89,9 +89,9 @@ __global__ void calc_blob_blob_force(const double *x,
   }
   
   // Return forces
-  f[offset_i]     = -fx;
-  f[offset_i + 1] = -fy;
-  f[offset_i + 2] = -fz;
+  f[offset_i]     = fx;
+  f[offset_i + 1] = fy;
+  f[offset_i + 2] = fz;
 }
 """)
 

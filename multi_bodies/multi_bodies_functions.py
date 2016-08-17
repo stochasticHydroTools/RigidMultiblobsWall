@@ -9,6 +9,7 @@ import sys
 import imp
 
 from quaternion_integrator.quaternion import Quaternion
+from example_pair_active_rods import slip_function as ex_rods_slip
 # Try to import the forces boost implementation
 try:
   import forces_ext
@@ -69,8 +70,13 @@ def set_slip_by_ID(body):
   '''
   if body.ID == 'active_body':
     body.function_slip = active_body_slip
+  elif (body.ID == 'Cylinder_N_14_Lg_1_9295_Rg_0_18323') \
+        or (body.ID == 'Cylinder_N_86_Lg_1_9384_Rg_0_1484') \
+        or (body.ID == 'Cylinder_N_324_Lg_2_0299_Rg_0_1554'):
+    body.function_slip = ex_rods_slip.slip_extensile_rod  
   else:
     body.function_slip = default_zero_blobs
+  return
 
 
 def active_body_slip(body):
@@ -207,7 +213,7 @@ def blob_blob_force(r, *args, **kwargs):
   # Compute force
   project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
-  return ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
+  return -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
   
 
 def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
@@ -224,8 +230,8 @@ def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
       # Compute vector from j to u
       r = r_vectors[j] - r_vectors[i]
       force = blob_blob_force(r, *args, **kwargs)
-      force_blobs[i] -= force
-      force_blobs[j] += force
+      force_blobs[i] += force
+      force_blobs[j] -= force
 
   return force_blobs
 
@@ -283,7 +289,7 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   # Compute force
   project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
-  force_torque[0] = ((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2  
+  force_torque[0] = -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2  
   return force_torque
 
 
@@ -302,11 +308,11 @@ def calc_body_body_forces_torques_python(bodies, r_vectors, *args, **kwargs):
       r = bodies[j].location - bodies[i].location
       force_torque = body_body_force_torque(r, bodies[i].orientation, bodies[j].orientation, *args, **kwargs)
       # Add forces
-      force_torque_bodies[2*i] -= force_torque[0]
-      force_torque_bodies[2*j] += force_torque[0]
+      force_torque_bodies[2*i] += force_torque[0]
+      force_torque_bodies[2*j] -= force_torque[0]
       # Add torques
-      force_torque_bodies[2*i+1] -= force_torque[1]
-      force_torque_bodies[2*j+1] += force_torque[1]
+      force_torque_bodies[2*i+1] += force_torque[1]
+      force_torque_bodies[2*j+1] -= force_torque[1]
 
   return force_torque_bodies
 
