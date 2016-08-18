@@ -487,9 +487,6 @@ __global__ void rotation_from_torque_no_wall(const double *x,
  mobilityWFRPY computes the 3x3 RPY mobility
  between blobs i and j that maps forces to
  angular velocities.
- IMPORTANT, we use the right-hand side convection,
- in the paper of Wajnryb et al. 2013 they use
- the left hand side convection!
 
  The mobility is normalized with 8 pi eta a**2.
 */
@@ -526,21 +523,21 @@ __device__ void mobilityWFRPY(double rx,
     double invr3 = 1 / r3;
     double c1;
     if(r>=2){
-      Mxx = 0;
-      Mxy = -rz * invr3;
-      Mxz =  ry * invr3;
-      Myy = 0;
-      Myz = -rx * invr3;
-      Mzz = 0;
+      Mxx =  0;
+      Mxy =  rz * invr3;
+      Mxz = -ry * invr3;
+      Myy =  0;
+      Myz =  rx * invr3;
+      Mzz =  0;
     }
     else{
       c1 =  0.5*( 1 - 0.375 * r); // 3/8 = 0.375
-      Mxx = 0;
-      Mxy = -c1 * rz;
-      Mxz = c1 * ry ;
-      Myy = 0;
-      Myz = -c1 * rx;
-      Mzz = 0;
+      Mxx =  0;
+      Mxy =  c1 * rz;
+      Mxz = -c1 * ry ;
+      Myy =  0;
+      Myz =  c1 * rx;
+      Mzz =  0;
     }
   } 
   return;
@@ -769,22 +766,22 @@ __device__ void mobilityUTRPY(double rx,
     double invr3 = 1 / r3;
     double c1;
     if(r>=2){
-      Mxx = 0;
-      Mxy = rz * invr3;
+      Mxx =  0;
+      Mxy =  rz * invr3;
       Mxz = -ry * invr3;
-      Myy = 0;
-      Myz = rx * invr3;
-      Mzz = 0;
+      Myy =  0;
+      Myz =  rx * invr3;
+      Mzz =  0;
    
     }
     else{
       c1 = 0.5 * (1 - 0.375 * r); // 3/8 = 0.375
-      Mxx = 0;
-      Mxy = c1 * rz;
+      Mxx =  0;
+      Mxy =  c1 * rz;
       Mxz = -c1 * ry ;
-      Myy = 0;
-      Myz = c1 * rx;
-      Mzz = 0;
+      Myy =  0;
+      Myz =  c1 * rx;
+      Mzz =  0;
     }
   } 
   
