@@ -487,9 +487,6 @@ __global__ void rotation_from_torque_no_wall(const double *x,
  mobilityWFRPY computes the 3x3 RPY mobility
  between blobs i and j that maps forces to
  angular velocities.
- IMPORTANT, we use the right-hand side convection,
- in the paper of Wajnryb et al. 2013 they use
- the left hand side convection!
 
  The mobility is normalized with 8 pi eta a**2.
 */
@@ -526,21 +523,21 @@ __device__ void mobilityWFRPY(double rx,
     double invr3 = 1 / r3;
     double c1;
     if(r>=2){
-      Mxx = 0;
-      Mxy = -rz * invr3;
-      Mxz =  ry * invr3;
-      Myy = 0;
-      Myz = -rx * invr3;
-      Mzz = 0;
+      Mxx =  0;
+      Mxy =  rz * invr3;
+      Mxz = -ry * invr3;
+      Myy =  0;
+      Myz =  rx * invr3;
+      Mzz =  0;
     }
     else{
       c1 =  0.5*( 1 - 0.375 * r); // 3/8 = 0.375
-      Mxx = 0;
-      Mxy = -c1 * rz;
-      Mxz = c1 * ry ;
-      Myy = 0;
-      Myz = -c1 * rx;
-      Mzz = 0;
+      Mxx =  0;
+      Mxy =  c1 * rz;
+      Mxz = -c1 * ry ;
+      Myy =  0;
+      Myz =  c1 * rx;
+      Mzz =  0;
     }
   } 
   return;
@@ -591,7 +588,7 @@ __device__ void mobilityWFSingleWallCorrection(double rx,
     double fact4 = -ez*(h_hat*invR2 - invR4) * 2;
     
     Mxx -=                       - fact3*ex*ey;
-    Mxy -=   fact1*ez -            fact3*ey*ey + fact4;
+    Mxy -=   fact1*ez            - fact3*ey*ey + fact4;
     Mxz -= - fact1*ey - fact2*ey - fact3*ey*ez;
     Myx -= - fact1*ez            + fact3*ex*ex - fact4;
     Myy -=                         fact3*ex*ey;
@@ -769,22 +766,22 @@ __device__ void mobilityUTRPY(double rx,
     double invr3 = 1 / r3;
     double c1;
     if(r>=2){
-      Mxx = 0;
-      Mxy = rz * invr3;
+      Mxx =  0;
+      Mxy =  rz * invr3;
       Mxz = -ry * invr3;
-      Myy = 0;
-      Myz = rx * invr3;
-      Mzz = 0;
+      Myy =  0;
+      Myz =  rx * invr3;
+      Mzz =  0;
    
     }
     else{
       c1 = 0.5 * (1 - 0.375 * r); // 3/8 = 0.375
-      Mxx = 0;
-      Mxy = c1 * rz;
+      Mxx =  0;
+      Mxy =  c1 * rz;
       Mxz = -c1 * ry ;
-      Myy = 0;
-      Myz = c1 * rx;
-      Mzz = 0;
+      Myy =  0;
+      Myz =  c1 * rx;
+      Mzz =  0;
     }
   } 
   
@@ -845,7 +842,6 @@ __device__ void mobilityUTSingleWallCorrection(double rx,
     Mzx -= - fact1*ey - fact2*ey - fact3*ey*ez        ;
     Mzy -=   fact1*ex + fact2*ex + fact3*ex*ez        ;
   }
-
 }
 
 
@@ -1065,10 +1061,10 @@ __global__ void velocity_from_torque(const double *x,
 
   //3. Save velocity U_i
   double pi = 4.0 * atan(1.0);
-  double norm_fact_t = 8 * pi * eta * a2;
-  u[ioffset    ] = Utx / norm_fact_t ;
-  u[ioffset + 1] = Uty / norm_fact_t ;
-  u[ioffset + 2] = Utz / norm_fact_t ;
+  double norm_fact_t = 1.0 / (8 * pi * eta * a2);
+  u[ioffset    ] = Utx * norm_fact_t ;
+  u[ioffset + 1] = Uty * norm_fact_t ;
+  u[ioffset + 2] = Utz * norm_fact_t ;
 
   return;
 }
