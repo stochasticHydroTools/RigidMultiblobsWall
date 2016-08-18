@@ -241,6 +241,21 @@ class QuaternionIntegratorRollers(object):
     # velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
 
 
+    # Set force and torque, this is for testing the mobility functions
+    if False:
+      force = np.zeros(3 * Nblobs)
+      torque = np.zeros(3 * Nblobs)
+      
+      velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, torque, self.eta, self.a)
+      angular_velocity  = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a)
+      angular_velocity += mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors_blobs, torque, self.eta, self.a)      
+
+      print 'force ', force
+      print 'torque ', torque
+
+      print 'velocity ', velocity
+      print 'omega ', angular_velocity, '\n\n\n'
+    
     # Return linear velocity and torque
     return velocity, sol_precond
       
