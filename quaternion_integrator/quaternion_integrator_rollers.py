@@ -5,6 +5,7 @@ import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
+import time
 
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
@@ -125,6 +126,49 @@ class QuaternionIntegratorRollers(object):
     return
 
 
+  def stochastic_adams_bashforth(self, dt):
+    '''
+    Take a time step of length dt using a first order
+    stochastic integrator.
+    '''
+    while True:
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+
+      # Compute deterministic velocity
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      
+      # Compute stochastic velocity
+      stoch_velocity = self.compute_stochastic_velocity(dt)
+
+      # Add velocities
+      if self.First_step is False:
+        # Use Adams-Bashforth
+        velocity = 1.5 * det_velocity - 0.5 * self.velocities_previous_step + stoch_velocity
+      else:
+        # Use forward Euler
+        velocity = det_velocity + stoch_velocity
+
+      # Update position   
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
+
+      # Check if configuration is valid and update postions if so
+      valid_configuration = True
+      for b in self.bodies:
+        if b.location_new[2] < self.a:      
+          valid_configuration = False
+          break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = det_velocity
+        for b in self.bodies:
+          b.location = b.location_new            
+        return
+      print 'Invalid configuration'
+    return
+
 
   def compute_deterministic_velocity_and_torque(self):
     '''
@@ -183,7 +227,8 @@ class QuaternionIntegratorRollers(object):
                                              x0=self.deterministic_torque_previous_step, 
                                              tol=self.tolerance, 
                                              maxiter=1000, 
-                                             restart=60) 
+                                             restart=60,
+                                             callback=make_callback()) 
     self.deterministic_torque_previous_step = sol_precond
 
     # Scale solution with RHS norm
@@ -234,12 +279,11 @@ class QuaternionIntegratorRollers(object):
     # Define grand mobility matrix
     def grand_mobility_matrix(force_torque, r_vectors = None, eta = None, a = None, periodic_length = None):
       half_size = force_torque.size / 2
-      zero_vec = np.zeros(half_size)
       # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a)
       velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
       velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
       angular_velocity  = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
-      angular_velocity += mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
+      angular_velocity += mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)      
       return np.concatenate([velocity, angular_velocity])
     partial_grand_mobility_matrix = partial(grand_mobility_matrix, 
                                             r_vectors = r_vectors_blobs, 
@@ -253,8 +297,9 @@ class QuaternionIntegratorRollers(object):
                                                                          dim = self.Nblobs * 6, 
                                                                          mobility_mult = partial_grand_mobility_matrix,
                                                                          z = z,
-                                                                         name = 'data/rollers/noise.dat',
-                                                                         max_iter = 40)
+                                                                         max_iter = 100,
+                                                                         name = 'data/rollers/noise.dat')
+
     # Compute divergence terms div_t(M_rt) and div_t(M_tt)
     # 1. Generate random displacement
     dx_stoch = np.reshape(np.random.randn(Nblobs * 3), (Nblobs, 3))
@@ -295,7 +340,8 @@ class QuaternionIntegratorRollers(object):
                                              RHS, 
                                              tol=self.tolerance, 
                                              maxiter=1000, 
-                                             restart=60) 
+                                             restart=60,
+                                             callback=make_callback()) 
 
     # Scale solution with RHS norm
     if RHS_norm > 0:
@@ -305,7 +351,7 @@ class QuaternionIntegratorRollers(object):
     v_stoch = mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     v_stoch += velocities_noise[0 : velocities_noise.size / 2] + self.kT * div_M_tt
 
-    return np.zeros(3 * Nblobs)
+    return v_stoch
   
 
 
