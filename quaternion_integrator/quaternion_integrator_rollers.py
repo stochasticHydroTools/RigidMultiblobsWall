@@ -227,8 +227,7 @@ class QuaternionIntegratorRollers(object):
                                              x0=self.deterministic_torque_previous_step, 
                                              tol=self.tolerance, 
                                              maxiter=1000, 
-                                             restart=60,
-                                             callback=make_callback()) 
+                                             restart=60) 
     self.deterministic_torque_previous_step = sol_precond
 
     # Scale solution with RHS norm
@@ -236,25 +235,9 @@ class QuaternionIntegratorRollers(object):
       sol_precond = sol_precond * RHS_norm
 
     # Compute linear velocity
-    velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a)
-    # velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
-    # velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
-
-
-    # Set force and torque, this is for testing the mobility functions
-    if False:
-      force = np.zeros(3 * Nblobs)
-      torque = np.zeros(3 * Nblobs)
-      
-      velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, torque, self.eta, self.a)
-      angular_velocity  = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a)
-      angular_velocity += mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors_blobs, torque, self.eta, self.a)      
-
-      print 'force ', force
-      print 'torque ', torque
-
-      print 'velocity ', velocity
-      print 'omega ', angular_velocity, '\n\n\n'
+    # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a)
+    velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
+    velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     
     # Return linear velocity and torque
     return velocity, sol_precond
@@ -311,9 +294,7 @@ class QuaternionIntegratorRollers(object):
                                                                          tolerance = self.tolerance, 
                                                                          dim = self.Nblobs * 6, 
                                                                          mobility_mult = partial_grand_mobility_matrix,
-                                                                         z = z,
-                                                                         max_iter = 100,
-                                                                         name = 'data/rollers/noise.dat')
+                                                                         z = z)
 
     # Compute divergence terms div_t(M_rt) and div_t(M_tt)
     # 1. Generate random displacement
@@ -355,8 +336,7 @@ class QuaternionIntegratorRollers(object):
                                              RHS, 
                                              tol=self.tolerance, 
                                              maxiter=1000, 
-                                             restart=60,
-                                             callback=make_callback()) 
+                                             restart=60) 
 
     # Scale solution with RHS norm
     if RHS_norm > 0:
