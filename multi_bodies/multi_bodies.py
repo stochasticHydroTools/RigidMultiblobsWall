@@ -358,7 +358,8 @@ if __name__ == '__main__':
                                                repulsion_strength = read.repulsion_strength,
                                                debye_length = read.debye_length, 
                                                periodic_length = read.periodic_length)
-
+    integrator.omega_one_roller = read.omega_one_roller
+    integrator.free_kinematics = read.free_kinematics
 
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 

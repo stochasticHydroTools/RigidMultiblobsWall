@@ -41,6 +41,8 @@ class QuaternionIntegratorRollers(object):
     self.kT = 0.0
     self.tolerance = 1e-08
     self.rf_delta = 1e-05
+    self.omega_one_roller = None
+    self.free_kinematics = 'False'
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -201,38 +203,44 @@ class QuaternionIntegratorRollers(object):
     force += self.calc_blob_blob_forces(r_vectors_blobs, blob_radius = self.a)  
     force = np.reshape(force, force.size)
 
-    # Set rollers angular velocity
-    omega = np.empty(3 * len(self.bodies))
-    for i in range(len(self.bodies)):
-      omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
+    # Use constraint motion or free kinematics
+    if self.free_kinematics == 'False':
+      # Set rollers angular velocity
+      omega = np.empty(3 * len(self.bodies))
+      for i in range(len(self.bodies)):
+        omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
 
-    # Set RHS = omega - M_rt * force
-    RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a)
+      # Set RHS = omega - M_rt * force 
+      RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a)
 
-    # Set linear operator
-    system_size = 3 * len(self.bodies)
-    def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
-      return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-    linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
-    A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
+      # Set linear operator 
+      system_size = 3 * len(self.bodies)
+      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
+        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
+      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
+      A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
-    # Scale RHS to norm 1
-    RHS_norm = np.linalg.norm(RHS)
-    if RHS_norm > 0:
-      RHS = RHS / RHS_norm
+      # Scale RHS to norm 1
+      RHS_norm = np.linalg.norm(RHS)
+      if RHS_norm > 0:
+        RHS = RHS / RHS_norm
 
-    # Solve linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, 
-                                             RHS, 
-                                             x0=self.deterministic_torque_previous_step, 
-                                             tol=self.tolerance, 
-                                             maxiter=1000, 
-                                             restart=60) 
-    self.deterministic_torque_previous_step = sol_precond
+      # Solve linear system # callback=make_callback()
+      (sol_precond, info_precond) = spla.gmres(A, 
+                                               RHS, 
+                                               x0=self.deterministic_torque_previous_step, 
+                                               tol=self.tolerance, 
+                                               maxiter=1000, 
+                                               restart=60) 
+      self.deterministic_torque_previous_step = sol_precond
 
-    # Scale solution with RHS norm
-    if RHS_norm > 0:
-      sol_precond = sol_precond * RHS_norm
+      # Scale solution with RHS norm
+      if RHS_norm > 0:
+        sol_precond = sol_precond * RHS_norm
+
+    else:
+      # This is free kinematics, compute torque
+      sol_precond = self.get_torque()
 
     # Compute linear velocity
     # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a)
@@ -313,46 +321,63 @@ class QuaternionIntegratorRollers(object):
                                                                 periodic_length = self.periodic_length)
     div_M_tt -= mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                   periodic_length = self.periodic_length)
-    # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
-    RHS = -velocities_noise[velocities_noise.size / 2:] - div_M_rt * (self.kT / self.rf_delta)
 
     # Reset blobs location
     r_vectors_blobs += dx_stoch * (self.rf_delta * 0.5)
 
-    # Set linear operator
-    system_size = 3 * len(self.bodies)
-    def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
-      return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-    linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
-    A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
+    # Use constraint motion or free kinematics
+    if self.free_kinematics == 'False':
+      # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
+      RHS = -velocities_noise[velocities_noise.size / 2:] - div_M_rt * (self.kT / self.rf_delta)
 
-    # Scale RHS to norm 1
-    RHS_norm = np.linalg.norm(RHS)
-    if RHS_norm > 0:
-      RHS = RHS / RHS_norm
+      # Set linear operator
+      system_size = 3 * len(self.bodies)
+      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
+        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
+      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
+      A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
-    # Solve linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, 
-                                             RHS, 
-                                             tol=self.tolerance, 
-                                             maxiter=1000, 
-                                             restart=60) 
+      # Scale RHS to norm 1
+      RHS_norm = np.linalg.norm(RHS)
+      if RHS_norm > 0:
+        RHS = RHS / RHS_norm
 
-    # Scale solution with RHS norm
-    if RHS_norm > 0:
-      sol_precond = sol_precond * RHS_norm
+      # Solve linear system # callback=make_callback()
+      (sol_precond, info_precond) = spla.gmres(A, 
+                                               RHS, 
+                                               tol=self.tolerance, 
+                                               maxiter=1000, 
+                                               restart=60) 
+
+      # Scale solution with RHS norm
+      if RHS_norm > 0:
+        sol_precond = sol_precond * RHS_norm
+      
+    else:
+      # This is free kinematics, stochastic torque set to zero
+      # because we only care for the translational degrees of freedom
+      sol_precond = np.zeros(3 * Nblobs)
 
     # Compute stochastic velocity v_stoch = M_tr * T + sqrt(2*kT) * (N^{1/2}*W)_t + kT*div_t(M_tt).
     v_stoch = mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     v_stoch += velocities_noise[0 : velocities_noise.size / 2] + self.kT * div_M_tt
-
     return v_stoch
   
 
-
   def get_omega_one_roller(self):
-    return np.array([0.0, 1.0, 0.0])
+    '''
+    The the angular velocity of one roller for
+    prescribed kinematics. 
+    '''
+    return self.omega_one_roller
 
+
+  def get_torque(self):
+    '''
+    Get torque acting on the blobs for free kinematics.
+    In this version is set to zero.
+    '''
+    return np.zeros(3 * len(self.bodies))
 
 # Callback generator
 def make_callback():
