@@ -145,12 +145,13 @@ class QuaternionIntegratorRollers(object):
       stoch_velocity = self.compute_stochastic_velocity(dt)
 
       # Add velocities
-      if self.First_step is False:
+      if self.first_step is False:
         # Use Adams-Bashforth
         velocity = 1.5 * det_velocity - 0.5 * self.velocities_previous_step + stoch_velocity
       else:
         # Use forward Euler
         velocity = det_velocity + stoch_velocity
+        self.first_step = False
 
       # Update position   
       for k, b in enumerate(self.bodies):
@@ -327,7 +328,7 @@ class QuaternionIntegratorRollers(object):
 
     # Use constraint motion or free kinematics
     if self.free_kinematics == 'False':
-      # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
+       # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
       RHS = -velocities_noise[velocities_noise.size / 2:] - div_M_rt * (self.kT / self.rf_delta)
 
       # Set linear operator
@@ -360,7 +361,7 @@ class QuaternionIntegratorRollers(object):
 
     # Compute stochastic velocity v_stoch = M_tr * T + sqrt(2*kT) * (N^{1/2}*W)_t + kT*div_t(M_tt).
     v_stoch = mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
-    v_stoch += velocities_noise[0 : velocities_noise.size / 2] + self.kT * div_M_tt
+    v_stoch += velocities_noise[0 : velocities_noise.size / 2] + (self.kT / self.rf_delta) * div_M_tt 
     return v_stoch
   
 
