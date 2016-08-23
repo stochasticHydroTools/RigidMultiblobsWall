@@ -212,14 +212,14 @@ class QuaternionIntegratorRollers(object):
         omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
 
       # Set RHS = omega - M_rt * force 
-      # RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a)
+      # RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
       RHS = omega
 
       # Set linear operator 
       system_size = 3 * len(self.bodies)
-      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
-        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
+      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None, periodic_length = None):
+        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, periodic_length = periodic_length)
+      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a, periodic_length = self.periodic_length)
       A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
       # Scale RHS to norm 1
@@ -244,7 +244,7 @@ class QuaternionIntegratorRollers(object):
       sol_precond = self.get_torque()
 
     # Compute linear velocity
-    # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a)
+    # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
     velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     
@@ -286,7 +286,7 @@ class QuaternionIntegratorRollers(object):
     # Define grand mobility matrix
     def grand_mobility_matrix(force_torque, r_vectors = None, eta = None, a = None, periodic_length = None):
       half_size = force_torque.size / 2
-      # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a)
+      # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a, periodic_length = periodic_length)
       velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
       velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
       angular_velocity  = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
@@ -333,9 +333,9 @@ class QuaternionIntegratorRollers(object):
 
       # Set linear operator
       system_size = 3 * len(self.bodies)
-      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None):
-        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a)
+      def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None, periodic_length = None):
+        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, periodic_length = periodic_length)
+      linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a, periodic_length = self.periodic_length)
       A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
       # Scale RHS to norm 1
