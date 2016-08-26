@@ -40,7 +40,7 @@ class QuaternionIntegratorRollers(object):
     self.first_step = True
     self.kT = 0.0
     self.tolerance = 1e-08
-    self.rf_delta = 1e-05
+    self.rf_delta = 1e-06
     self.omega_one_roller = None
     self.free_kinematics = 'False'
 
@@ -55,7 +55,6 @@ class QuaternionIntegratorRollers(object):
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
-      self.rf_delta = 0.1 * np.power(self.tolerance, 1.0/3.0)
     return 
 
   def advance_time_step(self, dt):
@@ -212,8 +211,7 @@ class QuaternionIntegratorRollers(object):
         omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
 
       # Set RHS = omega - M_rt * force 
-      # RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
-      RHS = omega
+      RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
 
       # Set linear operator 
       system_size = 3 * len(self.bodies)
