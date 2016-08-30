@@ -390,7 +390,7 @@ if __name__ == '__main__':
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'Integrator = ', scheme, ', step = ', step, ', wallclock time = ', time.time() - start_time
+      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -452,7 +452,7 @@ if __name__ == '__main__':
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
-    print 'Integrator = ', scheme, ', step = ', step+1, ', wallclock time = ', time.time() - start_time
+    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
@@ -512,7 +512,9 @@ if __name__ == '__main__':
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
-
+  # Save number of invalid configurations
+  with open(output_name + '.number_invalid_configurations', 'w') as f:
+    f.write(str(integrator.invalid_configuration_count) + '\n')
 
 
   print '\n\n\n# End'
