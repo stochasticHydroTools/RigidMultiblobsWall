@@ -39,6 +39,7 @@ class QuaternionIntegrator(object):
     self.kT = 0.0
     self.tolerance = 1e-08
     self.rf_delta = 1e-05
+    self.invalid_configuration_count = 0
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -101,7 +102,8 @@ class QuaternionIntegrator(object):
           b.location = b.location_new
           b.orientation = b.orientation_new
         return
-
+      
+      self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
       
@@ -143,6 +145,7 @@ class QuaternionIntegrator(object):
           b.orientation = b.orientation_new
         return
 
+      self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
       
@@ -199,6 +202,7 @@ class QuaternionIntegrator(object):
           b.orientation = b.orientation_new          
         return
     
+      self.invalid_configuration_count += 1
       print 'Invalid configuration'      
     return
 
@@ -308,6 +312,7 @@ class QuaternionIntegrator(object):
           b.location = b.location_old
           b.orientation = b.orientation_old
 
+      self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
 
@@ -390,6 +395,7 @@ class QuaternionIntegrator(object):
           b.orientation = b.orientation_new
         return
 
+      self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
 
