@@ -50,26 +50,15 @@ if __name__ == '__main__':
   with open(read.output_name + '.random_state', 'wb') as f:
     cPickle.dump(np.random.get_state(), f)
 
-
-  # file storing trajectories used in steven's animation code
-  movie_file = read.output_name + '.trajectories.txt' 
-
-  # trajectory lists for steven's animation code
-  trajectory_location, trajectory_orientation = [], [] 
-  blob_radius = read.blob_radius
-  DIAM = 2 * blob_radius
-
   # Parameters from the input file
+  blob_radius = read.blob_radius
   periodic_length = read.periodic_length
   max_translation = blob_radius
   weight = 1.0 * read.g
   kT = read.kT
-  repulsion_strength = read.repulsion_strength
-  debye_length = read.debye_length
-  debye_length_wall = read.debye_length_wall
 
   # Some other parameters
-  max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * debye_length_wall
+  max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * read.debye_length_wall
   epsilon = 0.095713728509
   boom1_cross, boom2_cross = 6, 21 # for two size 15 boomerangs
   
@@ -104,16 +93,15 @@ if __name__ == '__main__':
   # begin MCMC
   # get energy of the current state before jumping into the loop
   start_time = time.time()
-  current_state_energy = pycuda.many_body_potential(sample_r_vectors,
-                                                    periodic_length,
-                                                    debye_length_wall,
-                                                    repulsion_strength,
-                                                    debye_length,
-                                                    weight, kT,
-                                                    epsilon,
-                                                    boom1_cross,
-                                                    boom2_cross,
-                                                    DIAM, blob_radius)
+  current_state_energy = pycuda.compute_total_energy(bodies,
+                                                     sample_r_vectors,
+                                                     periodic_length = periodic_length,
+                                                     debye_length_wall = read.debye_length_wall,
+                                                     repulsion_strength_wall = read.repulsion_strength_wall,
+                                                     debye_length = read.debye_length,
+                                                     repulsion_strength = read.repulsion_strength,
+                                                     weight = weight,
+                                                     blob_radius = blob_radius)
 
   # quaternion to be used for disturbing the orientation of each body
   quaternion_shift = Quaternion(np.array([1,0,0,0]))
@@ -133,16 +121,15 @@ if __name__ == '__main__':
       blob_index += body.Nblobs
 
     # calculate potential of proposed new state
-    sample_state_energy = pycuda.many_body_potential(sample_r_vectors,
-                                                     periodic_length,
-                                                     debye_length_wall,
-                                                     repulsion_strength,
-                                                     debye_length,
-                                                     weight, kT,
-                                                     epsilon,
-                                                     boom1_cross,
-                                                     boom2_cross,
-                                                     DIAM, blob_radius)
+    sample_state_energy = pycuda.compute_total_energy(bodies,
+                                                      sample_r_vectors,
+                                                      periodic_length = periodic_length,
+                                                      debye_length_wall = read.debye_length_wall,
+                                                      repulsion_strength_wall = read.repulsion_strength_wall,
+                                                      debye_length = read.debye_length,
+                                                      repulsion_strength = read.repulsion_strength,
+                                                      weight = weight,
+                                                      blob_radius = blob_radius)
 
     # accept or reject the sample state and collect data accordingly
     if np.random.uniform(0.0, 1.0) < np.exp(-(sample_state_energy - current_state_energy) / kT):
@@ -243,7 +230,9 @@ if __name__ == '__main__':
 
 
   end_time = time.time() - start_time
-  print '\nTotal time = ', end_time
+  print '\nacceptance ratio = ', accepted_moves / (step+2.0-read.initial_step)
+  print 'accepted_moves = ', accepted_moves
+  print 'Total time = ', end_time
 
   # Save wallclock time 
   with open(read.output_name + '.time', 'w') as f:
