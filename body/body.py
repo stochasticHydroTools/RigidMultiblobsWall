@@ -195,13 +195,15 @@ class Body(object):
     return np.linalg.cholesky(M)
 
 
-  # calculates, in one sense, the length of the body
-  # specifically, returns the distance between the two furthest apart blobs in the body 
   def calc_body_length(self):
+    '''
+    It calculates, in one sense, the length of the body. Specifically, it
+    returns the distance between the two furthest apart blobs in the body.
+    '''
     max_distance = 0.
     for i in range(self.reference_configuration.size - 1):
-      for j in self.reference_configuration[i+1:]:
-        blob_distance = np.linalg.norm(j - self.reference_configuration[i]) 
+      for blob in self.reference_configuration[i+1:]:
+        blob_distance = np.linalg.norm(blob - self.reference_configuration[i]) 
         if blob_distance > max_distance:
           max_distance = blob_distance
 
