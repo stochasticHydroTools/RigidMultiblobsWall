@@ -3,7 +3,7 @@ Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with sever
 '''
 import numpy as np
 
-def stochastic_forcing_eig(mobility, factor, z = None):
+def stochastic_forcing_eig(mobility, factor = 1.0, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   eigenvalue decomposition. If M=V*S*V.T the noise is
@@ -40,7 +40,7 @@ def stochastic_forcing_eig(mobility, factor, z = None):
   return stochastic_forcing
 
 
-def stochastic_forcing_eig_symm(mobility, factor, z = None):
+def stochastic_forcing_eig_symm(mobility, factor = 1.0, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   eigenvalue decomposition. If M=V*S*V.T the noise is
@@ -81,7 +81,7 @@ def stochastic_forcing_eig_symm(mobility, factor, z = None):
 
 
 
-def stochastic_forcing_cholesky(mobility, factor, z = None):
+def stochastic_forcing_cholesky(mobility, factor = 1.0, z = None):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   Cholesky decomposition. 
@@ -249,7 +249,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
           f.write(data)
 
       # Check convergence and return if difference < tolerance
-      if diff_norm / noise_old_norm < tolerance:
+      if diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps) < tolerance:
         if L_mult is None:
           return (noise, i)
         else:

@@ -114,7 +114,7 @@ def boosted_infinite_fluid_mobility(r_vectors, eta, a):
   return fluid_mobility
 
    
-def boosted_mobility_vector_product(r_vectors, vector, eta, a):
+def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   ''' 
   Compute a mobility * vector product boosted in C++ for a
   speedup. It includes wall corrections.
@@ -124,23 +124,29 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a):
   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS 
   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
   ## WITH BOOST
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
-  me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
+  me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   return vector_res
 
-def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
+def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level by the force 
   on the blobs.
   Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
   Blake paper point particle result. 
-  
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
   This function makes use of pycuda.
   '''
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a) 
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs) 
   return velocities
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
@@ -153,9 +159,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
-  
   return rot
 
 def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
@@ -168,9 +172,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
-  
   return rot
 
 def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
@@ -183,9 +185,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-  
   return rot
 
 def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
@@ -198,9 +198,7 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
   
   This function makes use of pycuda.
   '''
-
   rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
-  
   return rot
 
 def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
@@ -213,9 +211,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   
   This function makes use of pycuda.
   '''
-
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
-  
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a) 
   return velocities
 
 
@@ -229,9 +225,7 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   
   This function makes use of pycuda.
   '''
-
-  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a)
-  
+  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a) 
   return velocities
 
 def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a):
@@ -244,15 +238,25 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   
   This function makes use of pycuda.
   '''
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
-  
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)  
   return velocities
 
 
+def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function makes use of pycuda.
+  '''
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a)
+  return velocities
 
   
-def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, \
-                                                 index_particle):
+def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
   ''' 
   Compute a mobility * vector product for only one particle. Return the 
   velocity of of the desired particle. It includes wall corrections.
@@ -281,13 +285,11 @@ def single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a):
   
   This function makes use of pycuda.
   '''
-
   velocities = mobility_pycuda.single_wall_mobility_times_force_pycuda(r_vectors, force, eta, a)
-  
   return velocities
 
 
-def single_wall_fluid_mobility(r_vectors, eta, a):
+def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the 
   Blake paper point particle result. '''
@@ -335,11 +337,12 @@ def single_wall_fluid_mobility(r_vectors, eta, a):
 
 
 def rotne_prager_tensor(r_vectors, eta, a):
-  ''' Calculate free rotne prager tensor for particles at locations given by
-  r_vectors (list of 3 dimensional locations) of radius a.'''
+  ''' 
+  Calculate free rotne prager tensor for particles at locations given by
+  r_vectors (list of 3 dimensional locations) of radius a.
+  '''
   num_particles = len(r_vectors)
-  fluid_mobility = np.array([np.zeros(3*num_particles) 
-                             for _ in range(3*num_particles)])
+  fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
   for j in range(num_particles):
     for k in range(num_particles):
       if j != k:
@@ -366,8 +369,9 @@ def rotne_prager_tensor(r_vectors, eta, a):
   return fluid_mobility
 
 
-def single_wall_fluid_mobility_product(r_vectors, vector, eta, a):
-  ''' Product (Mobility * vector). Mobility for particles near a wall.  
+def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwargs):
+  ''' 
+  Product (Mobility * vector). Mobility for particles near a wall.  
   This uses the expression from the Swan and Brady paper for a finite 
   size particle, as opposed to the Blake paper point particle result. 
   '''
@@ -428,6 +432,24 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
   force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
   u_fortran = np.empty_like(r_vectors_fortran, order='F')
   fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
+  return np.reshape(u_fortran.T, u_fortran.size)
+
+
+def fmm_rpy(r_vectors, force, eta, a):
+  ''' 
+  Compute the Stokes interaction using the Rotner-Prager
+  tensor. Here there is no wall.
+  It uses the fmm implemented in the library rpyfmm.
+  Must compile mobility_fmm.f90 before this will work
+  (see Makefile).
+  ''' 
+  num_particles = r_vectors.size / 3
+  ier = 0
+  iprec = 1
+  r_vectors_fortran = np.copy(r_vectors.T, order='F')
+  force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
+  u_fortran = np.empty_like(r_vectors_fortran, order='F')
+  fmm.fmm_rpy(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
   return np.reshape(u_fortran.T, u_fortran.size)
   
 
