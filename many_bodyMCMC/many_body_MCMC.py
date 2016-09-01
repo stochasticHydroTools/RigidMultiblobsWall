@@ -1,6 +1,8 @@
 import numpy as np
 import time
 import sys
+import subprocess
+import cPickle
 import many_body_potential_pycuda as pycuda
 sys.path.append('..')
 from body import body
@@ -33,6 +35,21 @@ if __name__ == '__main__':
 
   # Read input file
   read = read_input.ReadInput(input_file) 
+
+  # Copy input file to output
+  subprocess.call(["cp", input_file, read.output_name + '.inputfile'])
+
+  # Set random generator state
+  if read.random_state is not None:
+    with open(read.random_state, 'rb') as f:
+      np.random.set_state(cPickle.load(f))
+  elif read.seed is not None:
+    np.random.seed(int(read.seed))
+  
+  # Save random generator state
+  with open(read.output_name + '.random_state', 'wb') as f:
+    cPickle.dump(np.random.get_state(), f)
+
 
   # file storing trajectories used in steven's animation code
   movie_file = read.output_name + '.trajectories.txt' 
@@ -226,4 +243,8 @@ if __name__ == '__main__':
 
 
   end_time = time.time() - start_time
-  print end_time
+  print '\nTotal time = ', end_time
+
+  # Save wallclock time 
+  with open(read.output_name + '.time', 'w') as f:
+    f.write(str(time.time() - start_time) + '\n')
