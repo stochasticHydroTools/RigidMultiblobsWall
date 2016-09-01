@@ -3,11 +3,24 @@ import time
 import sys
 import many_body_potential_pycuda as pycuda
 sys.path.append('..')
-from body.body import Body
+from body import body
 from quaternion_integrator.quaternion import Quaternion
 from read_input import read_input
 from read_input import read_vertex_file, read_clones_file
 import utils
+
+
+def get_blobs_r_vectors(bodies, Nblobs):
+  '''
+  Return coordinates of all the blobs with shape (Nblobs, 3).
+  '''
+  r_vectors = np.empty((Nblobs, 3))
+  offset = 0
+  for b in bodies:
+    num_blobs = b.Nblobs
+    r_vectors[offset:(offset+num_blobs)] = b.get_r_vectors()
+    offset += num_blobs
+  return r_vectors
 
 
 if __name__ == '__main__':
@@ -28,58 +41,58 @@ if __name__ == '__main__':
   trajectory_location, trajectory_orientation = [], [] 
   blob_radius = read.blob_radius
   DIAM = 2 * blob_radius
-  # size of periodic boundary for x
-  Lx = 0. 
-  Ly = 0.
-  max_translation = 1.
-  max_angle_shift = 0.1
-  VISCOSITY = 8.9e-4
-  WEIGHT = 1.*0.0000000002*(9.8*1e6)/7. # weight of blob
-  KT = 300.*1.3806488e-5
-  REPULSION_STRENGTH = 7.5 * KT
-  DEBYE_LENGTH_WALL = 0.5 * blob_radius
-  DEBYE_LENGTH_PART = 0.5 * blob_radius
-  max_starting_height = KT/(WEIGHT*7)*12 + blob_radius + 4.*DEBYE_LENGTH_WALL
+
+  # Parameters from the input file
+  periodic_length = read.periodic_length
+  max_translation = blob_radius
+  weight = 1.0 * read.g
+  kT = read.kT
+  repulsion_strength = read.repulsion_strength
+  debye_length = read.debye_length
+  debye_length_wall = read.debye_length_wall
+
+  # Some other parameters
+  max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * debye_length_wall
   epsilon = 0.095713728509
   boom1_cross, boom2_cross = 6, 21 # for two size 15 boomerangs
   
+  # Create rigid bodies
+  bodies = []
+  body_types = []
+  max_body_length = 0.0
+  for ID, structure in enumerate(read.structures):
+    print 'Creating structures = ', structure[1]
+    struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
+    body_types.append(num_bodies_struct)
+    # Creat each body of type structure
+    for i in range(num_bodies_struct):
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, blob_radius)
+      b.ID = read.structures_ID[ID]
+      body_length = b.calc_body_length()
+      max_body_length = (body_length if body_length > max_body_length else max_body_length)
+      bodies.append(b)
+  bodies = np.array(bodies)
 
-  n_steps = read.n_steps
-  
-  num_structures = len(read.structures) # different types of bodies with their own .vetex and .clones files
-  body = [] # list to contain each body used in simulation
-  
-  # initialize each body to be used in the simulation using .vertex and .clone files
-  for i in range(num_structures):
-    body_vectors = read_vertex_file.read_vertex_file( read.structures[i][0] )
-    numBodies, body_locations, body_orientations = read_clones_file.read_clones_file( read.structures[i][1] )
-    for j in range(numBodies):
-      body.append( Body(body_locations[j], body_orientations[j], body_vectors, blob_radius) )
+  # Set some more variables
+  num_of_body_types = len(read.structure_names)
+  num_bodies = bodies.size
+  Nblobs = sum([x.Nblobs for x in bodies])
+  max_angle_shift = max_translation / max_body_length
+  accepted_moves = 0
 
-  # before MCMC begins, give all bodies random locations and orientations
-  # and initialize master array of r_vectors for all blobs in the simulation
-  sample_r_vectors = []
-  for i in range(len(body)):
-    # body length used to prevent placing particles beyond boundaries to start with
-    body_length = body[i].calc_body_length()
-    if Lx != 0. and Ly != 0.: # if PBC active
-      new_location = [np.random.uniform(body_length, Lx-body_length), np.random.uniform(body_length, Ly-body_length), np.random.uniform(body_length, max_starting_height)]
-    else:
-      new_location = [0,0, np.random.uniform(blob_radius, max_starting_height)]
-    body[i].location = new_location
-    body[i].orientation.random_orientation()
-    sample_r_vectors.extend(body[i].get_r_vectors()) # add body's blob position vectors to sample list
-  sample_r_vectors = np.array(sample_r_vectors)
+  # Create blobs coordinates array
+  sample_r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
   # begin MCMC
   # get energy of the current state before jumping into the loop
   start_time = time.time()
   current_state_energy = pycuda.many_body_potential(sample_r_vectors,
-                                                    Lx, Ly,
-                                                    DEBYE_LENGTH_WALL,
-                                                    REPULSION_STRENGTH,
-                                                    DEBYE_LENGTH_PART,
-                                                    WEIGHT, KT,
+                                                    periodic_length,
+                                                    debye_length_wall,
+                                                    repulsion_strength,
+                                                    debye_length,
+                                                    weight, kT,
                                                     epsilon,
                                                     boom1_cross,
                                                     boom2_cross,
@@ -91,45 +104,126 @@ if __name__ == '__main__':
   # for each step in the Markov chain, disturb each body's location and orientation and obtain the new list of r_vectors
   # of each blob. Calculate the potential of the new state, and accept or reject it according to the Markov chain rules:
   # 1. if Ej < Ei, always accept the state  2. if Ej < Ei, accept the state according to the probability determined by
-  # exp(-(Ej-Ei)/KT). Then record data.
+  # exp(-(Ej-Ei)/kT). Then record data.
   # Important: record data also when staying in the same state (i.e. when a sample state is rejected)
-  for step in range(n_steps):
+  for step in range(read.initial_step, read.n_steps):
     blob_index = 0
-    for i in range(numBodies): # distrub bodies
-      body[i].location_new = body[i].location + np.random.uniform(-max_translation,max_translation, 3) # make small change to location
+    for i, body in enumerate(bodies): # distrub bodies
+      body.location_new = body.location + np.random.uniform(-max_translation, max_translation, 3) # make small change to location
       quaternion_shift = Quaternion.from_rotation(np.random.normal(0,1,3) * max_angle_shift)
-      body[i].orientation_new = quaternion_shift * body[i].orientation
-      sample_r_vectors[blob_index : blob_index + body[i].Nblobs] = body[i].get_r_vectors(body[i].location_new, body[i].orientation_new)
-      blob_index += body[i].Nblobs
+      body.orientation_new = quaternion_shift * body.orientation
+      sample_r_vectors[blob_index : blob_index + bodies[i].Nblobs] = body.get_r_vectors(body.location_new, body.orientation_new)
+      blob_index += body.Nblobs
 
     # calculate potential of proposed new state
     sample_state_energy = pycuda.many_body_potential(sample_r_vectors,
-                                                     Lx, Ly,
-                                                     DEBYE_LENGTH_WALL,
-                                                     REPULSION_STRENGTH,
-                                                     DEBYE_LENGTH_PART,
-                                                     WEIGHT, KT,
+                                                     periodic_length,
+                                                     debye_length_wall,
+                                                     repulsion_strength,
+                                                     debye_length,
+                                                     weight, kT,
                                                      epsilon,
                                                      boom1_cross,
                                                      boom2_cross,
                                                      DIAM, blob_radius)
 
     # accept or reject the sample state and collect data accordingly
-    if np.random.uniform(0.,1.) < np.exp(-(sample_state_energy - current_state_energy) / KT):
+    if np.random.uniform(0.0, 1.0) < np.exp(-(sample_state_energy - current_state_energy) / kT):
       current_state_energy = sample_state_energy
-      for i in range(numBodies):
-        body[i].location, body[i].orientation = body[i].location_new, body[i].orientation_new
+      accepted_moves += 1
+      for body in bodies:
+        body.location, body.orientation = body.location_new, body.orientation_new
 	
-    # collect data
-    for i in range(numBodies):
-      trajectory_location.append(body[i].location)
-      trajectory_orientation.append(np.concatenate((np.array([body[i].orientation.s]), body[i].orientation.p)))
+    # Save data if...
+    if (step % read.n_save) == 0 and step >= 0:
+      elapsed_time = time.time() - start_time
+      print 'MCMC, step = ', step, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+1.0-read.initial_step)
+      # For each type of structure save locations and orientations to one file
+      body_offset = 0
+      if read.save_clones == 'one_file_per_step':
+        for i, ID in enumerate(read.structures_ID):
+          name = read.output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
+          with open(name, 'w') as f_ID:
+            f_ID.write(str(body_types[i]) + '\n')
+            for j in range(body_types[i]):
+              orientation = bodies[body_offset + j].orientation.entries
+              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                     bodies[body_offset + j].location[1], 
+                                                     bodies[body_offset + j].location[2], 
+                                                     orientation[0], 
+                                                     orientation[1], 
+                                                     orientation[2], 
+                                                     orientation[3]))
+            body_offset += body_types[i]
+      elif read.save_clones == 'one_file':
+        for i, ID in enumerate(read.structures_ID):
+          name = read.output_name + '.' + ID + '.config'
+          if step == 0:
+            status = 'w'
+          else:
+            status = 'a'
+          with open(name, status) as f_ID:
+            f_ID.write(str(body_types[i]) + '\n')
+            for j in range(body_types[i]):
+              orientation = bodies[body_offset + j].orientation.entries
+              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                     bodies[body_offset + j].location[1], 
+                                                     bodies[body_offset + j].location[2], 
+                                                     orientation[0], 
+                                                     orientation[1], 
+                                                     orientation[2], 
+                                                     orientation[3]))
+            body_offset += body_types[i]
+      else:
+        print 'Error, save_clones =', read.save_clones, 'is not implemented.'
+        print 'Use \"one_file_per_step\" or \"one_file\". \n'
+        break
+
+  # Save final data if...
+  if ((step+1) % read.n_save) == 0 and step >= 0:
+    print 'MCMC, step = ', step+1, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+2.0-read.initial_step)
+    # For each type of structure save locations and orientations to one file
+    body_offset = 0
+    if read.save_clones == 'one_file_per_step':
+      for i, ID in enumerate(read.structures_ID):
+        name = read.output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
+        with open(name, 'w') as f_ID:
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                   bodies[body_offset + j].location[1], 
+                                                   bodies[body_offset + j].location[2], 
+                                                   orientation[0], 
+                                                   orientation[1], 
+                                                   orientation[2], 
+                                                   orientation[3]))
+          body_offset += body_types[i]
+      
+    elif read.save_clones == 'one_file':
+      for i, ID in enumerate(read.structures_ID):
+        name = read.output_name + '.' + ID + '.config'
+        if step+1 == 0:
+          status = 'w'
+        else:
+          status = 'a'
+        with open(name, status) as f_ID:
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                                   bodies[body_offset + j].location[1], 
+                                                   bodies[body_offset + j].location[2], 
+                                                   orientation[0], 
+                                                   orientation[1], 
+                                                   orientation[2], 
+                                                   orientation[3]))
+          body_offset += body_types[i]
+    else:
+      print 'Error, save_clones =', read.save_clones, 'is not implemented.'
+      print 'Use \"one_file_per_step\" or \"one_file\". \n'
 
 
-  # function requires dictionary to be sent for additional parameters
-  # but we have no parameters we want to send, hence the empty dict
-  # steven's functions are a little convoluted
-  utils.write_trajectory_to_txt(movie_file, [trajectory_location,trajectory_orientation], {})
 
   end_time = time.time() - start_time
   print end_time

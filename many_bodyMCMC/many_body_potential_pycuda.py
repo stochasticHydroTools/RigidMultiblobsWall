@@ -131,18 +131,7 @@ __global__ void potential_from_position(const double *x,
 """)
 
 
-def many_body_potential(r_vectors,\
-				     Lx,\
-				     Ly,\
-                     debye_wall,\
-				     strength_wall,\
-				     debye_part,\
-				     weight,\
-                     kbT,\
-                     epsilon,\
-                     cross1_index,\
-                     cross2_index,\
-				     diam, a):
+def many_body_potential(r_vectors, periodic_length, debye_wall, strength_wall, debye_part, weight, kbT, epsilon, cross1_index, cross2_index, diam, a):
    
     # Determine number of threads and blocks for the GPU
     utype = np.float64(1.)
@@ -179,8 +168,8 @@ def many_body_potential(r_vectors,\
     # Compute pair interactions
     pair_interactions(x_gpu, u_gpu,\
                       n_blobs,\
-		      np.float64(Lx),\
-		      np.float64(Ly),\
+		      np.float64(periodic_length[0]),\
+		      np.float64(periodic_length[1]),\
 		      np.float64(debye_wall),\
 		      np.float64(strength_wall),\
 		      np.float64(debye_part),\
