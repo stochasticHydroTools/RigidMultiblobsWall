@@ -1,8 +1,18 @@
-# input file for many body MCMC
-# to be read by read_input.py
-structure boomerang_N_15.vertex boomerang_N_15.clones
-n_steps 10
+n_steps					100
+n_save					10
 
 
-output_name				 movies/run
-save_clones				 one_file
+kT					1.0
+g					1.0
+debye_length_wall			1.0
+repulsion_strength_wall			1.0
+debye_length				1.0
+repulsion_strength			1.0
+blob_radius				0.32
+
+
+structure 				shell.vertex shell.clones
+
+
+output_name				movies/run
+save_clones				one_file

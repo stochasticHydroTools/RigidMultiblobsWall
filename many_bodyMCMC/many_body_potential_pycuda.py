@@ -5,76 +5,66 @@ from pycuda.compiler import SourceModule
 
 
 mod = SourceModule("""
-////////// Wall repulsion //////////////////////////////////////////////////
-__device__ void repulsionWall(double h,
-                  double a,
-                  double &u, 
-                  double strength_wall,
-                  double invDebyeWallGPU){
-  
-  u += strength_wall * exp(-h * invDebyeWallGPU) / h;
+/*
+  Cumpute the enery coming from one blob potentials,
+  e.g. gravity or interactions with the wall.
+*/
+__device__ void one_blob_potential(double &u, 
+                                   const double rx, 
+                                   const double ry, 
+                                   const double rz, 
+                                   const double blob_radius, 
+                                   const double debye_length_wall, 
+                                   const double eps_wall, 
+                                   const double weight){
+  // Add gravity
+  u += weight * rz;
+
+  // Add interaction with the wall
+  u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall) / (rz - blob_radius);
  
   return;
 }
-////////// Part-part repulsion //////////////////////////////////////////////////
-__device__ void repulsionPart(double rx,
-                  double ry,
-                  double rz,
-                  double &u,
-                  int i,
-                  int j,
-                  double debye_part,
-                  double kbT,
-                  double epsilon,
-                  double diam){
-                
+
+/*
+  Compute the energy coming from blob-blob potentials.
+*/
+__device__ void blob_blob_potential(double &u,
+                                    const double rx,
+                                    const double ry,
+                                    const double rz,
+                                    const int i,
+                                    const int j,
+                                    const double debye_length,
+                                    const double eps,
+                                    const double blob_radius){                
   if(i != j){
     double r = sqrt(rx*rx + ry*ry + rz*rz);
-    //double invR = 1.0 / r;
-    //double r_diam = r - diam;
-    //if(r_diam < 0)
-      //  u += 100;
-    //else
-    //Yukawa potential used because it is soft
-        //u += 2*kbT * diam * invR * exp(-debye_part * r_diam * diam);
-    u += epsilon * exp(-r / debye_part) / r;
+    u += eps * exp(-r / debye_length) / r;
     return;
   }
 }
-//////////harmonic spring at crosspoints///////////////////
-__device__ void cross_point_spring_potential(double dx,
-                                        double dy,
-                                        double dz,
-                                        double &u,
-                                        double k,
-                                        double r_equilibrium){
-  double r = sqrt(dx*dx + dy*dy + dz*dz);
-  double r2 = (r- r_equilibrium) * (r - r_equilibrium);
-  u += 0.5 * k * r2;
-}
+
 /*
- force_from_position computes paiwise and wall interactions
+ Compute blobs energy. It takes into account both
+ single blob and two blobs contributions.
 */
-__global__ void potential_from_position(const double *x,
-                                        double *total_U,                  
-                    int n_blobs,
-                    double Lx,
-                    double Ly,
-                    double debye_wall,
-                    double strength_wall,
-                    double debye_part,
-                    double weight,
-                    double kbT,
-                    double epsilon,
-                    int cross1_index,
-                    int cross2_index,
-                    double diam,
-                    double a){
+__global__ void potential_from_position_blobs(const double *x,
+                                              double *total_U, 
+                                              const int n_blobs,
+                                              const double Lx,
+                                              const double Ly,
+                                              const double debye_length_wall,
+                                              const double eps_wall,
+                                              const double debye_length,
+                                              const double eps,
+                                              const double weight,
+                                              const double blob_radius){
 
   
   int i = blockDim.x * blockIdx.x + threadIdx.x;
-  if(i >= n_blobs) return;   
-  double invDebyeWallGPU = 1.0 / debye_wall;
+  if(i >= n_blobs-1) return;   
+
   double Lx_over_2 =  Lx/2.0;
   double Ly_over_2 =  Ly/2.0;
   double u = 0.0;
@@ -83,45 +73,34 @@ __global__ void potential_from_position(const double *x,
   int ioffset = i * NDIM; 
   int joffset;
   
-  if (x[ioffset+2]>a){
-    // 1. Compute repulsion from the wall
-    repulsionWall(x[ioffset+2]-a,a,u,strength_wall,invDebyeWallGPU);
-    u += x[ioffset+2] * weight;
-    for(int j=0; j<n_blobs; j++){
+  if (x[ioffset+2] > blob_radius){
+    // 1. One blob potential
+    one_blob_potential(u, x[ioffset], x[ioffset+1], x[ioffset+2], blob_radius, debye_length_wall, eps_wall, weight);
+
+    // 2. Two blobs potential
+    // IMPORTANT, we don't want to compute the blob-blob interaction twice! 
+    // See the loop limits.
+    for(int j=i+1; j<n_blobs; j++){
       joffset = j * NDIM;
       // Compute vector between particles i and j    
       rx = x[ioffset    ] - x[joffset    ];
       ry = x[ioffset + 1] - x[joffset + 1];
       rz = x[ioffset + 2] - x[joffset + 2];
-      if (Lx != 0){
+      if (Lx > 0){
         rx = rx - Lx*trunc(rx/Lx_over_2);
       }
-      if (Ly != 0){
+      if (Ly > 0){
         ry = ry - Ly*trunc(ry/Ly_over_2);
       }
-      //2. Compute particle-particle repulsion
-      repulsionPart(rx, ry, rz, u, i,j, debye_part, kbT, epsilon, diam);
-    }
-    //LOOP END
-    if(i == cross1_index){
-      double r_eq = 1.0;
-      double dx = x[ioffset] - x[cross2_index*3];
-      double dy = x[ioffset+1] - x[cross2_index*3 + 1];
-      double dz = x[ioffset+2] - x[cross2_index*3+ 2 ];
-      cross_point_spring_potential(dx, dy, dz, u, kbT, r_eq);
-    }
-    else if(i == cross2_index){
-      double r_eq = 1.0;
-      double dx = x[ioffset] - x[cross1_index*3];
-      double dy = x[ioffset+1] - x[cross1_index*3 + 1];
-      double dz = x[ioffset+2] - x[cross1_index*3 + 2 ];
-      cross_point_spring_potential(dx, dy, dz, u, kbT, r_eq);
+      // Compute blob-blob interaction
+      blob_blob_potential(u, rx, ry, rz, i, j, debye_length, eps, blob_radius);
     }
   }
   else
   {
-    //make u large for blobs behind the wall
-    u = 100000*(-(x[ioffset+2]-a) +1); //if a particle starts out of bounds somehow, then it won't want to move further out
+    // make u large for blobs behind the wall
+    // if a particle starts out of bounds somehow, then it won't want to move further out
+    u = 1e+05*(-(x[ioffset+2] - blob_radius) +1); 
   }
   //IF END
   //3. Save potential U_i
@@ -131,59 +110,89 @@ __global__ void potential_from_position(const double *x,
 """)
 
 
-def many_body_potential(r_vectors, periodic_length, debye_wall, strength_wall, debye_part, weight, kbT, epsilon, cross1_index, cross2_index, diam, a):
+def set_number_of_threads_and_blocks(num_elements):
+  '''
+  This functions uses a heuristic method to determine
+  the number of blocks and threads per block to be
+  used in CUDA kernels.
+  '''
+  threads_per_block=512
+  if((num_elements/threads_per_block) < 512):
+    threads_per_block = 256
+  if((num_elements/threads_per_block) < 256):
+    threads_per_block = 128
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 64
+  if((num_elements/threads_per_block) < 128):
+    threads_per_block = 32
+  num_blocks = (num_elements-1)/threads_per_block + 1
+  return (threads_per_block, num_blocks)
+
+
+def blobs_potential(r_vectors, *args, **kwargs):
+  '''
+  This function compute the energy of the blobs.
+  '''
    
-    # Determine number of threads and blocks for the GPU
-    utype = np.float64(1.)
-    n_blobs = np.int32(len(r_vectors))
-    threads_per_block=512
-    if((n_blobs/threads_per_block) < 128):
-        threads_per_block = 256
-    if((n_blobs/threads_per_block) < 128):
-        threads_per_block = 128
-    if((n_blobs/threads_per_block) < 128):
-        threads_per_block = 64
-    if((n_blobs/threads_per_block) < 128):
-        threads_per_block = 32
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
 
-    num_blocks = (n_blobs-1)/threads_per_block + 1
+  # Get parameters from arguments
+  periodic_length = kwargs.get('periodic_length')
+  debye_length_wall = kwargs.get('debye_length_wall')
+  eps_wall = kwargs.get('repulsion_strength_wall')
+  debye_length = kwargs.get('debye_length')
+  eps = kwargs.get('repulsion_strength')
+  weight = kwargs.get('weight')
+  blob_radius = kwargs.get('blob_radius')  
 
-    # Copy python info to simple numpy arrays
-    x = np.zeros( n_blobs * 3)
-    for i in range(n_blobs):       
-        x[i*3    ] = r_vectors[i][0]
-        x[i*3 + 1] = r_vectors[i][1]
-        x[i*3 + 2] = r_vectors[i][2]
+  # Reshape arrays
+  x = np.reshape(r_vectors, number_of_blobs * 3)
         
-    # Allocate GPU memory
-    x_gpu = cuda.mem_alloc(x.nbytes)
-    u_gpu = cuda.mem_alloc(num_blocks * threads_per_block * utype.nbytes)
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  u_gpu = cuda.mem_alloc(x.nbytes)
     
-    # Copy data to the GPU (host to device)
-    cuda.memcpy_htod(x_gpu, x)
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
     
-    # Get pair interaction function
-    pair_interactions = mod.get_function("potential_from_position")
+  # Get pair interaction function
+  potential_from_position_blobs = mod.get_function("potential_from_position_blobs")
 
-    # Compute pair interactions
-    pair_interactions(x_gpu, u_gpu,\
-                      n_blobs,\
-		      np.float64(periodic_length[0]),\
-		      np.float64(periodic_length[1]),\
-		      np.float64(debye_wall),\
-		      np.float64(strength_wall),\
-		      np.float64(debye_part),\
-		      np.float64(weight),\
-              np.float64(kbT),\
-              np.float64(epsilon),\
-              np.int32(cross1_index),\
-              np.int32(cross2_index),\
-              np.float64(diam), np.float64(a),\
-		      block=(threads_per_block, 1, 1),\
-		      grid=(num_blocks, 1)) 
+  # Compute pair interactions
+  potential_from_position_blobs(x_gpu, u_gpu,
+                                number_of_blobs,
+                                np.float64(periodic_length[0]),
+                                np.float64(periodic_length[1]),
+                                np.float64(debye_length_wall),
+                                np.float64(eps_wall),
+                                np.float64(debye_length),
+                                np.float64(eps),
+                                np.float64(weight),
+                                np.float64(blob_radius),
+                                block=(threads_per_block, 1, 1),
+                                grid=(num_blocks, 1)) 
     
-    # Copy data from GPU to CPU (device to host)
-    U = np.empty(n_blobs, dtype = float)
-    cuda.memcpy_dtoh(U, u_gpu)
-    #print U
-    return np.sum(U)
+  # Copy data from GPU to CPU (device to host)
+  U = np.empty_like(x)
+  cuda.memcpy_dtoh(U, u_gpu)
+  return np.sum(U)
+
+
+
+def compute_total_energy(bodies, r_vectors, *args, **kwargs):
+  '''
+  It computes and returns the total energy of the system as
+  
+  U = U_blobs + U_bodies
+  '''
+
+  # Compute energy blobs
+  u_blobs = blobs_potential(r_vectors, *args, **kwargs)
+
+  # Compute energy bodies
+  u_bodies = 0.0
+
+  # Compute and return total energy
+  return u_blobs + u_bodies
