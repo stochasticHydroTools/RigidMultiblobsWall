@@ -5,6 +5,8 @@ from pycuda.compiler import SourceModule
 
 
 mod = SourceModule("""
+#include <stdio.h>
+
 /*
   Cumpute the enery coming from one blob potentials,
   e.g. gravity or interactions with the wall.
@@ -21,7 +23,7 @@ __device__ void one_blob_potential(double &u,
   u += weight * rz;
 
   // Add interaction with the wall
-  u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall) / (rz - blob_radius);
+  u += eps_wall * blob_radius * exp(-(rz - blob_radius) / debye_length_wall) / (rz - blob_radius);
  
   return;
 }
@@ -63,7 +65,7 @@ __global__ void potential_from_position_blobs(const double *x,
 
   
   int i = blockDim.x * blockIdx.x + threadIdx.x;
-  if(i >= n_blobs-1) return;   
+  if(i >= n_blobs) return;   
 
   double Lx_over_2 =  Lx/2.0;
   double Ly_over_2 =  Ly/2.0;
@@ -87,10 +89,10 @@ __global__ void potential_from_position_blobs(const double *x,
       ry = x[ioffset + 1] - x[joffset + 1];
       rz = x[ioffset + 2] - x[joffset + 2];
       if (Lx > 0){
-        rx = rx - Lx*trunc(rx/Lx_over_2);
+        rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx;
       }
       if (Ly > 0){
-        ry = ry - Ly*trunc(ry/Ly_over_2);
+        ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly;
       }
       // Compute blob-blob interaction
       blob_blob_potential(u, rx, ry, rz, i, j, debye_length, eps, blob_radius);
@@ -151,8 +153,9 @@ def blobs_potential(r_vectors, *args, **kwargs):
   x = np.reshape(r_vectors, number_of_blobs * 3)
         
   # Allocate GPU memory
+  utype = np.float64(1.)
   x_gpu = cuda.mem_alloc(x.nbytes)
-  u_gpu = cuda.mem_alloc(x.nbytes)
+  u_gpu = cuda.mem_alloc(number_of_blobs * utype.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
@@ -175,9 +178,10 @@ def blobs_potential(r_vectors, *args, **kwargs):
                                 grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  U = np.empty_like(x)
+  U = np.empty(number_of_blobs)
   cuda.memcpy_dtoh(U, u_gpu)
   return np.sum(U)
+  
 
 
 

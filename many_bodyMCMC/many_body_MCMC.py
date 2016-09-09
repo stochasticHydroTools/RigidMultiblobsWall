@@ -25,6 +25,23 @@ def get_blobs_r_vectors(bodies, Nblobs):
   return r_vectors
 
 
+def set_blob_potential(implementation):
+  '''
+  Set the function to compute the blob-blob potential
+  to the right function.
+  '''
+  if implementation == 'None':
+    def default_zero_r_vectors(*args, **kwargs):
+      return 0
+    return default_zero
+  elif implementation == 'python':
+    return calc_blob_potential_python
+  elif implementation == 'C++':
+    return calc_blob_potential_boost 
+  elif implementation == 'pycuda':
+    return pycuda.calc_blob_potential_pycuda
+
+
 if __name__ == '__main__':
 
   # script takes input file as command line argument or default 'data.main'
@@ -53,14 +70,12 @@ if __name__ == '__main__':
   # Parameters from the input file
   blob_radius = read.blob_radius
   periodic_length = read.periodic_length
-  max_translation = blob_radius
+  max_translation = blob_radius * 0.05
   weight = 1.0 * read.g
   kT = read.kT
 
   # Some other parameters
   max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * read.debye_length_wall
-  epsilon = 0.095713728509
-  boom1_cross, boom2_cross = 6, 21 # for two size 15 boomerangs
   
   # Create rigid bodies
   bodies = []
@@ -86,6 +101,7 @@ if __name__ == '__main__':
   Nblobs = sum([x.Nblobs for x in bodies])
   max_angle_shift = max_translation / max_body_length
   accepted_moves = 0
+  acceptance_ratio = 0.5
 
   # Create blobs coordinates array
   sample_r_vectors = get_blobs_r_vectors(bodies, Nblobs)
@@ -135,9 +151,20 @@ if __name__ == '__main__':
     if np.random.uniform(0.0, 1.0) < np.exp(-(sample_state_energy - current_state_energy) / kT):
       current_state_energy = sample_state_energy
       accepted_moves += 1
+      acceptance_ratio = acceptance_ratio * 0.95 + 0.05
       for body in bodies:
         body.location, body.orientation = body.location_new, body.orientation_new
+    else:
+      acceptance_ratio = acceptance_ratio * 0.95
 	
+    # Scale max_translation 
+    if acceptance_ratio > 0.5:
+      max_translation = max_translation * 1.02
+      max_angle_shift = max_translation / max_body_length
+    else:
+      max_translation = max_translation * 0.98
+      max_angle_shift = max_translation / max_body_length
+
     # Save data if...
     if (step % read.n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
@@ -237,3 +264,10 @@ if __name__ == '__main__':
   # Save wallclock time 
   with open(read.output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
+  # Save acceptance ratio
+  with open(read.output_name + '.MCMC_info', 'w') as f:
+    f.write('acceptance ratio = ' + str(accepted_moves / (step+2.0-read.initial_step)) + '\n')
+    f.write('accepted_moves = ' +  str(accepted_moves) + '\n')
+    f.write('final max_translation = ' +  str(max_translation) + '\n')
+    f.write('final max_angle_shift = ' +  str(max_angle_shift) + '\n')
+  
