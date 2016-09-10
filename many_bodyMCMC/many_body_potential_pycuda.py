@@ -48,8 +48,8 @@ __device__ void blob_blob_potential(double &u,
 }
 
 /*
- Compute blobs energy. It takes into account both
- single blob and two blobs contributions.
+  Compute blobs energy. It takes into account both
+  single blob and two blobs contributions.
 */
 __global__ void potential_from_position_blobs(const double *x,
                                               double *total_U, 
@@ -67,8 +67,6 @@ __global__ void potential_from_position_blobs(const double *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= n_blobs) return;   
 
-  double Lx_over_2 =  Lx/2.0;
-  double Ly_over_2 =  Ly/2.0;
   double u = 0.0;
   double rx, ry, rz;
   int NDIM = 3; // 3 is the spatial dimension
@@ -104,6 +102,97 @@ __global__ void potential_from_position_blobs(const double *x,
     // if a particle starts out of bounds somehow, then it won't want to move further out
     u = 1e+05*(-(x[ioffset+2] - blob_radius) +1); 
   }
+  //IF END
+  //3. Save potential U_i
+  total_U[i] = u;
+  return;
+}
+
+/*
+  Compute one body potentials.
+  Default is zero.
+*/
+__device__ void one_body_potential(double &u, 
+                                   const double rx, 
+                                   const double ry, 
+                                   const double rz,
+                                   const double q1,
+                                   const double q2,
+                                   const double q3,
+                                   const double q4){
+  return;
+}
+
+/*
+  Compute body-body potentials. Default is zero.
+*/
+__device__ void body_body_potential(double &u, 
+                                    const double rx, 
+                                    const double ry,
+                                    const double rz,
+                                    const double q1i,
+                                    const double q2i,
+                                    const double q3i,
+                                    const double q4i,
+                                    const double q1j,
+                                    const double q2j,
+                                    const double q3j,
+                                    const double q4j,
+                                    const int i, 
+                                    const int j){
+  return;
+}
+
+
+/*
+  Compute bodies energy. It takes into account both
+  single body and two bodies contributions.
+*/
+__global__ void potential_from_position_bodies(const double *x,
+                                               const double *q,
+                                               double *total_U, 
+                                               const int n_bodies,
+                                               const double Lx,
+                                               const double Ly){
+
+  
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= n_bodies) return;   
+
+  double u = 0.0;
+  double rx, ry, rz;
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+  
+  {
+    // 1. One body potential
+    one_body_potential(u, x[ioffset], x[ioffset+1], x[ioffset+2],
+                       q[i*4], q[i*4+1], q[i*4+2], q[i*4+3]);
+
+    // 2. Two blobs potential
+    // IMPORTANT, we don't want to compute the body-body interaction twice! 
+    // See the loop limits.
+    for(int j=i+1; j<n_bodies; j++){
+      joffset = j * NDIM;
+      // Compute vector between particles i and j    
+      rx = x[ioffset    ] - x[joffset    ];
+      ry = x[ioffset + 1] - x[joffset + 1];
+      rz = x[ioffset + 2] - x[joffset + 2];
+      if (Lx > 0){
+        rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx;
+      }
+      if (Ly > 0){
+        ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly;
+      }
+      // Compute blob-blob interaction
+      body_body_potential(u, rx, ry, rz, 
+                          q[i*4], q[i*4+1], q[i*4+2], q[i*4+3],
+                          q[j*4], q[j*4+1], q[j*4+2], q[j*4+3],
+                          i, j);
+    }
+  }
+
   //IF END
   //3. Save potential U_i
   total_U[i] = u;
@@ -183,6 +272,51 @@ def blobs_potential(r_vectors, *args, **kwargs):
   return np.sum(U)
   
 
+def bodies_potential(bodies, *args, **kwargs):
+  '''
+  This function compute the energy of the bodies.
+  '''
+   
+  # Determine number of threads and blocks for the GPU
+  number_of_bodies = np.int32(len(bodies))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_bodies)
+
+  # Get parameters from arguments
+  periodic_length = kwargs.get('periodic_length')
+
+  # Create location and orientation arrays
+  x = np.empty(3 * number_of_bodies)
+  q = np.empty(4 * number_of_bodies)
+  for k, b in enumerate(bodies):
+    x[k*3 : (k+1)*3] = b.location
+    q[k*4] = b.orientation.s
+    q[k*4 + 1 : k*4 + 4] = b.orientation.p
+    
+  # Allocate GPU memory
+  utype = np.float64(1.)
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  q_gpu = cuda.mem_alloc(q.nbytes)
+  u_gpu = cuda.mem_alloc(number_of_bodies * utype.nbytes)
+    
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(q_gpu, q)
+    
+  # Get pair interaction function
+  potential_from_position_bodies = mod.get_function("potential_from_position_bodies")
+
+  # Compute pair interactions
+  potential_from_position_bodies(x_gpu, q_gpu, u_gpu,
+                                 number_of_bodies,
+                                 np.float64(periodic_length[0]),
+                                 np.float64(periodic_length[1]),
+                                 block=(threads_per_block, 1, 1),
+                                 grid=(num_blocks, 1)) 
+    
+  # Copy data from GPU to CPU (device to host)
+  U = np.empty(number_of_bodies)
+  cuda.memcpy_dtoh(U, u_gpu)
+  return np.sum(U)
 
 
 def compute_total_energy(bodies, r_vectors, *args, **kwargs):
@@ -196,7 +330,7 @@ def compute_total_energy(bodies, r_vectors, *args, **kwargs):
   u_blobs = blobs_potential(r_vectors, *args, **kwargs)
 
   # Compute energy bodies
-  u_bodies = 0.0
+  u_bodies = bodies_potential(bodies, *args, **kwargs)
 
   # Compute and return total energy
   return u_blobs + u_bodies
