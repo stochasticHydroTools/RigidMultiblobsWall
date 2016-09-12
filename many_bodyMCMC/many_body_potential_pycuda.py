@@ -140,6 +140,7 @@ __device__ void body_body_potential(double &u,
                                     const double q4j,
                                     const int i, 
                                     const int j){
+  
   return;
 }
 
@@ -288,9 +289,9 @@ def bodies_potential(bodies, *args, **kwargs):
   x = np.empty(3 * number_of_bodies)
   q = np.empty(4 * number_of_bodies)
   for k, b in enumerate(bodies):
-    x[k*3 : (k+1)*3] = b.location
-    q[k*4] = b.orientation.s
-    q[k*4 + 1 : k*4 + 4] = b.orientation.p
+    x[k*3 : (k+1)*3] = b.location_new
+    q[k*4] = b.orientation_new.s
+    q[k*4 + 1 : k*4 + 4] = b.orientation_new.p
     
   # Allocate GPU memory
   utype = np.float64(1.)

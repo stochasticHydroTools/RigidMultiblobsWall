@@ -72,6 +72,7 @@ class Quaternion(object):
     '''Give this quaternion object a random orientation'''
     theta = np.random.normal(0., 1., 4)
     theta = theta/np.linalg.norm(theta)
+    self.entries = theta
     self.s = theta[0]
     self.p = theta[1:4]
     

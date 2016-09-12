@@ -5,6 +5,7 @@ bodies, Steven Delong et al. The Journal of Chemical
 Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
 import numpy as np
+import copy
 from quaternion_integrator.quaternion import Quaternion 
 
 class Body(object):
@@ -21,8 +22,8 @@ class Body(object):
     self.location_old = np.copy(location)
     # Orientation as Quaternion
     self.orientation = orientation
-    self.orientation_new = np.copy(orientation)
-    self.orientation_old = np.copy(orientation)
+    self.orientation_new = copy.copy(orientation)
+    self.orientation_old = copy.copy(orientation)
     # Number of blobs
     self.Nblobs = reference_configuration.size / 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
