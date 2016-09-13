@@ -310,23 +310,16 @@ if __name__ == '__main__':
       # For each type of structure save locations and orientations to one file
       body_offset = 0
 
-      if (read.mobility_test == 'True' and step >= 2):
-	v_mean = (1.0/(step))*integrator.mean
-	v_cov = (1.0/(step-1))*integrator.cov
-	print(v_cov)
-	name_mean = output_name + '.mean_velocity.' + str(step).zfill(8) + '.dat'
-	np.savetxt(name_mean, v_mean , delimiter='  ',fmt='%1.4e')
-	name_cov = output_name + '.cov_velocity.' + str(step).zfill(8) + '.dat'
-	np.savetxt(name_cov, v_cov , delimiter='  ',fmt='%1.4e')
-	r_vectors_blobs = integrator.get_blobs_r_vectors(bodies, Nblobs)
-        mobility_blobs = integrator.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
-	resistance_blobs = np.linalg.inv(mobility_blobs)
-        K = integrator.calc_K_matrix(bodies, Nblobs)
-        resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
-        mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
-        cov_error = np.absolute(np.divide((v_cov - mobility_bodies), mobility_bodies))
-        name = output_name + '.cov_rel_error.' + str(step).zfill(8) + '.dat'
-        np.savetxt(name, cov_error, delimiter='  ',fmt='%1.4e')
+      if (read.mobility_test == 'True' and step > 0):
+	  for i, ID in enumerate(structures_ID):
+	    name = output_name + '.' + ID + '.dat' 
+	    if step == 0:
+	      status = 'w'
+	    else:
+	      status = 'a'
+	    with open(name, status) as f_ID:
+		np.savetxt(f_ID, [np.array(integrator.vel)], delimiter='  ', fmt='%1.4e',newline='\n')
+		
 
       if read.save_clones == 'one_file_per_step':
         for i, ID in enumerate(structures_ID):
