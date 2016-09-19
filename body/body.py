@@ -5,6 +5,7 @@ bodies, Steven Delong et al. The Journal of Chemical
 Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
 import numpy as np
+import copy
 from quaternion_integrator.quaternion import Quaternion 
 
 class Body(object):
@@ -21,8 +22,8 @@ class Body(object):
     self.location_old = np.copy(location)
     # Orientation as Quaternion
     self.orientation = orientation
-    self.orientation_new = np.copy(orientation)
-    self.orientation_old = np.copy(orientation)
+    self.orientation_new = copy.copy(orientation)
+    self.orientation_old = copy.copy(orientation)
     # Number of blobs
     self.Nblobs = reference_configuration.size / 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
@@ -33,6 +34,8 @@ class Body(object):
     self.blob_masses = np.ones(self.Nblobs)
     # Blob radius
     self.blob_radius = blob_radius
+    # Body length
+    self.body_length = None
     # Name of body and type of body. A string or number
     self.name = None
     self.type = None
@@ -193,4 +196,22 @@ class Body(object):
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
     return np.linalg.cholesky(M)
+
+
+  def calc_body_length(self):
+    '''
+    It calculates, in one sense, the length of the body. Specifically, it
+    returns the distance between the two furthest apart blobs in the body.
+    '''
+    max_distance = 0.
+    for i in range(self.reference_configuration.size - 1):
+      for blob in self.reference_configuration[i+1:]:
+        blob_distance = np.linalg.norm(blob - self.reference_configuration[i]) 
+        if blob_distance > max_distance:
+          max_distance = blob_distance
+
+    self.body_length = max_distance + 2*self.blob_radius
+    return self.body_length
+
+
     
