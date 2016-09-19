@@ -160,6 +160,9 @@ def stochastic_forcing_lanczos(factor = 1.0,
   if dim is None:
     dim = len(z)
 
+  if factor == 0.0:
+    return (np.zeros(dim), 0)
+
   # Create matrix v (initial column is random)
   # Note: v will have shape (iteration, dim);
   # in the standard notation used in the Lanczos
