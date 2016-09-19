@@ -160,6 +160,9 @@ def stochastic_forcing_lanczos(factor = 1.0,
   if dim is None:
     dim = len(z)
 
+  if factor == 0.0:
+    return (np.zeros(dim), 0)
+
   # Create matrix v (initial column is random)
   # Note: v will have shape (iteration, dim);
   # in the standard notation used in the Lanczos
@@ -214,7 +217,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
     # Compute eigenvalues and eigenvectors of h
     # IMPORTANT: this is NOT optimized for tridiagonal matrices
     eig_values, eig_vectors = np.linalg.eigh(h)
-   
+
     # Compute the square root of positive eigenvalues set to zero otherwise
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     
@@ -237,7 +240,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
       # Compute difference with noise of previous iteration
       noise_old_norm = np.linalg.norm(noise_old)
       diff_norm = np.linalg.norm(noise - noise_old)
-    
+
       # (Optional) Save residual
       if i == 1 and name != '':
         with open(name, 'w') as f:

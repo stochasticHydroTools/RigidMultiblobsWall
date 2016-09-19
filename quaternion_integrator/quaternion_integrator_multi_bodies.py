@@ -526,11 +526,11 @@ class QuaternionIntegrator(object):
 
 # Callback generator
 def make_callback():
-    closure_variables = dict(counter=0, residuals=[]) 
-    def callback(residuals):
-        closure_variables["counter"] += 1
-        closure_variables["residuals"].append(residuals)
-        print closure_variables["counter"], residuals
-    return callback
+  closure_variables = dict(counter=0, residuals=[]) 
+  def callback(residuals):
+    closure_variables["counter"] += 1
+    closure_variables["residuals"].append(residuals)
+    print closure_variables["counter"], residuals
+  return callback
 
 
