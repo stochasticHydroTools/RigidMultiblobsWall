@@ -493,7 +493,8 @@ def timer(name, print_one = False, print_all = False):
       print name, ' = ', timer.timers[name][0]
 
   if print_all is True:
+    print '\n'
     for item in timer.timers:
-      print timers[0], ' = ', timer.timers[name][0]
+      print item, ' = ', timer.timers[item][0]
 
   return
