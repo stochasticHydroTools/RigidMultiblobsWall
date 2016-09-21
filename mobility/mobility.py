@@ -36,12 +36,8 @@ def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   definite mobilites for blobs close to the wall.
   '''
   r_effective = np.copy(r_vectors)
-  # def shift_height(z, a):
-  #  return z if z > a else a
-  # shift_height = np.vectorize(shift_height, otypes=[np.float64])  
-  # r_effective[:,2] = shift_height(r_vectors[:,2], blob_radius)
   for r in r_effective:
-    r[2] = r[2] if r[2] > blob_radius else blob_radius
+    r[2] = r[2] if r[2] > blob_radius else blob_radius   
   return r_effective
 
 
@@ -60,7 +56,8 @@ def damping_matrix_B(r_vectors, blob_radius, *args, **kwargs):
       B[k*3]     = r[2] / blob_radius
       B[k*3 + 1] = r[2] / blob_radius
       B[k*3 + 2] = r[2] / blob_radius    
-  return scipy.sparse.diags(B)
+  return scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size))
+  
 
 def image_singular_stokeslet(r_vectors, eta, a):
   ''' Calculate the image system for the singular stokeslet (M above).'''
@@ -148,8 +145,7 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
 
   # Compute M = B^T * M_tilde * B
   return B.dot( (B.dot(fluid_mobility.T)).T )
-
-  return fluid_mobility
+  
 
 def boosted_infinite_fluid_mobility(r_vectors, eta, a):
   ''' 
@@ -220,7 +216,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors_effective, force, eta, a, *args, **kwargs) 
   # Compute B.T * M * B * vector
   return B.dot(velocities)
-
+    
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
@@ -603,95 +599,6 @@ def fmm_rpy(r_vectors, force, eta, a):
   fmm.fmm_rpy(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
   return np.reshape(u_fortran.T, u_fortran.size)
   
-
-def single_wall_fluid_mobility_overlap(r_vectors, eta, a, *args, **kwargs):
-  ''' 
-  Mobility for particles near a wall. It uses an approximation
-  for blobs overlaping the wall. The mobility is
-
-  M = B^T * M_tilde * B,
-
-  where M_tildes is the expression from the Swan and Brady paper 
-  for a finite size particle, but using the effective particle
-  height z_effective = maximum(blob_radius, z) so it is positive
-  definite. B is a diagonal matrix which components are functions
-  that obey
-  
-  B_ii(z=0) = 0.0 (it is zero at the wall),
-  B_ii(z>blob_radius) = 1.0 (it is one far from the wall).
-  '''
-  # Set effective height
-  r_vectors_effective = np.copy(r_vectors)
-  def shift_height(z, a):
-    if z > a:
-      return z
-    else:
-      return a
-  shift_height = np.vectorize(shift_height)
-  r_vectors_effective[:,2] = shift_height(r_vectors_effective[:,2], a)
-  
-  # Compute dense mobility M_tilde
-  M_tilde = single_wall_fluid_mobility(r_vectors_effective, eta, a, *args, **kwargs)
-
-  # Compute matrix B
-  def B(z, a):
-    if z > a:
-      return 1.0
-    else:
-      # return np.sqrt(z / a)
-      return (z / a)
-  B = np.vectorize(B)   
-  z = np.empty(r_vectors.size)
-  for k, r in enumerate(r_vectors):
-    z[k*3]   = r[2]
-    z[k*3+1] = r[2]
-    z[k*3+2] = r[2]   
-  B_matrix = scipy.sparse.diags(B(z, a))
-
-  # Compute M = B^T * M_tilde * B
-  return B_matrix.dot( (B_matrix.dot(M_tilde.T)).T )
-
-
-def boosted_single_wall_fluid_mobility_overlap(r_vectors, eta, a, *args, **kwargs):
-  ''' 
-  Same as single wall fluid mobility, but boosted into C++ for 
-  a speedup. Must compile mobility_ext.cc before this will work 
-  (use Makefile).
-  ''' 
-  # Set effective height
-  r_vectors_effective = shift_heights(r_vectors, a)
-  
-  # Compute dense mobility M_tilde
-  num_particles = r_vectors.size / 3
-  M_tilde = np.zeros( (num_particles*3, num_particles*3) )
-  me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, M_tilde)
-  # M_tilde = single_wall_fluid_mobility(r_vectors_effective, eta, a, *args, **kwargs)
-
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
-
-  # Compute matrix B
-  # def B(z, a):
-  #   if z > a:
-  #     return 1.0
-  #   else:
-  #     # return np.sqrt(z / a)
-  #     return (z / a)
-  # B = np.vectorize(B)   
-  # z = np.empty(r_vectors.size)
-  # for k, r in enumerate(r_vectors):
-  #   z[k*3]   = r[2]
-  #   z[k*3+1] = r[2]
-  #   z[k*3+2] = r[2]   
-  # B_matrix = scipy.sparse.diags(B(z, a))
-
-  # Compute M = B^T * M_tilde * B
-  return B.dot( (B.dot(M_tilde.T)).T )
-
-
-  
-
-
-
 
 def epsilon_tensor(i, j, k):
   ''' 
