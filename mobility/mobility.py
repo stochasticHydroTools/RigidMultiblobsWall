@@ -1,5 +1,6 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
+import scipy
 import sys
 sys.path.append('../')
 import time
@@ -24,9 +25,44 @@ try:
 except ImportError:
   pass
 
-ETA = 1.0 # Viscosity
 
-def image_singular_stokeslet(r_vectors, a):
+def shift_heights(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return an array with the blobs' height
+  
+  z_effective = maximum(z, blob_radius)
+
+  This function is used to compute positive
+  definite mobilites for blobs close to the wall.
+  '''
+  r_effective = np.copy(r_vectors)
+  # def shift_height(z, a):
+  #  return z if z > a else a
+  # shift_height = np.vectorize(shift_height, otypes=[np.float64])  
+  # r_effective[:,2] = shift_height(r_vectors[:,2], blob_radius)
+  for r in r_effective:
+    r[2] = r[2] if r[2] > blob_radius else blob_radius
+  return r_effective
+
+
+def damping_matrix_B(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return sparse diagonal matrix with components
+  B_ii = 1.0               if z_i >= blob_radius
+  B_ii = z_i / blob_radius if z_i < blob_radius
+
+  It is used to compute positive definite mobilities
+  close to the wall.
+  '''
+  B = np.ones(r_vectors.size)
+  for k, r in enumerate(r_vectors):
+    if r[2] < blob_radius:
+      B[k*3]     = r[2] / blob_radius
+      B[k*3 + 1] = r[2] / blob_radius
+      B[k*3 + 2] = r[2] / blob_radius    
+  return scipy.sparse.diags(B)
+
+def image_singular_stokeslet(r_vectors, eta, a):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   fluid_mobility = np.array([
       np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
@@ -53,7 +89,7 @@ def image_singular_stokeslet(r_vectors, a):
         
       else:
         # j == k
-        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*ETA*a)*np.identity(3)
+        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*eta*a)*np.identity(3)
   return fluid_mobility
 
 def stokes_doublet(r):
@@ -91,15 +127,28 @@ def doublet_and_dipole(r, h):
   return doublet_and_dipole
 
 
-def boosted_single_wall_fluid_mobility(r_vectors, eta, a):
+def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Same as single wall fluid mobility, but boosted into C++ for 
   a speedup. Must compile mobility_ext.cc before this will work 
   (use Makefile).
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
   ''' 
+  # Set effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+
+  # Compute damping matrix B
+  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+
   num_particles = r_vectors.size / 3
   fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
-  me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
+  me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
+
+  # Compute M = B^T * M_tilde * B
+  return B.dot( (B.dot(fluid_mobility.T)).T )
+
   return fluid_mobility
 
 def boosted_infinite_fluid_mobility(r_vectors, eta, a):
@@ -125,11 +174,20 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
   ## WITH BOOST
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  # Compute B * vector
+  vector = B.dot(vector)
+  # Compute M_tilde * B * vector
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
-  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
+  r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))  
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
-  return vector_res
+  # Compute B.T * M * B * vector
+  return B.dot(vector_res)
+
 
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
@@ -360,7 +418,7 @@ def rotne_prager_tensor(r_vectors, eta, a):
           C1 = 1 - 9.*r_norm/(32.*a)
           C2 = 3*r_norm/(32.*a)
         fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = (1./(6.*np.pi*eta*a)*(
-          C1*np.identity(3) + C2*np.outer(r, r)/(r_norm**2)))
+          C1*np.identity(3) + C2*np.outer(r, r)/(np.maximum(r_norm, np.finfo(float).eps)**2)))
 
       elif j == k:
         # j == k, diagonal block.
@@ -453,6 +511,95 @@ def fmm_rpy(r_vectors, force, eta, a):
   return np.reshape(u_fortran.T, u_fortran.size)
   
 
+def single_wall_fluid_mobility_overlap(r_vectors, eta, a, *args, **kwargs):
+  ''' 
+  Mobility for particles near a wall. It uses an approximation
+  for blobs overlaping the wall. The mobility is
+
+  M = B^T * M_tilde * B,
+
+  where M_tildes is the expression from the Swan and Brady paper 
+  for a finite size particle, but using the effective particle
+  height z_effective = maximum(blob_radius, z) so it is positive
+  definite. B is a diagonal matrix which components are functions
+  that obey
+  
+  B_ii(z=0) = 0.0 (it is zero at the wall),
+  B_ii(z>blob_radius) = 1.0 (it is one far from the wall).
+  '''
+  # Set effective height
+  r_vectors_effective = np.copy(r_vectors)
+  def shift_height(z, a):
+    if z > a:
+      return z
+    else:
+      return a
+  shift_height = np.vectorize(shift_height)
+  r_vectors_effective[:,2] = shift_height(r_vectors_effective[:,2], a)
+  
+  # Compute dense mobility M_tilde
+  M_tilde = single_wall_fluid_mobility(r_vectors_effective, eta, a, *args, **kwargs)
+
+  # Compute matrix B
+  def B(z, a):
+    if z > a:
+      return 1.0
+    else:
+      # return np.sqrt(z / a)
+      return (z / a)
+  B = np.vectorize(B)   
+  z = np.empty(r_vectors.size)
+  for k, r in enumerate(r_vectors):
+    z[k*3]   = r[2]
+    z[k*3+1] = r[2]
+    z[k*3+2] = r[2]   
+  B_matrix = scipy.sparse.diags(B(z, a))
+
+  # Compute M = B^T * M_tilde * B
+  return B_matrix.dot( (B_matrix.dot(M_tilde.T)).T )
+
+
+def boosted_single_wall_fluid_mobility_overlap(r_vectors, eta, a, *args, **kwargs):
+  ''' 
+  Same as single wall fluid mobility, but boosted into C++ for 
+  a speedup. Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  ''' 
+  # Set effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  
+  # Compute dense mobility M_tilde
+  num_particles = r_vectors.size / 3
+  M_tilde = np.zeros( (num_particles*3, num_particles*3) )
+  me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, M_tilde)
+  # M_tilde = single_wall_fluid_mobility(r_vectors_effective, eta, a, *args, **kwargs)
+
+  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+
+  # Compute matrix B
+  # def B(z, a):
+  #   if z > a:
+  #     return 1.0
+  #   else:
+  #     # return np.sqrt(z / a)
+  #     return (z / a)
+  # B = np.vectorize(B)   
+  # z = np.empty(r_vectors.size)
+  # for k, r in enumerate(r_vectors):
+  #   z[k*3]   = r[2]
+  #   z[k*3+1] = r[2]
+  #   z[k*3+2] = r[2]   
+  # B_matrix = scipy.sparse.diags(B(z, a))
+
+  # Compute M = B^T * M_tilde * B
+  return B.dot( (B.dot(M_tilde.T)).T )
+
+
+  
+
+
+
+
 def epsilon_tensor(i, j, k):
   ''' 
   Epsilon tensor (cross product).  Only works for arguments
@@ -464,28 +611,4 @@ def epsilon_tensor(i, j, k):
     return -1.
   else:
     return 0.
-  
-  
-if __name__ == '__main__':
-  # Example of using single wall mobility
-  r_vectors = np.array([[5., 0., 3.],
-                       [2., 0., 2.]])
-
-  a = 0.2
-  eta = 1.0
-  
-  start = time.time()
-  for k in range(10000):
-    mobility = single_wall_fluid_mobility(r_vectors, eta, a)
-  elapsed = time.time() - start
-  print "mobility is ", mobility
-  print 'elapsed python is ', elapsed
-  
-  start = time.time()
-  for k in range(10000):
-    mobility = me.single_wall_fluid_mobility(r_vectors, eta, a)
-  elapsed = time.time() - start
-  print "mobility is ", mobility
-  print 'elapsed cython is ', elapsed
-
 
