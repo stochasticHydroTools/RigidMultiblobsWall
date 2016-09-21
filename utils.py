@@ -476,7 +476,7 @@ def vector_cross_tensor(v, T):
   return result
 
 @static_var('timers', {})   
-def timer(name, print_all = False):
+def timer(name, print_one = False, print_all = False):
   '''
   Timer to profile the code. It measures the time elapsed between successive
   calls and it prints the total time elapsed after sucesive calls.  
@@ -489,10 +489,12 @@ def timer(name, print_all = False):
   else:
     time_tuple = (timer.timers[name][0] + (time.time() - timer.timers[name][1]), None)
     timer.timers[name] = time_tuple
-    print name, ' = ', timer.timers[name][0]
+    if print_one is True:
+      print name, ' = ', timer.timers[name][0]
 
   if print_all is True:
+    print '\n'
     for item in timer.timers:
-      print timers[0], ' = ', timer.timers[name][0]
+      print item, ' = ', timer.timers[item][0]
 
   return

@@ -108,11 +108,11 @@ class Body(object):
   def check_function(self, location = None, orientation = None, distance = None):
     ''' 
     Function to check that the body didn't cross the wall,
-    i.e., all its blobs have z > distance. Default distance is blob_radius.
+    i.e., all its blobs have z > distance. Default distance is 0.
     '''
     # Define distance
     if not distance:
-      distance = self.blob_radius
+      distance = 0.0
       
     # Get location and orientation
     if location is None:
