@@ -80,7 +80,7 @@ class QuaternionIntegratorRollers(object):
       # Check if configuration is valid and update postions if so
       valid_configuration = True
       for b in self.bodies:
-        if b.location_new[2] < self.a:      
+        if b.location_new[2] < 0.0:      
           valid_configuration = False
           break
       if valid_configuration is True:
@@ -119,7 +119,7 @@ class QuaternionIntegratorRollers(object):
       # Check if configuration is valid and update postions if so
       valid_configuration = True
       for b in self.bodies:
-        if b.location_new[2] < self.a:      
+        if b.location_new[2] < 0.0:      
           valid_configuration = False
           break
       if valid_configuration is True:
@@ -163,8 +163,8 @@ class QuaternionIntegratorRollers(object):
 
       # Check if configuration is valid and update postions if so
       valid_configuration = True
-      for b in self.bodies:
-        if b.location_new[2] < self.a:      
+      for k, b in enumerate(self.bodies):
+        if b.location_new[2] < 0.0:      
           valid_configuration = False
           break
       if valid_configuration is True:
