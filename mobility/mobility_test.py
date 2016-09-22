@@ -53,7 +53,7 @@ class TestMobility(unittest.TestCase):
                  np.array([2., 2., 2.]),
                  np.array([1., 1., 1.])]
     a = 0.5
-    fluid_mobility = mb.image_singular_stokeslet(r_vectors, a)
+    fluid_mobility = mb.image_singular_stokeslet(r_vectors, 1.0, a)
     # Test particle 1 to particle 0.
     block = fluid_mobility[0:3, 3:6]
     for j in range(3):
@@ -74,7 +74,7 @@ class TestMobility(unittest.TestCase):
     r_vectors = [np.random.normal(5., 1., 3) for _ in range(n_particles)]
 
     mobility_finite = mb.single_wall_fluid_mobility(r_vectors, 1., a)
-    mobility_point = mb.image_singular_stokeslet(r_vectors, a)
+    mobility_point = mb.image_singular_stokeslet(r_vectors, 1.0, a)
     for j in range(3*n_particles):
       for k in range(3*n_particles):
         # We multiply by a to get reasonable numbers for mobility.
@@ -86,7 +86,7 @@ class TestMobility(unittest.TestCase):
     n_particles = 5
     a = 0.25
     r_vectors = [np.random.normal(12., 2.5, 3) for _ in range(n_particles)]
-    stokeslet = mb.image_singular_stokeslet(r_vectors, a)
+    stokeslet = mb.image_singular_stokeslet(r_vectors, 1.0, a)
     def is_pos_def(x):
       return np.all(np.linalg.eigvals(x) > 0)    
     
