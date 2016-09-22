@@ -148,9 +148,9 @@ def blob_external_force(r_vectors, *args, **kwargs):
   # Add wall interaction
   h = r_vectors[2]
   f += np.array([0., 0., (blob_radius * repulsion_strength_wall * \
-                            ((h - blob_radius) / debye_length_wall + 1.0) * \
-                            np.exp(-1.0 * (h - blob_radius) / debye_length_wall) / \
-                            ((h - blob_radius)**2))])
+                            (h / debye_length_wall + 1.0) * \
+                            np.exp(-1.0 * h / debye_length_wall) / \
+                            (h**2))])
   return f
 
 

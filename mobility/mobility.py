@@ -51,12 +51,14 @@ def damping_matrix_B(r_vectors, blob_radius, *args, **kwargs):
   close to the wall.
   '''
   B = np.ones(r_vectors.size)
+  overlap = False
   for k, r in enumerate(r_vectors):
     if r[2] < blob_radius:
       B[k*3]     = r[2] / blob_radius
       B[k*3 + 1] = r[2] / blob_radius
       B[k*3 + 2] = r[2] / blob_radius    
-  return scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size))
+      overlap = True
+  return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
   
 
 def image_singular_stokeslet(r_vectors, eta, a):
@@ -137,14 +139,17 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   r_vectors_effective = shift_heights(r_vectors, a)
 
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
 
   num_particles = r_vectors.size / 3
   fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
   me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
 
   # Compute M = B^T * M_tilde * B
-  return B.dot( (B.dot(fluid_mobility.T)).T )
+  if overlap is True:
+    return B.dot( (B.dot(fluid_mobility.T)).T )
+  else:
+    return fluid_mobility
   
 
 def boosted_infinite_fluid_mobility(r_vectors, eta, a):
@@ -176,16 +181,19 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * vector
-  vector = B.dot(vector)
+  if overlap is True:
+    vector = B.dot(vector)
   # Compute M_tilde * B * vector
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
   r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))  
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   # Compute B.T * M * B * vector
-  return B.dot(vector_res)
+  if overlap is True:
+    vector_res = B.dot(vector_res)
+  return vector_res
 
 
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
@@ -209,13 +217,16 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
-  force = B.dot(force)
+  if overlap is True:
+    force = B.dot(force)
   # Compute M_tilde * B * force
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda(r_vectors_effective, force, eta, a, *args, **kwargs) 
   # Compute B.T * M * B * vector
-  return B.dot(velocities)
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
     
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
@@ -234,13 +245,16 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args,
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
-  force = B.dot(force)
+  if overlap is True:
+    force = B.dot(force)
   # Compute M_tilde * B * force
   rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors_effective, force, eta, a)
   # Compute B.T * M * B * force
-  return B.dot(rot)
+  if overlap is True:
+    rot = B.dot(rot)
+  return rot
 
 
 def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
@@ -272,13 +286,16 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *arg
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * vector
-  torque = B.dot(torque)
+  if overlap is True:
+    torque = B.dot(torque)
   # Compute M_tilde * B * torque
   rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors_effective, torque, eta, a)
   # Compute B.T * M * B * torque
-  return B.dot(rot)
+  if overlap is True:
+    rot = B.dot(rot)
+  return rot
 
 
 def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
@@ -310,15 +327,18 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
-  force = B.dot(force)
+  if overlap is True:
+    force = B.dot(force)
   # Compute B * torque
   torque = B.dot(torque)
   # Compute M_tilde * B * (force + torque)
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_effective, force, torque, eta, a) 
   # Compute B.T * M * B * (force + torque)
-  return B.dot(velocities)
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
 
 
 def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
@@ -350,13 +370,16 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
-  force = B.dot(force)
+  if overlap is True:
+    force = B.dot(force)
   # Compute M_tilde * B * force
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors_effective, force, eta, a)  
   # Compute B.T * M * B * force
-  return B.dot(velocities)
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
 
 
 def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
@@ -375,13 +398,16 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * torque
-  torque = B.dot(torque)
+  if overlap is True:
+    torque = B.dot(torque)
   # Compute M_tilde * B * torque
   velocities = mobility_pycuda.single_wall_mobility_trans_times_torque_pycuda(r_vectors_effective, torque, eta, a)
   # Compute B.T * M * B * torque
-  return B.dot(velocities)
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
 
   
 def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
@@ -414,7 +440,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   num_particles = len(r_vectors_effective)
   # We add the corrections from the appendix of the paper to the unbounded mobility.
   fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
@@ -457,7 +483,10 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
         + (l == 2)*(-1./8.)*(9./h - 4./(h**3) + 1./(h**5)))
 
   # Compute M = B^T * M_tilde * B
-  return B.dot( (B.dot(fluid_mobility.T)).T )
+  if overlap is True:
+    return B.dot( (B.dot(fluid_mobility.T)).T )
+  else:
+    return fluid_mobility
 
 
 def rotne_prager_tensor(r_vectors, eta, a):
@@ -505,15 +534,18 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * vector
-  vector = B.dot(vector)
+  if overlap is True:
+    vector = B.dot(vector)
   # Compute M_tilde * B * vector
   r = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))
   mobility = single_wall_fluid_mobility(r, eta, a)
   velocities = np.dot(mobility, vector)
   # Compute B.T * M * B * vector
-  return B.dot(velocities)
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
 
 
 def single_wall_self_mobility_with_rotation(location, eta, a):
@@ -567,9 +599,10 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  B = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
-  force = B.dot(force)
+  if overlap is True:
+    force = B.dot(force)
   # Compute M_tilde * B * vector
   num_particles = r_vectors.size / 3
   ier = 0
@@ -579,7 +612,10 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   u_fortran = np.empty_like(r_vectors_fortran, order='F')
   fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
   # Compute B.T * M * B * force
-  return B.dot(np.reshape(u_fortran.T, u_fortran.size))
+  if overlap is True:
+    return B.dot(np.reshape(u_fortran.T, u_fortran.size))
+  else:
+    return np.reshape(u_fortran.T, u_fortran.size)
 
 
 def fmm_rpy(r_vectors, force, eta, a):
