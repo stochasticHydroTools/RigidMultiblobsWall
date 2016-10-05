@@ -267,6 +267,164 @@ class QuaternionIntegratorRollers(object):
       return
 
 
+  def stochastic_mid_point_version_2(self, dt):
+    '''
+    Take a time step of length dt using a first order
+    stochastic integrator. 
+
+    q^{n+1/2} = q^n + 0.5 * dt * (M*F)^n + sqrt(kT*dt) * (M^n)^{1/2} * W_1
+    q^{n+1} = q^n + dt * (M*F)^{n+1/2} 
+            + sqrt(kT*dt) * (M^n)^{1/2} * (W_1 + W_2)
+            + (kT/delta) * dt * (M(q^n+0.5*delta) - M(q^n-0.5*delta))
+
+    The force F also includes the deterministic torque.
+    '''
+    while True:
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+
+      # Compute thermal drift (kT * div_t(M_tt))
+      drift = self.compute_linear_thermal_drift()
+
+      # Compute deterministic velocity and torque
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Compute stochastic velocity without drift for first half step
+      stoch_velocity_1 = self.compute_stochastic_linear_velocity_without_drift(0.5 * dt)
+
+      # Compute stochastic velocity without drift for second half step
+      stoch_velocity_2 = self.compute_stochastic_linear_velocity_without_drift(0.5 * dt)
+
+      # Add velocities
+      velocity = det_velocity + stoch_velocity_1
+      
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + (0.5 * dt) * velocity[3*k : 3*(k+1)]
+
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Compute deterministic velocity and torque
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Add velocities 
+      velocity = det_velocity + drift + (stoch_velocity_1 + stoch_velocity_2) * 0.5
+
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
+      
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Count overlaps and return
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < self.a:
+          self.wall_overlaps += 1            
+      return
+
+
+  def stochastic_trapezoidal(self, dt):
+    '''
+    Take a time step of length dt using a first order
+    stochastic integrator. 
+
+    q^{*} = q^n + dt * (M*F)^n + sqrt(2*kT*dt) * (M^n)^{1/2} * W_1
+    q^{n+1} = q^n + 0.5 * dt * ( (M*F)^n + (M*F)^{*}) 
+            + sqrt(2*kT*dt) * (M^n)^{1/2} 
+            + (kT/delta) * dt * (M(q^n+0.5*delta) - M(q^n-0.5*delta))
+
+    The force F also includes the deterministic torque.
+    '''
+    while True:
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+
+      # Compute thermal drift (kT * div_t(M_tt))
+      drift = self.compute_linear_thermal_drift()
+
+      # Compute deterministic velocity and torque
+      det_velocity_1, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Compute stochastic velocity without drift 
+      stoch_velocity = self.compute_stochastic_linear_velocity_without_drift(dt)
+
+      # Add velocities
+      velocity = det_velocity_1 + stoch_velocity
+      
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
+
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Compute deterministic velocity and torque
+      det_velocity_2, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Add velocities 
+      velocity = 0.5 * (det_velocity_1 + det_velocity_2) + drift + stoch_velocity
+
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
+      
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Count overlaps and return
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < self.a:
+          self.wall_overlaps += 1            
+      return
+
 
   def compute_deterministic_velocity_and_torque(self):
     '''
