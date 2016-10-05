@@ -515,5 +515,6 @@ if __name__ == '__main__':
   # Save number of invalid configurations
   with open(output_name + '.number_invalid_configurations', 'w') as f:
     f.write(str(integrator.invalid_configuration_count) + '\n')
+    f.write(str(integrator.wall_overlaps) + '\n')
 
   print '\n\n\n# End'

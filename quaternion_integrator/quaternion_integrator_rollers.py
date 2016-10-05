@@ -42,6 +42,7 @@ class QuaternionIntegratorRollers(object):
     self.tolerance = 1e-08
     self.rf_delta = 1e-06
     self.invalid_configuration_count = 0
+    self.wall_overlaps = 0
     self.omega_one_roller = None
     self.free_kinematics = 'False'
 
@@ -86,6 +87,8 @@ class QuaternionIntegratorRollers(object):
       if valid_configuration is True:
         for b in self.bodies:
           b.location = b.location_new            
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1            
         return
 
       self.invalid_configuration_count += 1
@@ -124,7 +127,9 @@ class QuaternionIntegratorRollers(object):
           break
       if valid_configuration is True:
         for b in self.bodies:
-          b.location = b.location_new            
+          b.location = b.location_new          
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1              
         return
 
       self.invalid_configuration_count += 1
@@ -171,12 +176,96 @@ class QuaternionIntegratorRollers(object):
         self.first_step = False
         self.velocities_previous_step = det_velocity
         for b in self.bodies:
-          b.location = b.location_new            
+          b.location = b.location_new          
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1      
         return
 
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
+
+
+  def stochastic_mid_point(self, dt):
+    '''
+    Take a time step of length dt using a first order
+    stochastic integrator. 
+
+    q^{n+1/2} = q^n + 0.5 * dt * (M*F)^n + sqrt(kT*dt) * (M^n)^{1/2} * W_1
+    q^{n+1} = q^n + dt * (M*F)^{n+1/2} 
+            + sqrt(kT*dt) * ((M^n)^{1/2} * W_1 + (M^{n+1/2})^{1/2} * W_2)
+            + (kT/delta) * dt * (M(q^n+0.5*delta) - M(q^n-0.5*delta))
+
+    The force F also includes the deterministic torque.
+    '''
+    while True:
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+
+      # Compute thermal drift (kT * div_t(M_tt))
+      drift = self.compute_linear_thermal_drift()
+
+      # Compute deterministic velocity and torque
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Compute stochastic velocity without drift for first half step
+      stoch_velocity_1 = self.compute_stochastic_linear_velocity_without_drift(0.5 * dt)
+
+      # Add velocities
+      velocity = det_velocity + stoch_velocity_1
+      
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + (0.5 * dt) * velocity[3*k : 3*(k+1)]
+
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Compute deterministic velocity and torque
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+
+      # Compute stochastic velocity without drift for second half step
+      stoch_velocity_2 = self.compute_stochastic_linear_velocity_without_drift(0.5 * dt)
+
+      # Add velocities 
+      velocity = det_velocity + drift + (stoch_velocity_1 + stoch_velocity_2) * 0.5
+
+      # Update blobs coordinates half time step
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
+      
+      # Check if configuration is valid if not repeat step
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < 0.0:      
+          valid_configuration = False
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration'
+          break
+      if valid_configuration is False:
+        # Restore configuration
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_old
+        continue
+
+      # Count overlaps and return
+      for k, b in enumerate(self.bodies):
+        if b.location[2] < self.a:
+          self.wall_overlaps += 1            
+      return
+
 
 
   def compute_deterministic_velocity_and_torque(self):
@@ -381,7 +470,6 @@ class QuaternionIntegratorRollers(object):
     '''
     # Create auxiliar variables
     Nblobs = len(self.bodies)
-    blob_mass = 1.0
 
     # Get blobs coordinates
     r_vectors_blobs = np.empty((Nblobs, 3))
@@ -429,6 +517,77 @@ class QuaternionIntegratorRollers(object):
     # Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
     return velocities_noise + (self.kT / self.rf_delta) * div_M_tt 
   
+
+  def compute_stochastic_linear_velocity_without_drift(self, dt):
+    '''
+    Compute stochastic linear velocity
+    
+    v_stoch = sqrt(2*kT) * M_tt^{1/2}*W 
+
+    This function returns the stochastic velocity v_stoch.
+    '''
+    # Create auxiliar variables
+    Nblobs = len(self.bodies)
+
+    # Get blobs coordinates
+    r_vectors_blobs = np.empty((Nblobs, 3))
+    for k, b in enumerate(self.bodies):
+      r_vectors_blobs[k] = b.location
+
+    # Generate random vector
+    z = np.random.randn(3 * Nblobs)
+    
+    # Define mobility matrix
+    def mobility_matrix(force, r_vectors = None, eta = None, a = None, periodic_length = None):
+      return mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = periodic_length)
+    partial_mobility_matrix = partial(mobility_matrix, 
+                                            r_vectors = r_vectors_blobs, 
+                                            eta = self.eta, 
+                                            a = self.a,
+                                            periodic_length = self.periodic_length)
+
+    # Generate noise term sqrt(2*kT) * N^{1/2} * z
+    velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                         tolerance = self.tolerance, 
+                                                                         dim = self.Nblobs * 3, 
+                                                                         mobility_mult = partial_mobility_matrix,
+                                                                         z = z)
+    # Return velocity
+    return velocities_noise 
+
+
+  def compute_linear_thermal_drift(self):
+    '''
+    Compute the thermal drift kT*div_t(M_tt) using random finite
+    differences. 
+    
+    drift = (kT / delta) * (M_tt(q+0.5*delta) - M_tt(q^n-0.5*delta))
+    '''
+    # Create auxiliar variables
+    Nblobs = len(self.bodies)
+
+    # Compute divergence term div_t(M_tt)
+    if self.kT > 0.0:
+      # 0. Get blobs coordinates
+      r_vectors_blobs = np.empty((Nblobs, 3))
+      for k, b in enumerate(self.bodies):
+        r_vectors_blobs[k] = b.location
+      # 1. Generate random displacement
+      dx_stoch = np.reshape(np.random.randn(Nblobs * 3), (Nblobs, 3))
+      # 2. Displace blobs
+      r_vectors_blobs += dx_stoch * (self.rf_delta * 0.5)
+      # 3. Compute M_tt(r+0.5*dx) * dx_stoch
+      div_M_tt = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+                                                                   periodic_length = self.periodic_length)
+      # 4. Displace blobs in the other direction
+      r_vectors_blobs -= dx_stoch * self.rf_delta 
+      # 5. Compute -M_tt(r-0.5*dx) * dx_stoch
+      div_M_tt -= mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+                                                                    periodic_length = self.periodic_length)
+    else:
+      div_M_tt = np.zeros(velocities_noise.size)
+    return (self.kT / self.rf_delta) * div_M_tt 
+
 
   def get_omega_one_roller(self):
     '''
