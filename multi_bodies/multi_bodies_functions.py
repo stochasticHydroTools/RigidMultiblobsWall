@@ -122,10 +122,10 @@ def blob_external_force(r_vectors, *args, **kwargs):
   single blob. It returns an array with shape (3).
   
   In this example we add gravity and a repulsion with the wall;
-  the interaction with the wall is derived from a Yukawa-like
-  potential
+  the interaction with the wall is derived from the potential
 
-  U = e * a * exp(-(h-a) / b) / (h - a)
+  U(z) = U0 + U0 * (a-z)/b   if z<a
+  U(z) = U0 * exp(-(z-a)/b)  iz z>=a
 
   with 
   e = repulsion_strength_wall
@@ -145,12 +145,12 @@ def blob_external_force(r_vectors, *args, **kwargs):
   # Add gravity
   f += -g * blob_mass * np.array([0., 0., 1.0])
 
-  # Add wall interaction
+  # Add wall interaction:
   h = r_vectors[2]
-  f += np.array([0., 0., (blob_radius * repulsion_strength_wall * \
-                            (h / debye_length_wall + 1.0) * \
-                            np.exp(-1.0 * h / debye_length_wall) / \
-                            (h**2))])
+  if h > blob_radius:
+    f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
+  else:
+    f[2] += (repulsion_strength_wall / debye_length_wall)
   return f
 
 
@@ -196,24 +196,30 @@ def blob_blob_force(r, *args, **kwargs):
   This function compute the force between two blobs
   with vector between blob centers r.
 
-  In this example the force is derived from a Yukawa potential
+  In this example the force is derived from the potential
   
-  U = eps * exp(-r_norm / b) / r_norm
+  U(r) = U0 + U0 * (2*a-r)/b   if z<2*a
+  U(r) = U0 * exp(-(r-2*a)/b)  iz z>=2*a
   
   with
   eps = potential strength
   r_norm = distance between blobs
   b = Debye length
+  a = blob_radius
   '''
   # Get parameters from arguments
   L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
+  a = kwargs.get('blob_radius')
 
   # Compute force
   project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
-  return -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
+  if r_norm > 2*a:
+    return -((eps / b) * np.exp(-(r_norm-2*a) / b) / np.maximum(r_norm, np.finfo(float).eps)) * r 
+  else:
+    return -((eps / b) / np.maximum(r_norm, np.finfo(float).eps)) * r;
   
 
 def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
@@ -244,12 +250,13 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')  
+  blob_radius = kwargs.get('blob_radius')  
 
   number_of_blobs = r_vectors.size / 3
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs, L) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L) 
   return np.reshape(forces, (number_of_blobs, 3))
 
 
