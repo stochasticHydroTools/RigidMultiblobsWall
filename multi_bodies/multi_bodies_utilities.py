@@ -24,7 +24,7 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-
+import visit.visit_writer as visit_writer
 
 
 
@@ -39,7 +39,7 @@ def make_callback():
   return callback
 
 
-def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, *args, **kwargs):
+def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, *args, **kwargs):
   '''
   This function plots the velocity field to a grid. 
   '''
@@ -67,14 +67,51 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, *
   # Compute velocity field
   radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius
   radius_target = np.zeros(grid_coor.size / 3)
-  grid_velocity = mob.mobility_vector_product_target_source_one_wall(r_vectors_blobs, 
-                                                                     grid_coor, 
-                                                                     lambda_blobs, 
-                                                                     radius_source, 
-                                                                     radius_target, 
-                                                                     eta, 
-                                                                     *args, 
-                                                                     **kwargs)
+  print 'radius_source', radius_source
+  print 'radius_target', radius_target
+
+  grid_velocity = mob.mobility_vector_product_target_source_unbounded(r_vectors_blobs, 
+                                                                      grid_coor, 
+                                                                      lambda_blobs, 
+                                                                      radius_source, 
+                                                                      radius_target, 
+                                                                      eta, 
+                                                                      *args, 
+                                                                      **kwargs)
+  print 'grid_velocity\n', grid_velocity
+
+  # Prepara data for VTK writer
+  variables = [np.reshape(grid_velocity, grid_velocity.size)]
+  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
+  nvars = 1
+  vardims = np.array([3])
+  centering = np.array([0])
+  varnames = ['velocity\0']
+  name = output + '.velocity_field.vtk'
+  grid_x = grid_x - dx_grid[0] * 0.5
+  grid_y = grid_y - dx_grid[1] * 0.5
+  grid_z = grid_z - dx_grid[2] * 0.5
+  grid_x = np.concatenate([grid_x, [grid[1,0]]])
+  grid_y = np.concatenate([grid_y, [grid[1,1]]])
+  grid_z = np.concatenate([grid_z, [grid[1,2]]])
+
+  
+
+  # Write velocity field
+  if 1:
+    visit_writer.boost_write_rectilinear_mesh(name,      # File's name
+                                              0,         # 0=ASCII,  1=Binary
+                                              dims,      # {mx, my, mz}
+                                              grid_x,     # xmesh
+                                              grid_y,     # ymesh
+                                              grid_z,     # zmesh
+                                              nvars,     # Number of variables
+                                              vardims,   # Size of each variable, 1=scalar, velocity=3*scalars
+                                              centering, # Write to cell centers of corners
+                                              varnames,  # Variables' names
+                                              variables) # Variables
+
+
   return
 
 
@@ -210,7 +247,7 @@ if __name__ ==  '__main__':
     # Plot velocity field
     if read.plot_velocity_field.size > 0: 
       print 'plot_velocity_field' 
-      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta)
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name)
       
   # If scheme == resistance solve resistance problem 
   elif read.scheme == 'resistance': 

@@ -639,16 +639,31 @@ def fmm_rpy(r_vectors, force, eta, a):
 def mobility_vector_product_target_source_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   '''
   Compute velocity of targets of radius radius_target due
-  to forces on sources of radius source_targer. 
+  to forces on sources of radius source_targer in half-space. 
 
-  That is, compute the matrix vector product
-  
+  That is, compute the matrix vector product  
   velocities_target = M_tt * forces_sources
-
   where M_tt has dimensions (target, source)
   '''
+  blob_radius = radius_source[0]
+  return 
 
-  return
+
+def mobility_vector_product_target_source_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Compute velocity of targets of radius radius_target due
+  to forces on sources of radius source_targer in unbounded domain. 
+
+  That is, compute the matrix vector product  
+  velocities_target = M_tt * forces_sources
+  where M_tt has dimensions (target, source)
+  '''
+  blob_radius = radius_source[0]
+
+  velocity = target
+
+  return velocity
+
 
 def epsilon_tensor(i, j, k):
   ''' 
