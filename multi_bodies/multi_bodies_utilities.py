@@ -79,6 +79,7 @@ if __name__ ==  '__main__':
   Nblobs = sum([x.Nblobs for x in bodies])
   multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
+  multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
   multi_bodies.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
 
   # Write bodies information
@@ -100,8 +101,8 @@ if __name__ ==  '__main__':
     with open(read.force_file, 'r') as f:
       for k, line in enumerate(f):
         force_torque[k] = np.array(map(float, line.split()))
-    force_torque = np.reshape(force_torque, (2*num_bodies, 3))
-
+  force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+    
   # Read velocity file
   velocity = np.zeros((num_bodies, 6))
   if read.velocity_file is not None:
@@ -117,8 +118,21 @@ if __name__ ==  '__main__':
     # Get blobs coordinates
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
 
+    # Use the code to compute force-torques on bodies if a file was not given
+    if read.force_file is None:
+      force_torque = multi_bodies_functions.force_torque_calculator_sort_by_bodies(bodies,
+                                                                                   r_vectors_blobs,
+                                                                                   g = read.g, 
+                                                                                   repulsion_strength_wall = read.repulsion_strength_wall, 
+                                                                                   debye_length_wall = read.debye_length_wall, 
+                                                                                   repulsion_strength = read.repulsion_strength, 
+                                                                                   debye_length = read.debye_length, 
+                                                                                   periodic_length = read.periodic_length) 
+
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
+    print 'slip', slip.shape, '\n', slip
+    print 'force', force_torque.shape, '\n', force_torque
     RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
     
     # Set linear operators 
@@ -192,6 +206,19 @@ if __name__ ==  '__main__':
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
     print 'Time to compute body mobility =', time.time() - start_time
+    
+  elif (read.scheme == 'plot_velocity_field' and False):
+    print 'plot_velocity_field'
+    # Compute slip 
+
+    # Compute forces
+
+    # Solve mobility problem
+
+    # Compute velocity field
+
+
+
 
   print '\n\n\n# End'
 
