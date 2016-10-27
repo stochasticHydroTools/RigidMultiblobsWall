@@ -17,7 +17,7 @@ sys.path.append('../')
 
 import multi_bodies_functions
 import multi_bodies
-from mobility import mobility as mb
+from mobility import mobility as mob
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
 from body import body 
@@ -38,6 +38,44 @@ def make_callback():
     print closure_variables["counter"], residuals
   return callback
 
+
+def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, *args, **kwargs):
+  '''
+  This function plots the velocity field to a grid. 
+  '''
+  # Prepare grid values
+  grid = np.reshape(grid, (3,3)).T
+  grid_length = grid[1] - grid[0]
+  grid_points = np.array(grid[2], dtype=np.int32)
+  num_points = reduce(lambda x,y: x*y, grid_points)
+
+  # Set grid coordinates
+  dx_grid = grid_length / grid_points
+  grid_x = np.array([grid[0,0] + dx_grid[0] * (x+0.5) for x in range(grid_points[0])])
+  grid_y = np.array([grid[0,1] + dx_grid[1] * (x+0.5) for x in range(grid_points[1])])
+  grid_z = np.array([grid[0,2] + dx_grid[2] * (x+0.5) for x in range(grid_points[2])])
+  xx, yy, zz = np.meshgrid(grid_x, grid_y, grid_z)
+  grid_coor = np.zeros((num_points, 3))
+  grid_coor[:,0] = np.reshape(xx, xx.size)
+  grid_coor[:,1] = np.reshape(yy, yy.size)
+  grid_coor[:,2] = np.reshape(zz, zz.size)
+  print 'coordinates_grid\n', grid_coor
+
+  # Create grid velocity field
+  grid_velocity = np.zeros((num_points, 3))
+
+  # Compute velocity field
+  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius
+  radius_target = np.zeros(grid_coor.size / 3)
+  grid_velocity = mob.mobility_vector_product_target_source_one_wall(r_vectors_blobs, 
+                                                                     grid_coor, 
+                                                                     lambda_blobs, 
+                                                                     radius_source, 
+                                                                     radius_target, 
+                                                                     eta, 
+                                                                     *args, 
+                                                                     **kwargs)
+  return
 
 
 if __name__ ==  '__main__':
@@ -160,19 +198,25 @@ if __name__ ==  '__main__':
     # Solve preconditioned linear system # callback=make_callback()
     (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
     
-    # Extract velocities
+    # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
+    lambda_blobs = np.reshape(sol_precond[0: 3*Nblobs], (Nblobs, 3))
 
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
-    print 'Time to solve mobility problem =', time.time() - start_time   
+    print 'Time to solve mobility problem =', time.time() - start_time 
 
-  # If scheme == resistance solve resistance problem
-  elif read.scheme == 'resistance':
-    start_time = time.time()  
-    # Get blobs coordinates
-    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    # Plot velocity field
+    if read.plot_velocity_field.size > 0: 
+      print 'plot_velocity_field' 
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta)
+      
+  # If scheme == resistance solve resistance problem 
+  elif read.scheme == 'resistance': 
+    start_time = time.time() 
+    # Get blobs coordinates 
+    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs) 
     
     # Calculate block-diagonal matrix K
     K = multi_bodies.calc_K_matrix(bodies, Nblobs)
