@@ -636,6 +636,20 @@ def fmm_rpy(r_vectors, force, eta, a):
   return np.reshape(u_fortran.T, u_fortran.size)
   
 
+def mobility_vector_product_target_source_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Compute velocity of targets of radius radius_target due
+  to forces on sources of radius source_targer. 
+
+  That is, compute the matrix vector product
+  
+  velocities_target = M_tt * forces_sources
+
+  where M_tt has dimensions (target, source)
+  '''
+
+  return
+
 def epsilon_tensor(i, j, k):
   ''' 
   Epsilon tensor (cross product).  Only works for arguments
