@@ -532,20 +532,8 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
   '''
-  # Get effective height
-  r_vectors_effective = shift_heights(r_vectors, a)
-  # Compute damping matrix B
-  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  # Compute B * vector
-  if overlap is True:
-    vector = B.dot(vector)
-  # Compute M_tilde * B * vector
-  r = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))
-  mobility = single_wall_fluid_mobility(r, eta, a)
+  mobility = single_wall_fluid_mobility(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
   velocities = np.dot(mobility, vector)
-  # Compute B.T * M * B * vector
-  if overlap is True:
-    velocities = B.dot(velocities)
   return velocities
 
 
@@ -658,7 +646,10 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
   That is, compute the matrix vector product  
   velocities_target = M_tt * forces_sources
   where M_tt has dimensions (target, source)
+
+  See Reference P. J. Zuk et al. J. Fluid Mech. (2014), vol. 741, R5, doi:10.1017/jfm.2013.668
   '''
+  force = np.reshape(force, (force.size / 3, 3))
   blob_radius = radius_source[0]
   velocity = np.zeros((target.size / 3, 3))
   mobility_row = np.zeros((3, source.size))
@@ -673,13 +664,20 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
     for j, r in enumerate(r_source_to_target):
       r2 = np.dot(r,r)
       r_norm  = np.sqrt(r2)
-      # Check for overlap
-      if r_norm > (radius_target[i] + radius_source[j]):
+      # Compute 3x3 block mobility
+      if r_norm >= (radius_target[i] + radius_source[j]):
         Mij = (1 + (a2[i]+b2[j]) / (3 * r2)) * np.eye(3) + (1 - (a2[i]+b2[j]) / r2) * np.outer(r,r) / r2
         Mij = (prefactor / r_norm) * Mij
+      elif r_norm > np.absolute(radius_target[i]-radius_source[j]):
+        r3 = r_norm * r2
+        Mij = ((16*(radius_target[i]+radius_source[j])*r3 - ((radius_target[i]-radius_source[j])**2 + 3*r2)**2) / (32*r3)) * np.eye(3) +\
+            ((3*((radius_target[i]-radius_source[j])**2-r2)**2) / (32*r3)) * np.outer(r,r) / r2
+        Mij = Mij / (6 * np.pi * eta * radius_target[i] * radius_source[j])
       else:
-        print 'LLLLLLLLLL'
-      velocity[i] += np.dot(Mij, source[j])
+        largest_radius = radius_target[i] if radius_target[i] > radius_source[j] else radius_source[j]
+        Mij = (1.0 / (6 * np.pi * eta * largest_radius)) * np.eye(3)
+      velocity[i] += np.dot(Mij, force[j])
+      # print '--------------::::', force[j]
   return velocity
 
 

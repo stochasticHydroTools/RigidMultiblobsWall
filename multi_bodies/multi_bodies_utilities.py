@@ -61,15 +61,16 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,2] = np.reshape(zz, zz.size)
   print 'coordinates_grid\n', grid_coor
 
-  # Create grid velocity field
-  grid_velocity = np.zeros((num_points, 3))
+  # Create grid velocity field 
+  grid_velocity = np.zeros((num_points, 3)) 
 
-  # Compute velocity field
-  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius
-  radius_target = np.zeros(grid_coor.size / 3)
-  print 'radius_source', radius_source
-  print 'radius_target', radius_target
-
+  # Compute velocity field 
+  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
+  radius_target = np.zeros(grid_coor.size / 3) 
+  # radius_target = np.ones(grid_coor.size / 3) * blob_radius 
+  # print 'radius_source', radius_source 
+  # print 'radius_target', radius_target 
+  # print 'lambda_blobs\n', lambda_blobs
   grid_velocity = mob.mobility_vector_product_target_source_unbounded(r_vectors_blobs, 
                                                                       grid_coor, 
                                                                       lambda_blobs, 
@@ -77,11 +78,12 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       radius_target, 
                                                                       eta, 
                                                                       *args, 
-                                                                      **kwargs)
-  print 'grid_velocity\n', grid_velocity
+                                                                      **kwargs) 
+  print 'grid_velocity\n', grid_velocity 
+  grid_velocity[:,2] = 0.0 
 
-  # Prepara data for VTK writer
-  variables = [np.reshape(grid_velocity, grid_velocity.size)]
+  # Prepara data for VTK writer 
+  variables = [np.reshape(grid_velocity, grid_velocity.size)] 
   dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
   nvars = 1
   vardims = np.array([3])
