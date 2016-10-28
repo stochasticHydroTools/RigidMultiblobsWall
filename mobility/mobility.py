@@ -10,6 +10,7 @@ import imp
 try:
   import mobility_ext as me
 except ImportError:
+  print 'We don\'t have me' 
   pass
 # If pycuda is installed import mobility_pycuda
 try: 
@@ -659,9 +660,26 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
   where M_tt has dimensions (target, source)
   '''
   blob_radius = radius_source[0]
-
-  velocity = target
-
+  velocity = np.zeros((target.size / 3, 3))
+  mobility_row = np.zeros((3, source.size))
+  prefactor = 1.0 / (8 * np.pi * eta)
+  a2 = radius_target**2
+  b2 = radius_source**2
+  # Loop over targets
+  for i, r_target in enumerate(target):
+    # Distance between target and sources
+    r_source_to_target = r_target - source
+    # Loop over sources
+    for j, r in enumerate(r_source_to_target):
+      r2 = np.dot(r,r)
+      r_norm  = np.sqrt(r2)
+      # Check for overlap
+      if r_norm > (radius_target[i] + radius_source[j]):
+        Mij = (1 + (a2[i]+b2[j]) / (3 * r2)) * np.eye(3) + (1 - (a2[i]+b2[j]) / r2) * np.outer(r,r) / r2
+        Mij = (prefactor / r_norm) * Mij
+      else:
+        print 'LLLLLLLLLL'
+      velocity[i] += np.dot(Mij, source[j])
   return velocity
 
 
