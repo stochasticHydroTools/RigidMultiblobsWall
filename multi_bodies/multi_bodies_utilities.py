@@ -62,7 +62,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   print 'coordinates_grid\n', grid_coor
 
   # Create grid velocity field 
-  grid_velocity = np.zeros((num_points, 3)) 
+  # grid_velocity = np.zeros((num_points, 3)) 
 
   # Compute velocity field 
   radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
@@ -71,16 +71,29 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   # print 'radius_source', radius_source 
   # print 'radius_target', radius_target 
   # print 'lambda_blobs\n', lambda_blobs
-  grid_velocity = mob.mobility_vector_product_target_source_unbounded(r_vectors_blobs, 
-                                                                      grid_coor, 
-                                                                      lambda_blobs, 
-                                                                      radius_source, 
+  # lambda_blobs += 1e-7 * r_vectors_blobs
+  if 1:
+    grid_velocity = mob.mobility_vector_product_target_source_one_wall(r_vectors_blobs, 
+                                                                       grid_coor, 
+                                                                       lambda_blobs, 
+                                                                       radius_source, 
+                                                                       radius_target, 
+                                                                       eta, 
+                                                                       *args, 
+                                                                       **kwargs) 
+
+  if 0:
+    # Unbounded mobility
+    grid_velocity = mob.mobility_vector_product_target_source_unbounded(r_vectors_blobs, 
+                                                                        grid_coor, 
+                                                                        lambda_blobs, 
+                                                                        radius_source, 
                                                                       radius_target, 
-                                                                      eta, 
-                                                                      *args, 
-                                                                      **kwargs) 
+                                                                        eta, 
+                                                                        *args, 
+                                                                        **kwargs) 
   print 'grid_velocity\n', grid_velocity 
-  grid_velocity[:,2] = 0.0 
+  # grid_velocity[:,2] = 0.0 
 
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 

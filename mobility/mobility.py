@@ -60,6 +60,41 @@ def damping_matrix_B(r_vectors, blob_radius, *args, **kwargs):
       B[k*3 + 2] = r[2] / blob_radius    
       overlap = True
   return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
+
+
+def shift_heights_different_radius(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return an array with the blobs' height
+  
+  z_effective = maximum(z, blob_radius)
+
+  This function is used to compute positive
+  definite mobilites for blobs close to the wall.
+  '''
+  r_effective = np.copy(r_vectors)
+  for k, r in enumerate(r_effective):
+    r[2] = r[2] if r[2] > blob_radius[k] else blob_radius[k]
+  return r_effective
+
+
+def damping_matrix_B_different_radius(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return sparse diagonal matrix with components
+  B_ii = 1.0               if z_i >= blob_radius
+  B_ii = z_i / blob_radius if z_i < blob_radius
+
+  It is used to compute positive definite mobilities
+  close to the wall.
+  '''
+  B = np.ones(r_vectors.size)
+  overlap = False
+  for k, r in enumerate(r_vectors):
+    if r[2] < blob_radius[k]:
+      B[k*3]     = r[2] / blob_radius[k]
+      B[k*3 + 1] = r[2] / blob_radius[k]
+      B[k*3 + 2] = r[2] / blob_radius[k] 
+      overlap = True
+  return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
   
 
 def image_singular_stokeslet(r_vectors, eta, a):
@@ -634,8 +669,70 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
   velocities_target = M_tt * forces_sources
   where M_tt has dimensions (target, source)
   '''
-  blob_radius = radius_source[0]
-  return 
+  print 'mobility_vector_product_target_source_one_wall    START'
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+  
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  if 0:
+    # Compute B * vector
+    if overlap is True:
+      vector = B.dot(vector)
+    # Compute M_tilde * B * vector
+    num_particles = r_vectors.size / 3
+    vector_res = np.zeros(r_vectors.size)
+    r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))  
+    me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
+    # Compute B.T * M * B * vector
+    if overlap is True:
+      vector_res = B.dot(vector_res)
+    return vector_res
+
+  # Compute B * vector
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute unbounded contribution
+  velocity = mobility_vector_product_target_source_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
+
+  # Compute wall correction
+  force = np.reshape(force, (force.size / 3, 3))
+  prefactor = 1.0 / (8 * np.pi * eta)
+  b2 = radius_target**2
+  a2 = radius_source**2
+  I = np.eye(3)
+  J = np.zeros((3,3))
+  J[2,2] = 1.0
+  P = np.eye(3)
+  P[2,2] = -1.0
+  # Loop over targets
+  for i, r_target in enumerate(target):
+    # Distance between target and image sources
+    r_source_to_target = r_target - source 
+    r_source_to_target = r_target[2] + source[:,2] 
+    # Loop over sources
+    for j, r in enumerate(r_source_to_target):
+      r2 = np.dot(r,r)
+      r_norm  = np.sqrt(r2)
+      r3 = r_norm * r2
+      r5 = r3 * r2
+      r7 = r5 * r2
+      r9 = r7 * r2
+      RR = np.outer(r,r)
+      # Compute 3x3 block mobility  
+      Mij = (I - J) / r_norm
+      # Mij += ((b2[i]+a2[j])/3.0) * (I-J) + RR - 2*x[i,2]
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    velocity = B_target.dot(velocity)
+
+  print'mobility_vector_product_target_source_one_wall     END'
+  return velocity
 
 
 def mobility_vector_product_target_source_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
@@ -650,12 +747,10 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
   See Reference P. J. Zuk et al. J. Fluid Mech. (2014), vol. 741, R5, doi:10.1017/jfm.2013.668
   '''
   force = np.reshape(force, (force.size / 3, 3))
-  blob_radius = radius_source[0]
   velocity = np.zeros((target.size / 3, 3))
-  mobility_row = np.zeros((3, source.size))
   prefactor = 1.0 / (8 * np.pi * eta)
-  a2 = radius_target**2
-  b2 = radius_source**2
+  b2 = radius_target**2
+  a2 = radius_source**2
   # Loop over targets
   for i, r_target in enumerate(target):
     # Distance between target and sources
@@ -666,7 +761,7 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
       r_norm  = np.sqrt(r2)
       # Compute 3x3 block mobility
       if r_norm >= (radius_target[i] + radius_source[j]):
-        Mij = (1 + (a2[i]+b2[j]) / (3 * r2)) * np.eye(3) + (1 - (a2[i]+b2[j]) / r2) * np.outer(r,r) / r2
+        Mij = (1 + (b2[i]+a2[j]) / (3 * r2)) * np.eye(3) + (1 - (b2[i]+a2[j]) / r2) * np.outer(r,r) / r2
         Mij = (prefactor / r_norm) * Mij
       elif r_norm > np.absolute(radius_target[i]-radius_source[j]):
         r3 = r_norm * r2
