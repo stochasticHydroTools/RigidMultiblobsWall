@@ -22,7 +22,7 @@ __device__ void mobilityUFRPY(float rx,
                               int j,
                               float invaGPU){
   
-  float fourOverThree = 4.0 / 3.0;
+  float fourOverThree = 4.0f / 3.0f;
 
   if(i == j){
     Mxx = fourOverThree;
@@ -40,12 +40,12 @@ __device__ void mobilityUFRPY(float rx,
     float r = sqrt(r2);
     //We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
     //float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
-    float invr = 1.0 / r;
+    float invr = 1.0f / r;
     float invr2 = invr * invr;
     float c1, c2;
     if(r>=2){
-      c1 = 1 + 2 / (3 * r2);
-      c2 = (1 - 2 * invr2) * invr2;
+      c1 = 1.0f + 2.0f / (3.0f * r2);
+      c2 = (1.0f - 2.0f * invr2) * invr2;
       Mxx = (c1 + c2*rx*rx) * invr;
       Mxy = (     c2*rx*ry) * invr;
       Mxz = (     c2*rx*rz) * invr;
@@ -54,8 +54,8 @@ __device__ void mobilityUFRPY(float rx,
       Mzz = (c1 + c2*rz*rz) * invr;
     }
     else{
-      c1 = fourOverThree * (1 - 0.28125 * r); // 9/32 = 0.28125
-      c2 = fourOverThree * 0.09375 * invr;    // 3/32 = 0.09375
+      c1 = fourOverThree * (1 - 0.28125f * r); // 9/32 = 0.28125
+      c2 = fourOverThree * 0.09375f * invr;    // 3/32 = 0.09375
       Mxx = c1 + c2 * rx*rx ;
       Mxy =      c2 * rx*ry ;
       Mxz =      c2 * rx*rz ;
@@ -92,10 +92,12 @@ __device__ void mobilityUFSingleWallCorrection(float rx,
                                                float hj){
 
   if(i == j){
-    float invZi = 1.0 / hj;
-    Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
-    Myy += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
-    Mzz += -(9*invZi - 4*pow(invZi,3) + pow(invZi,5)) / 6.0;
+    float invZi = 1.0f / hj;
+    float invZi3 = invZi * invZi * invZi;
+    float invZi5 = invZi3 * invZi * invZi;
+    Mxx += -(9*invZi - 2*invZi3 + invZi5 ) / 12.0f;
+    Myy += -(9*invZi - 2*invZi3 + invZi5 ) / 12.0f;
+    Mzz += -(9*invZi - 4*invZi3 + invZi5 ) / 6.0f;
   }
   else{
     float h_hat = hj / rz;
@@ -103,12 +105,14 @@ __device__ void mobilityUFSingleWallCorrection(float rx,
     float ex = rx * invR;
     float ey = ry * invR;
     float ez = rz * invR;
+    float invR3 = invR * invR * invR;
+    float invR5 = invR3 * invR * invR;
     
-    float fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * pow(invR,3) - 2*(1-5*ez*ez) * pow(invR,5))  / 3.0;
-    float fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(1-7*ez*ez) * pow(invR,5)) / 3.0;
-    float fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(2-7*ez*ez) * pow(invR,5)) * 2.0 / 3.0;
-    float fact4 =  ez * (3*h_hat*invR - 10*pow(invR,5)) * 2.0 / 3.0;
-    float fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*pow(invR, 3) + (2-15*ez*ez)*pow(invR, 5)) * 4.0 / 3.0;
+    float fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * invR3 - 2*(1-5*ez*ez) * invR5)  / 3.0f;
+    float fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * invR3 + 10*(1-7*ez*ez) * invR5) / 3.0f;
+    float fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * invR3 + 10*(2-7*ez*ez) * invR5) * 2.0f / 3.0f;
+    float fact4 =  ez * (3*h_hat*invR - 10*invR5) * 2.0 / 3.0;
+    float fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*invR3 + (2-15*ez*ez)*invR5) * 4.0f / 3.0f;
     
     Mxx += fact1 + fact2 * ex*ex;
     Mxy += fact2 * ex*ey;
@@ -142,7 +146,7 @@ __global__ void velocity_from_force(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
 
   float Ux=0;
   float Uy=0;
@@ -225,7 +229,7 @@ __global__ void velocity_from_force(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_f = 1.0 / (8 * pi * eta * a);
   u[ioffset    ] = Ux * norm_fact_f;
   u[ioffset + 1] = Uy * norm_fact_f;
@@ -272,9 +276,9 @@ __device__ void mobilityWTRPY(float rx,
     float r3 = r2*r;
     //We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
     //float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
-    float invr = 1 / r;
-    float invr2 = 1 / r2;
-    float invr3 = 1 / r3;
+    float invr = 1.0f / r;
+    float invr2 = 1.0f / r2;
+    float invr3 = 1.0f / r3;
     float c1, c2;
     if(r>=2){
       c1 = -0.5;
@@ -287,8 +291,8 @@ __device__ void mobilityWTRPY(float rx,
       Mzz = (c1 + c2*rz*rz) * invr3;
     }
     else{
-      c1 =  (1 - 0.84375 * r + 0.078125 * r3); // 27/32 = 0.84375, 5/64 = 0.078125
-      c2 =  0.28125 * invr - 0.046875 * r;    // 9/32 = 0.28125, 3/64 = 0.046875
+      c1 =  (1.0f - 0.84375f * r + 0.078125f * r3); // 27/32 = 0.84375, 5/64 = 0.078125
+      c2 =  0.28125f * invr - 0.046875f * r;    // 9/32 = 0.28125, 3/64 = 0.046875
       Mxx = c1 + c2 * rx*rx ;
       Mxy =      c2 * rx*ry ;
       Mxz =      c2 * rx*rz ;
@@ -324,11 +328,11 @@ __device__ void mobilityWTSingleWallCorrection(float rx,
                                                float invaGPU,
                                                float hj){
   if(i == j){
-    float invZi = 1.0 / hj;
+    float invZi = 1.0f / hj;
     float invZi3 = pow(invZi,3);
-    Mxx += - invZi3 * 0.3125; // 15/48 = 0.3125
-    Myy += - invZi3 * 0.3125; // 15/48 = 0.3125
-    Mzz += - invZi3 * 0.125; // 3/24 = 0.125
+    Mxx += - invZi3 * 0.3125f; // 15/48 = 0.3125
+    Myy += - invZi3 * 0.3125f; // 15/48 = 0.3125
+    Mzz += - invZi3 * 0.125f; // 3/24 = 0.125
   }
   else{
     float invR = rsqrt(rx*rx + ry*ry + rz*rz); // = 1 / r;
@@ -337,8 +341,8 @@ __device__ void mobilityWTSingleWallCorrection(float rx,
     float ey = ry * invR;
     float ez = rz * invR;
     
-    float fact1 =  ((1-6*ez*ez) * invR3 ) / 2.0;
-    float fact2 = -(9 * invR3) / 6.0;
+    float fact1 =  ((1-6*ez*ez) * invR3 ) / 2.0f;
+    float fact2 = -(9 * invR3) / 6.0f;
     float fact3 =  (3 * invR3 * ez);
     float fact4 =  (3 * invR3);
     
@@ -372,7 +376,7 @@ __global__ void rotation_from_torque(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   float a3 = a*a*a;
 
   float Ux=0;
@@ -455,7 +459,7 @@ __global__ void rotation_from_torque(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a3;
   u[ioffset    ] = Ux / norm_fact_t;
   u[ioffset + 1] = Uy / norm_fact_t;
@@ -481,7 +485,7 @@ __global__ void rotation_from_torque_no_wall(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a3 = a*a*a;
 
@@ -564,7 +568,7 @@ __global__ void rotation_from_torque_no_wall(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a3;
   u[ioffset    ] = Ux / norm_fact_t;
   u[ioffset + 1] = Uy / norm_fact_t;
@@ -612,7 +616,7 @@ __device__ void mobilityWFRPY(float rx,
     float r3 = r2*r;
     //We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
     //float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
-    float invr3 = 1 / r3;
+    float invr3 = 1.0f / r3;
     float c1;
     if(r>=2){
       Mxx =  0;
@@ -623,7 +627,7 @@ __device__ void mobilityWFRPY(float rx,
       Mzz =  0;
     }
     else{
-      c1 =  0.5*( 1 - 0.375 * r); // 3/8 = 0.375
+      c1 =  0.5f*( 1.0f - 0.375f * r); // 3/8 = 0.375
       Mxx =  0;
       Mxy =  c1 * rz;
       Mxz = -c1 * ry ;
@@ -660,10 +664,10 @@ __device__ void mobilityWFSingleWallCorrection(float rx,
                                                float invaGPU,
                                                float hj){
   if(i == j){
-    float invZi = 1.0 / hj;
+    float invZi = 1.0f / hj;
     float invZi4 = pow(invZi,4);
-    Mxy += -invZi4 * 0.125; // 3/24 = 0.125
-    Myx +=  invZi4 * 0.125; // 3/24 = 0.125
+    Mxy += -invZi4 * 0.125f; // 3/24 = 0.125
+    Myx +=  invZi4 * 0.125f; // 3/24 = 0.125
   }
   else{
     float h_hat = hj / rz;
@@ -675,9 +679,9 @@ __device__ void mobilityWFSingleWallCorrection(float rx,
     float ez = rz * invR;
     
     float fact1 =  invR2;
-    float fact2 = (6*h_hat*ez*ez*invR2 + (1-10*ez*ez)*invR4) * 2;
-    float fact3 = -ez*(3*h_hat*invR2 - 5*invR4) * 2;
-    float fact4 = -ez*(h_hat*invR2 - invR4) * 2;
+    float fact2 = (6*h_hat*ez*ez*invR2 + (1-10*ez*ez)*invR4) * 2.0f;
+    float fact3 = -ez*(3*h_hat*invR2 - 5*invR4) * 2.0f;
+    float fact4 = -ez*(h_hat*invR2 - invR4) * 2.0f;
     
     Mxx -=                       - fact3*ex*ey;
     Mxy -=   fact1*ez            - fact3*ey*ey + fact4;
@@ -704,7 +708,7 @@ __global__ void rotation_from_force(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a2 = a*a;
 
@@ -789,7 +793,7 @@ __global__ void rotation_from_force(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a2;
   u[ioffset    ] = Ux / norm_fact_t;
   u[ioffset + 1] = Uy / norm_fact_t;
@@ -813,7 +817,7 @@ __global__ void rotation_from_force_no_wall(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a2 = a*a;
 
@@ -897,7 +901,7 @@ __global__ void rotation_from_force_no_wall(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a2;
   u[ioffset    ] = Ux / norm_fact_t;
   u[ioffset + 1] = Uy / norm_fact_t;
@@ -949,7 +953,7 @@ __device__ void mobilityUTRPY(float rx,
     float r3 = r2*r;
     // We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
     // float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
-    float invr3 = 1 / r3;
+    float invr3 = 1.0f / r3;
     float c1;
     if(r>=2){
       Mxx =  0;
@@ -961,7 +965,7 @@ __device__ void mobilityUTRPY(float rx,
    
     }
     else{
-      c1 = 0.5 * (1 - 0.375 * r); // 3/8 = 0.375
+      c1 = 0.5f * (1.0f - 0.375f * r); // 3/8 = 0.375
       Mxx =  0;
       Mxy =  c1 * rz;
       Mxz = -c1 * ry ;
@@ -1000,10 +1004,10 @@ __device__ void mobilityUTSingleWallCorrection(float rx,
                                                float invaGPU,
                                                float hj){
   if(i == j){
-    float invZi = 1.0 / hj;
+    float invZi = 1.0f / hj;
     float invZi4 = pow(invZi,4);
-    Mxy -= - invZi4 * 0.125; // 3/24 = 0.125
-    Myx -=   invZi4 * 0.125; // 3/24 = 0.125
+    Mxy -= - invZi4 * 0.125f; // 3/24 = 0.125
+    Myx -=   invZi4 * 0.125f; // 3/24 = 0.125
   }
   else{
     float h_hat = hj / rz;
@@ -1015,9 +1019,9 @@ __device__ void mobilityUTSingleWallCorrection(float rx,
     float ez = rz * invR;
     
     float fact1 =  invR2;
-    float fact2 = (6*h_hat*ez*ez*invR2 + (1-10*ez*ez)*invR4) * 2;
-    float fact3 = -ez*(3*h_hat*invR2 - 5*invR4) * 2;
-    float fact4 = -ez*(h_hat*invR2 - invR4) * 2;
+    float fact2 = (6*h_hat*ez*ez*invR2 + (1-10*ez*ez)*invR4) * 2.0f;
+    float fact3 = -ez*(3*h_hat*invR2 - 5*invR4) * 2.0f;
+    float fact4 = -ez*(h_hat*invR2 - invR4) * 2.0f;
     
     Mxx -=                       - fact3*ex*ey        ;
     Mxy -= - fact1*ez            + fact3*ex*ex - fact4;
@@ -1046,7 +1050,7 @@ __global__ void velocity_from_force_and_torque(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a2 = a*a;
 
@@ -1149,7 +1153,7 @@ __global__ void velocity_from_force_and_torque(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a2;
   float norm_fact_f = 8 * pi * eta * a;
   u[ioffset    ] = Utx / norm_fact_t + Ufx / norm_fact_f;
@@ -1173,7 +1177,7 @@ __global__ void velocity_from_force_and_torque_no_wall(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a2 = a*a;
 
@@ -1271,7 +1275,7 @@ __global__ void velocity_from_force_and_torque_no_wall(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   float norm_fact_t = 8 * pi * eta * a2;
   float norm_fact_f = 8 * pi * eta * a;
   u[ioffset    ] = Utx / norm_fact_t + Ufx / norm_fact_f;
@@ -1295,7 +1299,7 @@ __global__ void velocity_from_torque(const float *x,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
-  float invaGPU = 1.0 / a;
+  float invaGPU = 1.0f / a;
   
   float a2 = a*a;
 
@@ -1381,8 +1385,8 @@ __global__ void velocity_from_torque(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
-  float norm_fact_t = 1.0 / (8 * pi * eta * a2);
+  float pi = 4.0f * atan(1.0f);
+  float norm_fact_t = 1.0f / (8 * pi * eta * a2);
   u[ioffset    ] = Utx * norm_fact_t ;
   u[ioffset + 1] = Uty * norm_fact_t ;
   u[ioffset + 2] = Utz * norm_fact_t ;
