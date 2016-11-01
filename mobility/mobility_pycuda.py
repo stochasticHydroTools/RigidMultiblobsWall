@@ -1406,7 +1406,7 @@ __device__ void mobilityUFRPY_single(float rx,
 			             int j,
                                      float invaGPU){
   
-  float fourOverThree = 4.0 / 3.0;
+  float fourOverThree = 4.0f / 3.0f;
 
   if(i==j){
     Mxx = fourOverThree;
@@ -1421,15 +1421,15 @@ __device__ void mobilityUFRPY_single(float rx,
     ry = ry * invaGPU;
     rz = rz * invaGPU;
     float r2 = rx*rx + ry*ry + rz*rz;
-    float r = sqrt(r2);
-    //We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
-    //float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
-    float invr = 1.0 / r;
+    // We should not divide by zero but std::numeric_limits<float>::min() does not work in the GPU
+    // float invr = (r > std::numeric_limits<float>::min()) ? (1.0 / r) : (1.0 / std::numeric_limits<float>::min())
+    float invr = rsqrtf(r2);
+    float r = 1.0f / invr;
     float invr2 = invr * invr;
     float c1, c2;
     if(r>=2){
-      c1 = 1 + 2 / (3 * r2);
-      c2 = (1 - 2 * invr2) * invr2;
+      c1 = 1.0f + 2.0f / (3.0f * r2);
+      c2 = (1.0f - 2.0f * invr2) * invr2;
       Mxx = (c1 + c2*rx*rx) * invr;
       Mxy = (     c2*rx*ry) * invr;
       Mxz = (     c2*rx*rz) * invr;
@@ -1438,8 +1438,8 @@ __device__ void mobilityUFRPY_single(float rx,
       Mzz = (c1 + c2*rz*rz) * invr;
     }
     else{
-      c1 = fourOverThree * (1 - 0.28125 * r); // 9/32 = 0.28125
-      c2 = fourOverThree * 0.09375 * invr;    // 3/32 = 0.09375
+      c1 = fourOverThree * (1.0f - 0.28125f * r); // 9/32 = 0.28125
+      c2 = fourOverThree * 0.09375f * invr;    // 3/32 = 0.09375
       Mxx = c1 + c2 * rx*rx ;
       Mxy =      c2 * rx*ry ;
       Mxz =      c2 * rx*rz ;
@@ -1472,22 +1472,36 @@ __device__ void mobilityUFSingleWallCorrection_single(float rx,
                                                       float hj){
   if(i == j){
     float invZi = 1.0 / hj;
-    Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
-    Myy += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0;
-    Mzz += -(9*invZi - 4*pow(invZi,3) + pow(invZi,5)) / 6.0;
+    float invZi3 = invZi * invZi * invZi;
+    float invZi5 = invZi3 * invZi * invZi;
+    Mxx += -(9*invZi - 2*invZi3 + invZi5) / 12.0f;
+    Myy += -(9*invZi - 2*invZi3 + invZi5) / 12.0f;
+    Mzz += -(9*invZi - 4*invZi3 + invZi5) / 6.0f;
+    // Mxx += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0f;
+    // Myy += -(9*invZi - 2*pow(invZi,3) + pow(invZi,5)) / 12.0f;
+    // Mzz += -(9*invZi - 4*pow(invZi,3) + pow(invZi,5)) / 6.0f;
   }
   else{
     float h_hat = hj / rz;
-    float invR = rsqrt(rx*rx + ry*ry + rz*rz); // = 1 / r;
+    float invR = rsqrtf(rx*rx + ry*ry + rz*rz); // = 1 / r;
     float ex = rx * invR;
     float ey = ry * invR;
     float ez = rz * invR;
     
-    float fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * pow(invR,3) - 2*(1-5*ez*ez) * pow(invR,5))  / 3.0;
-    float fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(1-7*ez*ez) * pow(invR,5)) / 3.0;
-    float fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(2-7*ez*ez) * pow(invR,5)) * 2.0 / 3.0;
-    float fact4 =  ez * (3*h_hat*invR - 10*pow(invR,5)) * 2.0 / 3.0;
-    float fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*pow(invR, 3) + (2-15*ez*ez)*pow(invR, 5)) * 4.0 / 3.0;
+    float invR3 = invR * invR * invR;
+    float invR5 = invR3 * invR * invR;
+
+    float fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * invR3 - 2*(1-5*ez*ez) * invR5)  / 3.0f;
+    float fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * invR3 + 10*(1-7*ez*ez) * invR5) / 3.0f;
+    float fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * invR3 + 10*(2-7*ez*ez) * invR5) * 2.0f / 3.0f;
+    float fact4 =  ez * (3*h_hat*invR - 10*invR5) * 2.0f / 3.0f;
+    float fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*invR3 + (2-15*ez*ez)*invR5) * 4.0f / 3.0f;
+
+    // float fact1 = -(3*(1+2*h_hat*(1-h_hat)*ez*ez) * invR + 2*(1-3*ez*ez) * pow(invR,3) - 2*(1-5*ez*ez) * pow(invR,5))  / 3.0;
+    // float fact2 = -(3*(1-6*h_hat*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(1-7*ez*ez) * pow(invR,5)) / 3.0;
+    // float fact3 =  ez * (3*h_hat*(1-6*(1-h_hat)*ez*ez) * invR - 6*(1-5*ez*ez) * pow(invR,3) + 10*(2-7*ez*ez) * pow(invR,5)) * 2.0 / 3.0;
+    // float fact4 =  ez * (3*h_hat*invR - 10*pow(invR,5)) * 2.0 / 3.0;
+    // float fact5 = -(3*h_hat*h_hat*ez*ez*invR + 3*ez*ez*pow(invR, 3) + (2-15*ez*ez)*pow(invR, 5)) * 4.0 / 3.0;
     
     Mxx += fact1 + fact2 * ex*ex;
     Mxy += fact2 * ex*ey;
@@ -1509,9 +1523,9 @@ __global__ void velocity_from_force_single(const float *x,
 				           int number_of_blobs,
                                            float eta,
                                            float a,
-                                           double Lx,
-                                           double Ly,
-                                           double Lz){
+                                           float Lx,
+                                           float Ly,
+                                           float Lz){
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -1598,7 +1612,7 @@ __global__ void velocity_from_force_single(const float *x,
   //LOOP END
 
   //3. Save velocity U_i
-  float pi = 4.0 * atan(1.0);
+  float pi = 4.0f * atan(1.0f);
   u[ioffset    ] = Ux / (8 * pi * eta * a);
   u[ioffset + 1] = Uy / (8 * pi * eta * a);
   u[ioffset + 2] = Uz / (8 * pi * eta * a);
@@ -1897,12 +1911,11 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   mobility = mod.get_function("velocity_from_force_single")
 
   # Compute mobility force product
-  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float32(eta), np.float32(a), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  mobility(x_gpu, f_gpu, u_gpu, number_of_blobs, np.float32(eta), np.float32(a), np.float32(L[0]), np.float32(L[1]), np.float32(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
   u = np.empty_like(f)
   cuda.memcpy_dtoh(u, u_gpu)
-
   return u  
 
 
