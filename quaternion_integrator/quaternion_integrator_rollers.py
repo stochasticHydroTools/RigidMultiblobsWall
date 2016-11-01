@@ -137,6 +137,53 @@ class QuaternionIntegratorRollers(object):
     return
 
 
+  def deterministic_adams_bashforth(self, dt):
+    '''
+    Take a time step of length dt using a first order
+    stochastic integrator.
+    '''
+    while True:
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+
+      # Compute deterministic velocity
+      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+
+
+      # Add velocities
+      if self.first_step is False:
+        # Use Adams-Bashforth
+        velocity = 1.5 * det_velocity - 0.5 * self.velocities_previous_step 
+      else:
+        # Use forward Euler
+        velocity = det_velocity
+        self.first_step = False
+
+      # Update position   
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
+
+      # Check if configuration is valid and update postions if so
+      valid_configuration = True
+      for k, b in enumerate(self.bodies):
+        if b.location_new[2] < 0.0:      
+          valid_configuration = False
+          break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = det_velocity
+        for b in self.bodies:
+          b.location = b.location_new          
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1      
+        return
+
+      self.invalid_configuration_count += 1
+      print 'Invalid configuration'
+    return
+    
+
   def stochastic_adams_bashforth(self, dt):
     '''
     Take a time step of length dt using a first order
@@ -184,7 +231,7 @@ class QuaternionIntegratorRollers(object):
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
-
+    
 
   def stochastic_mid_point(self, dt):
     '''
@@ -760,7 +807,11 @@ class QuaternionIntegratorRollers(object):
     Get torque acting on the blobs for free kinematics.
     In this version is set to zero.
     '''
-    return np.zeros(3 * len(self.bodies))
+    Nblobs = len(self.bodies)
+    torques = np.empty(3 * Nblobs)
+    for i in range(Nblobs):
+        torques[3*i: 3*(i+1)] = self.get_omega_one_roller()*8.0*m.pi*self.eta*self.a**3
+    return torques
 
 # Callback generator
 def make_callback():
