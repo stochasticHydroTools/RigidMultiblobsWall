@@ -254,6 +254,8 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  print 'B\n', B
+  print'force\n', force
   # Compute B * force
   if overlap is True:
     force = B.dot(force)
@@ -678,29 +680,17 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
   B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
   B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
 
-  if 0:
-    # Compute B * vector
-    if overlap is True:
-      vector = B.dot(vector)
-    # Compute M_tilde * B * vector
-    num_particles = r_vectors.size / 3
-    vector_res = np.zeros(r_vectors.size)
-    r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))  
-    me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
-    # Compute B.T * M * B * vector
-    if overlap is True:
-      vector_res = B.dot(vector_res)
-    return vector_res
-
   # Compute B * vector
-  if overlap_source is True:
-    force = B_source.dot(force)
+  # if overlap_source is True:
+  #  force = B_source.dot(force)
 
   # Compute unbounded contribution
+  force = np.reshape(force, (force.size / 3, 3))
   velocity = mobility_vector_product_target_source_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
+  y_image = np.copy(y)
+  y_image[:,2] = -y[:,2]
 
   # Compute wall correction
-  force = np.reshape(force, (force.size / 3, 3))
   prefactor = 1.0 / (8 * np.pi * eta)
   b2 = radius_target**2
   a2 = radius_source**2
@@ -709,13 +699,18 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
   J[2,2] = 1.0
   P = np.eye(3)
   P[2,2] = -1.0
+  delta_3 = np.zeros(3)
+  delta_3[2] = 1.0
   # Loop over targets
-  for i, r_target in enumerate(target):
+  for i, r_target in enumerate(x):
     # Distance between target and image sources
-    r_source_to_target = r_target - source 
-    r_source_to_target = r_target[2] + source[:,2] 
+    r_source_to_target = r_target - y_image
+    x3 = np.zeros(3)
+    x3[2] = r_target[2]
     # Loop over sources
     for j, r in enumerate(r_source_to_target):
+      y3 = np.zeros(3)
+      y3[2] = y[j,2]
       r2 = np.dot(r,r)
       r_norm  = np.sqrt(r2)
       r3 = r_norm * r2
@@ -723,13 +718,28 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
       r7 = r5 * r2
       r9 = r7 * r2
       RR = np.outer(r,r)
+      R3 = delta_3 * r[2]
+      
       # Compute 3x3 block mobility  
-      Mij = (I - J) / r_norm
-      # Mij += ((b2[i]+a2[j])/3.0) * (I-J) + RR - 2*x[i,2]
+      Mij = ((1+(b2[i]+a2[j])/(3.0*r2)) * I + (1-(b2[i]+a2[j])/r2) * RR / r2) / r_norm
+      Mij += 2*(-J/r_norm - np.outer(r,x3)/r3 - np.outer(y3,r)/r3 + x3[2]*y3[2]*(I/r3 - 3*RR/r5))
+      Mij += (2*b2[i]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - y3[2]*(-3*R3[2]*I/r5 - 3*np.outer(delta_3,r)/r5- 3*np.outer(r,delta_3)/r5 + 15*R3[2]*RR/r7))     
+      Mij = np.dot(Mij, P)
+
+      Mij += (2*a2[j]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - x3[2]*(-3*R3[2]*I/r5 - 3*np.outer(delta_3,r)/r5- 3*np.outer(r,delta_3)/r5 + 15*R3[2]*RR/r7))
+      Mij -= (2*b2[i]*a2[j]/3.0) * (-I/r5 + 5*R3[2]*R3[2]*I/r7 - J/r5 + 5*np.outer(R3,r)/r7 - J/r5 + 5*np.outer(r,R3)/r7 + 5*np.outer(R3,r)/r7 + 5*RR/r7 + 5*np.outer(r,R3)/r7 -35 * R3[2]*R3[2]*RR/r9)
+      
+      # Mij = -prefactor * np.dot(Mij, P)
+      Mij = -prefactor * Mij
+      print Mij
+      velocity[i] += np.dot(Mij, force[j]) 
+      
+
+
 
   # Compute B.T * M * B * vector
-  if overlap_target is True:
-    velocity = B_target.dot(velocity)
+  #if overlap_target is True:
+  #  velocity = B_target.dot(velocity)
 
   print'mobility_vector_product_target_source_one_wall     END'
   return velocity
