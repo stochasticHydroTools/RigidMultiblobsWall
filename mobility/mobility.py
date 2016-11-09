@@ -254,8 +254,6 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  print 'B\n', B
-  print'force\n', force
   # Compute B * force
   if overlap is True:
     force = B.dot(force)
@@ -681,8 +679,8 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
   B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
 
   # Compute B * vector
-  # if overlap_source is True:
-  #  force = B_source.dot(force)
+  if overlap_source is True:
+    force = B_source.dot(force)
 
   # Compute unbounded contribution
   force = np.reshape(force, (force.size / 3, 3))
@@ -723,23 +721,15 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
       # Compute 3x3 block mobility  
       Mij = ((1+(b2[i]+a2[j])/(3.0*r2)) * I + (1-(b2[i]+a2[j])/r2) * RR / r2) / r_norm
       Mij += 2*(-J/r_norm - np.outer(r,x3)/r3 - np.outer(y3,r)/r3 + x3[2]*y3[2]*(I/r3 - 3*RR/r5))
-      Mij += (2*b2[i]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - y3[2]*(-3*R3[2]*I/r5 - 3*np.outer(delta_3,r)/r5- 3*np.outer(r,delta_3)/r5 + 15*R3[2]*RR/r7))     
-      Mij = np.dot(Mij, P)
-
-      Mij += (2*a2[j]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - x3[2]*(-3*R3[2]*I/r5 - 3*np.outer(delta_3,r)/r5- 3*np.outer(r,delta_3)/r5 + 15*R3[2]*RR/r7))
-      Mij -= (2*b2[i]*a2[j]/3.0) * (-I/r5 + 5*R3[2]*R3[2]*I/r7 - J/r5 + 5*np.outer(R3,r)/r7 - J/r5 + 5*np.outer(r,R3)/r7 + 5*np.outer(R3,r)/r7 + 5*RR/r7 + 5*np.outer(r,R3)/r7 -35 * R3[2]*R3[2]*RR/r9)
-      
-      # Mij = -prefactor * np.dot(Mij, P)
-      Mij = -prefactor * Mij
-      print Mij
+      Mij += (2*b2[i]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - y3[2]*(3*R3[2]*I/r5 + 3*np.outer(delta_3,r)/r5 + 3*np.outer(r,delta_3)/r5 - 15*R3[2]*RR/r7))     
+      Mij += (2*a2[j]/3.0) * (-J/r3 + 3*np.outer(R3,r)/r5 - x3[2]*(3*R3[2]*I/r5 + 3*np.outer(delta_3,r)/r5 + 3*np.outer(r,delta_3)/r5 - 15*R3[2]*RR/r7))
+      Mij += (2*b2[i]*a2[j]/3.0) * (-I/r5 + 5*R3[2]*R3[2]*I/r7 - J/r5 + 5*np.outer(R3,r)/r7 - J/r5 + 5*np.outer(r,R3)/r7 + 5*np.outer(R3,r)/r7 + 5*RR/r7 + 5*np.outer(r,R3)/r7 -35 * R3[2]*R3[2]*RR/r9) 
+      Mij = -prefactor * np.dot(Mij, P)
       velocity[i] += np.dot(Mij, force[j]) 
-      
-
-
 
   # Compute B.T * M * B * vector
-  #if overlap_target is True:
-  #  velocity = B_target.dot(velocity)
+  if overlap_target is True:
+    velocity = B_target.dot(np.reshape(velocity, velocity.size))
 
   print'mobility_vector_product_target_source_one_wall     END'
   return velocity
@@ -782,7 +772,7 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
         largest_radius = radius_target[i] if radius_target[i] > radius_source[j] else radius_source[j]
         Mij = (1.0 / (6 * np.pi * eta * largest_radius)) * np.eye(3)
       velocity[i] += np.dot(Mij, force[j])
-      # print '--------------::::', force[j]
+
   return velocity
 
 
