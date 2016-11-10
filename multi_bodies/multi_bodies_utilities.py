@@ -59,21 +59,15 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,0] = np.reshape(xx, xx.size)
   grid_coor[:,1] = np.reshape(yy, yy.size)
   grid_coor[:,2] = np.reshape(zz, zz.size)
-  print 'coordinates_grid\n', grid_coor
 
-  # Create grid velocity field 
-  # grid_velocity = np.zeros((num_points, 3)) 
-
-  # Compute velocity field 
+  # Set radius of blobs (= a) and grid nodes (= 0)
   radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
   radius_target = np.zeros(grid_coor.size / 3) 
-  # radius_target = np.ones(grid_coor.size / 3) * blob_radius 
-  # print 'radius_source', radius_source 
-  # print 'radius_target', radius_target 
-  # print 'lambda_blobs\n', lambda_blobs
-  # lambda_blobs += 1e-7 * r_vectors_blobs
-  if 1:
-    grid_velocity = mob.mobility_vector_product_target_source_one_wall(r_vectors_blobs, 
+
+  # Compute velocity field 
+  mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
+  if mobility_vector_prod_implementation == 'python':
+    grid_velocity = mob.mobility_vector_product_source_target_one_wall(r_vectors_blobs, 
                                                                        grid_coor, 
                                                                        lambda_blobs, 
                                                                        radius_source, 
@@ -81,20 +75,25 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                        eta, 
                                                                        *args, 
                                                                        **kwargs) 
-
-  if 0:
-    # Unbounded mobility
-    grid_velocity = mob.mobility_vector_product_target_source_unbounded(r_vectors_blobs, 
-                                                                        grid_coor, 
-                                                                        lambda_blobs, 
-                                                                        radius_source, 
+  elif mobility_vector_prod_implementation == 'C++':
+    grid_velocity = mob.boosted_mobility_vector_product_source_target(r_vectors_blobs, 
+                                                                      grid_coor, 
+                                                                      lambda_blobs, 
+                                                                      radius_source, 
                                                                       radius_target, 
-                                                                        eta, 
-                                                                        *args, 
-                                                                        **kwargs) 
-  print 'grid_velocity\n', grid_velocity 
-  # grid_velocity[:,2] = 0.0 
-
+                                                                      eta, 
+                                                                      *args, 
+                                                                      **kwargs) 
+  else:
+    grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
+                                                                                    grid_coor, 
+                                                                                    lambda_blobs, 
+                                                                                    radius_source, 
+                                                                                    radius_target, 
+                                                                                    eta, 
+                                                                                    *args, 
+                                                                                    **kwargs) 
+  
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
   dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
@@ -113,20 +112,17 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   
 
   # Write velocity field
-  if 1:
-    visit_writer.boost_write_rectilinear_mesh(name,      # File's name
-                                              0,         # 0=ASCII,  1=Binary
-                                              dims,      # {mx, my, mz}
-                                              grid_x,     # xmesh
-                                              grid_y,     # ymesh
-                                              grid_z,     # zmesh
-                                              nvars,     # Number of variables
-                                              vardims,   # Size of each variable, 1=scalar, velocity=3*scalars
-                                              centering, # Write to cell centers of corners
-                                              varnames,  # Variables' names
-                                              variables) # Variables
-
-
+  visit_writer.boost_write_rectilinear_mesh(name,      # File's name
+                                            0,         # 0=ASCII,  1=Binary
+                                            dims,      # {mx, my, mz}
+                                            grid_x,     # xmesh
+                                            grid_y,     # ymesh
+                                            grid_z,     # zmesh
+                                            nvars,     # Number of variables
+                                            vardims,   # Size of each variable, 1=scalar, velocity=3*scalars
+                                            centering, # Write to cell centers of corners
+                                            varnames,  # Variables' names
+                                            variables) # Variables
   return
 
 
@@ -221,8 +217,6 @@ if __name__ ==  '__main__':
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
-    print 'slip', slip.shape, '\n', slip
-    print 'force', force_torque.shape, '\n', force_torque
     RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
     
     # Set linear operators 
@@ -248,7 +242,7 @@ if __name__ ==  '__main__':
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Solve preconditioned linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
+    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
     
     # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
@@ -262,7 +256,8 @@ if __name__ ==  '__main__':
     # Plot velocity field
     if read.plot_velocity_field.size > 0: 
       print 'plot_velocity_field' 
-      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name)
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, 
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
   # If scheme == resistance solve resistance problem 
   elif read.scheme == 'resistance': 
@@ -290,6 +285,13 @@ if __name__ ==  '__main__':
     name = read.output_name + '.force.dat'
     np.savetxt(name, force, delimiter='  ')
     print 'Time to solve resistance problem =', time.time() - start_time  
+
+    # Plot velocity field
+    if read.plot_velocity_field.size > 0: 
+      print 'plot_velocity_field' 
+      lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, 
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
   
   elif read.scheme == 'body_mobility': 
     start_time = time.time()

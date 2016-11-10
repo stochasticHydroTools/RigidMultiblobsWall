@@ -477,7 +477,7 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
     force = B_source.dot(force)
 
   # Compute M_tilde * B * force
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_source_target_pycuda(x, y, force, radius_source, radius_target, eta, *args, **kwargs) 
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_source_target_pycuda(y, x, force, radius_source, radius_target, eta, *args, **kwargs) 
 
   # Compute B.T * M * B * vector
   if overlap_target is True:
@@ -843,6 +843,8 @@ def boosted_mobility_vector_product_source_target(source, target, force, radius_
   vector_res = np.zeros(target.size)
   x_for_mob = np.reshape(x, (x.size / 3, 3))  
   y_for_mob = np.reshape(y, (y.size / 3, 3))  
+  force = np.reshape(force, force.size)
+
   me.mobility_vector_product_source_target_one_wall(y_for_mob, x_for_mob, force, radius_source, radius_target, vector_res, L, eta, num_sources, num_targets)
 
   # Compute B.T * M * B * vector
