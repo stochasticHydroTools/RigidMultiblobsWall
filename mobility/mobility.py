@@ -660,7 +660,7 @@ def fmm_rpy(r_vectors, force, eta, a):
   return np.reshape(u_fortran.T, u_fortran.size)
   
 
-def mobility_vector_product_target_source_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+def mobility_vector_product_source_target_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   '''
   Compute velocity of targets of radius radius_target due
   to forces on sources of radius source_targer in half-space. 
@@ -684,7 +684,7 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
 
   # Compute unbounded contribution
   force = np.reshape(force, (force.size / 3, 3))
-  velocity = mobility_vector_product_target_source_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
+  velocity = mobility_vector_product_source_target_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
   y_image = np.copy(y)
   y_image[:,2] = -y[:,2]
 
@@ -735,7 +735,7 @@ def mobility_vector_product_target_source_one_wall(source, target, force, radius
   return velocity
 
 
-def mobility_vector_product_target_source_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+def mobility_vector_product_source_target_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   '''
   Compute velocity of targets of radius radius_target due
   to forces on sources of radius source_targer in unbounded domain. 
@@ -775,6 +775,44 @@ def mobility_vector_product_target_source_unbounded(source, target, force, radiu
 
   return velocity
 
+
+def boosted_mobility_vector_product_source_target(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  # (r_vectors, vector, eta, a, *args, **kwargs):
+  ''' 
+  Compute a mobility * vector product boosted in C++ for a
+  speedup. It includes wall corrections.
+  Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+  
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * vector
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute M_tilde * B * vector
+  num_sources = source.size / 3
+  num_targets = target.size / 3
+  vector_res = np.zeros(target.size)
+  x_for_mob = np.reshape(x, (x.size / 3, 3))  
+  y_for_mob = np.reshape(y, (y.size / 3, 3))  
+  me.mobility_vector_product_source_target_one_wall(y_for_mob, x_for_mob, force, radius_source, radius_target, vector_res, L, eta, num_sources, num_targets)
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    vector_res = B_target.dot(vector_res)
+  return vector_res
 
 def epsilon_tensor(i, j, k):
   ''' 
