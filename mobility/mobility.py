@@ -445,6 +445,45 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
     velocities = B.dot(velocities)
   return velocities
 
+
+def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level by the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function makes use of pycuda.
+  '''
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+  
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * force
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute M_tilde * B * force
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_source_target_pycuda(x, y, force, radius_source, radius_target, eta, *args, **kwargs) 
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    velocities = B_target.dot(velocities)
+  return velocities
+
   
 def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
   ''' 
@@ -608,7 +647,6 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
   return fluid_mobility
 
 
-# def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
 def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Compute the Stokeslet interaction plus self mobility
@@ -669,7 +707,6 @@ def mobility_vector_product_source_target_one_wall(source, target, force, radius
   velocities_target = M_tt * forces_sources
   where M_tt has dimensions (target, source)
   '''
-  print 'mobility_vector_product_target_source_one_wall    START'
   # Compute effective heights
   x = shift_heights_different_radius(target, radius_target)
   y = shift_heights_different_radius(source, radius_source)
@@ -731,7 +768,6 @@ def mobility_vector_product_source_target_one_wall(source, target, force, radius
   if overlap_target is True:
     velocity = B_target.dot(np.reshape(velocity, velocity.size))
 
-  print'mobility_vector_product_target_source_one_wall     END'
   return velocity
 
 

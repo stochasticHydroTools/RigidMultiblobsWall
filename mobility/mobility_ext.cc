@@ -787,13 +787,14 @@ void MobilityVectorProductSourceTargetOneWall(bp::numeric::array source,
 	    C1 = (1 + (b2+a2) / (3 * R2)) * (prefactor / R_norm);
 	    C2 = ((1 - (b2+a2) / R2) / R2) * (prefactor / R_norm);
 	  }
-	  else if(R_norm > abs(b-a)){
+	  else if(R_norm > fabs(b-a)){
 	    double R3 = R2 * R_norm;
 	    C1 = ((16*(b+a)*R3 - pow(pow(b-a,2) + 3*R2,2)) / (32*R3)) / (6 * pi * eta * b * a);
 	    C2 = ((3*pow(pow(b-a,2)-R2, 2) / (32*R3)) / R2) / (6 * pi * eta * b * a); 
+
 	  }
 	  else{
-	    double largest_radius = (a > b) ? a : b;
+	    double largest_radius = (a > b) ? a : b;    
 	    C1 = 1.0 / (6 * pi * eta * largest_radius);
 	    C2 = 0;
 	  }
