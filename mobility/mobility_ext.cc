@@ -683,6 +683,160 @@ void MobilityVectorProductOneParticle(bp::list r_vectors,
 
 
 
+void MobilityVectorProductSourceTargetOneWall(bp::numeric::array source, 
+					      bp::numeric::array target,
+					      bp::numeric::array force,
+					      bp::numeric::array radius_source,
+					      bp::numeric::array radius_target,
+					      bp::numeric::array velocity,
+					      bp::numeric::array periodic_length,
+					      double eta,
+					      int num_sources,
+					      int num_targets){
+
+  // Create the mobility of particles in a fluid with a single wall at z = 0.
+  double pi = 3.1415926535897932;
+  double C1, C2;
+  double Mlm;
+  double R[3], RR[3][3];
+  double Rim[3], RRim[3][3];
+  double h = 0.0;
+  double delta_3[3] = {0, 0, 1};
+  double prefactor = 1.0 / (8 * pi * eta);
+  bp::numeric::array radius_target_ext = bp::extract<bp::numeric::array>(radius_target);
+  bp::numeric::array radius_source_ext = bp::extract<bp::numeric::array>(radius_source);
+  
+  double I[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
+  double J[3][3] = {{0,0,0},{0,0,0},{0,0,1}};
+  double P[3][3] = {{1,0,0},{0,1,0},{0,0,-1}};
+
+  // Determine if the space is pseudo-periodic in the directions x or y
+  // We use a extended unit cell of length L=3*(Lx, Ly)
+  bp::numeric::array L = bp::extract<bp::numeric::array>(periodic_length);  
+  int periodic[2] = {0,0};
+  int box[2];
+  for(int l=0; l<2; l++){
+    if(bp::extract<double>(L[l]) > 0){
+      periodic[l] = 1;
+    }
+  }
+
+  // Loop over targets
+  for (int j = 0; j < num_targets; ++j) {
+    bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(target[j]);
+
+    // Loop over image boxes and then over sources
+    for(box[0] = -periodic[0]; box[0] <= periodic[0]; box[0]++){
+      for(box[1] = -periodic[1]; box[1] <= periodic[1]; box[1]++){
+	for (int k = 0; k < num_sources; ++k) {
+	  // Here notation is based on appendix C of the Swan and Brady paper
+	  // but generalized to particles with different radius:
+	  // 'Simulation of hydrodynamically interacting particles near a no-slip
+	  //  boundary.'
+	  bp::numeric::array  r_vector_2 = bp::extract<bp::numeric::array>(source[k]);
+	  h = bp::extract<double>(r_vector_2[2]);
+	  for(int l = 0; l < 3; ++l){
+	    R[l] = (bp::extract<double>(r_vector_1[l]) - bp::extract<double>(r_vector_2[l]));
+	    Rim[l] = R[l];
+	  }
+	  Rim[2] = (bp::extract<double>(r_vector_1[2]) - bp::extract<double>(r_vector_2[2]) + 2.0*h);
+	  
+	  // Project a vector r to the extended unit cell
+	  // centered around (0,0) and of size L=3*(Lx, Ly). If 
+	  // any dimension of L is equal or smaller than zero the 
+	  // box is assumed to be infinite in that direction.
+	  for(int l=0; l<2; ++l){
+	    if(bp::extract<double>(L[l]) > 0){
+	      R[l] = R[l] - int(R[l] / bp::extract<double>(L[l]) + 0.5 * (int(R[l]>0) - int(R[l]<0))) * bp::extract<double>(L[l]);
+	      R[l] = R[l] + box[l] * bp::extract<double>(L[l]);
+	      Rim[l] = R[l];
+	    }
+	  }
+	  
+	  // Compute distances
+	  double x3[3] = {0,0, bp::extract<double>(r_vector_1[2])};
+	  double y3[3] = {0,0, bp::extract<double>(r_vector_2[2])};
+	  double vec_Rim3[3] = {0,0,Rim[2]};
+	  double R2 = 0.0;
+	  double Rim2 = 0.0;
+	  for (int l = 0; l < 3; ++l) {
+	    R2 += R[l]*R[l];
+	    Rim2 += Rim[l]*Rim[l];
+	  }
+	  double R_norm = sqrt(R2);  
+	  double Rim_norm = sqrt(Rim2);
+	  double Rim3 = Rim2 * Rim_norm;
+	  double Rim5 = Rim2 * Rim3;
+	  double Rim7 = Rim2 * Rim5;
+	  double Rim9 = Rim2 * Rim7;
+
+	  // Form tensors
+	  for(int l=0; l<3; l++){
+	    for(int m=0; m<3; m++){
+	      RR[l][m] = R[l] * R[m];
+	      RRim[l][m] = Rim[l] * Rim[m];
+	    }
+	  }
+
+	  // Compute unbounded contribution constants
+	  double b = bp::extract<double>(radius_target_ext[j]);
+	  double a = bp::extract<double>(radius_source_ext[k]);
+	  double b2 = b * b;
+	  double a2 = a * a;
+	  if(R_norm > (b+a)){
+	    C1 = (1 + (b2+a2) / (3 * R2)) * (prefactor / R_norm);
+	    C2 = ((1 - (b2+a2) / R2) / R2) * (prefactor / R_norm);
+	  }
+	  else if(R_norm > fabs(b-a)){
+	    double R3 = R2 * R_norm;
+	    C1 = ((16*(b+a)*R3 - pow(pow(b-a,2) + 3*R2,2)) / (32*R3)) / (6 * pi * eta * b * a);
+	    C2 = ((3*pow(pow(b-a,2)-R2, 2) / (32*R3)) / R2) / (6 * pi * eta * b * a); 
+
+	  }
+	  else{
+	    double largest_radius = (a > b) ? a : b;    
+	    C1 = 1.0 / (6 * pi * eta * largest_radius);
+	    C2 = 0;
+	  }
+
+	  // Build tensor
+	  double M[3][3] = {0};
+	  for (int l = 0; l < 3; ++l) {
+	    for (int m = 0; m < 3; ++m) {	      
+	      // Wall contribution
+	      M[l][m] += ((1+(b2+a2)/(3.0*Rim2)) * I[l][m] + (1-(b2+a2)/Rim2) * RRim[l][m] / Rim2) / Rim_norm;
+	      M[l][m] += 2*(-J[l][m]/Rim_norm - Rim[l]*x3[m]/Rim3 - y3[l]*Rim[m]/Rim3 + x3[2]*y3[2]*(I[l][m]/Rim3 - 3*Rim[l]*Rim[m]/Rim5));
+	      M[l][m] += (2*b2/3.0) * (-J[l][m]/Rim3 + 3*Rim[l]*vec_Rim3[m]/Rim5 - y3[2]*(3*vec_Rim3[2]*I[l][m]/Rim5 + 3*delta_3[l]*Rim[m]/Rim5 + 3*Rim[l]*delta_3[m]/Rim5 - 15*vec_Rim3[2]*Rim[l]*Rim[m]/Rim7));
+	      M[l][m] += (2*a2/3.0) * (-J[l][m]/Rim3 + 3*vec_Rim3[l]*Rim[m]/Rim5 - x3[2]*(3*vec_Rim3[2]*I[l][m]/Rim5 + 3*delta_3[l]*Rim[m]/Rim5 + 3*Rim[l]*delta_3[m]/Rim5 - 15*vec_Rim3[2]*Rim[l]*Rim[m]/Rim7));
+	      M[l][m] += (2*b2*a2/3.0) * (-I[l][m]/Rim5 + 5*vec_Rim3[2]*vec_Rim3[2]*I[l][m]/Rim7 - J[l][m]/Rim5 + 5*vec_Rim3[l]*Rim[m]/Rim7 - J[l][m]/Rim5 + 5*Rim[l]*vec_Rim3[m]/Rim7 + 5*vec_Rim3[l]*Rim[m]/Rim7 + 5*Rim[l]*Rim[m]/Rim7 + 5*Rim[l]*vec_Rim3[m]/Rim7 -35 * vec_Rim3[2]*vec_Rim3[2]*Rim[l]*Rim[m]/Rim9);      
+	    }
+	  }
+	  // Multiply by P
+	  for(int l=0;l<3;l++){
+	    M[l][2] = -M[l][2];
+	  }
+	  // Multiply by prefactor and add unbounded contribution
+	  for(int l=0;l<3;l++){
+	    for(int m=0; m<3;m++){
+	      M[l][m] *= -prefactor;
+	      // Usual RPY Tensor (unbounded contribution)
+	      M[l][m] += (l == m ? 1.0 : 0.0)*C1 + R[l]*R[m]*C2; 
+	    }
+	  }
+	  // Compute velocity
+	  for(int l=0;l<3;l++){
+	    for(int m=0;m<3;m++){
+	      velocity[j*3+l] += M[l][m]*bp::extract<double>(force[k*3+m]);
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+
 BOOST_PYTHON_MODULE(mobility_ext)
 {
   using namespace boost::python;
@@ -692,6 +846,6 @@ BOOST_PYTHON_MODULE(mobility_ext)
   def("RPY_infinite_fluid_mobility", RPYInfiniteFluidMobility);
   def("mobility_vector_product", MobilityVectorProduct);
   def("mobility_vector_product_one_particle", MobilityVectorProductOneParticle);
-
+  def("mobility_vector_product_source_target_one_wall", MobilityVectorProductSourceTargetOneWall);
 }
 

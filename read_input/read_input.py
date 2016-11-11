@@ -67,6 +67,7 @@ class ReadInput(object):
     self.rf_delta = float(self.options.get('rf_delta') or 1e-04)
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
     self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
+    self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
           
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []

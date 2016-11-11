@@ -187,6 +187,22 @@ shapes add to the input file one `structure` option per each kind of body
 and give their `vertex` and `clones` files,
 see multibodies/inputfile.dat for an example. 
 
+* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1) if the
+code is run with this options and the schemes `mobility` or `resistance` the code plots
+the velocity field of the fluid to a `vtk` file. The velocity field
+is plotted in a rectangular box with the lower corner located at `(x_0, y_0, z_0)`, the upper corner located 
+`(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
+The `vtk` file can be postprocessed with external software like
+`VisIt` from the Lawrence Livermore National Laboratory or `ParaView`
+from Sandia National Laboratories to generate an image of the velocity
+field. See figure \ref{fig:velocityField} as an example. 
+
+![\label{fig:velocityField} Velocity field around two spheres and a boomerang shaped colloid
+falling towards a bottom wall. Velocity field computed with the
+option `plot_velocity_field` and image generated with the software VisIt.](velocity_field.png)
+
+
+
 The output files are:
 
 * `.inputfile`: It is a copy of the input file to better keep track of input options.

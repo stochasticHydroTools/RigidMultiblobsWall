@@ -28,36 +28,27 @@ import visit_writer_interface
     
 
 def boost_write_rectilinear_mesh(name,       # File's name
-                             format,     # 0=ASCII,  1=Binary
-                             dims,       # {mx, my, mz}
-                             xmesh,
-                             ymesh,
-                             zmesh,
-                             nvars,      # Number of variables
-                             vardims,    # Size of each variable, 1=scalar, velocity=3*scalars
-                             centering,  # Write to cell centers of corners
-                             varnames,   # Variables' names
-                             variables): # Variables
-    print ' boost_write_rectilinear_mesh ---- START'
-    visit_writer_interface.visit_writer_interface(name,
-                                                  format,
-                                                  dims,
-                                                  xmesh,                                               
-						  ymesh,
-						  zmesh,
-                                                  nvars,
-                                                  vardims,
-                                                  centering,
-                                                  varnames,
-                                                  variables)
-    print ' boost_write_rectilinear_mesh ---- DONE'
-    
-
-
-
-
-
-if __name__ == '__main__':
-
-
-    print '#End'
+                                 format,     # 0=ASCII,  1=Binary
+                                 dims,       # {mx, my, mz}
+                                 xmesh,
+                                 ymesh,
+                                 zmesh,
+                                 nvars,      # Number of variables
+                                 vardims,    # Size of each variable, 1=scalar, velocity=3*scalars
+                                 centering,  # Write to cell centers of corners
+                                 varnames,   # Variables' names
+                                 variables): # Variables
+ 
+  visit_writer_interface.visit_writer_interface(name,
+                                                format,
+                                                dims,
+                                                xmesh,                                               
+                                                ymesh,
+                                                zmesh,
+                                                nvars,
+                                                vardims,
+                                                centering,
+                                                varnames,
+                                                variables)
+  
+  return
