@@ -371,15 +371,13 @@ length and `eps` is the strength. This is the strength of the potential,
 this is the characteristic length of the potential, `b` in the above expression
 (see section 5.1 to modify blobs interactions).
 
-* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential 
-that imitates a hard core potential. The potential is
-(`U = eps * a * exp(-(h-a) / b) / (h - a)`) where `h` is the distance between the wall and
+* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential. The potential is
+(`U = eps * a * exp(-h / b) / h`) where `h` is the distance between the wall and
 the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
 This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
-Note that the hard-core repulsion here is important since the Swan-Brady blob mobility is not well-behaved when the blobs overlap the wall.
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
-potential (`U = eps * a * exp(-(h-a) / b) / (h - a)`). 
+potential (`U = eps * a * exp(-h / b) / h`). 
 This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.1 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
