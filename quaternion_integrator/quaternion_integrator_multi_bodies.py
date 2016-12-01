@@ -589,11 +589,6 @@ class QuaternionIntegrator(object):
       if RHS_norm > 0:
         RHS = RHS / RHS_norm
 
-      # Scale RHS to norm 1
-      RHS_norm = np.linalg.norm(RHS)
-      if RHS_norm > 0:
-        RHS = RHS / RHS_norm
-
       # Solve preconditioned linear system # callback=make_callback()
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
       if save_first_guess:
