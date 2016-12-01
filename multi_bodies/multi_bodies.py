@@ -12,6 +12,7 @@ import multi_bodies_functions
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
+from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
 from body import body 
 from read_input import read_input
 from read_input import read_vertex_file
@@ -343,9 +344,24 @@ if __name__ == '__main__':
     f.write('num_blobs          ' + str(Nblobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
-  # integrator.tolerance = read.solver_tolerance
-  # integrator.rf_delta = read.rf_delta
+  if scheme.find('rollers') == -1:
+    integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+  else:
+    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+    integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
+                                              g = g,
+                                              repulsion_strength_wall = read.repulsion_strength_wall, 
+                                              debye_length_wall = read.debye_length_wall)
+    integrator.calc_blob_blob_forces = partial(multi_bodies_functions.calc_blob_blob_forces,
+                                               g = g,
+                                               repulsion_strength_wall = read.repulsion_strength_wall, 
+                                               debye_length_wall = read.debye_length_wall,
+                                               repulsion_strength = read.repulsion_strength,
+                                               debye_length = read.debye_length, 
+                                               periodic_length = read.periodic_length)
+    integrator.omega_one_roller = read.omega_one_roller
+    integrator.free_kinematics = read.free_kinematics
+
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -375,7 +391,7 @@ if __name__ == '__main__':
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time 
+      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -437,7 +453,7 @@ if __name__ == '__main__':
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
-    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time 
+    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
@@ -500,5 +516,6 @@ if __name__ == '__main__':
   # Save number of invalid configurations
   with open(output_name + '.number_invalid_configurations', 'w') as f:
     f.write(str(integrator.invalid_configuration_count) + '\n')
+    f.write(str(integrator.wall_overlaps) + '\n')
 
   print '\n\n\n# End'
