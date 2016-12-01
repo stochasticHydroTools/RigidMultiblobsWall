@@ -6,10 +6,6 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
 dynamic simulations.
 
-Note: We are still working on stochastic methods for suspensions of many rigid bodies.
-For now, the codes can do deterministic simulations for many bodies (see paper 2 below)
-but can only do Brownian Dynamics for a single rigid body (see paper 1 below).
-
 We explain in the next sections how to use the package.
 For the theory consult the references:
 
@@ -18,15 +14,19 @@ The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
 rigid multiblob approach**, F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
-A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+A. Pal Singh Bhalla, B. E. Griffith and
+A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+
+3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
+No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
+submitted to The Journal of Chemical Physics.
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
 James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi.org/10.1063/1.2803837).
-Note that this does not include correction for blobs that overlap the wall, only for blobs that overlap each other.
-It is therefore important to keep blobs from overlapping the wall by a hard-core-like repulsion.
-Blobs can, however, overlap other blobs, and adding hard-core repulsion between blobs will introduce numerical stiffness.
+We modify the mobility to allow overlap between blobs and between
+blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
 The codes are implemented in python and it is not necessary to compile the package to use it. 
@@ -229,8 +229,7 @@ corresponding to linear (first three) and angular velocities (last three).
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
 See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
-code which allows to run deterministic simulations for many bodies. In the
-future we will extend this code to allow for stochastic simulations of many bodies.
+code which allows to run deterministic and stochastic simulations for many bodies. 
 
 First, move to the directory `multi_bodies/` and inspect the input file
 `inputfile_dynamic.dat`:
@@ -306,10 +305,13 @@ It can be used to run a simulation with the same random numbers.
 List of options for the input file:
 
 * `scheme`: Options: `deterministic_forward_euler_dense_algebra, deterministic_forward_euler,
-deterministic_adams_bashforth`. It selects the scheme to solve the mobility problem
+deterministic_adams_bashforth, stochastic_first_order_RFD, 
+stochastic_first_order_RFD_dense_algebra and
+stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
 and integrate the equation of motion. 
 The `*forward_euler*` schemes are first order accurate
-while `*adams_bashforth*` is second order accurate. The scheme `*dense_algebra` use
+while `*adams_bashforth*` is second order accurate in the
+deterministic case. The scheme `*dense_algebra` use
 dense algebra methods to solve the mobility problem and therefore the computational
 cost scales like (number_of_blobs)**3.
 The other schemes use preconditioned GMRES
