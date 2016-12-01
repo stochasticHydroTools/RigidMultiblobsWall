@@ -187,6 +187,26 @@ shapes add to the input file one `structure` option per each kind of body
 and give their `vertex` and `clones` files,
 see multibodies/inputfile.dat for an example. 
 
+* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1) if the
+code is run with this options and the schemes `mobility` or `resistance` the code plots
+the velocity field of the fluid to a `vtk` file. The velocity field
+is plotted in a rectangular box with the lower corner located at `(x_0, y_0, z_0)`, the upper corner located 
+`(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
+The `vtk` file can be postprocessed with external software like
+`VisIt` from the Lawrence Livermore National Laboratory or `ParaView`
+from Sandia National Laboratories to generate an image of the velocity
+field. See figure \ref{fig:velocityField} as an example. 
+
+![\label{fig:velocityField} Velocity field around two spheres and a boomerang shaped colloid
+falling towards a bottom wall. Velocity field computed with the
+option `plot_velocity_field` and image generated with the software VisIt.](velocity_field.png)
+
+* `tracer_radius`: (float (default 0)) effective radius of the nodes
+where the fluid velocity field is computed with the option
+`plot_velocity_field`. The default value, zero, computes the pointwise
+fluid velocity, a larger value average the fluid velocity over a
+region of radius `tracer_radius`.
+
 The output files are:
 
 * `.inputfile`: It is a copy of the input file to better keep track of input options.
@@ -299,9 +319,12 @@ to solve the mobility problem and are more efficient for large number of bodies.
 indicates which implementation is used to compute the blob mobility 
 matrix **M**. See section 1 to use the C++ version.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++ and pycuda`.
+* `mobility_vector_prod_implementation`: Options: `python, C++, pycuda
+and pycuda_single`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation.
+**Mf**. See section 1 to use the C++ or pycuda implementation. The
+option `pycuda_single` uses single precision (it is faster in GPUs)
+the others use double precision. 
 
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
@@ -348,15 +371,13 @@ length and `eps` is the strength. This is the strength of the potential,
 this is the characteristic length of the potential, `b` in the above expression
 (see section 5.1 to modify blobs interactions).
 
-* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential 
-that imitates a hard core potential. The potential is
-(`U = eps * a * exp(-(h-a) / b) / (h - a)`) where `h` is the distance between the wall and
+* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential. The potential is
+(`U = eps * a * exp(-h / b) / h`) where `h` is the distance between the wall and
 the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
 This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
-Note that the hard-core repulsion here is important since the Swan-Brady blob mobility is not well-behaved when the blobs overlap the wall.
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
-potential (`U = eps * a * exp(-(h-a) / b) / (h - a)`). 
+potential (`U = eps * a * exp(-h / b) / h`). 
 This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.1 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
@@ -370,6 +391,25 @@ to a pseudorandom state (see documentation for numpy.random.RandomState).
 * `structure`: (two strings) name of the vertex and clones files with the rigid 
 bodies configuration, see section 2. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body.
+
+* `save_clones`: (string (default one_file_per_step)) options
+_one_file_per_step_ and _one_file_. With the option
+_one_file_per_step_ the clones configuration are saved in one file per
+kind of structure and per time step as explained above. With the option
+_one_file_ the code saves one file per kind of structure with the
+configurations of all the time steps;
+configurations of different time steps are separated by a line with
+the number of rigid bodies.
+
+* `periodic_length`: (three floats (default 0 0 0)) length of the unit
+cell along the x, y and z directions. If the length of the unit cell
+along the x or y directions is larger than zero the code uses Pseudo
+Periodic Boundary Conditions (PPBC) along that axis, otherwise the
+system is considered infinite in that direction. With PPBC, particles forces are
+computed using the minimum image convention as with standard periodic
+boundary conditions. Hydrodynamic interactions are computed between
+particles in the unit cell and the first neighbor cells along the
+pseudo-periodic axis. PPBC along the z axis are not supported.
 
 
 ### 5.1 Modify the codes
@@ -421,10 +461,28 @@ We provide an example of how to add a constant slip to all the blobs
 of an active body in the function `active_body_slip` in the same file.
 
 
-## 6. Software organization
+## 6. Run Monte Carlo simulations
+We have a Markov Chain Monte Carlo code to generate equilibrium
+configurations. To use this code move to the directory `many_bodyMCMC`
+and inspect the input file `inputMCMC.dat`. The options are similar to
+the ones to run dynamic simulations, however, some options like the
+time step size are not necessary. We have only implemented the
+subroutines to compute the body-body interactions in _pycuda_,
+therefore, it is necessary to have a GPU with CUDA capabilities to use
+this code. To run a simulation use
+
+`
+python many_body_MCMC.py inputMCMC.dat
+`
+
+The output files are similar to the ones generated with dynamic simulations.
+
+
+## 7. Software organization
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
+* **many_bodyMCMC/**: Monte Carlo code for rigid bodies.
 * **mobility/**: it has functions to compute the blob mobility matrix **M** and the
 product **Mf**.
 * **multi_bodies/**: codes to run simulations of rigid bodies.

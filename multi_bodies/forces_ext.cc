@@ -42,9 +42,10 @@ void calcBlobBlobForces(bp::numeric::array r_vectors,
 			bp::numeric::array force,
 			double repulsion_strength,
 			double debye_length,
-			int number_of_blobs){
+			int number_of_blobs,
+			bp::numeric::array periodic_length){
 
-  
+  bp::numeric::array L = bp::extract<bp::numeric::array>(periodic_length);  
   double r[3];
   double f[3];
 
@@ -64,6 +65,14 @@ void calcBlobBlobForces(bp::numeric::array r_vectors,
       // Compute vector from blob i to blob j
       for (int l = 0; l<3; l++){
         r[l] = (bp::extract<double>(r_vector_j[l]) - bp::extract<double>(r_vector_i[l]));
+	
+	// Project a vector r to the minimal image representation
+	// centered around (0,0,0) and of size L=(Lx, Ly, Lz). If 
+	// any dimension of L is equal or smaller than zero the 
+	// box is assumed to be infinite in that direction.
+	if(bp::extract<double>(L[l]) > 0){
+	  r[l] = r[l] - int(r[l] / bp::extract<double>(L[l]) + 0.5 * (int(r[l]>0) - int(r[l]<0))) * bp::extract<double>(L[l]);
+	}
       }
       // Compute force between blobs i and j
       blobBlobForce(r, f, repulsion_strength, debye_length);

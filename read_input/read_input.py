@@ -43,6 +43,7 @@ class ReadInput(object):
     self.eta = float(self.options.get('eta') or 1.0)
     self.g = float(self.options.get('g') or 1.0)
     self.blob_radius = float(self.options.get('blob_radius') or 1.0)
+    self.tracer_radius = float(self.options.get('tracer_radius') or 0.0)
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
@@ -64,8 +65,11 @@ class ReadInput(object):
     self.force_file = self.options.get('force_file')
     self.velocity_file = self.options.get('velocity_file')
     self.solver_tolerance = float(self.options.get('solver_tolerance') or 1e-08)
+    self.rf_delta = float(self.options.get('rf_delta') or 1e-04)
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
-        
+    self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
+    self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
+          
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):

@@ -2,7 +2,7 @@
 scheme				mobility
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         python  # Options: python, C++
+mobility_blobs_implementation	         python # Options: python, C++
 mobility_vector_prod_implementation      python  # Options: python, C++, pycuda
 
 # Set viscosity, gravity and blob radius
