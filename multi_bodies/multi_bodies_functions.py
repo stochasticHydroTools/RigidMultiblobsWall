@@ -145,7 +145,7 @@ def blob_external_force(r_vectors, *args, **kwargs):
   # Add gravity
   f += -g * blob_mass * np.array([0., 0., 1.0])
 
-  # Add wall interaction:
+  # Add wall interaction
   h = r_vectors[2]
   if h > blob_radius:
     f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)

@@ -10,6 +10,7 @@ import imp
 try:
   import mobility_ext as me
 except ImportError:
+  print 'We don\'t have me' 
   pass
 # If pycuda is installed import mobility_pycuda
 try: 
@@ -59,9 +60,44 @@ def damping_matrix_B(r_vectors, blob_radius, *args, **kwargs):
       B[k*3 + 2] = r[2] / blob_radius    
       overlap = True
   return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
+
+
+def shift_heights_different_radius(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return an array with the blobs' height
+  
+  z_effective = maximum(z, blob_radius)
+
+  This function is used to compute positive
+  definite mobilites for blobs close to the wall.
+  '''
+  r_effective = np.copy(r_vectors)
+  for k, r in enumerate(r_effective):
+    r[2] = r[2] if r[2] > blob_radius[k] else blob_radius[k]
+  return r_effective
+
+
+def damping_matrix_B_different_radius(r_vectors, blob_radius, *args, **kwargs):
+  '''
+  Return sparse diagonal matrix with components
+  B_ii = 1.0               if z_i >= blob_radius
+  B_ii = z_i / blob_radius if z_i < blob_radius
+
+  It is used to compute positive definite mobilities
+  close to the wall.
+  '''
+  B = np.ones(r_vectors.size)
+  overlap = False
+  for k, r in enumerate(r_vectors):
+    if r[2] < blob_radius[k]:
+      B[k*3]     = r[2] / blob_radius[k]
+      B[k*3 + 1] = r[2] / blob_radius[k]
+      B[k*3 + 2] = r[2] / blob_radius[k] 
+      overlap = True
+  return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
   
 
-def image_singular_stokeslet(r_vectors, eta, a):
+def image_singular_stokeslet(r_vectors, eta, a, *args, **kwargs):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   fluid_mobility = np.array([
       np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
@@ -91,7 +127,7 @@ def image_singular_stokeslet(r_vectors, eta, a):
         fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*eta*a)*np.identity(3)
   return fluid_mobility
 
-def stokes_doublet(r):
+def stokes_doublet(r, *args, **kwargs):
   ''' Calculate stokes doublet from direction, strength, and r. '''
   r_norm = np.linalg.norm(r)
   e3 = np.array([0., 0., 1.])
@@ -102,7 +138,7 @@ def stokes_doublet(r):
   doublet = doublet/(8*np.pi*(r_norm**3))
   return doublet
 
-def potential_dipole(r):
+def potential_dipole(r, *args, **kwargs):
   ''' Calculate potential dipole. '''
   r_norm = np.linalg.norm(r)
   dipole = np.identity(3) - 3.*np.outer(r, r)/(r_norm**2)
@@ -112,7 +148,7 @@ def potential_dipole(r):
   return dipole
 
 
-def doublet_and_dipole(r, h):
+def doublet_and_dipole(r, h, *args, **kwargs):
   ''' 
   Just keep the pieces of the potential dipole and the doublet
   that we need for the image system.  No point in calculating terms that will cancel.
@@ -152,7 +188,7 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
     return fluid_mobility
   
 
-def boosted_infinite_fluid_mobility(r_vectors, eta, a):
+def boosted_infinite_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Same as rotne_prager_tensor, but boosted into C++ for 
   a speedup. Must compile mobility_ext.cc before this will work 
@@ -257,7 +293,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args,
   return rot
 
 
-def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
+def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -340,7 +376,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   return velocities
 
 
-def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
+def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -408,8 +444,47 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
     velocities = B.dot(velocities)
   return velocities
 
+
+def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level by the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function makes use of pycuda.
+  '''
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
   
-def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * force
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute M_tilde * B * force
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_source_target_pycuda(y, x, force, radius_source, radius_target, eta, *args, **kwargs) 
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    velocities = B_target.dot(velocities)
+  return velocities
+
+  
+def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle, *args, **kwargs):
   ''' 
   Compute a mobility * vector product for only one particle. Return the 
   velocity of of the desired particle. It includes wall corrections.
@@ -488,7 +563,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
     return fluid_mobility
 
 
-def rotne_prager_tensor(r_vectors, eta, a):
+def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Calculate free rotne prager tensor for particles at locations given by
   r_vectors (list of 3 dimensional locations) of radius a.
@@ -530,24 +605,12 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
   '''
-  # Get effective height
-  r_vectors_effective = shift_heights(r_vectors, a)
-  # Compute damping matrix B
-  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  # Compute B * vector
-  if overlap is True:
-    vector = B.dot(vector)
-  # Compute M_tilde * B * vector
-  r = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))
-  mobility = single_wall_fluid_mobility(r, eta, a)
+  mobility = single_wall_fluid_mobility(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
   velocities = np.dot(mobility, vector)
-  # Compute B.T * M * B * vector
-  if overlap is True:
-    velocities = B.dot(velocities)
   return velocities
 
 
-def single_wall_self_mobility_with_rotation(location, eta, a):
+def single_wall_self_mobility_with_rotation(location, eta, a, *args, **kwargs):
   ''' 
   Self mobility for a single sphere of radius a with translation rotation
   coupling.  Returns the 6x6 matrix taking force and torque to 
@@ -583,7 +646,6 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
   return fluid_mobility
 
 
-# def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
 def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Compute the Stokeslet interaction plus self mobility
@@ -617,7 +679,7 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
     return np.reshape(u_fortran.T, u_fortran.size)
 
 
-def fmm_rpy(r_vectors, force, eta, a):
+def fmm_rpy(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Compute the Stokes interaction using the Rotner-Prager
   tensor. Here there is no wall.
@@ -634,6 +696,160 @@ def fmm_rpy(r_vectors, force, eta, a):
   fmm.fmm_rpy(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
   return np.reshape(u_fortran.T, u_fortran.size)
   
+
+def mobility_vector_product_source_target_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Compute velocity of targets of radius radius_target due
+  to forces on sources of radius source_targer in half-space. 
+
+  That is, compute the matrix vector product  
+  velocities_target = M_tt * forces_sources
+  where M_tt has dimensions (target, source)
+  '''
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+  
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * vector
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute unbounded contribution
+  force = np.reshape(force, (force.size / 3, 3))
+  velocity = mobility_vector_product_source_target_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
+  y_image = np.copy(y)
+  y_image[:,2] = -y[:,2]
+
+  # Compute wall correction
+  prefactor = 1.0 / (8 * np.pi * eta)
+  b2 = radius_target**2
+  a2 = radius_source**2
+  I = np.eye(3)
+  J = np.zeros((3,3))
+  J[2,2] = 1.0
+  P = np.eye(3)
+  P[2,2] = -1.0
+  delta_3 = np.zeros(3)
+  delta_3[2] = 1.0
+  # Loop over targets
+  for i, r_target in enumerate(x):
+    # Distance between target and image sources
+    r_source_to_target = r_target - y_image
+    x3 = np.zeros(3)
+    x3[2] = r_target[2]
+    # Loop over sources
+    for j, r in enumerate(r_source_to_target):
+      y3 = np.zeros(3)
+      y3[2] = y[j,2]
+      r2 = np.dot(r,r)
+      r_norm  = np.sqrt(r2)
+      r3 = r_norm * r2
+      r5 = r3 * r2
+      r7 = r5 * r2
+      r9 = r7 * r2
+      RR = np.outer(r,r)
+      R3 = delta_3 * r[2]
+      
+      # Compute 3x3 block mobility  
+      Mij = ((1+(b2[i]+a2[j])/(3.0*r2)) * I + (1-(b2[i]+a2[j])/r2) * RR / r2) / r_norm
+      Mij += 2*(-J/r_norm - np.outer(r,x3)/r3 - np.outer(y3,r)/r3 + x3[2]*y3[2]*(I/r3 - 3*RR/r5))
+      Mij += (2*b2[i]/3.0) * (-J/r3 + 3*np.outer(r,R3)/r5 - y3[2]*(3*R3[2]*I/r5 + 3*np.outer(delta_3,r)/r5 + 3*np.outer(r,delta_3)/r5 - 15*R3[2]*RR/r7))     
+      Mij += (2*a2[j]/3.0) * (-J/r3 + 3*np.outer(R3,r)/r5 - x3[2]*(3*R3[2]*I/r5 + 3*np.outer(delta_3,r)/r5 + 3*np.outer(r,delta_3)/r5 - 15*R3[2]*RR/r7))
+      Mij += (2*b2[i]*a2[j]/3.0) * (-I/r5 + 5*R3[2]*R3[2]*I/r7 - J/r5 + 5*np.outer(R3,r)/r7 - J/r5 + 5*np.outer(r,R3)/r7 + 5*np.outer(R3,r)/r7 + 5*RR/r7 + 5*np.outer(r,R3)/r7 -35 * R3[2]*R3[2]*RR/r9) 
+      Mij = -prefactor * np.dot(Mij, P)
+      velocity[i] += np.dot(Mij, force[j]) 
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    velocity = B_target.dot(np.reshape(velocity, velocity.size))
+
+  return velocity
+
+
+def mobility_vector_product_source_target_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Compute velocity of targets of radius radius_target due
+  to forces on sources of radius source_targer in unbounded domain. 
+
+  That is, compute the matrix vector product  
+  velocities_target = M_tt * forces_sources
+  where M_tt has dimensions (target, source)
+
+  See Reference P. J. Zuk et al. J. Fluid Mech. (2014), vol. 741, R5, doi:10.1017/jfm.2013.668
+  '''
+  force = np.reshape(force, (force.size / 3, 3))
+  velocity = np.zeros((target.size / 3, 3))
+  prefactor = 1.0 / (8 * np.pi * eta)
+  b2 = radius_target**2
+  a2 = radius_source**2
+  # Loop over targets
+  for i, r_target in enumerate(target):
+    # Distance between target and sources
+    r_source_to_target = r_target - source
+    # Loop over sources
+    for j, r in enumerate(r_source_to_target):
+      r2 = np.dot(r,r)
+      r_norm  = np.sqrt(r2)
+      # Compute 3x3 block mobility
+      if r_norm >= (radius_target[i] + radius_source[j]):
+        Mij = (1 + (b2[i]+a2[j]) / (3 * r2)) * np.eye(3) + (1 - (b2[i]+a2[j]) / r2) * np.outer(r,r) / r2
+        Mij = (prefactor / r_norm) * Mij
+      elif r_norm > np.absolute(radius_target[i]-radius_source[j]):
+        r3 = r_norm * r2
+        Mij = ((16*(radius_target[i]+radius_source[j])*r3 - ((radius_target[i]-radius_source[j])**2 + 3*r2)**2) / (32*r3)) * np.eye(3) +\
+            ((3*((radius_target[i]-radius_source[j])**2-r2)**2) / (32*r3)) * np.outer(r,r) / r2
+        Mij = Mij / (6 * np.pi * eta * radius_target[i] * radius_source[j])
+      else:
+        largest_radius = radius_target[i] if radius_target[i] > radius_source[j] else radius_source[j]
+        Mij = (1.0 / (6 * np.pi * eta * largest_radius)) * np.eye(3)
+      velocity[i] += np.dot(Mij, force[j])
+
+  return velocity
+
+
+def boosted_mobility_vector_product_source_target(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  # (r_vectors, vector, eta, a, *args, **kwargs):
+  ''' 
+  Compute a mobility * vector product boosted in C++ for a
+  speedup. It includes wall corrections.
+  Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+  
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * vector
+  if overlap_source is True:
+    force = B_source.dot(force)
+
+  # Compute M_tilde * B * vector
+  num_sources = source.size / 3
+  num_targets = target.size / 3
+  vector_res = np.zeros(target.size)
+  x_for_mob = np.reshape(x, (x.size / 3, 3))  
+  y_for_mob = np.reshape(y, (y.size / 3, 3))  
+  force = np.reshape(force, force.size)
+
+  me.mobility_vector_product_source_target_one_wall(y_for_mob, x_for_mob, force, radius_source, radius_target, vector_res, L, eta, num_sources, num_targets)
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    vector_res = B_target.dot(vector_res)
+  return vector_res
 
 def epsilon_tensor(i, j, k):
   ''' 

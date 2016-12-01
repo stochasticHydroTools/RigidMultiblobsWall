@@ -43,6 +43,7 @@ class ReadInput(object):
     self.eta = float(self.options.get('eta') or 1.0)
     self.g = float(self.options.get('g') or 1.0)
     self.blob_radius = float(self.options.get('blob_radius') or 1.0)
+    self.tracer_radius = float(self.options.get('tracer_radius') or 0.0)
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
@@ -69,6 +70,7 @@ class ReadInput(object):
     self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
     self.free_kinematics = str(self.options.get('free_kinematics') or 'False')
+    self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
           
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []

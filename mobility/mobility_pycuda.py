@@ -1391,6 +1391,244 @@ __global__ void velocity_from_torque(const double *x,
 }
 
 
+/*
+ mobilityUFRPY computes the 3x3 RPY mobility
+ between blobs i and j normalized with 8 pi eta a
+*/
+__device__ void mobilityUFSourceTarget(double rx,
+			               double ry,
+			               double rz,
+			               double &Mxx,
+			               double &Mxy,
+			               double &Mxz,
+                                       double &Myy,
+			               double &Myz,
+                                       double &Mzz,
+                                       double a, /* radius_source */
+                                       double b /* raduis_target*/){
+  
+  double fourOverThree = 4.0 / 3.0;
+  double r2 = rx*rx + ry*ry + rz*rz;
+  double r = sqrt(r2);
+
+  double C1, C2;
+  if(r > (b+a)){
+    double a2 = a * a;
+    double b2 = b * b;
+    C1 = (1 + (b2+a2) / (3 * r2)) / r;
+    C2 = ((1 - (b2+a2) / r2) / r2) / r;
+  }
+  else if(r > fabs(b-a)){
+    double r3 = r2 * r;
+    C1 = ((16*(b+a)*r3 - pow(pow(b-a,2) + 3*r2,2)) / (32*r3)) * fourOverThree / (b * a);
+    C2 = ((3*pow(pow(b-a,2)-r2, 2) / (32*r3)) / r2) * fourOverThree / (b * a); 
+  }
+  else{
+    double largest_radius = (a > b) ? a : b;
+    C1 = fourOverThree / (largest_radius);
+    C2 = 0;
+  }
+
+  Mxx = C1 + C2 * rx * rx;
+  Mxy =      C2 * rx * ry;
+  Mxz =      C2 * rx * rz;
+  Myy = C1 + C2 * ry * ry;
+  Myz =      C2 * ry * rz;
+  Mzz = C1 + C2 * rz * rz;
+
+  return;
+}
+
+
+/*
+  Wall corrections
+*/ 
+__device__ void mobilityUFSingleWallCorrectionSourceTarget(double rx, 
+                                                           double ry, 
+                                                           double rz, 
+                                                           double &Mxx,
+                                                           double &Mxy,
+                                                           double &Mxz,
+                                                           double &Myx,
+                                                           double &Myy,
+                                                           double &Myz,
+                                                           double &Mzx,
+                                                           double &Mzy,
+                                                           double &Mzz, 
+                                                           double a /*radius_source*/, 
+                                                           double b /*radius_target*/, 
+                                                           double y3, 
+                                                           double x3){
+  double a2 = a * a;
+  double b2 = b * b;
+  double r2 = rx*rx + ry*ry + rz*rz;
+  double r = sqrt(r2);
+  double r3 = r2 * r;
+  double r5 = r3 * r2;
+  double r7 = r5 * r2;
+  double r9 = r7 * r2;
+
+  Mxx -= ((1+(b2+a2)/(3.0*r2)) + (1-(b2+a2)/r2) * rx * rx / r2) / r;
+  Mxy -= (                       (1-(b2+a2)/r2) * rx * ry / r2) / r;
+  Mxz += (                       (1-(b2+a2)/r2) * rx * rz / r2) / r;
+  Myx -= (                       (1-(b2+a2)/r2) * ry * rx / r2) / r;
+  Myy -= ((1+(b2+a2)/(3.0*r2)) + (1-(b2+a2)/r2) * ry * ry / r2) / r;
+  Myz += (                       (1-(b2+a2)/r2) * ry * rz / r2) / r;
+  Mzx -= (                       (1-(b2+a2)/r2) * rz * rx / r2) / r;
+  Mzy -= (                       (1-(b2+a2)/r2) * rz * ry / r2) / r;
+  Mzz += ((1+(b2+a2)/(3.0*r2)) + (1-(b2+a2)/r2) * rz * rz / r2) / r;
+
+  // M[l][m] += 2*(-J[l][m]/r - r[l]*x3[m]/r3 - y3[l]*r[m]/r3 + x3*y3*(I[l][m]/r3 - 3*r[l]*r[m]/r5));
+  Mxx -= 2*(x3*y3*(1.0/r3 - 3*rx*rx/r5));
+  Mxy -= 2*(x3*y3*(       - 3*rx*ry/r5));
+  Mxz += 2*(-rx*x3/r3 + x3*y3*( -3*rx*rz/r5));
+  Myx -= 2*(x3*y3*(       - 3*ry*rx/r5));
+  Myy -= 2*(x3*y3*(1.0/r3 - 3*ry*ry/r5));
+  Myz += 2*(-ry*x3/r3 + x3*y3*( -3*ry*rz/r5));
+  Mzx -= 2*(-y3*rx/r3 + x3*y3*( -3*rz*rx/r5));
+  Mzy -= 2*(-y3*ry/r3 + x3*y3*( -3*rz*ry/r5));
+  Mzz += 2*(-1.0/r - rz*x3/r3 - y3*rz/r3 + x3*y3*(1.0/r3 - 3*rz*rz/r5));
+
+  // M[l][m] += (2*b2/3.0) * (-J[l][m]/r3 + 3*r[l]*rz[m]/r5 - y3*(3*rz*I[l][m]/r5 + 3*delta_3[l]*r[m]/r5 + 3*r[l]*delta_3[m]/r5 - 15*rz*r[l]*r[m]/r7));
+  Mxx -= (2*b2/3.0) * (-y3*(3*rz/r5 - 15*rz*rx*rx/r7)); 
+  Mxy -= (2*b2/3.0) * (-y3*(        - 15*rz*rx*ry/r7));
+  Mxz += (2*b2/3.0) * (3*rx*rz/r5 - y3*(3*rx/r5 - 15*rz*rx*rz/r7));
+  Myx -= (2*b2/3.0) * (-y3*(        - 15*rz*ry*rx/r7));
+  Myy -= (2*b2/3.0) * (-y3*(3*rz/r5 - 15*rz*ry*ry/r7));
+  Myz += (2*b2/3.0) * (3*ry*rz/r5 - y3*(3*ry/r5 - 15*rz*ry*rz/r7));
+  Mzx -= (2*b2/3.0) * (-y3*(3*rx/r5 - 15*rz*rz*rx/r7));
+  Mzy -= (2*b2/3.0) * (-y3*(3*ry/r5 - 15*rz*rz*ry/r7));
+  Mzz += (2*b2/3.0) * (-1.0/r3 + 3*rz*rz/r5 - y3*(3*rz/r5 + 3*rz/r5 + 3*rz/r5 - 15*rz*rz*rz/r7));
+
+  // M[l][m] += (2*a2/3.0) * (-J[l][m]/r3 + 3*rz[l]*r[m]/r5 - x3*(3*rz*I[l][m]/r5 + 3*delta_3[l]*r[m]/r5 + 3*r[l]*delta_3[m]/r5 - 15*rz*r[l]*r[m]/r7));
+  Mxx -= (2*a2/3.0) * (-x3*(3*rz/r5 - 15*rz*rx*rx/r7));
+  Mxy -= (2*a2/3.0) * (-x3*(        - 15*rz*rx*ry/r7));
+  Mxz += (2*a2/3.0) * (-x3*(3*rx/r5 - 15*rz*rx*rz/r7));
+  Myx -= (2*a2/3.0) * (-x3*(        - 15*rz*ry*rx/r7));
+  Myy -= (2*a2/3.0) * (-x3*(3*rz/r5 - 15*rz*ry*ry/r7));
+  Myz += (2*a2/3.0) * (-x3*(3*ry/r5 - 15*rz*ry*rz/r7));
+  Mzx -= (2*a2/3.0) * (3*rz*rx/r5 - x3*(3*rx/r5 - 15*rz*rz*rx/r7));
+  Mzy -= (2*a2/3.0) * (3*rz*ry/r5 - x3*(3*ry/r5 - 15*rz*rz*ry/r7));
+  Mzz += (2*a2/3.0) * (-1.0/r3 + 3*rz*rz/r5 - x3*(3*rz/r5 + 3*rz/r5 + 3*rz/r5 - 15*rz*rz*rz/r7));
+
+  // M[l][m] += (2*b2*a2/3.0) * (-I[l][m]/r5 + 5*rz*rz*I[l][m]/r7 - J[l][m]/r5 + 5*rz[l]*r[m]/r7 - J[l][m]/r5 + 5*r[l]*rz[m]/r7 + 5*rz[l]*r[m]/r7 + 5*r[l]*r[m]/r7 + 5*r[l]*rz[m]/r7 - 35 * rz*rz*r[l]*r[m]/r9);
+  Mxx -= (2*b2*a2/3.0) * (-1.0/r5 + 5*rz*rz/r7 + 5*rx*rx/r7 - 35 * rz*rz*rx*rx/r9);
+  Mxy -= (2*b2*a2/3.0) * (          5*rx*ry/r7 +            - 35 * rz*rz*rx*ry/r9);
+  Mxz += (2*b2*a2/3.0) * (5*rx*rz/r7 + 5*rx*rz/r7 + 5*rx*rz/r7 - 35 * rz*rz*rx*rz/r9);
+  Myx -= (2*b2*a2/3.0) * (5*ry*rx/r7 - 35 * rz*rz*ry*rx/r9);
+  Myy -= (2*b2*a2/3.0) * (-1.0/r5 + 5*rz*rz/r7 + 5*ry*ry/r7 - 35 * rz*rz*ry*ry/r9);
+  Myz += (2*b2*a2/3.0) * (5*ry*rz/r7 + 5*ry*rz/r7 + 5*ry*rz/r7 - 35 * rz*rz*rz*ry/r9);
+  Mzx -= (2*b2*a2/3.0) * (5*rz*rx/r7 + 5*rz*rx/r7 + 5*rz*rx/r7 - 35 * rz*rz*rz*rx/r9);
+  Mzy -= (2*b2*a2/3.0) * (5*rz*ry/r7 + 5*rz*ry/r7 + 5*rz*ry/r7 - 35 * rz*rz*rz*ry/r9);
+  Mzz += (2*b2*a2/3.0) * (-1.0/r5 + 5*rz*rz/r7 - 1.0/r5 + 5*rz*rz/r7 - 1.0/r5 + 5*rz*rz/r7 + 5*rz*rz/r7 + 5*rz*rz/r7 + 5*rz*rz/r7 - 35 * rz*rz*rz*rz/r9);
+}
+
+
+/*
+ velocity_from_force computes the product
+ U = M*F
+*/
+__global__ void velocity_from_force_source_target(const double *y,
+                                                  const double *x,
+                                                  const double *f,					
+                                                  double *u,
+                                                  const double *radius_source,
+                                                  const double *radius_target,
+				                  const int number_of_sources,
+                                                  const int number_of_targets,
+                                                  const double eta,
+                                                  const double Lx,
+                                                  const double Ly,
+                                                  const double Lz){
+
+
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= number_of_targets) return;   
+
+  double Ux=0;
+  double Uy=0;
+  double Uz=0;
+
+  double rx, ry, rz;
+
+  double Mxx, Mxy, Mxz;
+  double Myx, Myy, Myz;
+  double Mzx, Mzy, Mzz;
+
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+
+  // Determine if the space is pseudo-periodic in any dimension
+  // We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  int periodic_x = 0, periodic_y = 0, periodic_z = 0;
+  if(Lx > 0){
+    periodic_x = 1;
+  }
+  if(Ly > 0){
+    periodic_y = 1;
+  }
+  if(Lz > 0){
+    periodic_z = 1;
+  }
+  
+  // Loop over image boxes and then over particles
+  for(int boxX = -periodic_x; boxX <= periodic_x; boxX++){
+    for(int boxY = -periodic_y; boxY <= periodic_y; boxY++){
+      for(int boxZ = -periodic_z; boxZ <= periodic_z; boxZ++){
+	for(int j=0; j<number_of_sources; j++){
+	  joffset = j * NDIM;
+	  
+	  // Compute vector between particles i and j
+	  rx = x[ioffset    ] - y[joffset    ];
+	  ry = x[ioffset + 1] - y[joffset + 1];
+	  rz = x[ioffset + 2] - y[joffset + 2];
+
+	  // Project a vector r to the extended unit cell
+	  // centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+	  // any dimension of L is equal or smaller than zero the 
+	  // box is assumed to be infinite in that direction.
+	  if(Lx > 0){
+	    rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx;
+            rx = rx + boxX * Lx;
+	  }
+	  if(Ly > 0){
+	    ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly;
+            ry = ry + boxY * Ly;
+	  }
+	  if(Lz > 0){
+	    rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz;
+            rz = rz + boxZ * Lz;
+	  }
+  
+	  // 1. Compute mobility for pair i-j (unbounded contribution)
+	  mobilityUFSourceTarget(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, radius_source[j], radius_target[i]);
+          Myx = Mxy;
+          Mzx = Mxz;
+          Mzy = Myz;
+
+	  mobilityUFSingleWallCorrectionSourceTarget(rx, ry, (rz+2*y[joffset+2]), Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy,Mzz, radius_source[j], radius_target[i], y[joffset+2], x[ioffset+2]);
+	  
+	  //2. Compute product M_ij * F_j
+	  Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1] + Mxz * f[joffset + 2]);
+	  Uy = Uy + (Myx * f[joffset] + Myy * f[joffset + 1] + Myz * f[joffset + 2]);
+	  Uz = Uz + (Mzx * f[joffset] + Mzy * f[joffset + 1] + Mzz * f[joffset + 2]);
+	}
+      }
+    }
+  }
+  //LOOP END
+
+  //3. Save velocity U_i
+  double pi = 4.0 * atan(1.0);
+  double norm_fact_f = 1.0 / (8 * pi * eta);
+  u[ioffset    ] = Ux * norm_fact_f;
+  u[ioffset + 1] = Uy * norm_fact_f;
+  u[ioffset + 2] = Uz * norm_fact_f;
+
+  return;
+}
+
 """)
 
 def set_number_of_threads_and_blocks(num_elements):
@@ -1689,3 +1927,46 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
   cuda.memcpy_dtoh(u, u_gpu)
 
   return u  
+
+
+def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+   
+  # Determine number of threads and blocks for the GPU
+  number_of_sources = np.int32(source.size / 3)
+  number_of_targets = np.int32(target.size / 3)
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_targets)
+
+  # Get parameters from arguments
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Reshape arrays
+  x = np.reshape(target, target.size)
+  y = np.reshape(source, source.size)
+        
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  y_gpu = cuda.mem_alloc(y.nbytes)
+  radius_target_gpu = cuda.mem_alloc(radius_target.nbytes)
+  radius_source_gpu = cuda.mem_alloc(radius_source.nbytes)
+  f_gpu = cuda.mem_alloc(force.nbytes)
+  u_gpu = cuda.mem_alloc(x.nbytes)
+  # number_of_targets_gpu = cuda.mem_alloc(number_of_targets.nbytes)
+  # number_of_sources_gpu = cuda.mem_alloc(number_of_sources.nbytes)
+    
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(y_gpu, y)
+  cuda.memcpy_htod(radius_target_gpu, radius_target)
+  cuda.memcpy_htod(radius_source_gpu, radius_source)
+  cuda.memcpy_htod(f_gpu, force)
+    
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_force_source_target")
+
+  # Compute mobility force product
+  mobility(y_gpu, x_gpu, f_gpu, u_gpu, radius_source_gpu, radius_target_gpu, np.int32(number_of_sources), np.int32(number_of_targets), np.float64(eta), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+    
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(target)
+  cuda.memcpy_dtoh(u, u_gpu)
+  return np.reshape(u, u.size)

@@ -317,6 +317,132 @@ class QuaternionIntegrator(object):
     return
 
 
+  def stochastic_adams_bashforth(self, dt): 
+    ''' 
+    Take a time step of length dt using a stochastic
+    first order Randon Finite Difference (RFD) schame.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+      
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+        b.orientation_old = b.orientation
+
+      # Generate random vector
+      rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
+
+      # Get blobs vectors
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Build stochastic preconditioner
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
+                                                                                            r_vectors_blobs, 
+                                                                                            self.eta, 
+                                                                                            self.a)
+
+      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
+      velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                           tolerance = self.tolerance, 
+                                                                           dim = self.Nblobs * 3, 
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult)
+
+      # Solve stochastic mobility problem
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise)
+
+      # Extract stochastic velocities
+      velocities_stoch = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Solve deterministic mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+
+      # Extract deterministic velocities
+      velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update configuration for rfd 
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Add thermal drift contribution with N at x = x - random_displacement
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
+
+      # Update configuration for rfd 
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Modify RHS for drift solve
+      # Set linear operators 
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+      linear_operator_partial = partial(self.linear_operator, 
+                                        bodies=self.bodies, 
+                                        r_vectors=r_vectors_blobs, 
+                                        eta=self.eta, 
+                                        a=self.a, 
+                                        periodic_length=self.periodic_length)
+      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
+      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
+
+      # Add thermal drift contribution with N at x = x + random_displacement
+      sol_precond = self.solve_mobility_problem(RHS = RHS)
+
+      # Extract velocities
+      velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Add all velocity contributions
+      velocities_stoch += (self.kT / self.rf_delta) * velocities_drift
+            
+      # Update location and orientation
+      if self.first_step == False:
+        # Use Adams-Bashforth
+        for k, b in enumerate(self.bodies):
+          b.location_new = b.location_old + (1.5 * velocities_det[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3] + velocities_stoch[6*k:6*k+3]) * dt
+          quaternion_dt = Quaternion.from_rotation((1.5 * velocities_det[6*k+3:6*k+6] - 0.5 * self.velocities_previous_step[6*k+3:6*k+6] + velocities_stoch[6*k+3:6*k+6]) * dt)
+          b.orientation_new = quaternion_dt * b.orientation_old
+      else:
+        # Use forward Euler
+        for k, b in enumerate(self.bodies):
+          b.location_new = b.location_old + (velocities_det[6*k:6*k+3] + velocities_stoch[6*k:6*k+3]) * dt
+          quaternion_dt = Quaternion.from_rotation((velocities_det[6*k+3:6*k+6] + velocities_stoch[6*k+3:6*k+6]) * dt)
+          b.orientation_new = quaternion_dt * b.orientation_old
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = velocities_det
+        for b in self.bodies:
+          b.location = b.location_new
+          b.orientation = b.orientation_new
+        return
+      else:
+        for b in self.bodies:
+          b.location = b.location_old
+          b.orientation = b.orientation_old
+
+      self.invalid_configuration_count += 1
+      print 'Invalid configuration'
+    return
+
+
   def stochastic_first_order_RFD_dense_algebra(self, dt): 
     ''' 
     Take a time step of length dt using a stochastic
@@ -398,6 +524,7 @@ class QuaternionIntegrator(object):
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
+
 
   def solve_mobility_problem(self, RHS = None, noise = None, x0 = None, save_first_guess = False): 
     ''' 

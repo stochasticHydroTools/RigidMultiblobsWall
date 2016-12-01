@@ -17,14 +17,14 @@ sys.path.append('../')
 
 import multi_bodies_functions
 import multi_bodies
-from mobility import mobility as mb
+from mobility import mobility as mob
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
 from body import body 
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-
+import visit.visit_writer as visit_writer
 
 
 
@@ -38,6 +38,92 @@ def make_callback():
     print closure_variables["counter"], residuals
   return callback
 
+
+def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, *args, **kwargs):
+  '''
+  This function plots the velocity field to a grid. 
+  '''
+  # Prepare grid values
+  grid = np.reshape(grid, (3,3)).T
+  grid_length = grid[1] - grid[0]
+  grid_points = np.array(grid[2], dtype=np.int32)
+  num_points = reduce(lambda x,y: x*y, grid_points)
+
+  # Set grid coordinates
+  dx_grid = grid_length / grid_points
+  grid_x = np.array([grid[0,0] + dx_grid[0] * (x+0.5) for x in range(grid_points[0])])
+  grid_y = np.array([grid[0,1] + dx_grid[1] * (x+0.5) for x in range(grid_points[1])])
+  grid_z = np.array([grid[0,2] + dx_grid[2] * (x+0.5) for x in range(grid_points[2])])
+  xx, yy, zz = np.meshgrid(grid_x, grid_y, grid_z)
+  grid_coor = np.zeros((num_points, 3))
+  grid_coor[:,0] = np.reshape(xx, xx.size)
+  grid_coor[:,1] = np.reshape(yy, yy.size)
+  grid_coor[:,2] = np.reshape(zz, zz.size)
+
+  # Set radius of blobs (= a) and grid nodes (= 0)
+  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
+  radius_target = np.ones(grid_coor.size / 3) * tracer_radius
+
+  # Compute velocity field 
+  mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
+  if mobility_vector_prod_implementation == 'python':
+    grid_velocity = mob.mobility_vector_product_source_target_one_wall(r_vectors_blobs, 
+                                                                       grid_coor, 
+                                                                       lambda_blobs, 
+                                                                       radius_source, 
+                                                                       radius_target, 
+                                                                       eta, 
+                                                                       *args, 
+                                                                       **kwargs) 
+  elif mobility_vector_prod_implementation == 'C++':
+    grid_velocity = mob.boosted_mobility_vector_product_source_target(r_vectors_blobs, 
+                                                                      grid_coor, 
+                                                                      lambda_blobs, 
+                                                                      radius_source, 
+                                                                      radius_target, 
+                                                                      eta, 
+                                                                      *args, 
+                                                                      **kwargs) 
+  else:
+    grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
+                                                                                    grid_coor, 
+                                                                                    lambda_blobs, 
+                                                                                    radius_source, 
+                                                                                    radius_target, 
+                                                                                    eta, 
+                                                                                    *args, 
+                                                                                    **kwargs) 
+  
+  # Prepara data for VTK writer 
+  variables = [np.reshape(grid_velocity, grid_velocity.size)] 
+  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
+  nvars = 1
+  vardims = np.array([3])
+  centering = np.array([0])
+  varnames = ['velocity\0']
+  name = output + '.velocity_field.vtk'
+  grid_x = grid_x - dx_grid[0] * 0.5
+  grid_y = grid_y - dx_grid[1] * 0.5
+  grid_z = grid_z - dx_grid[2] * 0.5
+  grid_x = np.concatenate([grid_x, [grid[1,0]]])
+  grid_y = np.concatenate([grid_y, [grid[1,1]]])
+  grid_z = np.concatenate([grid_z, [grid[1,2]]])
+
+  
+
+  # Write velocity field
+  visit_writer.boost_write_rectilinear_mesh(name,      # File's name
+                                            0,         # 0=ASCII,  1=Binary
+                                            dims,      # {mx, my, mz}
+                                            grid_x,     # xmesh
+                                            grid_y,     # ymesh
+                                            grid_z,     # zmesh
+                                            nvars,     # Number of variables
+                                            vardims,   # Size of each variable, 1=scalar, velocity=3*scalars
+                                            centering, # Write to cell centers of corners
+                                            varnames,  # Variables' names
+                                            variables) # Variables
+  return
 
 
 if __name__ ==  '__main__':
@@ -79,6 +165,7 @@ if __name__ ==  '__main__':
   Nblobs = sum([x.Nblobs for x in bodies])
   multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
+  multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
   multi_bodies.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
 
   # Write bodies information
@@ -100,8 +187,8 @@ if __name__ ==  '__main__':
     with open(read.force_file, 'r') as f:
       for k, line in enumerate(f):
         force_torque[k] = np.array(map(float, line.split()))
-    force_torque = np.reshape(force_torque, (2*num_bodies, 3))
-
+  force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+    
   # Read velocity file
   velocity = np.zeros((num_bodies, 6))
   if read.velocity_file is not None:
@@ -116,6 +203,17 @@ if __name__ ==  '__main__':
     start_time = time.time()  
     # Get blobs coordinates
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+
+    # Use the code to compute force-torques on bodies if a file was not given
+    if read.force_file is None:
+      force_torque = multi_bodies_functions.force_torque_calculator_sort_by_bodies(bodies,
+                                                                                   r_vectors_blobs,
+                                                                                   g = read.g, 
+                                                                                   repulsion_strength_wall = read.repulsion_strength_wall, 
+                                                                                   debye_length_wall = read.debye_length_wall, 
+                                                                                   repulsion_strength = read.repulsion_strength, 
+                                                                                   debye_length = read.debye_length, 
+                                                                                   periodic_length = read.periodic_length) 
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
@@ -144,21 +242,28 @@ if __name__ ==  '__main__':
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Solve preconditioned linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=make_callback()) 
+    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
     
-    # Extract velocities
+    # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
+    lambda_blobs = np.reshape(sol_precond[0: 3*Nblobs], (Nblobs, 3))
 
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
-    print 'Time to solve mobility problem =', time.time() - start_time   
+    print 'Time to solve mobility problem =', time.time() - start_time 
 
-  # If scheme == resistance solve resistance problem
-  elif read.scheme == 'resistance':
-    start_time = time.time()  
-    # Get blobs coordinates
-    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    # Plot velocity field
+    if read.plot_velocity_field.size > 0: 
+      print 'plot_velocity_field' 
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
+      
+  # If scheme == resistance solve resistance problem 
+  elif read.scheme == 'resistance': 
+    start_time = time.time() 
+    # Get blobs coordinates 
+    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs) 
     
     # Calculate block-diagonal matrix K
     K = multi_bodies.calc_K_matrix(bodies, Nblobs)
@@ -180,6 +285,13 @@ if __name__ ==  '__main__':
     name = read.output_name + '.force.dat'
     np.savetxt(name, force, delimiter='  ')
     print 'Time to solve resistance problem =', time.time() - start_time  
+
+    # Plot velocity field
+    if read.plot_velocity_field.size > 0: 
+      print 'plot_velocity_field' 
+      lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
   
   elif read.scheme == 'body_mobility': 
     start_time = time.time()
@@ -192,6 +304,19 @@ if __name__ ==  '__main__':
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
     print 'Time to compute body mobility =', time.time() - start_time
+    
+  elif (read.scheme == 'plot_velocity_field' and False):
+    print 'plot_velocity_field'
+    # Compute slip 
+
+    # Compute forces
+
+    # Solve mobility problem
+
+    # Compute velocity field
+
+
+
 
   print '\n\n\n# End'
 
