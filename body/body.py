@@ -5,6 +5,7 @@ bodies, Steven Delong et al. The Journal of Chemical
 Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
 import numpy as np
+import copy
 from quaternion_integrator.quaternion import Quaternion 
 
 class Body(object):
@@ -18,9 +19,11 @@ class Body(object):
     # Location as np.array.shape = 3
     self.location = location
     self.location_new = np.copy(location)
+    self.location_old = np.copy(location)
     # Orientation as Quaternion
     self.orientation = orientation
-    self.orientation_new = np.copy(orientation)
+    self.orientation_new = copy.copy(orientation)
+    self.orientation_old = copy.copy(orientation)
     # Number of blobs
     self.Nblobs = reference_configuration.size / 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
@@ -31,6 +34,8 @@ class Body(object):
     self.blob_masses = np.ones(self.Nblobs)
     # Blob radius
     self.blob_radius = blob_radius
+    # Body length
+    self.body_length = None
     # Name of body and type of body. A string or number
     self.name = None
     self.type = None
@@ -65,14 +70,14 @@ class Body(object):
       r_vectors[i] = np.dot(rotation_matrix, vec) + location
     return r_vectors
     
-  def calc_rot_matrix(self):
+  def calc_rot_matrix(self, location = None, orientation = None):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
     (R_i x) = -1 (r_i cross x).
     R has shape (3*Nblobs, 3).
     '''
     rot_matrix = np.empty((self.Nblobs, 3, 3))
-    r_vectors = self.get_r_vectors() - self.location
+    r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
     for k, vec in enumerate(r_vectors):
       # Create block
       block = np.array([[0.0, vec[2], -1.0 * vec[1]],
@@ -93,21 +98,21 @@ class Body(object):
       J[i] = np.eye(3)
     return np.reshape(J, (3*self.Nblobs, 3))
 
-  def calc_K_matrix(self):
+  def calc_K_matrix(self, location = None, orientation = None):
     '''
     Return geometric matrix K = [J, rot] with shape (3*Nblobs, 6)
     '''
-    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix()], axis=1)
+    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
                         
 
   def check_function(self, location = None, orientation = None, distance = None):
     ''' 
     Function to check that the body didn't cross the wall,
-    i.e., all its blobs have z > distance. Default distance is blob_radius.
+    i.e., all its blobs have z > distance. Default distance is 0.
     '''
     # Define distance
     if not distance:
-      distance = self.blob_radius
+      distance = 0.0
       
     # Get location and orientation
     if location is None:
@@ -191,4 +196,22 @@ class Body(object):
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
     return np.linalg.cholesky(M)
+
+
+  def calc_body_length(self):
+    '''
+    It calculates, in one sense, the length of the body. Specifically, it
+    returns the distance between the two furthest apart blobs in the body.
+    '''
+    max_distance = 0.
+    for i in range(self.reference_configuration.size - 1):
+      for blob in self.reference_configuration[i+1:]:
+        blob_distance = np.linalg.norm(blob - self.reference_configuration[i]) 
+        if blob_distance > max_distance:
+          max_distance = blob_distance
+
+    self.body_length = max_distance + 2*self.blob_radius
+    return self.body_length
+
+
     

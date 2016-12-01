@@ -11,7 +11,7 @@ from example_pair_active_rods import slip_function as ex_rods_slip
 
 
 from quaternion_integrator.quaternion import Quaternion
-
+from example_pair_active_rods import slip_function as ex_rods_slip
 
 # Try to import the forces boost implementation
 try:
@@ -26,6 +26,20 @@ except ImportError:
   found_pycuda = False
 if found_pycuda:
   import forces_pycuda  
+
+
+def project_to_periodic_image(r, L):
+  '''
+  Project a vector r to the minimal image representation
+  centered around (0,0,0) and of size L=(Lx, Ly, Lz). If 
+  any dimension of L is equal or smaller than zero the 
+  box is assumed to be infinite in that direction.
+  '''
+  if L is not None:
+    for i in range(3):
+      if(L[i] > 0):
+        r[i] = r[i] - int(r[i] / L[i] + 0.5 * (int(r[i]>0) - int(r[i]<0))) * L[i]
+  return r
 
 
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
@@ -63,9 +77,10 @@ def set_slip_by_ID(body):
   elif (body.ID == 'Cylinder_N_14_Lg_1_9295_Rg_0_18323') \
         or (body.ID == 'Cylinder_N_86_Lg_1_9384_Rg_0_1484') \
         or (body.ID == 'Cylinder_N_324_Lg_2_0299_Rg_0_1554'):
-    body.function_slip = ex_rods_slip.slip_extensile_rod	    
+    body.function_slip = ex_rods_slip.slip_extensile_rod  
   else:
     body.function_slip = default_zero_blobs
+  return
 
 
 def active_body_slip(body):
@@ -130,16 +145,16 @@ def blob_external_force(r_vectors, *args, **kwargs):
   g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
   debye_length_wall = kwargs.get('debye_length_wall')
-  
+
   # Add gravity
   f += -g * blob_mass * np.array([0., 0., 1.0])
 
   # Add wall interaction
   h = r_vectors[2]
-  f += np.array([0., 0., (repulsion_strength_wall * \
-                            ((h - blob_radius) / debye_length_wall + 1.0) * \
-                            np.exp(-1.0 * (h - blob_radius) / debye_length_wall) / \
-                            ((h - blob_radius)**2))])
+  f += np.array([0., 0., (blob_radius * repulsion_strength_wall * \
+                            (h / debye_length_wall + 1.0) * \
+                            np.exp(-1.0 * h / debye_length_wall) / \
+                            (h**2))])
   return f
 
 
@@ -195,10 +210,12 @@ def blob_blob_force(r, *args, **kwargs):
   b = Debye length
   '''
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
   
   # Compute force
+  project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
   return -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2
   
@@ -228,6 +245,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   Call a boost function to compute the blob-blob forces.
   '''
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')  
 
@@ -235,7 +253,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, number_of_blobs, L) 
   return np.reshape(forces, (number_of_blobs, 3))
 
 
@@ -268,12 +286,14 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   force_torque = np.zeros((2, 3))
 
   # Get parameters from arguments
+  L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
   
   # Compute force
+  project_to_periodic_image(r, L)
   r_norm = np.linalg.norm(r)
-  force_torque[0] = -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2 
+  force_torque[0] = -((eps / b) + (eps / r_norm)) * np.exp(-r_norm / b) * r / r_norm**2  
   return force_torque
 
 
@@ -339,60 +359,20 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   return force_torque_bodies
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def force_torque_calculator_sort_by_bodies_(bodies, r_vectors, *args, **kwargs):
+def preprocess(bodies, *args, **kwargs):
   '''
-  Return the forces and torque in each body with
-  format [f_1, t_1, f_2, t_2, ...] and shape (2*Nbodies, 3),
-  where f_i and t_i are the force and torque in the body i.
+  This function is call at the start of the schemes.
+  The default version do nothing, it should be modify by
+  the user if he wants to change the schemes.
   '''
-  g = kwargs.get('g')
-  repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
-  debye_length_wall = kwargs.get('debye_length_wall')
+  return
 
-  force_torque_bodies = np.zeros((2*len(bodies), 3))
-  offset = 0
-  for k, b in enumerate(bodies):
-    R = b.calc_rot_matrix()
-    force_blobs = np.zeros((b.Nblobs, 3))
-    # Compute forces on each blob
-    for blob in range(b.Nblobs):
-      h = r_vectors[offset+blob, 2]
-      # Force on blob (wall repulsion + gravity)
-      force_blobs[blob:(blob+1)] = np.array([0., 0., (repulsion_strength_wall * ((h - b.blob_radius)/debye_length_wall + 1.0) * \
-                                                        np.exp(-1.0*(h - b.blob_radius)/debye_length_wall) / ((h - b.blob_radius)**2))])
-      force_blobs[blob:(blob+1)] += - g * np.array([0.0, 0.0, b.blob_masses[blob]])
+def postprocess(bodies, *args, **kwargs):
+  '''
+  This function is call at the end of the schemes but
+  before checking if the postions are a valid configuration.
+  The default version do nothing, it should be modify by
+  the user if he wants to change the schemes.
+  '''
+  return
 
-    # Add force to the body
-    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs)
-    # Add torque to the body
-    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs, 3*b.Nblobs))
-    offset += b.Nblobs
-  return force_torque_bodies
