@@ -88,7 +88,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
-
+  elif implementation == 'pycuda_single':
+    return mb.single_wall_mobility_trans_times_force_pycuda_single
 
 def calc_K_matrix(bodies, Nblobs):
   '''

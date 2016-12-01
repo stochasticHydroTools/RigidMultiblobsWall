@@ -201,7 +201,11 @@ field. See figure \ref{fig:velocityField} as an example.
 falling towards a bottom wall. Velocity field computed with the
 option `plot_velocity_field` and image generated with the software VisIt.](velocity_field.png)
 
-
+* `tracer_radius`: (float (default 0)) effective radius of the nodes
+where the fluid velocity field is computed with the option
+`plot_velocity_field`. The default value, zero, computes the pointwise
+fluid velocity, a larger value average the fluid velocity over a
+region of radius `tracer_radius`.
 
 The output files are:
 
@@ -315,9 +319,12 @@ to solve the mobility problem and are more efficient for large number of bodies.
 indicates which implementation is used to compute the blob mobility 
 matrix **M**. See section 1 to use the C++ version.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++ and pycuda`.
+* `mobility_vector_prod_implementation`: Options: `python, C++, pycuda
+and pycuda_single`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation.
+**Mf**. See section 1 to use the C++ or pycuda implementation. The
+option `pycuda_single` uses single precision (it is faster in GPUs)
+the others use double precision. 
 
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
@@ -387,6 +394,25 @@ to a pseudorandom state (see documentation for numpy.random.RandomState).
 bodies configuration, see section 2. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body.
 
+* `save_clones`: (string (default one_file_per_step)) options
+_one_file_per_step_ and _one_file_. With the option
+_one_file_per_step_ the clones configuration are saved in one file per
+kind of structure and per time step as explained above. With the option
+_one_file_ the code saves one file per kind of structure with the
+configurations of all the time steps;
+configurations of different time steps are separated by a line with
+the number of rigid bodies.
+
+* `periodic_length`: (three floats (default 0 0 0)) length of the unit
+cell along the x, y and z directions. If the length of the unit cell
+along the x or y directions is larger than zero the code uses Pseudo
+Periodic Boundary Conditions (PPBC) along that axis, otherwise the
+system is considered infinite in that direction. With PPBC, particles forces are
+computed using the minimum image convention as with standard periodic
+boundary conditions. Hydrodynamic interactions are computed between
+particles in the unit cell and the first neighbor cells along the
+pseudo-periodic axis. PPBC along the z axis are not supported.
+
 
 ### 5.1 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between  
@@ -437,10 +463,27 @@ We provide an example of how to add a constant slip to all the blobs
 of an active body in the function `active_body_slip` in the same file.
 
 
-## 6. Software organization
+## 6. Run Monte Carlo simulations
+We have a Markov Chain Monte Carlo code to generate equilibrium
+configurations. To use this code move to the directory `many_bodyMCMC`
+and inspect the input file `inputMCMC.dat`. The options are similar to
+the ones to run dynamic simulations, however, some options like the
+time step size are not necessary. We have only implemented the
+subroutines to compute the body-body interactions in _pycuda_,
+therefore, it is necessary to have a GPU with CUDA capabilities to use
+this code. To run a simulation use
+
+`
+python many_body_MCMC.py inputMCMC.dat
+`
+
+The output files are similar to the ones generated with dynamic simulations.
+
+## 7. Software organization
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
+* **many_bodyMCMC/**: Monte Carlo code for rigid bodies.
 * **mobility/**: it has functions to compute the blob mobility matrix **M** and the
 product **Mf**.
 * **multi_bodies/**: codes to run simulations of rigid bodies.

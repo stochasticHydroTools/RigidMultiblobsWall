@@ -39,7 +39,7 @@ def make_callback():
   return callback
 
 
-def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, *args, **kwargs):
+def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, *args, **kwargs):
   '''
   This function plots the velocity field to a grid. 
   '''
@@ -62,7 +62,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
 
   # Set radius of blobs (= a) and grid nodes (= 0)
   radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
-  radius_target = np.zeros(grid_coor.size / 3) 
+  radius_target = np.ones(grid_coor.size / 3) * tracer_radius
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
@@ -256,7 +256,7 @@ if __name__ ==  '__main__':
     # Plot velocity field
     if read.plot_velocity_field.size > 0: 
       print 'plot_velocity_field' 
-      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, 
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
   # If scheme == resistance solve resistance problem 
@@ -290,7 +290,7 @@ if __name__ ==  '__main__':
     if read.plot_velocity_field.size > 0: 
       print 'plot_velocity_field' 
       lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
-      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, 
+      plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
   
   elif read.scheme == 'body_mobility': 

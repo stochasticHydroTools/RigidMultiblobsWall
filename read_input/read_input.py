@@ -43,6 +43,7 @@ class ReadInput(object):
     self.eta = float(self.options.get('eta') or 1.0)
     self.g = float(self.options.get('g') or 1.0)
     self.blob_radius = float(self.options.get('blob_radius') or 1.0)
+    self.tracer_radius = float(self.options.get('tracer_radius') or 0.0)
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
