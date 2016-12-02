@@ -25,11 +25,11 @@ Note: The key blob-blob translational mobility in the presence of a wall is comp
 the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
 James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi.org/10.1063/1.2803837).
-We modify the mobility to allow overlap between blobs and between
+We modify the mobility to allow overlaps between blobs and between
 blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
-The codes are implemented in python and it is not necessary to compile the package to use it. 
+The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
 However, we provide alternative implementations in _C++_ (through the Boost Python
 library) and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you
@@ -38,7 +38,7 @@ want to take fully advantage of this package.
 ### 1.1 Prepare the mobility functions
 The codes use functions to compute the blob mobility matrix **M** and the
 matrix vector product **Mf**. For some functions we provide
-a _C++_ implementation which can be around 5 times faster than the python version. We also
+a _C++_ implementation which can be around five times faster than the python version. We also
 provide _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
 To use the _C++_ implementation move to the directory `mobility/` and compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which you will need 
@@ -96,7 +96,7 @@ structure of a boomerang-like particle formed by 15 blobs.
 
 ## 3. Active slip
 The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170), 
-therefore we can simulate the dynamics of active bodies like bacteria
+therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids. The code assigns a slip function to each body depending
 on its structure ID; the structure ID is the name of the
 `*.clones` file without the _path_ or the ending _.clones_ 
@@ -110,7 +110,7 @@ for bodies with structure ID _active_body_ all blobs have a
 slip along the x-axis in the reference configuration. 
 For bodies with any other structure ID the slip is set to zero,
 i.e., they are passive bodies. It is easy to generalize the code to include other kind of slips,
-see Section 5.1 for details.
+see Section 5.3 for details.
 
 
 ## 4. Run static simulations
@@ -180,6 +180,8 @@ corresponding to linear (first three) and angular velocities (last three).
 * `force_file`: (string) name of a file with the forces and torques used
 in the `mobility` problem. The format of the file is one line per body and six floats per line
 corresponding to force (first three) and torque (last three).
+If no file is given the code compute the forces on the bodies as
+explained in the section 5.2.
 
 * `structure`: (two strings) name of the vertex and clones files with the rigid 
 bodies configuration, see section 2. To simulate bodies with different
@@ -187,7 +189,7 @@ shapes add to the input file one `structure` option per each kind of body
 and give their `vertex` and `clones` files,
 see multibodies/inputfile.dat for an example. 
 
-* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1) if the
+* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1 N_z) if the
 code is run with this options and the schemes `mobility` or `resistance` the code plots
 the velocity field of the fluid to a `vtk` file. The velocity field
 is plotted in a rectangular box with the lower corner located at `(x_0, y_0, z_0)`, the upper corner located 
@@ -311,7 +313,7 @@ stochastic_first_order_RFD_dense_algebra and
 stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
 and integrate the equation of motion. 
 The `*forward_euler*` schemes are first order accurate
-while `*adams_bashforth*` is second order accurate in the
+while `*adams_bashforth*` are second order accurate in the
 deterministic case. The scheme `*dense_algebra` use
 dense algebra methods to solve the mobility problem and therefore the computational
 cost scales like (number_of_blobs)**3.
@@ -344,7 +346,7 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
-See Section 5.1 for more details.
+See Section 5.3 for more details.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -375,7 +377,7 @@ length and `eps` is the strength and `d=2*a` is twice the blob radius. This is t
 * `debye_length`: (float) the blobs interact through a potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`),
 this is the characteristic length of the potential, `b` in the above expression
-(see section 5.1 to modify blobs interactions).
+(see section 5.3 to modify blobs interactions).
 
 * `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential. The potential is
 (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
@@ -419,7 +421,6 @@ boundary conditions. Hydrodynamic interactions are computed between
 particles in the unit cell and the first neighbor cells along the
 pseudo-periodic axis. PPBC along the z axis are not supported.
 
-
 ### 5.2 Rollers simulations
 We can also use the code `multi_bodies.py` to run simulations of
 bodies discretized with a single blob interacting hydrodynamically with
@@ -454,7 +455,7 @@ fixed.
 velocity of the blobs. It is used when the option `free_kinematics` is
 set to False.
 
-### 5.1 Modify the codes
+### 5.3 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between  
 bodies are hard-coded in the codes. We explain here how the user can change these functions.
 First, we provide two alternatives to compute the interactions between
