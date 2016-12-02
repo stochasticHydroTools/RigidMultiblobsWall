@@ -1,4 +1,4 @@
-# RotationalDiffusion
+# Rigid Multiblobs in half-space
 
 Rotational and Translational Diffusion of Confined Rigid Bodies
 by Steven Delong, Florencio Balboa, Blaise Delmotte and Aleksandar Donev (donev@courant.nyu.edu)
@@ -19,7 +19,12 @@ The Journal of Chemical Physics, **143**, 144107 (2015).
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
   rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
-  A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, submitted to CAMCoS. [arXiv](http://arxiv.org/abs/1602.02170)
+  A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, submitted to
+  CAMCoS. [arXiv](http://arxiv.org/abs/1602.02170)
+
+3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
+No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
+submitted to The Journal of Chemical Physics.
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
@@ -48,4 +53,3 @@ See documentation `doc/boomerang.txt`.
 * **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
-
