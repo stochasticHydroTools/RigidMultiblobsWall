@@ -193,7 +193,7 @@ see multibodies/inputfile.dat for an example.
 code is run with this options and the schemes `mobility` or `resistance` the code plots
 the velocity field of the fluid to a `vtk` file. The velocity field
 is plotted in a rectangular box with the lower corner located at `(x_0, y_0, z_0)`, the upper corner located 
-`(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
+at `(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
 The `vtk` file can be postprocessed with external software like
 `VisIt` from the Lawrence Livermore National Laboratory or `ParaView`
 from Sandia National Laboratories to generate an image of the velocity
@@ -228,7 +228,7 @@ corresponding to linear (first three) and angular velocities (last three).
 
 
 ## 5. Run dynamic simulations 
-### 5.1 Rigid multiblobs simulations
+### 5.1 Rigid multiblob simulations
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
 See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
@@ -314,7 +314,7 @@ stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
 and integrate the equation of motion. 
 The `*forward_euler*` schemes are first order accurate
 while `*adams_bashforth*` are second order accurate in the
-deterministic case. The scheme `*dense_algebra` use
+deterministic case. The scheme `*dense_algebra` uses
 dense algebra methods to solve the mobility problem and therefore the computational
 cost scales like (number_of_blobs)**3.
 The other schemes use preconditioned GMRES
@@ -371,18 +371,19 @@ If `initial_step > 0` the code will run from time step `initial_step` to
 form (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`) 
 where `r` is the distance between blobs, `b` is the characteristic
-length and `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
-`eps` in the above expression (see section 5.1 to modify blobs interactions).
+length, `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
+`eps` in the above expression (see section 5.3 to modify blobs interactions).
 
 * `debye_length`: (float) the blobs interact through a potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`),
 this is the characteristic length of the potential, `b` in the above expression
 (see section 5.3 to modify blobs interactions).
 
-* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential. The potential is
+* `repulsion_strength_wall`: (float) the blobs interact with the wall
+with a soft potential. The potential is
 (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
-the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
+the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
 This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
@@ -424,7 +425,7 @@ pseudo-periodic axis. PPBC along the z axis are not supported.
 ### 5.2 Rollers simulations
 We can also use the code `multi_bodies.py` to run simulations of
 bodies discretized with a single blob interacting hydrodynamically with
-a grand-mobility which includes couplings between the linear and
+a grand-mobility matrix that includes couplings between the linear and
 angular velocities, see Ref. [3] for a detailed description.
 To run a simulation use:
 
@@ -445,15 +446,19 @@ bodies configuration, see section 2. However, this code only accepts
 bodies discretized with a single blob so the vertex file is trivial,
 see file `multi_bodies/Structures/blob.vertex`.
 
-* `free_kinematics`: (string (default False)) if `free_kinematics` is
-False all the blobs rotate with a prescribed angular velocity given
-with the option `omega_one_roller` but they are free to translate. If
+* `free_kinematics`: (string (default True)) if
 `free_kinematics` is True the angular velocity of the blobs is not
-fixed.
+fixed and each blob is subject to a torque
+`T=8*pi*eta*a^3*omega_one_roller` (see below). If `free_kinematics` is
+False all the blobs rotate with a prescribed angular velocity given
+with the option `omega_one_roller` but they are free to translate. 
+The torque acting on the blobs is a Lagrangian multiplier that
+enforces the prescribed angular velocity.
 
 * `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
-velocity of the blobs. It is used when the option `free_kinematics` is
-set to False.
+velocity of the blobs if the option `free_kinematics` is
+set to False. If `free_kinematics` is set to True the blobs are
+subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
 ### 5.3 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between  
