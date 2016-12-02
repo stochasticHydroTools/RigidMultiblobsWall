@@ -136,10 +136,7 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
-<<<<<<< HEAD
-=======
   blob_radius = kwargs.get('blob_radius')
->>>>>>> next
 
   # Reshape arrays
   x = np.reshape(r_vectors, number_of_blobs * 3)
@@ -156,11 +153,7 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   force = mod.get_function("calc_blob_blob_force")
 
   # Compute mobility force product
-<<<<<<< HEAD
-  force(x_gpu, f_gpu, np.float64(eps), np.float64(b), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
-=======
   force(x_gpu, f_gpu, np.float64(eps), np.float64(b), np.float64(blob_radius), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
->>>>>>> next
    
   # Copy data from GPU to CPU (device to host)
   cuda.memcpy_dtoh(f, f_gpu)
