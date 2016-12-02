@@ -6,10 +6,6 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
 dynamic simulations.
 
-Note: We are still working on stochastic methods for suspensions of many rigid bodies.
-For now, the codes can do deterministic simulations for many bodies (see paper 2 below)
-but can only do Brownian Dynamics for a single rigid body (see paper 1 below).
-
 We explain in the next sections how to use the package.
 For the theory consult the references:
 
@@ -18,18 +14,22 @@ The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
 rigid multiblob approach**, F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
-A. Pal Singh Bhalla, B. E. Griffith and A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+A. Pal Singh Bhalla, B. E. Griffith and
+A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+
+3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
+No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
+submitted to The Journal of Chemical Physics.
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
 James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi.org/10.1063/1.2803837).
-Note that this does not include correction for blobs that overlap the wall, only for blobs that overlap each other.
-It is therefore important to keep blobs from overlapping the wall by a hard-core-like repulsion.
-Blobs can, however, overlap other blobs, and adding hard-core repulsion between blobs will introduce numerical stiffness.
+We modify the mobility to allow overlaps between blobs and between
+blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
-The codes are implemented in python and it is not necessary to compile the package to use it. 
+The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
 However, we provide alternative implementations in _C++_ (through the Boost Python
 library) and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you
@@ -38,7 +38,7 @@ want to take fully advantage of this package.
 ### 1.1 Prepare the mobility functions
 The codes use functions to compute the blob mobility matrix **M** and the
 matrix vector product **Mf**. For some functions we provide
-a _C++_ implementation which can be around 5 times faster than the python version. We also
+a _C++_ implementation which can be around five times faster than the python version. We also
 provide _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
 To use the _C++_ implementation move to the directory `mobility/` and compile
 `mobility_ext.cc` to a `.so` file using the Makefile provided (which you will need 
@@ -96,7 +96,7 @@ structure of a boomerang-like particle formed by 15 blobs.
 
 ## 3. Active slip
 The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170), 
-therefore we can simulate the dynamics of active bodies like bacteria
+therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids. The code assigns a slip function to each body depending
 on its structure ID; the structure ID is the name of the
 `*.clones` file without the _path_ or the ending _.clones_ 
@@ -110,7 +110,7 @@ for bodies with structure ID _active_body_ all blobs have a
 slip along the x-axis in the reference configuration. 
 For bodies with any other structure ID the slip is set to zero,
 i.e., they are passive bodies. It is easy to generalize the code to include other kind of slips,
-see Section 5.1 for details.
+see Section 5.3 for details.
 
 
 ## 4. Run static simulations
@@ -150,7 +150,7 @@ You can inspect the file `*.body_mobility.dat` to see the 6x6 rigid body mobilit
 
 List of input file options:
 
-* `scheme`: Options: `mobility, resistance and body_mobility`. 
+* `scheme`: (string) Options: `mobility, resistance and body_mobility`. 
 Select the problem to solve. `mobility` computes the velocities of
 a suspension of rigid bodies subject to external forces and torques (see below).
 `resistance` computes the forces and torques on rigid bodies moving
@@ -180,6 +180,8 @@ corresponding to linear (first three) and angular velocities (last three).
 * `force_file`: (string) name of a file with the forces and torques used
 in the `mobility` problem. The format of the file is one line per body and six floats per line
 corresponding to force (first three) and torque (last three).
+If no file is given the code compute the forces on the bodies as
+explained in the section 5.2.
 
 * `structure`: (two strings) name of the vertex and clones files with the rigid 
 bodies configuration, see section 2. To simulate bodies with different
@@ -187,11 +189,11 @@ shapes add to the input file one `structure` option per each kind of body
 and give their `vertex` and `clones` files,
 see multibodies/inputfile.dat for an example. 
 
-* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1) if the
+* `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1 N_z) if the
 code is run with this options and the schemes `mobility` or `resistance` the code plots
 the velocity field of the fluid to a `vtk` file. The velocity field
 is plotted in a rectangular box with the lower corner located at `(x_0, y_0, z_0)`, the upper corner located 
-`(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
+at `(x_1, y_1, z_1)` and using a grid of dimensions `(N_x, N_y, N_z)`.
 The `vtk` file can be postprocessed with external software like
 `VisIt` from the Lawrence Livermore National Laboratory or `ParaView`
 from Sandia National Laboratories to generate an image of the velocity
@@ -226,11 +228,11 @@ corresponding to linear (first three) and angular velocities (last three).
 
 
 ## 5. Run dynamic simulations 
+### 5.1 Rigid multiblob simulations
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
 See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
-code which allows to run deterministic simulations for many bodies. In the
-future we will extend this code to allow for stochastic simulations of many bodies.
+code which allows to run deterministic and stochastic simulations for many bodies. 
 
 First, move to the directory `multi_bodies/` and inspect the input file
 `inputfile_dynamic.dat`:
@@ -282,7 +284,7 @@ one with a boomerang shape and two with a spherical shape;
 see structures given to the options `structure`. To run the simulation use
 
 `
-python multi_bodies --input-file inputfile_dynamic.dat
+python multi_bodies.py --input-file inputfile_dynamic.dat
 `
 
 Now, you can inspect the output, `ls data/run.*`. The output files are:
@@ -305,11 +307,14 @@ It can be used to run a simulation with the same random numbers.
 
 List of options for the input file:
 
-* `scheme`: Options: `deterministic_forward_euler_dense_algebra, deterministic_forward_euler,
-deterministic_adams_bashforth`. It selects the scheme to solve the mobility problem
+* `scheme`: (string) Options: `deterministic_forward_euler_dense_algebra, deterministic_forward_euler,
+deterministic_adams_bashforth, stochastic_first_order_RFD, 
+stochastic_first_order_RFD_dense_algebra and
+stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
 and integrate the equation of motion. 
 The `*forward_euler*` schemes are first order accurate
-while `*adams_bashforth*` is second order accurate. The scheme `*dense_algebra` use
+while `*adams_bashforth*` are second order accurate in the
+deterministic case. The scheme `*dense_algebra` uses
 dense algebra methods to solve the mobility problem and therefore the computational
 cost scales like (number_of_blobs)**3.
 The other schemes use preconditioned GMRES
@@ -341,7 +346,7 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
-See Section 5.1 for more details.
+See Section 5.3 for more details.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -362,22 +367,28 @@ If `initial_step > 0` the code will run from time step `initial_step` to
 
 * `n_save`: (int) save the bodies configuration every `n_save` steps. 
 
-* `repulsion_strength`: (float) the blobs interact through a Yukawa potential of the
-form (`U = eps * exp(-r / b) / r`) where `r` is the distance between blobs, `b` is the characteristic
-length and `eps` is the strength. This is the strength of the potential,
-`eps` in the above expression (see section 5.1 to modify blobs interactions).
+* `repulsion_strength`: (float) the blobs interact through a soft potential of the
+form (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
+exp(-(r-d)/b)` if `r >=d`) 
+where `r` is the distance between blobs, `b` is the characteristic
+length, `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
+`eps` in the above expression (see section 5.3 to modify blobs interactions).
 
-* `debye_length`: (float) the blobs interact through a Yukawa potential (`U = eps * exp(-r / b) / r`),
+* `debye_length`: (float) the blobs interact through a potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
+exp(-(r-d)/b)` if `r >=d`),
 this is the characteristic length of the potential, `b` in the above expression
-(see section 5.1 to modify blobs interactions).
+(see section 5.3 to modify blobs interactions).
 
-* `repulsion_strength_wall`: (float) the blobs interact with the wall with a Yukawa-like potential. The potential is
-(`U = eps * a * exp(-h / b) / h`) where `h` is the distance between the wall and
-the particle, a is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
+* `repulsion_strength_wall`: (float) the blobs interact with the wall
+with a soft potential. The potential is
+(`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
+exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
+the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
 This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
-potential (`U = eps * a * exp(-h / b) / h`). 
+potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
+exp(-(r-d)/b)` if `r >=d`). 
 This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.1 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
@@ -411,8 +422,45 @@ boundary conditions. Hydrodynamic interactions are computed between
 particles in the unit cell and the first neighbor cells along the
 pseudo-periodic axis. PPBC along the z axis are not supported.
 
+### 5.2 Rollers simulations
+We can also use the code `multi_bodies.py` to run simulations of
+bodies discretized with a single blob interacting hydrodynamically with
+a grand-mobility matrix that includes couplings between the linear and
+angular velocities, see Ref. [3] for a detailed description.
+To run a simulation use:
 
-### 5.1 Modify the codes
+`python multi_bodies_utilities.py --input-file inputfile_body_mobility.dat`
+
+The input file options are the same than for a rigid multiblob
+simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
+following differences:
+
+* `scheme`: (string) Options: `deterministic_forward_euler_rollers,
+stochastic_first_order_rollers, deterministic_adams_bashforth_rollers,
+stochastic_adams_bashforth_rollers, stochastic_mid_point_rollers,
+stochastic_trapezoidal_rollers`. We provide several schemes for
+deterministic and stochastic simulations. 
+
+* `structure`: (two strings) name of the vertex and clones files with the rigid 
+bodies configuration, see section 2. However, this code only accepts
+bodies discretized with a single blob so the vertex file is trivial,
+see file `multi_bodies/Structures/blob.vertex`.
+
+* `free_kinematics`: (string (default True)) if
+`free_kinematics` is True the angular velocity of the blobs is not
+fixed and each blob is subject to a torque
+`T=8*pi*eta*a^3*omega_one_roller` (see below). If `free_kinematics` is
+False all the blobs rotate with a prescribed angular velocity given
+with the option `omega_one_roller` but they are free to translate. 
+The torque acting on the blobs is a Lagrangian multiplier that
+enforces the prescribed angular velocity.
+
+* `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
+velocity of the blobs if the option `free_kinematics` is
+set to False. If `free_kinematics` is set to True the blobs are
+subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
+
+### 5.3 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between  
 bodies are hard-coded in the codes. We explain here how the user can change these functions.
 First, we provide two alternatives to compute the interactions between
@@ -476,7 +524,6 @@ python many_body_MCMC.py inputMCMC.dat
 `
 
 The output files are similar to the ones generated with dynamic simulations.
-
 
 ## 7. Software organization
 * **body/**: it contains a class to handle a single rigid body.

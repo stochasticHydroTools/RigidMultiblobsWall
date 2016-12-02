@@ -10,6 +10,7 @@ eta					 1e-3
 g					 0.0 
 blob_radius				 0.0402
 solver_tolerance			 1e-08
+n_steps      1
 
 # Set output name
 output_name				 data/run_high_res
