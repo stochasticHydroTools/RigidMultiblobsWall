@@ -35,6 +35,7 @@ For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
+* **many_bodyMCMC/**: Monte Carlo code for rigid bodies.
 * **mobility/**: it has functions to compute the blob mobility matrix **M** and the
 product **Mf**.
 * **multi_bodies/**: codes to run simulations of rigid bodies.
