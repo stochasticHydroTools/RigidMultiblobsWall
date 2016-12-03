@@ -384,12 +384,12 @@ with a soft potential. The potential is
 (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
 the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
-This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.1 to modify blobs interactions). 
+This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.3 to modify blobs interactions). 
 
 * `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
 potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`). 
-This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.1 to modify blobs interactions).
+This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.3 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
