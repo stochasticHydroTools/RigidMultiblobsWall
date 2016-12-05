@@ -24,7 +24,7 @@ The Journal of Chemical Physics, **143**, 144107 (2015).
 
 3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
 No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-submitted to The Journal of Chemical Physics.
+submitted to The Journal of Chemical Physics. [arXiv](https://arxiv.org/abs/1612.00474)
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
