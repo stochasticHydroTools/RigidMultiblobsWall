@@ -19,7 +19,7 @@ A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
 No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-submitted to The Journal of Chemical Physics.
+submitted to The Journal of Chemical Physics. [arXiv](https://arxiv.org/abs/1612.00474)
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
