@@ -23,8 +23,12 @@ __device__ void one_blob_potential(double &u,
   u += weight * rz;
 
   // Add interaction with the wall
-  u += eps_wall * blob_radius * exp(-(rz - blob_radius) / debye_length_wall) / (rz - blob_radius);
- 
+  if (rz < blob_radius){
+    u += eps_wall + eps * (blob_radius - rz) / debye_length_wall;
+  }
+  else{
+    u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall);
+  }
   return;
 }
 
@@ -42,7 +46,12 @@ __device__ void blob_blob_potential(double &u,
                                     const double blob_radius){                
   if(i != j){
     double r = sqrt(rx*rx + ry*ry + rz*rz);
-    u += eps * exp(-r / debye_length) / r;
+    if(r < 2.0*blob_radius){
+      u += eps + eps * (2.0*blob_radius - r) / debye_length;
+    }
+    else{
+      u += eps * exp(-(r - 2.0*blob_radius) / debye_length);
+    }
     return;
   }
 }
