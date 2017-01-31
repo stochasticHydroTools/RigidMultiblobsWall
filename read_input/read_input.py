@@ -41,14 +41,10 @@ class ReadInput(object):
     self.n_relaxation = int(self.options.get('n_relaxation') or 0)
     self.dt = float(self.options.get('dt') or 0.0)
     self.eta = float(self.options.get('eta') or 1.0)
-    self.rf_delta = float(self.options.get('rf_delta') or 1.0)
-    self.pc_delta = float(self.options.get('pc_delta') or 1.0)
     self.g = float(self.options.get('g') or 1.0)
     self.blob_radius = float(self.options.get('blob_radius') or 1.0)
-    self.kT = float(self.options.get('kT') or 0.0)
-    self.rand_run = str(self.options.get('rand_run') or 'False')
-    self.mobility_test = str(self.options.get('mobility_test') or 'False')
-    self.calc_force_torque = str(self.options.get('calc_force_torque') or 'True')
+    self.tracer_radius = float(self.options.get('tracer_radius') or 0.0)
+    self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
     self.structure_names = str.split(str(self.options.get('structure_names')))
@@ -69,8 +65,13 @@ class ReadInput(object):
     self.force_file = self.options.get('force_file')
     self.velocity_file = self.options.get('velocity_file')
     self.solver_tolerance = float(self.options.get('solver_tolerance') or 1e-08)
+    self.rf_delta = float(self.options.get('rf_delta') or 1e-04)
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
-        
+    self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
+    self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
+    self.free_kinematics = str(self.options.get('free_kinematics') or 'False')
+    self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
+          
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):

@@ -10,7 +10,7 @@ import sys
 import multi_bodies_velocity_field as rod
 from quaternion_integrator.quaternion import Quaternion
 from mobility import mobility as mb
-from visit import visit_writer as visit_writer
+import visit.visit_writer as visit_writer
 
 
 # Length from rod to plot velocities
@@ -411,6 +411,5 @@ if __name__ == '__main__':
        
   print '#END'
     
-
 
 

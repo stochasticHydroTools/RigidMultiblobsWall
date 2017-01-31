@@ -12,18 +12,16 @@ namespace bp = boost::python;
 
 
 void MobilityVectorProduct_optimized(bp::list r_vectors, 
-			   double eta,
-			   double a, int num_particles,
-                           bp::numeric::array vector,
-                           bp::numeric::array vector_res ) {
+				     double eta,
+				     double a, int num_particles,
+				     bp::numeric::array vector,
+				     bp::numeric::array vector_res ) {
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
   double Mlm;
-  double* R;
-  double* Rim;
-  R = new double[3];
-  Rim = new double[3];
+  double R[3];
+  double Rim[3];
   double h = 0.0;
   for (int j = 0; j < num_particles; ++j) {
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
@@ -54,11 +52,11 @@ void MobilityVectorProduct_optimized(bp::list r_vectors,
       R_norm = sqrt(R_norm);
 
       Rim_norm = sqrt(Rim_norm);
-      double* e = new double[3];
+      double e[3];
       for (int l = 0; l < 3; ++l) {
         e[l] = Rim[l]/Rim_norm;
       }
-      double* e_3 = new double[3];
+      double e_3[3];
       e_3[0] = 0.0;
       e_3[1] = 0.0;
       e_3[2] = e[2];
@@ -133,17 +131,16 @@ void MobilityVectorProduct_optimized(bp::list r_vectors,
 //////////////////////////////////////////////////////////////////////////////////////////
 void MobilityVectorProduct(bp::numeric::array r_vectors, 
 			   double eta,
-			   double a, int num_particles,
+			   double a, 
+			   int num_particles,
                            bp::numeric::array vector,
                            bp::numeric::array vector_res ) {
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
   double Mlm;
-  double* R;
-  double* Rim;
-  R = new double[3];
-  Rim = new double[3];
+  double R[3];
+  double Rim[3];
   double h = 0.0;
   for (int j = 0; j < num_particles; ++j) {
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
@@ -173,11 +170,11 @@ void MobilityVectorProduct(bp::numeric::array r_vectors,
       R_norm = sqrt(R_norm);
 
       Rim_norm = sqrt(Rim_norm);
-      double* e = new double[3];
+      double e[3];
       for (int l = 0; l < 3; ++l) {
         e[l] = Rim[l]/Rim_norm;
       }
-      double* e_3 = new double[3];
+      double e_3[3];
       e_3[0] = 0.0;
       e_3[1] = 0.0;
       e_3[2] = e[2];
@@ -258,8 +255,7 @@ void SingleWallFluidMobilityCorrection(bp::list r_vectors,
                              bp::numeric::array mobility) {
   double pi = 3.1415926535897932;
   // Create the mobility of particles in a fluid with a single wall at z = 0.
-  double* R;
-  R = new double[3];
+  double R[3];
   
   double h = 0.0;
   for (int j = 0; j < num_particles; ++j) {
@@ -282,11 +278,11 @@ void SingleWallFluidMobilityCorrection(bp::list r_vectors,
         R_norm += R[l]*R[l];
       }
       R_norm = sqrt(R_norm);
-      double* e = new double[3];
+      double e[3];
       for (int l = 0; l < 3; ++l) {
         e[l] = R[l]/R_norm;
       }
-      double* e_3 = new double[3];
+      double e_3[3];
       e_3[0] = 0.0;
       e_3[1] = 0.0;
       e_3[2] = e[2];
@@ -353,10 +349,8 @@ void RPYSingleWallFluidMobility(/*bp::list r_vectors,*/
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
-  double* R;
-  double* Rim;
-  R = new double[3];
-  Rim = new double[3];
+  double R[3];
+  double Rim[3];
   double h = 0.0;
   for (int j = 0; j < num_particles; ++j) {
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
@@ -386,11 +380,11 @@ void RPYSingleWallFluidMobility(/*bp::list r_vectors,*/
       R_norm = sqrt(R_norm);
 
       Rim_norm = sqrt(Rim_norm);
-      double* e = new double[3];
+      double e[3];
       for (int l = 0; l < 3; ++l) {
         e[l] = Rim[l]/Rim_norm;
       }
-      double* e_3 = new double[3];
+      double e_3[3];
       e_3[0] = 0.0;
       e_3[1] = 0.0;
       e_3[2] = e[2];
@@ -471,8 +465,7 @@ void RPYInfiniteFluidMobility(bp::list r_vectors,
   // Create the mobility of particles in a fluid with a single wall at z = 0.
   double pi = 3.1415926535897932;
   double C1, C2;
-  double* R;
-  R = new double[3];
+  double R[3];
   for (int j = 0; j < num_particles; ++j) {
     bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
     for (int k = j+1; k < num_particles; ++k) {
@@ -547,10 +540,8 @@ void MobilityVectorProductOneParticle(bp::list r_vectors,
   double pi = 3.1415926535897932;
   double C1, C2;
   double Mlm;
-  double* R;
-  double* Rim;
-  R = new double[3];
-  Rim = new double[3];
+  double R[3];
+  double Rim[3];
   //double vectemp[num_particles*3];
   //for(int i =0; i< num_particles*3; ++i){
 	//  vectemp[i]=0.0;
@@ -590,11 +581,11 @@ void MobilityVectorProductOneParticle(bp::list r_vectors,
     R_norm = sqrt(R_norm);
 
     Rim_norm = sqrt(Rim_norm);
-    double* e = new double[3];
+    double e[3];
     for (int l = 0; l < 3; ++l) {
       e[l] = Rim[l]/Rim_norm;
     }
-    double* e_3 = new double[3];
+    double e_3[3];
     e_3[0] = 0.0;
     e_3[1] = 0.0;
     e_3[2] = e[2];

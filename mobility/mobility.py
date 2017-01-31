@@ -1,11 +1,28 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
 import sys
-sys.path.append('..')
+sys.path.append('../')
 import time
+import imp
 
-import mobility_ext as me
-#import mobility_pycuda
+# Try to import the mobility boost implementation
+try:
+  import mobility_ext as me
+except ImportError:
+  pass
+# If pycuda is installed import mobility_pycuda
+try: 
+  imp.find_module('pycuda')
+  found_pycuda = True
+except ImportError:
+  found_pycuda = False
+if found_pycuda:
+  import mobility_pycuda
+# Try to import the mobility fmm implementation
+try:
+  import mobility_fmm as fmm
+except ImportError:
+  pass
 
 ETA = 1.0 # Viscosity
 
@@ -97,7 +114,7 @@ def boosted_infinite_fluid_mobility(r_vectors, eta, a):
   return fluid_mobility
 
    
-def boosted_mobility_vector_product(r_vectors, eta, a, vector):
+def boosted_mobility_vector_product(r_vectors, vector, eta, a):
   ''' 
   Compute a mobility * vector product boosted in C++ for a
   speedup. It includes wall corrections.
@@ -109,7 +126,7 @@ def boosted_mobility_vector_product(r_vectors, eta, a, vector):
   ## WITH BOOST
   num_particles = r_vectors.size / 3
   vector_res = np.zeros(r_vectors.size)
-  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3)) 
+  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, vector, vector_res)
   return vector_res
 
@@ -394,7 +411,44 @@ def single_wall_self_mobility_with_rotation(location, eta, a):
                                       + (3./32.)*(h**(-3))*(m == 2)*(l == 2))))
   return fluid_mobility
 
+
+# def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a):
+def fmm_single_wall_stokeslet(r_vectors, force, eta, a):
+  ''' 
+  Compute the Stokeslet interaction plus self mobility
+  II/(6*pi*eta*a) in the presence of a wall at z=0.
+  It uses the fmm implemented in the library stfmm3d.
+  Must compile mobility_fmm.f90 before this will work
+  (see Makefile).
+  ''' 
+  num_particles = r_vectors.size / 3
+  ier = 0
+  iprec = 5
+  r_vectors_fortran = np.copy(r_vectors.T, order='F')
+  force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
+  u_fortran = np.empty_like(r_vectors_fortran, order='F')
+  fmm.fmm_stokeslet_half(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
+  return np.reshape(u_fortran.T, u_fortran.size)
+
+
+def fmm_rpy(r_vectors, force, eta, a):
+  ''' 
+  Compute the Stokes interaction using the Rotner-Prager
+  tensor. Here there is no wall.
+  It uses the fmm implemented in the library rpyfmm.
+  Must compile mobility_fmm.f90 before this will work
+  (see Makefile).
+  ''' 
+  num_particles = r_vectors.size / 3
+  ier = 0
+  iprec = 1
+  r_vectors_fortran = np.copy(r_vectors.T, order='F')
+  force_fortran = np.copy(np.reshape(force, (num_particles, 3)).T, order='F')
+  u_fortran = np.empty_like(r_vectors_fortran, order='F')
+  fmm.fmm_rpy(r_vectors_fortran, force_fortran, u_fortran, ier, iprec, a, eta, num_particles)
+  return np.reshape(u_fortran.T, u_fortran.size)
   
+
 def epsilon_tensor(i, j, k):
   ''' 
   Epsilon tensor (cross product).  Only works for arguments

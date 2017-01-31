@@ -1,7 +1,7 @@
-
 import numpy as np
-import stochastic_forcing as stoch
 from functools import partial
+import stochastic_forcing as stoch
+
 
 import sys
 sys.path.append('..')
@@ -11,7 +11,8 @@ from quaternion_integrator import quaternion as q
 
 
 def mobility_mult(force = None, r_vectors = None, eta = None, radius = None):
-  return mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, np.reshape(force, (len(force)/3, 3)), eta, radius)
+  # return mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, np.reshape(force, (len(force)/3, 3)), eta, radius)
+  return mob.single_wall_fluid_mobility_product(r_vectors, np.reshape(force, force.size), eta, radius)
 
 def get_eta(eta):
   return eta
@@ -22,9 +23,9 @@ def create_mobility_blobs(r_vectors, eta, a):
     for j in range(3):
       f = np.zeros( (len(r_vectors),3) )
       f[i,j] = 1.0
-      v = np.reshape(mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, f, eta, a), len(r_vectors)*3)
+      # v = np.reshape(mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, f, eta, a), len(r_vectors)*3)
+      v = np.reshape(mob.single_wall_fluid_mobility_product(r_vectors, np.reshape(f, f.size), eta, a), r_vectors.size)
       mobility.append(v)
-
   return mobility
 
 
