@@ -363,11 +363,10 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  # Compute B * force
+  # Compute B * force, B * torque
   if overlap is True:
     force = B.dot(force)
-  # Compute B * torque
-  torque = B.dot(torque)
+    torque = B.dot(torque)
   # Compute M_tilde * B * (force + torque)
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_effective, force, torque, eta, a) 
   # Compute B.T * M * B * (force + torque)
