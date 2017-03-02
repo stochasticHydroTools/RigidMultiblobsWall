@@ -56,7 +56,7 @@ class Body(object):
   
    
   
-  def get_r_vectors(self, location = None, orientation = None):
+  def get_r_vectors_old(self, location = None, orientation = None):
     '''
     Return the coordinates of the blobs.
     '''
@@ -71,6 +71,24 @@ class Body(object):
     r_vectors = np.empty([self.Nblobs, 3])
     for i, vec in enumerate(self.reference_configuration):
       r_vectors[i] = np.dot(rotation_matrix, vec) + location
+    utils.timer('get_r_vectors')
+    return r_vectors
+
+  def get_r_vectors(self, location = None, orientation = None):
+    '''
+    Return the coordinates of the blobs.
+    '''
+    utils.timer('get_r_vectors')
+    # Get location and orientation
+    if location is None:
+      location = self.location
+    if orientation is None:
+      orientation = self.orientation
+
+    # Compute blobs coordinates
+    rotation_matrix = orientation.rotation_matrix()
+    r_vectors = np.array([np.dot(rotation_matrix, vec) for vec in self.reference_configuration])
+    r_vectors += location
     utils.timer('get_r_vectors')
     return r_vectors
     
@@ -101,20 +119,12 @@ class Body(object):
     R has shape (3*Nblobs, 3).
     '''
     utils.timer('calc_rot_matrix')
-    rot_matrix = np.empty((self.Nblobs, 3, 3))
-    utils.timer('calc_rot_matrix_get_r')
     r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
-    utils.timer('calc_rot_matrix_get_r')
-    for k, vec in enumerate(r_vectors):
-      # Create block
-      block = np.array([[0.0, vec[2], -1.0 * vec[1]],
-                        [-1.0 * vec[2], 0.0, vec[0]],
-                        [vec[1], -1.0 * vec[0], 0.0]])
-      # Assign block
-      rot_matrix[k] = block
+    rot_matrix = np.array([[[0.0,    vec[2], -vec[1]],
+                           [-vec[2], 0.0,    vec[0]],
+                           [vec[1], -vec[0], 0.0]] for vec in r_vectors])
     utils.timer('calc_rot_matrix')
     return np.reshape(rot_matrix, (3*self.Nblobs, 3))
-
 
   def calc_J_matrix_old(self):
     '''
