@@ -9,6 +9,7 @@ from functools import partial
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
+import utils
 
 import scipy
 
@@ -232,10 +233,12 @@ class QuaternionIntegrator(object):
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
       # Build stochastic preconditioner
+      utils.timer('build_stochastic_PC')
       mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
                                                                                             r_vectors_blobs, 
                                                                                             self.eta, 
                                                                                             self.a)
+      utils.timer('build_stochastic_PC')
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -251,20 +254,24 @@ class QuaternionIntegrator(object):
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
+      utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
         b.orientation = quaternion_dt * b.orientation_old
+      utils.timer('update_bodies')
 
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
       sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
 
       # Update configuration for rfd 
+      utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
         b.orientation = quaternion_dt * b.orientation_old
+      utils.timer('update_bodies')
 
       # Modify RHS for drift solve
       # Set linear operators 
@@ -288,24 +295,30 @@ class QuaternionIntegrator(object):
       velocities += (self.kT / self.rf_delta) * velocities_drift
       
       # Update location orientation 
+      utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation_old
-        
+      utils.timer('update_bodies')        
+
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
+      utils.timer('check_configuration')
       valid_configuration = True
       for b in self.bodies:
         valid_configuration = b.check_function(b.location_new, b.orientation_new)
         if valid_configuration is False:
           break
       if valid_configuration is True:
+        utils.timer('update_bodies')
         for b in self.bodies:
           b.location = b.location_new
           b.orientation = b.orientation_new
+        utils.timer('update_bodies')
+        utils.timer('check_configuration')
         return
       else:
         for b in self.bodies:
@@ -314,6 +327,7 @@ class QuaternionIntegrator(object):
 
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
+      utils.timer('update_bodies')
     return
 
 
@@ -568,6 +582,7 @@ class QuaternionIntegrator(object):
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
       # Set preconditioner
+      utils.timer('build_PC')
       mobility_inv_blobs = []
       # Loop over bodies
       for k, b in enumerate(self.bodies):
@@ -583,7 +598,7 @@ class QuaternionIntegrator(object):
       PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
                              mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      
+      utils.timer('build_PC')
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:

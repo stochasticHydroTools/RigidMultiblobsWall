@@ -17,7 +17,7 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-
+import utils
 
 
 def calc_slip(bodies, Nblobs):
@@ -155,6 +155,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   | -K^T  0|
   ''' 
   # Reserve memory for the solution and create some variables
+  utils.timer('linear_operator_rigid_body')
   L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
   Nblobs = r_vectors.size / 3
@@ -170,6 +171,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
+  utils.timer('linear_operator_rigid_body')
   return res
 
 
@@ -180,6 +182,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   independently, i.e., no interation between bodies is taken
   into account.
   '''
+  utils.timer('apply_PC')
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
@@ -198,6 +201,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
     result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
     offset += b.Nblobs
+  utils.timer('apply_PC')
   return result
 
 def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
@@ -240,6 +244,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+    utils.timer('apply_stochastic_PC')
     result = np.empty_like(w)
     # Multiply by P.T
     offset = 0
@@ -247,21 +252,26 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
+    utils.timer('apply_stochastic_PC')
     result_2 = mobility_vector_prod(r_vectors, result, eta, a)
     # Multiply by P
+    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
+    utils.timer('apply_stochastic_PC')
     return result
   mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
   
   # Define inverse preconditioner P_inv
   def P_inv_mult(w, bodies = None, P_inv = None):
+    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
+    utils.timer('apply_stochastic_PC')
     return w
   P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
 
@@ -517,4 +527,6 @@ if __name__ == '__main__':
   with open(output_name + '.number_invalid_configurations', 'w') as f:
     f.write(str(integrator.invalid_configuration_count) + '\n')
 
+
+  utils.timer('zzz_print_all_timers', print_all = True)
   print '\n\n\n# End'

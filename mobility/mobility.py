@@ -6,6 +6,8 @@ sys.path.append('../')
 import time
 import imp
 
+import utils
+
 # Try to import the mobility boost implementation
 try:
   import mobility_ext as me
@@ -250,6 +252,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
 
   This function makes use of pycuda.
   '''
+  utils.timer('matrix_vector_product')
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
@@ -262,6 +265,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
   # Compute B.T * M * B * vector
   if overlap is True:
     velocities = B.dot(velocities)
+  utils.timer('matrix_vector_product')
   return velocities
     
 
