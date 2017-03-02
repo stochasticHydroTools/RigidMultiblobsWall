@@ -2,6 +2,7 @@
 Simple quaternion object for use with quaternion integrators.
 '''
 import numpy as np
+import utils
 
 class Quaternion(object):
   
@@ -38,7 +39,7 @@ class Quaternion(object):
     return Quaternion(np.concatenate(([s], p)))
 
 
-  def rotation_matrix(self):
+  def rotation_matrix_old(self):
     ''' 
     Return the rotation matrix representing rotation
     by this quaternion.
@@ -47,11 +48,25 @@ class Quaternion(object):
     P = np.array([[0., -1.*self.p[2], self.p[1]], 
                   [self.p[2], 0., -1.*self.p[0]],
                   [-1.*self.p[1], self.p[0], 0.]])
+
     # Put pieces together to get rotation matrix.
-    R = 2.*(np.outer(self.p, self.p) + 
-            (self.s**2 - 0.5)*np.identity(3)
-            + self.s*P)
+    R = 2.0 * (np.outer(self.p, self.p) + (self.s**2 - 0.5)*np.identity(3) + self.s*P)
     return R
+
+  def rotation_matrix(self):
+    ''' 
+    Return the rotation matrix representing rotation
+    by this quaternion.
+    '''
+    utils.timer('rotation_matrix')
+    # Cross product matrix for p, actually the negative.
+    diag = self.s**2 - 0.5
+    R = np.array([[self.p[0]**2+diag,             self.p[0]*self.p[1]-self.p[2], self.p[0]*self.p[2]+self.p[1]], 
+                  [self.p[1]*self.p[0]+self.p[2], self.p[1]**2+diag,             self.p[1]*self.p[2]-self.p[0]],
+                  [self.p[2]*self.p[0]-self.p[1], self.p[2]*self.p[1]+self.p[0], self.p[2]**2+diag]])
+    utils.timer('rotation_matrix')
+    return R
+
 
   def __str__(self):
     return '[ %f, %f, %f, %f ]' % (self.s, self.p[0], self.p[1], self.p[2])

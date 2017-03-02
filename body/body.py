@@ -7,6 +7,8 @@ Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 import numpy as np
 import copy
 from quaternion_integrator.quaternion import Quaternion 
+import utils
+import sys
 
 class Body(object):
   '''
@@ -59,6 +61,7 @@ class Body(object):
     Return the coordinates of the blobs.
     '''
     # Get location and orientation
+    utils.timer('get_r_vectors')
     if location is None:
       location = self.location
     if orientation is None:
@@ -68,14 +71,16 @@ class Body(object):
     r_vectors = np.empty([self.Nblobs, 3])
     for i, vec in enumerate(self.reference_configuration):
       r_vectors[i] = np.dot(rotation_matrix, vec) + location
+    utils.timer('get_r_vectors')
     return r_vectors
     
-  def calc_rot_matrix(self, location = None, orientation = None):
+  def calc_rot_matrix_old(self, location = None, orientation = None):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
     (R_i x) = -1 (r_i cross x).
     R has shape (3*Nblobs, 3).
     '''
+    utils.timer('calc_rot_matrix')
     rot_matrix = np.empty((self.Nblobs, 3, 3))
     r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
     for k, vec in enumerate(r_vectors):
@@ -85,24 +90,65 @@ class Body(object):
                         [vec[1], -1.0 * vec[0], 0.0]])
       # Assign block
       rot_matrix[k] = block
+    utils.timer('calc_rot_matrix')
     return np.reshape(rot_matrix, (3*self.Nblobs, 3))
 
+
+  def calc_rot_matrix(self, location = None, orientation = None):
+    ''' 
+    Calculate the matrix R, where the i-th 3x3 block of R gives
+    (R_i x) = -1 (r_i cross x).
+    R has shape (3*Nblobs, 3).
+    '''
+    utils.timer('calc_rot_matrix')
+    rot_matrix = np.empty((self.Nblobs, 3, 3))
+    utils.timer('calc_rot_matrix_get_r')
+    r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
+    utils.timer('calc_rot_matrix_get_r')
+    for k, vec in enumerate(r_vectors):
+      # Create block
+      block = np.array([[0.0, vec[2], -1.0 * vec[1]],
+                        [-1.0 * vec[2], 0.0, vec[0]],
+                        [vec[1], -1.0 * vec[0], 0.0]])
+      # Assign block
+      rot_matrix[k] = block
+    utils.timer('calc_rot_matrix')
+    return np.reshape(rot_matrix, (3*self.Nblobs, 3))
+
+
+  def calc_J_matrix_old(self):
+    '''
+    Returns a block matrix with dimensions (Nblobs, 1)
+    with each block being a 3x3 identity matrix.
+    '''
+    utils.timer('calc_J_matrix')
+    J = np.empty([self.Nblobs, 3, 3])
+    for i in range(self.Nblobs):
+      J[i] = np.eye(3)
+    utils.timer('calc_J_matrix')
+    return np.reshape(J, (3*self.Nblobs, 3))
 
   def calc_J_matrix(self):
     '''
     Returns a block matrix with dimensions (Nblobs, 1)
     with each block being a 3x3 identity matrix.
-    '''
-    J = np.empty([self.Nblobs, 3, 3])
-    for i in range(self.Nblobs):
-      J[i] = np.eye(3)
-    return np.reshape(J, (3*self.Nblobs, 3))
+    '''  
+    utils.timer('calc_J_matrix')
+    J = np.zeros((3*self.Nblobs, 3))
+    J[0::3,0] = 1.0
+    J[1::3,1] = 1.0
+    J[2::3,2] = 1.0
+    utils.timer('calc_J_matrix')
+    return J
 
   def calc_K_matrix(self, location = None, orientation = None):
     '''
     Return geometric matrix K = [J, rot] with shape (3*Nblobs, 6)
     '''
-    return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
+    utils.timer('calc_K_matrix')
+    K = np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
+    utils.timer('calc_K_matrix')
+    return K
                         
 
   def check_function(self, location = None, orientation = None, distance = None):

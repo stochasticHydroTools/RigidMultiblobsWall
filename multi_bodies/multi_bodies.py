@@ -182,25 +182,34 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   independently, i.e., no interation between bodies is taken
   into account.
   '''
+  # print 'apply_CP'
   utils.timer('apply_PC')
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
     # 1. Solve M*Lambda_tilde = slip
+    utils.timer('apply_PC_lambda_tilde')
     slip = vector[3*offset : 3*(offset + b.Nblobs)]
     Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+    utils.timer('apply_PC_lambda_tilde')
 
     # 2. Compute rigid body velocity
+    utils.timer('apply_PC_Y')
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
     Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
+    utils.timer('apply_PC_Y')
 
     # 3. Solve M*Lambda = (slip + K*Y)
+    utils.timer('apply_PC_lambda')
     Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-    
+    utils.timer('apply_PC_lambda')
+
     # 4. Set result
+    utils.timer('apply_PC_copy')
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
     result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
     offset += b.Nblobs
+    utils.timer('apply_PC_copy')
   utils.timer('apply_PC')
   return result
 
@@ -244,6 +253,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+    # print 'apply_stochastic_PC'
     utils.timer('apply_stochastic_PC')
     result = np.empty_like(w)
     # Multiply by P.T

@@ -9,7 +9,7 @@ import os
 import sys
 import time
 
-from quaternion_integrator.quaternion import Quaternion
+# from quaternion_integrator.quaternion import Quaternion
 
 DT_STYLES = {}  # Used for plotting different timesteps of MSD.
 
