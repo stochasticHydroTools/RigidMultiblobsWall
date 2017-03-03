@@ -8,7 +8,6 @@ import sys
 import time
 sys.path.append('../')
 
-import parallel
 import multi_bodies_functions
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
@@ -18,8 +17,6 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-import utils
-
 
 def calc_slip(bodies, Nblobs):
   '''
@@ -44,7 +41,6 @@ def get_blobs_r_vectors(bodies, Nblobs):
     num_blobs = b.Nblobs
     r_vectors[offset:(offset+num_blobs)] = b.get_r_vectors()
     offset += num_blobs
-
   return r_vectors
 
 
@@ -98,14 +94,12 @@ def calc_K_matrix(bodies, Nblobs):
   Calculate the geometric block-diagonal matrix K.
   Shape (3*Nblobs, 6*Nbodies).
   '''
-  # utils.timer('calc_K_matrix_all')
   K = np.zeros((3*Nblobs, 6*len(bodies)))
   offset = 0
   for k, b in enumerate(bodies):
     K_body = b.calc_K_matrix()
     K[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] = K_body
     offset += b.Nblobs
-  # utils.timer('calc_K_matrix_all')
   return K
 
 
@@ -116,7 +110,6 @@ def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   level of describtion of the body to the level of describtion of the blobs.
   ''' 
   # Prepare variables
-  # utils.timer('K_matrix_vector_product')
   result = np.empty((Nblobs, 3))
   v = np.reshape(vector, (len(bodies) * 6))
 
@@ -129,7 +122,6 @@ def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
       K = K_bodies[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] 
     result[offset : offset+b.Nblobs] = np.reshape(np.dot(K, v[6*k : 6*(k+1)]), (b.Nblobs, 3))
     offset += b.Nblobs    
-  # utils.timer('K_matrix_vector_product')
   return result
 
 
@@ -140,7 +132,6 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   level of describtion of the body to the level of describtion of the blobs.
   ''' 
   # Prepare variables
-  # utils.timer('K_matrix_T_vector_product')
   result = np.empty((len(bodies), 6))
   v = np.reshape(vector, (Nblobs * 3))
 
@@ -155,7 +146,6 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
     offset += b.Nblobs    
 
   result = np.reshape(result, (2*len(bodies), 3))
-  # utils.timer('K_matrix_T_vector_product')
   return result
 
 
@@ -167,7 +157,6 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   | -K^T  0|
   ''' 
   # Reserve memory for the solution and create some variables
-  utils.timer('linear_operator_rigid_body')
   L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
   Nblobs = r_vectors.size / 3
@@ -183,14 +172,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
-  utils.timer('linear_operator_rigid_body')
   return res
-
-
-def preprocess_blocks(b):
-  # M = b.calc_mobility_blobs(eta, a)
-  # M = b.calc_K_matrix()
-  return b
 
 
 def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
@@ -214,7 +196,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   y = P_inv * x
   y = N*F - N*K.T*M^{-1}
   '''
-  utils.timer('build_all_PC')
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
@@ -247,7 +228,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
     '''
     Apply the block diagonal preconditioner.
     '''
-    utils.timer('apply_PC')
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
@@ -266,7 +246,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       result[3*offset : 3*(offset + b.Nblobs)] = Lambda
       result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
       offset += b.Nblobs
-    utils.timer('apply_PC')
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
                                                   bodies = bodies, 
@@ -278,7 +257,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
     # print 'apply_stochastic_PC'
-    utils.timer('apply_stochastic_PC')
     result = np.empty_like(w)
     # Multiply by P.T
     offset = 0
@@ -286,31 +264,25 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
-    utils.timer('apply_stochastic_PC')
     result_2 = mobility_vector_prod(r_vectors, result, eta, a)
     # Multiply by P
-    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
-    utils.timer('apply_stochastic_PC')
     return result
   mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
   
   # Define inverse preconditioner P_inv
   def P_inv_mult(w, bodies = None, P_inv = None):
-    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
-    utils.timer('apply_stochastic_PC')
     return w
   P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
 
   # Return preconditioner functions
-  utils.timer('build_all_PC')
   return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
 
 def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
@@ -320,7 +292,6 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   independently, i.e., no interation between bodies is taken
   into account.
   '''
-  utils.timer('build_PC')
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
@@ -341,7 +312,6 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     '''
     Apply the block diagonal preconditioner.
     '''
-    utils.timer('apply_PC')
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
@@ -360,7 +330,6 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
       result[3*offset : 3*(offset + b.Nblobs)] = Lambda
       result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
       offset += b.Nblobs
-    utils.timer('apply_PC')
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
                                                   bodies = bodies, 
@@ -368,7 +337,6 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
                                                   mobility_inv_blobs = mobility_inv_blobs, 
                                                   K_bodies = K_bodies,
                                                   Nblobs = Nblobs)
-  utils.timer('build_PC')
   return block_diagonal_preconditioner_partial
 
 
@@ -380,7 +348,6 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   into account.
   '''
   # print 'apply_CP'
-  utils.timer('apply_PC')
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
@@ -399,7 +366,6 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
     result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
     offset += b.Nblobs
-  utils.timer('apply_PC')
   return result
 
 def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
@@ -415,7 +381,6 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
   y = (P * M * P.T) * x
   y = P_inv * x
   '''
-  utils.timer('build_stochastic_PC')
   P = []
   P_inv = []
   for b in bodies:
@@ -444,7 +409,6 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
     # print 'apply_stochastic_PC'
-    utils.timer('apply_stochastic_PC')
     result = np.empty_like(w)
     # Multiply by P.T
     offset = 0
@@ -452,31 +416,25 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
-    utils.timer('apply_stochastic_PC')
     result_2 = mobility_vector_prod(r_vectors, result, eta, a)
     # Multiply by P
-    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
-    utils.timer('apply_stochastic_PC')
     return result
   mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
   
   # Define inverse preconditioner P_inv
   def P_inv_mult(w, bodies = None, P_inv = None):
-    utils.timer('apply_stochastic_PC')
     offset = 0
     for k, b in enumerate(bodies):
       w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
-    utils.timer('apply_stochastic_PC')
     return w
   P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
 
   # Return preconditioner functions
-  utils.timer('build_stochastic_PC')
   return mobility_pc_partial, P_inv_mult_partial
 
 
@@ -730,5 +688,4 @@ if __name__ == '__main__':
   with open(output_name + '.number_invalid_configurations', 'w') as f:
     f.write(str(integrator.invalid_configuration_count) + '\n')
 
-  utils.timer('zzz_print_all_timers', print_all = True)
   print '\n\n\n# End'

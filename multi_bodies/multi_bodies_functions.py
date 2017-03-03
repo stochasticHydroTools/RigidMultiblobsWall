@@ -331,7 +331,6 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   format [f_1, t_1, f_2, t_2, ...] and shape (2*Nbodies, 3),
   where f_i and t_i are the force and torque on the body i.
   '''
-  utils.timer('force_torque_calculator_sort_by_bodies')
   # Create auxiliar variables
   Nblobs = r_vectors.size / 3
   force_torque_bodies = np.zeros((2*len(bodies), 3))
@@ -360,7 +359,6 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   # Add body-body forces (same for all pair of bodies)
   force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
-  utils.timer('force_torque_calculator_sort_by_bodies')
   return force_torque_bodies
 
 
