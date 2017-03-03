@@ -175,6 +175,68 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   return res
 
 
+def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the block diagonal preconditioner for rigid bodies.
+  It solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+  '''
+  utils.timer('build_PC')
+  mobility_inv_blobs = []
+  mobility_bodies = []
+  # Loop over bodies
+  for k, b in enumerate(bodies):
+    # 1. Compute blobs mobility and invert it
+    M = b.calc_mobility_blobs(eta, a)
+    M_inv = np.linalg.inv(M)
+    mobility_inv_blobs.append(M_inv)
+    # 2. Compute body mobility
+    N = b.calc_mobility_body(eta, a, M_inv = M_inv)
+    mobility_bodies.append(N)
+
+  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, Nblobs = None):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    utils.timer('apply_PC')
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve M*Lambda_tilde = slip
+      utils.timer('apply_PC_lambda_tilde')
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+      utils.timer('apply_PC_lambda_tilde')
+
+      # 2. Compute rigid body velocity
+      utils.timer('apply_PC_Y')
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
+      utils.timer('apply_PC_Y')
+
+      # 3. Solve M*Lambda = (slip + K*Y)
+      utils.timer('apply_PC_lambda')
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
+      utils.timer('apply_PC_lambda')
+
+      # 4. Set result
+      utils.timer('apply_PC_copy')
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+      utils.timer('apply_PC_copy')
+    utils.timer('apply_PC')
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  mobility_inv_blobs = mobility_inv_blobs, 
+                                                  Nblobs = Nblobs)
+  utils.timer('build_PC')
+  return block_diagonal_preconditioner_partial
+
+
 def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
   '''
   Block diagonal preconditioner for rigid bodies.
@@ -395,6 +457,7 @@ if __name__ == '__main__':
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner
+  integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   integrator.eta = eta
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)

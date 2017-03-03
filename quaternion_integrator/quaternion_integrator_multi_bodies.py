@@ -582,23 +582,26 @@ class QuaternionIntegrator(object):
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
       # Set preconditioner
-      utils.timer('build_PC')
-      mobility_inv_blobs = []
-      # Loop over bodies
-      for k, b in enumerate(self.bodies):
-        # 1. Compute blobs mobility and invert it
-        M = b.calc_mobility_blobs(self.eta, self.a)
-        M_inv = np.linalg.inv(M)
-        mobility_inv_blobs.append(M_inv)
-        # 2. Compute body mobility
-        N = b.calc_mobility_body(self.eta, self.a, M_inv = M_inv)
-        self.mobility_bodies[k] = N
+      # utils.timer('build_PC')      
+      # mobility_inv_blobs = []
+      # # Loop over bodies
+      # for k, b in enumerate(self.bodies):
+      #   # 1. Compute blobs mobility and invert it
+      #   M = b.calc_mobility_blobs(self.eta, self.a)
+      #   M_inv = np.linalg.inv(M)
+      #   mobility_inv_blobs.append(M_inv)
+      #   # 2. Compute body mobility
+      #   N = b.calc_mobility_body(self.eta, self.a, M_inv = M_inv)
+      #   self.mobility_bodies[k] = N
 
-      # 4. Pack preconditioner
-      PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
-                             mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
+      # # 4. Pack preconditioner
+      # PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
+      #                        mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
+      # PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
+      # utils.timer('build_PC')
+      PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      utils.timer('build_PC')
+
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:
