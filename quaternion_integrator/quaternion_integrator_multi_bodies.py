@@ -77,7 +77,6 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
-      # sol_precond = self.solve_mobility_problem()
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -231,11 +230,12 @@ class QuaternionIntegrator(object):
       # Get blobs vectors
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs, 
-                                                                                            self.eta, 
-                                                                                            self.a)
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -245,7 +245,7 @@ class QuaternionIntegrator(object):
                                                                            L_mult = P_inv_mult)
 
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True, PC_partial = PC_partial)
 
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -258,7 +258,7 @@ class QuaternionIntegrator(object):
 
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
@@ -279,7 +279,7 @@ class QuaternionIntegrator(object):
       RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = RHS)
+      sol_precond = self.solve_mobility_problem(RHS = RHS, PC_partial = PC_partial)
 
       # Extract velocities
       velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -292,7 +292,7 @@ class QuaternionIntegrator(object):
         b.location_new = b.location_old + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation_old
-        
+
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
@@ -341,13 +341,14 @@ class QuaternionIntegrator(object):
       # Get blobs vectors
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs, 
-                                                                                            self.eta, 
-                                                                                            self.a)
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a)
 
-      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
+      # Add noise contribution sqrt(2kT/dt)*N^{1/2} * W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
@@ -356,13 +357,13 @@ class QuaternionIntegrator(object):
 
       # Solve stochastic mobility problem
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise)
+      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise, PC_partial = PC_partial)
 
       # Extract stochastic velocities
       velocities_stoch = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Solve deterministic mobility problem
-      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, PC_partial = PC_partial)
 
       # Extract deterministic velocities
       velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -374,7 +375,7 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
 
       # Add thermal drift contribution with N at x = x - random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
@@ -395,7 +396,7 @@ class QuaternionIntegrator(object):
       RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = RHS)
+      sol_precond = self.solve_mobility_problem(RHS = RHS, PC_partial = PC_partial)
 
       # Extract velocities
       velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -465,7 +466,6 @@ class QuaternionIntegrator(object):
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
-      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update configuration for rfd
       for k, b in enumerate(self.bodies):
@@ -526,7 +526,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def solve_mobility_problem(self, RHS = None, noise = None, x0 = None, save_first_guess = False): 
+  def solve_mobility_problem(self, RHS = None, noise = None, x0 = None, save_first_guess = False, PC_partial = None): 
     ''' 
     Solve the mobility problem using preconditioned GMRES. Compute 
     velocities on the bodies subject to active slip and enternal 
@@ -558,32 +558,24 @@ class QuaternionIntegrator(object):
       if noise is not None:
         RHS[0:r_vectors_blobs.size] -= noise
 
+      # Calculate K matrix
+      K = self.calc_K_matrix(self.bodies, self.Nblobs)
+
       # Set linear operators 
       linear_operator_partial = partial(self.linear_operator, 
-                                        bodies=self.bodies, 
-                                        r_vectors=r_vectors_blobs, 
-                                        eta=self.eta, 
-                                        a=self.a, 
+                                        bodies = self.bodies, 
+                                        r_vectors = r_vectors_blobs, 
+                                        eta = self.eta, 
+                                        a = self.a, 
+                                        K_bodies = K,
                                         periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
-      # Set preconditioner
-      mobility_inv_blobs = []
-      # Loop over bodies
-      for k, b in enumerate(self.bodies):
-        # 1. Compute blobs mobility and invert it
-        M = b.calc_mobility_blobs(self.eta, self.a)
-        M_inv = np.linalg.inv(M)
-        mobility_inv_blobs.append(M_inv)
-        # 2. Compute body mobility
-        N = b.calc_mobility_body(self.eta, self.a, M_inv = M_inv)
-        self.mobility_bodies[k] = N
-
-      # 4. Pack preconditioner
-      PC_partial = partial(self.preconditioner, bodies=self.bodies, mobility_bodies=self.mobility_bodies, \
-                             mobility_inv_blobs=mobility_inv_blobs, Nblobs=self.Nblobs)
+      # Set preconditioner 
+      if PC_partial is None:
+        PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      
+
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:
