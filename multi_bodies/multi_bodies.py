@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import scipy.linalg as sla
 import subprocess
 import cPickle
 from functools import partial
@@ -103,6 +102,18 @@ def calc_K_matrix(bodies, Nblobs):
   return K
 
 
+def calc_K_matrix_bodies(bodies, Nblobs):
+  '''
+  Calculate the geometric matrix K for
+  each body. List of shape (3*Nblobs, 6*Nbodies).
+  '''
+  K = []
+  for k, b in enumerate(bodies):
+    K_body = b.calc_K_matrix()
+    K.append(K_body)
+  return K
+
+
 def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   '''
   Compute the matrix vector product K*vector where
@@ -119,7 +130,7 @@ def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
     if K_bodies is None:
       K = b.calc_K_matrix()
     else:
-      K = K_bodies[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] 
+      K = K_bodies[k] 
     result[offset : offset+b.Nblobs] = np.reshape(np.dot(K, v[6*k : 6*(k+1)]), (b.Nblobs, 3))
     offset += b.Nblobs    
   return result
@@ -141,7 +152,7 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
     if K_bodies is None:
       K = b.calc_K_matrix()
     else:
-      K = K_bodies[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] 
+      K = K_bodies[k] 
     result[k : k+1] = np.dot(K.T, v[3*offset : 3*(offset+b.Nblobs)])
     offset += b.Nblobs    
 
@@ -533,6 +544,7 @@ if __name__ == '__main__':
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
                                                periodic_length = read.periodic_length) 
+  integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner

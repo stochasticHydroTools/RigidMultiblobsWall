@@ -29,7 +29,7 @@ class QuaternionIntegrator(object):
     self.get_blobs_r_vectors = None
     self.mobility_blobs = None
     self.force_torque_calculator = None
-    self.calc_K_matrix = None
+    self.calc_K_matrix_bodies = None
     self.linear_operator = None
     self.eta = None
     self.a = None
@@ -559,7 +559,7 @@ class QuaternionIntegrator(object):
         RHS[0:r_vectors_blobs.size] -= noise
 
       # Calculate K matrix
-      K = self.calc_K_matrix(self.bodies, self.Nblobs)
+      K = self.calc_K_matrix_bodies(self.bodies, self.Nblobs)
 
       # Set linear operators 
       linear_operator_partial = partial(self.linear_operator, 
