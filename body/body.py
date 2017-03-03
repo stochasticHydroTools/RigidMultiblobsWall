@@ -54,7 +54,6 @@ class Body(object):
     self.mobility_blobs_cholesky = None
     self.ID = None
   
-   
   
   def get_r_vectors_old(self, location = None, orientation = None):
     '''
@@ -226,8 +225,12 @@ class Body(object):
     '''
     Calculate blobs mobility. Shape (3*Nblobs, 3*Nblobs).
     '''
+    utils.timer('calc_mobility_blobs') 
     r_vectors = self.get_r_vectors()
-    return self.mobility_blobs(r_vectors, eta, a)
+    # return self.mobility_blobs(r_vectors, eta, a)
+    M = self.mobility_blobs(r_vectors, eta, a)
+    utils.timer('calc_mobility_blobs') 
+    return M
     
 
   def calc_mobility_body(self, eta, a, M = None, M_inv = None):
@@ -236,12 +239,19 @@ class Body(object):
     forces and torques to velocities and angular
     velocites.
     '''
-    K = self.calc_K_matrix()
+    utils.timer('calc_mobility_body')
+    K = self.calc_K_matrix()      
     if M_inv is not None:
-      return np.linalg.pinv( np.dot(K.T, np.dot(M_inv, K)) )
+      # return np.linalg.pinv( np.dot(K.T, np.dot(M_inv, K)) )
+      N = np.linalg.pinv( np.dot(K.T, np.dot(M_inv, K)) )
+      utils.timer('calc_mobility_body')
+      return N
     if M is None:
       M = self.calc_mobility_blobs(eta, a)
-    return np.linalg.pinv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
+    N = np.linalg.pinv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
+    utils.timer('calc_mobility_body')
+    # return np.linalg.pinv( np.dot(K.T, np.dot(np.linalg.inv(M), K)) )
+    return N
 
 
   def calc_mobility_blobs_cholesky(self, eta, a, M = None):

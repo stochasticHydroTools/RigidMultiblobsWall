@@ -58,13 +58,13 @@ class Quaternion(object):
     Return the rotation matrix representing rotation
     by this quaternion.
     '''
-    utils.timer('rotation_matrix')
+    # utils.timer('rotation_matrix')
     # Cross product matrix for p, actually the negative.
     diag = self.s**2 - 0.5
     R = np.array([[self.p[0]**2+diag,             self.p[0]*self.p[1]-self.p[2], self.p[0]*self.p[2]+self.p[1]], 
                   [self.p[1]*self.p[0]+self.p[2], self.p[1]**2+diag,             self.p[1]*self.p[2]-self.p[0]],
                   [self.p[2]*self.p[0]-self.p[1], self.p[2]*self.p[1]+self.p[0], self.p[2]**2+diag]])
-    utils.timer('rotation_matrix')
+    # utils.timer('rotation_matrix')
     return R
 
 
