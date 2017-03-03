@@ -9,7 +9,6 @@ from functools import partial
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
-import utils
 
 import scipy
 
@@ -78,7 +77,6 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
-      # sol_precond = self.solve_mobility_problem()
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -239,12 +237,6 @@ class QuaternionIntegrator(object):
                                                                                                         self.eta, 
                                                                                                         self.a)
 
-      # Build stochastic preconditioner
-      # mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-      #                                                                                       r_vectors_blobs, 
-      #                                                                                       self.eta, 
-      #                                                                                       self.a)
-
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
@@ -259,24 +251,20 @@ class QuaternionIntegrator(object):
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
-      # utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
         b.orientation = quaternion_dt * b.orientation_old
-      # utils.timer('update_bodies')
 
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
       sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
-      # utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
         b.orientation = quaternion_dt * b.orientation_old
-      # utils.timer('update_bodies')
 
       # Modify RHS for drift solve
       # Set linear operators 
@@ -300,30 +288,24 @@ class QuaternionIntegrator(object):
       velocities += (self.kT / self.rf_delta) * velocities_drift
       
       # Update location orientation 
-      # utils.timer('update_bodies')
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
         b.orientation_new = quaternion_dt * b.orientation_old
-      # utils.timer('update_bodies')        
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      # utils.timer('check_configuration')
       valid_configuration = True
       for b in self.bodies:
         valid_configuration = b.check_function(b.location_new, b.orientation_new)
         if valid_configuration is False:
           break
       if valid_configuration is True:
-        # utils.timer('update_bodies')
         for b in self.bodies:
           b.location = b.location_new
           b.orientation = b.orientation_new
-        # utils.timer('update_bodies')
-        # utils.timer('check_configuration')
         return
       else:
         for b in self.bodies:
@@ -332,7 +314,6 @@ class QuaternionIntegrator(object):
 
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
-      # utils.timer('update_bodies')
     return
 
 
@@ -360,13 +341,14 @@ class QuaternionIntegrator(object):
       # Get blobs vectors
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs, 
-                                                                                            self.eta, 
-                                                                                            self.a)
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a)
 
-      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
+      # Add noise contribution sqrt(2kT/dt)*N^{1/2} * W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
@@ -375,13 +357,13 @@ class QuaternionIntegrator(object):
 
       # Solve stochastic mobility problem
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise)
+      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise, PC_partial = PC_partial)
 
       # Extract stochastic velocities
       velocities_stoch = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Solve deterministic mobility problem
-      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, PC_partial = PC_partial)
 
       # Extract deterministic velocities
       velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -393,7 +375,7 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
 
       # Add thermal drift contribution with N at x = x - random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
@@ -414,7 +396,7 @@ class QuaternionIntegrator(object):
       RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = RHS)
+      sol_precond = self.solve_mobility_problem(RHS = RHS, PC_partial = PC_partial)
 
       # Extract velocities
       velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -484,7 +466,6 @@ class QuaternionIntegrator(object):
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
-      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update configuration for rfd
       for k, b in enumerate(self.bodies):
@@ -590,6 +571,7 @@ class QuaternionIntegrator(object):
                                         periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
+      # Set preconditioner 
       if PC_partial is None:
         PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
