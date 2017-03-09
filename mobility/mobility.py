@@ -1,6 +1,6 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
-import scipy
+import scipy.sparse
 import sys
 sys.path.append('../')
 import time
