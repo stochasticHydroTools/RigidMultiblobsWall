@@ -24,7 +24,7 @@ __device__ void one_blob_potential(double &u,
 
   // Add interaction with the wall
   if (rz < blob_radius){
-    u += eps_wall + eps * (blob_radius - rz) / debye_length_wall;
+    u += eps_wall + eps_wall * (blob_radius - rz) / debye_length_wall;
   }
   else{
     u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall);
