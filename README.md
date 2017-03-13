@@ -22,7 +22,7 @@ The Journal of Chemical Physics, **143**, 144107 (2015).
   A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, 
   Communications in Applied Mathematics and Computational Science,
   **11**, 217 (2016). 
-  [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217)[arXiv] (http://arxiv.org/abs/1602.02170)
+  [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
 No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
