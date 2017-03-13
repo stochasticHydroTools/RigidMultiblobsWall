@@ -13,21 +13,30 @@ namespace bp = boost::python;
   This function compute the force between two blobs
   with vector between blob centers r.
 
-  In this example the force is derived from a Yukawa potential
+  In this example the force is derived from the potential
   
-  U = eps * exp(-r_norm / b) / r_norm
+  U(r) = U0 + U0 * (2*a-r)/b   if z<2*a
+  U(r) = U0 * exp(-(r-2*a)/b)  iz z>=2*a
   
   with
   eps = potential strength
   r_norm = distance between blobs
   b = Debye length
+  a = blob_radius
  */
 void blobBlobForce(double *r,
 		   double *f,
 		   double eps,
-		   double b){
+		   double b,
+                   double a){
   double r_norm = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-  double f_scalar = -((eps / b) + (eps / r_norm)) * exp(-r_norm / b) / (r_norm*r_norm);
+  double f_scalar; 
+  if(r_norm > 2*a){
+    f_scalar = -(eps / b) * exp(-(r_norm-2*a) / b) / r_norm; 
+  }
+  else if(r_norm > 0){
+    f_scalar = -(eps / b) / r_norm;
+  }
   f[0] = f_scalar * r[0];
   f[1] = f_scalar * r[1];
   f[2] = f_scalar * r[2];
@@ -42,6 +51,7 @@ void calcBlobBlobForces(bp::numeric::array r_vectors,
 			bp::numeric::array force,
 			double repulsion_strength,
 			double debye_length,
+			double blob_radius,
 			int number_of_blobs,
 			bp::numeric::array periodic_length){
 
@@ -75,7 +85,7 @@ void calcBlobBlobForces(bp::numeric::array r_vectors,
 	}
       }
       // Compute force between blobs i and j
-      blobBlobForce(r, f, repulsion_strength, debye_length);
+      blobBlobForce(r, f, repulsion_strength, debye_length, blob_radius);
       for (int l = 0; l<3; l++){
 	force[blob_i * 3 + l] += f[l];
 	force[blob_j * 3 + l] -= f[l];

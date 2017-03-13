@@ -217,7 +217,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
     # Compute eigenvalues and eigenvectors of h
     # IMPORTANT: this is NOT optimized for tridiagonal matrices
     eig_values, eig_vectors = np.linalg.eigh(h)
-   
+
     # Compute the square root of positive eigenvalues set to zero otherwise
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
     
@@ -240,7 +240,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
       # Compute difference with noise of previous iteration
       noise_old_norm = np.linalg.norm(noise_old)
       diff_norm = np.linalg.norm(noise - noise_old)
-    
+      # print 'noise residual, ', i, diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps)
       # (Optional) Save residual
       if i == 1 and name != '':
         with open(name, 'w') as f:

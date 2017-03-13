@@ -74,9 +74,6 @@ if __name__ == '__main__':
   weight = 1.0 * read.g
   kT = read.kT
 
-  # Some other parameters
-  max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * read.debye_length_wall
-  
   # Create rigid bodies
   bodies = []
   body_types = []

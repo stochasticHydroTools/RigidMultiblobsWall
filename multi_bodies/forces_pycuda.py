@@ -13,14 +13,16 @@ mod = SourceModule("""
   This function compute the force between two blobs
   with vector between blob centers r.
 
-  In this example the force is derived from a Yukawa potential
+  In this example the force is derived from the potential
   
-  U = eps * exp(-r_norm / b) / r_norm
+  U(z) = U0 + U0 * (a-z)/b   if z<a
+  U(z) = U0 * exp(-(z-a)/b)  iz z>=a
   
   with
   eps = potential strength
   r_norm = distance between blobs
   b = Debye length
+  a = blob_radius
 */
 __device__ void blob_blob_force(const double rx, 
                                 const double ry, 
@@ -29,10 +31,17 @@ __device__ void blob_blob_force(const double rx,
                                 double &fy, 
                                 double &fz, 
                                 const double eps, 
-                                const double b){
+                                const double b,
+                                const double a){
 
   double r = sqrt(rx*rx + ry*ry + rz*rz);
-  double f = -((eps / b) + (eps / r)) * exp(-r / b) / (r*r);
+  double f;
+  if(r > 2*a){
+    f = -(eps / b) * exp(-(r-2*a) / b) / r; 
+  }
+  else if(r > 0){
+    f = -(eps / b) / r;
+  }
   fx += f * rx;
   fy += f * ry;
   fz += f * rz;
@@ -45,6 +54,7 @@ __global__ void calc_blob_blob_force(const double *x,
                                      double *f, 
                                      const double repulsion_strength, 
                                      const double debye_length,
+                                     const double blob_radius,
                                      const double Lx,
                                      const double Ly,
                                      const double Lz,
@@ -84,7 +94,7 @@ __global__ void calc_blob_blob_force(const double *x,
 
     // Compute force between blobs i and j
     if(i != j){
-      blob_blob_force(rx, ry, rz, fx, fy, fz, repulsion_strength, debye_length);
+      blob_blob_force(rx, ry, rz, fx, fy, fz, repulsion_strength, debye_length, blob_radius);
     }
   }
   
@@ -126,6 +136,7 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   L = kwargs.get('periodic_length')
   eps = kwargs.get('repulsion_strength')
   b = kwargs.get('debye_length')
+  blob_radius = kwargs.get('blob_radius')
 
   # Reshape arrays
   x = np.reshape(r_vectors, number_of_blobs * 3)
@@ -142,7 +153,7 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   force = mod.get_function("calc_blob_blob_force")
 
   # Compute mobility force product
-  force(x_gpu, f_gpu, np.float64(eps), np.float64(b), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+  force(x_gpu, f_gpu, np.float64(eps), np.float64(b), np.float64(blob_radius), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
    
   # Copy data from GPU to CPU (device to host)
   cuda.memcpy_dtoh(f, f_gpu)

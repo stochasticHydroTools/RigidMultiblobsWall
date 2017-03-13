@@ -1,6 +1,5 @@
 import argparse
 import numpy as np
-import scipy.linalg as sla
 import subprocess
 import cPickle
 from functools import partial
@@ -12,12 +11,11 @@ import multi_bodies_functions
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
+from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
 from body import body 
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-
-
 
 def calc_slip(bodies, Nblobs):
   '''
@@ -42,7 +40,6 @@ def get_blobs_r_vectors(bodies, Nblobs):
     num_blobs = b.Nblobs
     r_vectors[offset:(offset+num_blobs)] = b.get_r_vectors()
     offset += num_blobs
-
   return r_vectors
 
 
@@ -88,7 +85,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
-
+  elif implementation == 'pycuda_single':
+    return mb.single_wall_mobility_trans_times_force_pycuda_single
 
 def calc_K_matrix(bodies, Nblobs):
   '''
@@ -104,7 +102,19 @@ def calc_K_matrix(bodies, Nblobs):
   return K
 
 
-def K_matrix_vector_prod(bodies, vector, Nblobs):
+def calc_K_matrix_bodies(bodies, Nblobs):
+  '''
+  Calculate the geometric matrix K for
+  each body. List of shape (3*Nblobs, 6*Nbodies).
+  '''
+  K = []
+  for k, b in enumerate(bodies):
+    K_body = b.calc_K_matrix()
+    K.append(K_body)
+  return K
+
+
+def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   '''
   Compute the matrix vector product K*vector where
   K is the geometrix matrix that transport the information from the 
@@ -117,14 +127,16 @@ def K_matrix_vector_prod(bodies, vector, Nblobs):
   # Loop over bodies
   offset = 0
   for k, b in enumerate(bodies):
-    K = b.calc_K_matrix()
+    if K_bodies is None:
+      K = b.calc_K_matrix()
+    else:
+      K = K_bodies[k] 
     result[offset : offset+b.Nblobs] = np.reshape(np.dot(K, v[6*k : 6*(k+1)]), (b.Nblobs, 3))
     offset += b.Nblobs    
-
   return result
 
 
-def K_matrix_T_vector_prod(bodies, vector, Nblobs):
+def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   '''
   Compute the matrix vector product K^T*vector where
   K is the geometrix matrix that transport the information from the 
@@ -137,7 +149,10 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs):
   # Loop over bodies
   offset = 0
   for k, b in enumerate(bodies):
-    K = b.calc_K_matrix()
+    if K_bodies is None:
+      K = b.calc_K_matrix()
+    else:
+      K = K_bodies[k] 
     result[k : k+1] = np.dot(K.T, v[3*offset : 3*(offset+b.Nblobs)])
     offset += b.Nblobs    
 
@@ -145,7 +160,7 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs):
   return result
 
 
-def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
+def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *args, **kwargs):
   '''
   Return the action of the linear operator of the rigid body on vector v.
   The linear operator is
@@ -162,13 +177,178 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, *args, **kwargs):
   
   # Compute the "slip" part
   res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
-  K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*len(bodies)], Nblobs) 
+  K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*len(bodies)], Nblobs, K_bodies = K_bodies) 
   res[0:Ncomp_blobs] -= np.reshape(K_times_U, (3*Nblobs))
 
   # Compute the "-force_torque" part
-  K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs)
+  K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
   return res
+
+
+def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the deterministic and stochastic block diagonal preconditioners for rigid bodies.
+  It solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+
+  If the mobility of a body at the blob
+  level is M=V*S*V.T we form the stochastic preconditioners
+  
+  P = S^{-1/2} * V.T
+  P_inv = V * S^{1/2}
+
+  and the deterministic preconditioner
+  N = (K.T * M^{-1} * K)^{-1}
+  
+  and return the functions to compute matrix vector product
+  y = (P * M * P.T) * x
+  y = P_inv * x
+  y = N*F - N*K.T*M^{-1}
+  '''
+  mobility_inv_blobs = []
+  mobility_bodies = []
+  K_bodies = []
+  P = []
+  P_inv = []
+
+  # Loop over bodies
+  for b in bodies:
+    # 1. Compute blobs mobility and invert it
+    M = b.calc_mobility_blobs(eta, a)
+    # 2. Compute eigenvalues and eigenvectors 
+    eig_values, eig_vectors = np.linalg.eigh(M)
+    # 3. Compute the inverse and the inverse of square root of positive eigenvalues and set to zero otherwise
+    eig_values_inv = np.array([1.0 / x if x > 0 else 0 for x in eig_values])
+    eig_values_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 0 else 0 for x in eig_values])
+    eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
+    # 4. Compute inverse
+    M_inv = np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv), eig_vectors.T))
+    mobility_inv_blobs.append(M_inv)
+    # 5. Form stochastic preconditioners version P = V * S^{-1/2} * V.T
+    P.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T)))
+    P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))   
+    # 6. Compute geometric matrix K
+    K_bodies.append(b.calc_K_matrix())
+    # 7. Compute body mobility
+    mobility_bodies.append(b.calc_mobility_body(eta, a, M_inv = M_inv))   
+
+
+  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+
+      # 3. Solve M*Lambda = (slip + K*Y)
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+
+      # 4. Set result
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  mobility_inv_blobs = mobility_inv_blobs, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+
+  # Define preconditioned mobility matrix product
+  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+    # print 'apply_stochastic_PC'
+    result = np.empty_like(w)
+    # Multiply by P.T
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    # Multiply by M
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a)
+    # Multiply by P
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return result
+  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
+  
+  # Define inverse preconditioner P_inv
+  def P_inv_mult(w, bodies = None, P_inv = None):
+    offset = 0
+    for k, b in enumerate(bodies):
+      w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return w
+  P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
+
+  # Return preconditioner functions
+  return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
+
+def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the block diagonal preconditioner for rigid bodies.
+  It solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+  '''
+  mobility_inv_blobs = []
+  mobility_bodies = []
+  K_bodies = []
+  # Loop over bodies
+  for b in bodies:
+    # 1. Compute blobs mobility and invert it
+    M = b.calc_mobility_blobs(eta, a)
+    M_inv = np.linalg.inv(M)
+    mobility_inv_blobs.append(M_inv)
+    # 2. Compute geometric matrix K
+    K = b.calc_K_matrix()
+    K_bodies.append(K)
+    # 3. Compute body mobility
+    N = b.calc_mobility_body(eta, a, M_inv = M_inv)
+    mobility_bodies.append(N)
+
+  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+
+      # 3. Solve M*Lambda = (slip + K*Y)
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+
+      # 4. Set result
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  mobility_inv_blobs = mobility_inv_blobs, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+  return block_diagonal_preconditioner_partial
 
 
 def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
@@ -178,6 +358,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   independently, i.e., no interation between bodies is taken
   into account.
   '''
+  # print 'apply_CP'
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
@@ -191,7 +372,7 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
 
     # 3. Solve M*Lambda = (slip + K*Y)
     Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-    
+
     # 4. Set result
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
     result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
@@ -223,21 +404,14 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     # Compute the inverse of the square root of positive eigenvalues and set to zero otherwise
     eig_values_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 0 else 0 for x in eig_values])
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
-    
-    # Form preconditioners version P = identity matrix (no preconditioner)
-    # P.append(np.eye(3 * b.Nblobs))
-    # P_inv.append(np.eye(3 * b.Nblobs))
-
-    # Form preconditioners, version P = S^{-1/2} * V.T
-    # P.append(np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T))
-    # P_inv.append(np.dot(eig_vectors, (np.eye(3 * b.Nblobs) * eig_values_sqrt)))
-    
+       
     # Form preconditioners version P = V * S^{-1/2} * V.T
     P.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T)))
     P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))   
     
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+    # print 'apply_stochastic_PC'
     result = np.empty_like(w)
     # Multiply by P.T
     offset = 0
@@ -342,9 +516,24 @@ if __name__ == '__main__':
     f.write('num_blobs          ' + str(Nblobs) + '\n')
 
   # Create integrator
-  integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
-  # integrator.tolerance = read.solver_tolerance
-  # integrator.rf_delta = read.rf_delta
+  if scheme.find('rollers') == -1:
+    integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+  else:
+    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+    integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
+                                              g = g,
+                                              repulsion_strength_wall = read.repulsion_strength_wall, 
+                                              debye_length_wall = read.debye_length_wall)
+    integrator.calc_blob_blob_forces = partial(multi_bodies_functions.calc_blob_blob_forces,
+                                               g = g,
+                                               repulsion_strength_wall = read.repulsion_strength_wall, 
+                                               debye_length_wall = read.debye_length_wall,
+                                               repulsion_strength = read.repulsion_strength,
+                                               debye_length = read.debye_length, 
+                                               periodic_length = read.periodic_length)
+    integrator.omega_one_roller = read.omega_one_roller
+    integrator.free_kinematics = read.free_kinematics
+
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -355,9 +544,12 @@ if __name__ == '__main__':
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
                                                periodic_length = read.periodic_length) 
+  integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner
+  integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
+  integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
   integrator.eta = eta
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
@@ -374,7 +566,7 @@ if __name__ == '__main__':
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time 
+      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -436,7 +628,7 @@ if __name__ == '__main__':
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
-    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time 
+    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':

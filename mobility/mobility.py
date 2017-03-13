@@ -1,6 +1,6 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
 import numpy as np
-import scipy
+import scipy.sparse
 import sys
 sys.path.append('../')
 import time
@@ -97,7 +97,7 @@ def damping_matrix_B_different_radius(r_vectors, blob_radius, *args, **kwargs):
   return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)), overlap)
   
 
-def image_singular_stokeslet(r_vectors, eta, a):
+def image_singular_stokeslet(r_vectors, eta, a, *args, **kwargs):
   ''' Calculate the image system for the singular stokeslet (M above).'''
   fluid_mobility = np.array([
       np.zeros(3*len(r_vectors)) for _ in range(3*len(r_vectors))])
@@ -127,7 +127,7 @@ def image_singular_stokeslet(r_vectors, eta, a):
         fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = 1./(6*np.pi*eta*a)*np.identity(3)
   return fluid_mobility
 
-def stokes_doublet(r):
+def stokes_doublet(r, *args, **kwargs):
   ''' Calculate stokes doublet from direction, strength, and r. '''
   r_norm = np.linalg.norm(r)
   e3 = np.array([0., 0., 1.])
@@ -138,7 +138,7 @@ def stokes_doublet(r):
   doublet = doublet/(8*np.pi*(r_norm**3))
   return doublet
 
-def potential_dipole(r):
+def potential_dipole(r, *args, **kwargs):
   ''' Calculate potential dipole. '''
   r_norm = np.linalg.norm(r)
   dipole = np.identity(3) - 3.*np.outer(r, r)/(r_norm**2)
@@ -148,7 +148,7 @@ def potential_dipole(r):
   return dipole
 
 
-def doublet_and_dipole(r, h):
+def doublet_and_dipole(r, h, *args, **kwargs):
   ''' 
   Just keep the pieces of the potential dipole and the doublet
   that we need for the image system.  No point in calculating terms that will cancel.
@@ -188,7 +188,7 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
     return fluid_mobility
   
 
-def boosted_infinite_fluid_mobility(r_vectors, eta, a):
+def boosted_infinite_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Same as rotne_prager_tensor, but boosted into C++ for 
   a speedup. Must compile mobility_ext.cc before this will work 
@@ -293,7 +293,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args,
   return rot
 
 
-def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a):
+def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -333,8 +333,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *arg
     rot = B.dot(rot)
   return rot
 
-
-def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a):
+def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -364,11 +363,10 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  # Compute B * force
+  # Compute B * force, B * torque
   if overlap is True:
     force = B.dot(force)
-  # Compute B * torque
-  torque = B.dot(torque)
+    torque = B.dot(torque)
   # Compute M_tilde * B * (force + torque)
   velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_effective, force, torque, eta, a) 
   # Compute B.T * M * B * (force + torque)
@@ -377,7 +375,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
   return velocities
 
 
-def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a):
+def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
   on the blobs.
@@ -485,7 +483,7 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   return velocities
 
   
-def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle):
+def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle, *args, **kwargs):
   ''' 
   Compute a mobility * vector product for only one particle. Return the 
   velocity of of the desired particle. It includes wall corrections.
@@ -564,7 +562,7 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
     return fluid_mobility
 
 
-def rotne_prager_tensor(r_vectors, eta, a):
+def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Calculate free rotne prager tensor for particles at locations given by
   r_vectors (list of 3 dimensional locations) of radius a.
@@ -611,7 +609,7 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   return velocities
 
 
-def single_wall_self_mobility_with_rotation(location, eta, a):
+def single_wall_self_mobility_with_rotation(location, eta, a, *args, **kwargs):
   ''' 
   Self mobility for a single sphere of radius a with translation rotation
   coupling.  Returns the 6x6 matrix taking force and torque to 
@@ -680,7 +678,7 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
     return np.reshape(u_fortran.T, u_fortran.size)
 
 
-def fmm_rpy(r_vectors, force, eta, a):
+def fmm_rpy(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Compute the Stokes interaction using the Rotner-Prager
   tensor. Here there is no wall.
