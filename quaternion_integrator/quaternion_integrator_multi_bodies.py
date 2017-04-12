@@ -251,19 +251,22 @@ class QuaternionIntegrator(object):
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
+      force_rfd = np.copy(rfd_noise) / self.a
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * self.a)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5 * self.a / b.body_length))
         b.orientation = quaternion_dt * b.orientation_old
+        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
+        
 
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * self.a)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5 * self.a / b.body_length))
         b.orientation = quaternion_dt * b.orientation_old
 
       # Modify RHS for drift solve
@@ -276,7 +279,7 @@ class QuaternionIntegrator(object):
                                         a=self.a, 
                                         periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
+      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
       sol_precond = self.solve_mobility_problem(RHS = RHS, PC_partial = PC_partial)
@@ -369,18 +372,20 @@ class QuaternionIntegrator(object):
       velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
+      force_rfd = np.copy(rfd_noise) / self.a
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * self.a)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5 * self.a / b.body_length))
         b.orientation = quaternion_dt * b.orientation_old
+        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
 
       # Add thermal drift contribution with N at x = x - random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)), PC_partial = PC_partial)
+      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)), PC_partial = PC_partial)
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * self.a)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5 * self.a / b.body_length))
         b.orientation = quaternion_dt * b.orientation_old
 
       # Modify RHS for drift solve
@@ -393,7 +398,7 @@ class QuaternionIntegrator(object):
                                         a=self.a, 
                                         periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
+      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)) - A * sol_precond
 
       # Add thermal drift contribution with N at x = x + random_displacement
       sol_precond = self.solve_mobility_problem(RHS = RHS, PC_partial = PC_partial)
@@ -468,10 +473,12 @@ class QuaternionIntegrator(object):
       velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update configuration for rfd
+      force_rfd = np.copy(rfd_noise) / self.a      
       for k, b in enumerate(self.bodies):
-        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * self.rf_delta
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta)
+        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * (self.rf_delta * self.a)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta  * self.a / b.body_length))
         b.orientation_new = quaternion_dt * b.orientation
+        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
 
       # Compute bodies' mobility at new configuration
       # Get blobs coordinates
@@ -498,7 +505,7 @@ class QuaternionIntegrator(object):
       mobility_bodies_new = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
 
       # Add thermal drift to velocity
-      velocities += (self.kT / self.rf_delta) * np.dot(mobility_bodies_new - mobility_bodies, rfd_noise) 
+      velocities += (self.kT / self.rf_delta) * np.dot(mobility_bodies_new - mobility_bodies, force_rfd) 
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
