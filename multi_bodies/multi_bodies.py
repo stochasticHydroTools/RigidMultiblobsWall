@@ -498,6 +498,11 @@ if __name__ == '__main__':
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = structures_ID[ID]
+      # Calculate body length for the RFD
+      if i == 0:
+        b.calc_body_length()
+      else:
+        b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b)
       # Append bodies to total bodies list
       bodies.append(b)
