@@ -464,7 +464,6 @@ if __name__ == '__main__':
   a = read.blob_radius
   scheme  = read.scheme 
   output_name = read.output_name 
-  structure_names = read.structure_names
   structures = read.structures
   structures_ID = read.structures_ID
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
@@ -488,11 +487,13 @@ if __name__ == '__main__':
   # Create rigid bodies
   bodies = []
   body_types = []
+  body_names = []
   for ID, structure in enumerate(structures):
     print 'Creating structures = ', structure[1]
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     body_types.append(num_bodies_struct)
+    body_names.append(structures_ID[ID])
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
@@ -509,13 +510,14 @@ if __name__ == '__main__':
   bodies = np.array(bodies)
 
   # Set some more variables
-  num_of_body_types = len(structure_names)
+  num_of_body_types = len(body_types)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
 
-  # Write bodies information
+  # Save bodies information
   with open(output_name + '.bodies_info', 'w') as f:
     f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
+    f.write('body_names         ' + str(body_names) + '\n')
     f.write('body_types         ' + str(body_types) + '\n')
     f.write('num_bodies         ' + str(num_bodies) + '\n')
     f.write('num_blobs          ' + str(Nblobs) + '\n')

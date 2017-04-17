@@ -253,8 +253,8 @@ class QuaternionIntegrator(object):
       # Update configuration for rfd 
       force_rfd = np.copy(rfd_noise) / self.a
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * self.a)
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5 * self.a / b.body_length))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
         force_rfd[(k*6+3):(k*6+6)] *= b.body_length
         
@@ -265,8 +265,8 @@ class QuaternionIntegrator(object):
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * self.a)
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5 * self.a / b.body_length))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
 
       # Modify RHS for drift solve
@@ -374,8 +374,8 @@ class QuaternionIntegrator(object):
       # Update configuration for rfd 
       force_rfd = np.copy(rfd_noise) / self.a
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * self.a)
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5 * self.a / b.body_length))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
         force_rfd[(k*6+3):(k*6+6)] *= b.body_length
 
@@ -384,8 +384,8 @@ class QuaternionIntegrator(object):
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * self.a)
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5 * self.a / b.body_length))
+        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (self.rf_delta * 0.5 * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
 
       # Modify RHS for drift solve
@@ -475,8 +475,8 @@ class QuaternionIntegrator(object):
       # Update configuration for rfd
       force_rfd = np.copy(rfd_noise) / self.a      
       for k, b in enumerate(self.bodies):
-        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * (self.rf_delta * self.a)
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta  * self.a / b.body_length))
+        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * (self.rf_delta * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta))
         b.orientation_new = quaternion_dt * b.orientation
         force_rfd[(k*6+3):(k*6+6)] *= b.body_length
 
