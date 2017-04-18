@@ -47,6 +47,7 @@ class ReadInput(object):
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
+    self.structure_names = str.split(str(self.options.get('structure_names')))
     self.random_state = self.options.get('random_state')
     self.seed = self.options.get('seed')
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)

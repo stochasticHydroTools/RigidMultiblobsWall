@@ -251,12 +251,12 @@ class QuaternionIntegrator(object):
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
-      force_rfd = np.copy(rfd_noise) / self.a
+      force_rfd = np.copy(rfd_noise) 
       for k, b in enumerate(self.bodies):
         b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * b.body_length)
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
-        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
+        force_rfd[k*6 : k*6+3] /= b.body_length
         
 
       # Add thermal drift contribution with N at x = x - random_displacement
@@ -372,12 +372,12 @@ class QuaternionIntegrator(object):
       velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Update configuration for rfd 
-      force_rfd = np.copy(rfd_noise) / self.a
+      force_rfd = np.copy(rfd_noise) 
       for k, b in enumerate(self.bodies):
         b.location = b.location_old + rfd_noise[k*6 : k*6+3] * (-self.rf_delta * 0.5 * b.body_length)
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (-self.rf_delta * 0.5))
         b.orientation = quaternion_dt * b.orientation_old
-        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
+        force_rfd[k*6 : k*6+3] /= b.body_length
 
       # Add thermal drift contribution with N at x = x - random_displacement
       sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)), PC_partial = PC_partial)
@@ -473,12 +473,12 @@ class QuaternionIntegrator(object):
       velocities += stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update configuration for rfd
-      force_rfd = np.copy(rfd_noise) / self.a      
+      force_rfd = np.copy(rfd_noise) 
       for k, b in enumerate(self.bodies):
         b.location_new = b.location + rfd_noise[k*6 : k*6+3] * (self.rf_delta * b.body_length)
         quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * (self.rf_delta))
         b.orientation_new = quaternion_dt * b.orientation
-        force_rfd[(k*6+3):(k*6+6)] *= b.body_length
+        force_rfd[k*6 : k*6+3] /= b.body_length
 
       # Compute bodies' mobility at new configuration
       # Get blobs coordinates
