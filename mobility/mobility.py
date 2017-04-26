@@ -286,7 +286,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args,
   if overlap is True:
     force = B.dot(force)
   # Compute M_tilde * B * force
-  rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors_effective, force, eta, a)
+  rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors_effective, force, eta, a, *args, **kwargs)
   # Compute B.T * M * B * force
   if overlap is True:
     rot = B.dot(rot)
@@ -303,7 +303,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **k
   
   This function makes use of pycuda.
   '''
-  rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a)
+  rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs)
   return rot
 
 def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
@@ -327,7 +327,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *arg
   if overlap is True:
     torque = B.dot(torque)
   # Compute M_tilde * B * torque
-  rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors_effective, torque, eta, a)
+  rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors_effective, torque, eta, a, *args, **kwargs)
   # Compute B.T * M * B * torque
   if overlap is True:
     rot = B.dot(rot)
@@ -343,7 +343,7 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, *
   
   This function makes use of pycuda.
   '''
-  rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a)
+  rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs)
   return rot
 
 def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs):
@@ -368,7 +368,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
     force = B.dot(force)
     torque = B.dot(torque)
   # Compute M_tilde * B * (force + torque)
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_effective, force, torque, eta, a) 
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_effective, force, torque, eta, a, *args, **kwargs) 
   # Compute B.T * M * B * (force + torque)
   if overlap is True:
     velocities = B.dot(velocities)
@@ -385,7 +385,7 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   
   This function makes use of pycuda.
   '''
-  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a) 
+  velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs) 
   return velocities
 
 def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a, *args, **kwargs):
@@ -409,7 +409,7 @@ def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, 
   if overlap is True:
     force = B.dot(force)
   # Compute M_tilde * B * force
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors_effective, force, eta, a)  
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors_effective, force, eta, a, *args, **kwargs)  
   # Compute B.T * M * B * force
   if overlap is True:
     velocities = B.dot(velocities)
@@ -437,7 +437,7 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
   if overlap is True:
     torque = B.dot(torque)
   # Compute M_tilde * B * torque
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_torque_pycuda(r_vectors_effective, torque, eta, a)
+  velocities = mobility_pycuda.single_wall_mobility_trans_times_torque_pycuda(r_vectors_effective, torque, eta, a, *args, **kwargs)
   # Compute B.T * M * B * torque
   if overlap is True:
     velocities = B.dot(velocities)
