@@ -85,16 +85,16 @@ void visitWriterInterface(std::string name,
   // Call visit_writer
   /*Use visit_writer to write a regular mesh with data. */
   write_rectilinear_mesh(name.c_str(),    // Output file
-   		     format,          // 0=ASCII,  1=Binary
-		     dims_array,      // {mx, my, mz}
-		     xmesh,           
-		     ymesh,
-		     zmesh,
-   		     nvars,           // number of variables
-   		     vardims_array,   // Size of each variable, 1=scalar, velocity=3*scalars
-   		     centering_array, // 
-   		     varnames_char,   //
-   		     vars);
+			 format,          // 0=ASCII,  1=Binary
+			 dims_array,      // {mx, my, mz}
+			 xmesh,           
+			 ymesh,
+			 zmesh,
+			 nvars,           // number of variables
+			 vardims_array,   // Size of each variable, 1=scalar, velocity=3*scalars
+			 centering_array, // 
+			 varnames_char,   //
+			 vars);
 
   // Free memory in the heap
   delete[] velocity;
