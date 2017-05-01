@@ -1,0 +1,4 @@
+num_of_body_types  1
+body_types         [256]
+num_bodies         256
+num_blobs          3840
