@@ -44,6 +44,10 @@ class QuaternionIntegrator(object):
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
     self.periodic_length = None
+    self.vel = np.zeros((len(bodies)*6))
+    self.CP = np.zeros((len(bodies),3))
+    self.CPxCP = 0.0
+    self.R33 = np.zeros(len(bodies))
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_inv_blobs = None
@@ -51,6 +55,7 @@ class QuaternionIntegrator(object):
     self.preconditioner = None
     self.mobility_vector_prod = None
     self.K_matrix_T_vector_prod = None
+    self.K_matrix_vector_prod = None
     if tolerance is not None:
       self.tolerance = tolerance
       self.rf_delta = 0.1 * np.power(self.tolerance, 1.0/3.0)
@@ -208,7 +213,211 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_first_order_RFD(self, dt): 
+
+  def stochastic_traction_RFD1(self, dt):
+    ''' 
+    Take a time step of length dt using a stochastic
+    first order Randon Finite Difference (RFD) schame.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      scale = 2.1*np.sqrt(2.0) + self.a
+      rfd_noise = np.random.normal(0.0, 1.0, 6*len(self.bodies))
+      W = np.empty_like(rfd_noise)
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+        b.orientation_old = b.orientation
+        W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / (self.a))
+        W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * (self.kT / ((self.a/scale)))
+
+      # Set RHS for RFD increments   
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      RAND_RHS = np.zeros(System_size)
+      RAND_RHS[3*self.Nblobs:System_size] = -1.0*W
+
+      # Generate RFD increments
+      sol_precond = self.solve_mobility_problem(RHS = RAND_RHS)
+      U_RFD = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      Lam_RFD = sol_precond[0:3*self.Nblobs]
+
+      # Get blobs vectors
+      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # compute M*Lambda_rfd
+      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a)
+      # compute K^T*Lambda_rfd
+      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs)
+      # compute K*U_rfd
+      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs)
+
+      # Compute RFD bits
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + rfd_noise[6*k:6*k+3] * self.rf_delta * self.a 
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta * (self.a/scale) )
+        b.orientation = quaternion_dt * b.orientation_old
+
+      r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # compute (M_rfd-M)*Lambda_rfd
+      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a) - MxLam
+      # compute (K_rfd^T - K^T)*Lambda_rfd
+      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs) - KTxLam
+      # compute (K_rfd - K)*U_rfd
+      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs) - KxU, 3*self.Nblobs)
+
+      # reset locs and thetas
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old
+        b.orientation = b.orientation_old
+
+
+      # Build stochastic preconditioner
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies,
+                                                                                            r_vectors_blobs_n,
+                                                                                            self.eta,
+                                                                                            self.a)
+
+      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
+      slip_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2.0*self.kT / dt),
+                                                                           tolerance = self.tolerance,
+                                                                           dim = self.Nblobs * 3,
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult)
+
+      rand_slip = slip_noise + (1.0 / self.rf_delta)* (DxM - DxK)
+      rand_force = (-1.0 / self.rf_delta)*DxKT
+
+
+      # Solve mobility problem with drift
+      sol_precond_new = self.solve_mobility_problem(noise = rand_slip, noise_FT =  rand_force, x0 = self.first_guess, save_first_guess = True)
+      velocities_new = np.reshape(sol_precond_new[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update location and orientation
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_new
+          b.orientation = b.orientation_new
+          r_vec = b.get_r_vectors(b.location, b.orientation)
+          rot = b.orientation.rotation_matrix()
+          self.CP[k,:] = r_vec[7,:]
+          self.R33[k] = rot[-1,-1]
+        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
+        return
+      else:
+        for b in self.bodies:
+          b.location = b.location_old
+          b.orientation = b.orientation_old
+
+      self.invalid_configuration_count += 1
+      print 'Invalid configuration'
+    return
+
+  def Fixman(self, dt):
+    ''' 
+    Take a time step of length dt using a stochastic
+    first order Randon Finite Difference (RFD) schame.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+        b.orientation_old = b.orientation
+     
+      # Solve mobility problem
+      velocities_mid, mobility_bodies = self.solve_mobility_problem_dense_algebra()
+
+      # Generate random vector
+      W1 = np.random.normal(0.0, 1.0, len(self.bodies) * 6)
+      W_cor = W1 + np.random.normal(0.0, 1.0, len(self.bodies) * 6);
+
+      # Compute noise contribution for pred. step sqrt(2kT/dt)*N^{1/2}*W1
+      Nhalf_W1 = stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(4*self.kT / dt),z = W1)
+     
+      # Compute noise contribution for cor. step sqrt(2kT/dt)*N^{1/2}*W1
+      Nhalf_Wcor = stochastic.stochastic_forcing_eig(mobility_bodies, factor = np.sqrt(self.kT / dt),z = W_cor)
+      Ninvhalf_cor = np.dot(np.linalg.pinv(mobility_bodies, rcond=1e-14),Nhalf_Wcor)
+     
+      velocities_mid += Nhalf_W1
+      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
+
+      # Update location orientation to mid point
+      for k, b in enumerate(self.bodies):
+	b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
+	quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
+	b.orientation = quaternion_dt * b.orientation_old
+   
+      # Solve mobility problem predictor step
+      velocities_new, mobility_bodies = self.solve_mobility_problem_dense_algebra()
+      velocities_new += np.dot(mobility_bodies,Ninvhalf_cor)
+   
+      # Update location orientation to end point
+      for k, b in enumerate(self.bodies):
+	b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
+	quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
+	b.orientation_new = quaternion_dt * b.orientation_old
+
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = velocities_new
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_new
+          b.orientation = b.orientation_new
+          r_vec = b.get_r_vectors(b.location, b.orientation)
+          rot = b.orientation.rotation_matrix()
+          self.CP[k,:] = r_vec[7,:]
+          self.R33[k] = rot[-1,-1]
+        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
+        return
+      else:
+        for b in self.bodies:
+          b.location = b.location_old
+          b.orientation = b.orientation_old
+
+      self.invalid_configuration_count += 1
+      print 'Invalid configuration'
+    return
+
+
+  def stochastic_traction_AB(self, dt): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
@@ -221,81 +430,104 @@ class QuaternionIntegrator(object):
       # Call preprocess
       preprocess_result = self.preprocess(self.bodies)
       
+
+      scale = 2.1*np.sqrt(2.0) + self.a
+      rfd_noise = np.random.normal(0.0, 1.0, 6*len(self.bodies))
+      W = np.empty_like(rfd_noise)
+
       # Save initial configuration
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
         b.orientation_old = b.orientation
-
-      # Generate random vector
-      rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
-
+        W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / (self.a))
+	W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * (self.kT / ((self.a/scale)))   
+      
+      # set AB_coef
+      if self.first_step == False:
+        # Use Adams-Bashforth
+        ABfact = 1.5
+      else:
+        # Use forward Euler
+        ABfact = 1.0
+        
+      # Set RHS for RFD increments   
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+      RAND_RHS = np.zeros(System_size)
+      RAND_RHS[3*self.Nblobs:System_size] = -1.0*W
+      
+      # Generate RFD increments
+      sol_precond = self.solve_mobility_problem(RHS = RAND_RHS)
+      U_RFD = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      Lam_RFD = sol_precond[0:3*self.Nblobs]
+      
       # Get blobs vectors
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+      
+      # compute M*Lambda_rfd
+      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a)
+      # compute K^T*Lambda_rfd
+      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs)
+      # compute K*U_rfd
+      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs)
+      
+      # Compute RFD bits
+      for k, b in enumerate(self.bodies):
+	b.location = b.location_old + rfd_noise[6*k:6*k+3] * self.rf_delta * self.a
+	quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta * (self.a/scale))
+	b.orientation = quaternion_dt * b.orientation_old
+	
+      r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+	
+      # compute (M_rfd-M)*Lambda_rfd
+      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a) - MxLam
+      # compute (K_rfd^T - K^T)*Lambda_rfd
+      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs) - KTxLam
+      # compute (K_rfd - K)*U_rfd
+      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs) - KxU, 3*self.Nblobs)
+          
+      # reset locs and thetas
+      for k, b in enumerate(self.bodies):
+	b.location = b.location_old
+	b.orientation = b.orientation_old
+
 
       # Build stochastic preconditioner
       mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs, 
+                                                                                            r_vectors_blobs_n, 
                                                                                             self.eta, 
                                                                                             self.a)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
-      velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+      slip_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2.0*self.kT / dt),
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
                                                                            mobility_mult = mobility_pc_partial,
                                                                            L_mult = P_inv_mult)
-
-      # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True)
-
-      # Extract velocities
-      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Update configuration for rfd 
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Add thermal drift contribution with N at x = x - random_displacement
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
-
-      # Update configuration for rfd 
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Modify RHS for drift solve
-      # Set linear operators 
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      linear_operator_partial = partial(self.linear_operator, 
-                                        bodies=self.bodies, 
-                                        r_vectors=r_vectors_blobs, 
-                                        eta=self.eta, 
-                                        a=self.a, 
-                                        periodic_length=self.periodic_length)
-      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
-
-      # Add thermal drift contribution with N at x = x + random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = RHS)
-
-      # Extract velocities
-      velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Add all velocity contributions
-      velocities += (self.kT / self.rf_delta) * velocities_drift
       
-      print(velocities)
+      rand_slip = (1.0 / self.rf_delta)* (DxM - DxK)
+      rand_force = (-1.0 / self.rf_delta)* DxKT
+
+
+      # Solve mobility problem with drift
+      sol_precond_new = self.solve_mobility_problem(noise = rand_slip, noise_FT =  rand_force, x0 = self.first_guess, save_first_guess = True)
+      velocities_new = np.reshape(sol_precond_new[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      sol_precond_rand = self.solve_mobility_problem(RHS = np.concatenate([-1.0*slip_noise, np.zeros(len(self.bodies) * 6)]), x0 = np.zeros(3*self.Nblobs + 6*len(self.bodies)))
+      velocities_noise = np.reshape(sol_precond_rand[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
-      # Update location orientation 
+      if self.first_step == False:
+        # Use Adams-Bashforth
+        velocities_AB = 1.5*velocities_new + velocities_noise - 0.5 * self.velocities_previous_step
+      else: 
+        #use EM
+        velocities_AB = velocities_new + velocities_noise
+            
+      # Update location and orientation
       for k, b in enumerate(self.bodies):
-        b.location_new = b.location_old + velocities[6*k:6*k+3] * dt
-        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation_new = quaternion_dt * b.orientation_old
-        
+	b.location_new = b.location_old + velocities_AB[6*k:6*k+3] * dt
+	quaternion_dt = Quaternion.from_rotation((velocities_AB[6*k+3:6*k+6]) * dt)
+	b.orientation_new = quaternion_dt * b.orientation_old
+      
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
@@ -306,9 +538,16 @@ class QuaternionIntegrator(object):
         if valid_configuration is False:
           break
       if valid_configuration is True:
-        for b in self.bodies:
+        self.first_step = False
+        self.velocities_previous_step = velocities_new
+        for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
+          r_vec = b.get_r_vectors(b.location, b.orientation)
+	  rot = b.orientation.rotation_matrix()
+	  self.CP[k,:] = r_vec[7,:]
+	  self.R33[k] = rot[-1,-1]
+	#self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
         return
       else:
         for b in self.bodies:
@@ -318,6 +557,139 @@ class QuaternionIntegrator(object):
       self.invalid_configuration_count += 1
       print 'Invalid configuration'
     return
+
+
+  def stochastic_Slip_Trapz(self, dt):
+    ''' 
+    Take a time step of length dt using a stochastic
+    first order Randon Finite Difference (RFD) schame.
+
+    The linear and angular velocities are sorted lile
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        b.location_old = b.location
+        b.orientation_old = b.orientation
+
+      # Generate random vector
+      W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
+      W_slip = np.random.normal(0.0, 1.0, self.Nblobs*3)
+
+      # Compute M at time level n
+      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      #compute M*W to be used by the corrector step
+      MxW_slip = self.mobility_vector_prod(r_vectors_blobs_n, W_slip, self.eta, self.a)
+      #compute K^T*W to be used by the corrector step
+      KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+
+      # Build stochastic preconditioner
+      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies,
+                                                                                            r_vectors_blobs_n,
+                                                                                            self.eta,
+                                                                                            self.a)
+
+
+      # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
+      velocities_noise_W1, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                           tolerance = self.tolerance,
+                                                                           dim = self.Nblobs * 3,
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult,
+                                                                           z = W1)
+
+
+      #mobility_blobs_n = self.mobility_blobs(r_vectors_blobs_n, self.eta, self.a)
+      #velocities_noise_W1 = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(4*self.kT / dt), z = W1)
+      #velocities_noise_Wcor = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(self.kT / dt), z = Wcor)
+
+      #print(self.tolerance)
+      #print(self.rf_delta)
+
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
+      # Extract velocities
+      velocities_1 = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Solve mobility problem
+      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), x0 = np.zeros(3*self.Nblobs + 6*len(self.bodies)))
+      # Extract velocities
+      W_RFD = np.reshape(slip_precond_rfd[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update configuration for rfd 
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + W_RFD[k*6 : k*6+3] * self.rf_delta
+        quaternion_dt = Quaternion.from_rotation(W_RFD[(k*6+3):(k*6+6)] * self.rf_delta )
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Compute M at RFD time level
+      r_vectors_blobs_rfd = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+      #compute M*W to be used by the corrector step
+      M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a)
+      #compute K^T*W to be used by the corrector step
+      KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+
+      rand_slip_cor = velocities_noise_W1 + (2.0*self.kT / self.rf_delta)* (M_rfdxW_slip - MxW_slip)
+      rand_force_cor = -2.0*(self.kT / self.rf_delta)*(KT_rfdxW_slip - KTxW_slip)
+
+      # Update location orientation to mid point
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities_1[k*6 : k*6+3] * dt
+        quaternion_dt = Quaternion.from_rotation(velocities_1[(k*6+3):(k*6+6)] * dt )
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Solve mobility problem at the corrector step
+      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT =  rand_force_cor,x0 = self.first_guess, save_first_guess = True)
+
+      # Extract velocities
+      velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      #TODO get rid of this TODO
+      #print(velocities_new)
+
+      velocities_new = 0.5*(velocities_1 + velocities_2)
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid return 
+      valid_configuration = True
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
+        if valid_configuration is False:
+          break
+      if valid_configuration is True:
+        for k, b in enumerate(self.bodies):
+          b.location = b.location_new
+          b.orientation = b.orientation_new
+          r_vec = b.get_r_vectors(b.location, b.orientation)
+          rot = b.orientation.rotation_matrix()
+          self.CP[k,:] = r_vec[7,:]
+          self.R33[k] = rot[-1,-1]
+        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
+        #print(self.CPxCP)
+        return
+      else:
+        for b in self.bodies:
+          b.location = b.location_old
+          b.orientation = b.orientation_old
+
+      self.invalid_configuration_count += 1
+      print 'Invalid configuration'
+    return
+
 
 
   def stochastic_Slip_RFD(self, dt): 
@@ -380,6 +752,9 @@ class QuaternionIntegrator(object):
       #mobility_blobs_n = self.mobility_blobs(r_vectors_blobs_n, self.eta, self.a)
       #velocities_noise_W1 = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(4*self.kT / dt), z = W1)
       #velocities_noise_Wcor = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(self.kT / dt), z = Wcor)
+
+      #print(self.tolerance)
+      #print(self.rf_delta)
       
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
@@ -420,7 +795,7 @@ class QuaternionIntegrator(object):
       velocities_new = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
       #TODO get rid of this TODO
-      print(velocities_new)
+      #print(velocities_new)
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -438,9 +813,15 @@ class QuaternionIntegrator(object):
         if valid_configuration is False:
           break
       if valid_configuration is True:
-        for b in self.bodies:
+        for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
+          r_vec = b.get_r_vectors(b.location, b.orientation)
+	  rot = b.orientation.rotation_matrix()
+	  self.CP[k,:] = r_vec[7,:]
+	  self.R33[k] = rot[-1,-1]
+	#self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
+	#print(self.CPxCP)
         return
       else:
         for b in self.bodies:
@@ -554,134 +935,15 @@ class QuaternionIntegrator(object):
         if valid_configuration is False:
           break
       if valid_configuration is True:
-        for b in self.bodies:
+        for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-        return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
-
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
-    return
-
-  def stochastic_adams_bashforth(self, dt): 
-    ''' 
-    Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) schame.
-
-    The linear and angular velocities are sorted lile
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    ''' 
-    while True: 
-      # Call preprocess
-      preprocess_result = self.preprocess(self.bodies)
-      
-      # Save initial configuration
-      for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
-
-      # Generate random vector
-      rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
-
-      # Get blobs vectors
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs, 
-                                                                                            self.eta, 
-                                                                                            self.a)
-
-      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
-      velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                           tolerance = self.tolerance, 
-                                                                           dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult)
-
-      # Solve stochastic mobility problem
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-      sol_precond = self.solve_mobility_problem(RHS = np.zeros(System_size), noise = velocities_noise)
-
-      # Extract stochastic velocities
-      velocities_stoch = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Solve deterministic mobility problem
-      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
-
-      # Extract deterministic velocities
-      velocities_det = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Update configuration for rfd 
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old - rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * (-0.5))
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Add thermal drift contribution with N at x = x - random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)))
-
-      # Update configuration for rfd 
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old + rfd_noise[k*6 : k*6+3] * self.rf_delta * 0.5
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta * 0.5)
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Modify RHS for drift solve
-      # Set linear operators 
-      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      linear_operator_partial = partial(self.linear_operator, 
-                                        bodies=self.bodies, 
-                                        r_vectors=r_vectors_blobs, 
-                                        eta=self.eta, 
-                                        a=self.a, 
-                                        periodic_length=self.periodic_length)
-      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
-      RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -rfd_noise]), (System_size)) - A * sol_precond
-
-      # Add thermal drift contribution with N at x = x + random_displacement
-      sol_precond = self.solve_mobility_problem(RHS = RHS)
-
-      # Extract velocities
-      velocities_drift = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Add all velocity contributions
-      velocities_stoch += (self.kT / self.rf_delta) * velocities_drift
-            
-      # Update location and orientation
-      if self.first_step == False:
-        # Use Adams-Bashforth
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + (1.5 * velocities_det[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3] + velocities_stoch[6*k:6*k+3]) * dt
-          quaternion_dt = Quaternion.from_rotation((1.5 * velocities_det[6*k+3:6*k+6] - 0.5 * self.velocities_previous_step[6*k+3:6*k+6] + velocities_stoch[6*k+3:6*k+6]) * dt)
-          b.orientation_new = quaternion_dt * b.orientation_old
-      else:
-        # Use forward Euler
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + (velocities_det[6*k:6*k+3] + velocities_stoch[6*k:6*k+3]) * dt
-          quaternion_dt = Quaternion.from_rotation((velocities_det[6*k+3:6*k+6] + velocities_stoch[6*k+3:6*k+6]) * dt)
-          b.orientation_new = quaternion_dt * b.orientation_old
-
-      # Call postprocess
-      postprocess_result = self.postprocess(self.bodies)
-
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        self.first_step = False
-        self.velocities_previous_step = velocities_det
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+	  r_vec = b.get_r_vectors(b.location, b.orientation)
+          rot = b.orientation.rotation_matrix()
+          self.CP[k,:] = r_vec[7,:]
+          self.R33[k] = rot[-1,-1]
+        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
+        #print(self.CP)
         return
       else:
         for b in self.bodies:
@@ -693,92 +955,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_first_order_RFD_dense_algebra(self, dt): 
-    ''' 
-    Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) scheme.
-    The function uses dense algebra methods to solve the equations.
-
-    The linear and angular velocities are sorted lile
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    ''' 
-    while True: 
-      # Call preprocess
-      preprocessor_result = self.preprocess(self.bodies)
-
-      # Solve mobility problem
-      velocities, mobility_bodies = self.solve_mobility_problem_dense_algebra()
-
-      # Generate random vector
-      rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
-
-      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
-      velocities += stochastic.stochastic_forcing_eig_symm(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
-      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
-
-      # Update configuration for rfd
-      for k, b in enumerate(self.bodies):
-        b.location_new = b.location + rfd_noise[k*6 : k*6+3] * self.rf_delta
-        quaternion_dt = Quaternion.from_rotation(rfd_noise[(k*6+3):(k*6+6)] * self.rf_delta)
-        b.orientation_new = quaternion_dt * b.orientation
-
-      # Compute bodies' mobility at new configuration
-      # Get blobs coordinates
-      r_vectors_blobs = np.empty((self.Nblobs, 3))
-      offset = 0
-      for b in self.bodies:
-        r_vectors_blobs[offset:(offset+b.Nblobs)] = b.get_r_vectors(b.location_new, b.orientation_new)
-        offset += b.Nblobs
-
-      # Calculate mobility (M) at the blob level
-      mobility_blobs = self.mobility_blobs(r_vectors_blobs, self.eta, self.a)
-
-      # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
-      resistance_blobs = np.linalg.inv(mobility_blobs)
-
-      # Calculate block-diagonal matrix K
-      K = np.zeros((3*self.Nblobs, 6*len(self.bodies)))
-      offset = 0
-      for k, b in enumerate(self.bodies):
-        K[3*offset:3*(offset+b.Nblobs), 6*k:6*k+6] = b.calc_K_matrix(location = b.location_new, orientation = b.orientation_new)
-        offset += b.Nblobs
-     
-      # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
-      mobility_bodies_new = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
-
-      # Add thermal drift to velocity
-      velocities += (self.kT / self.rf_delta) * np.dot(mobility_bodies_new - mobility_bodies, rfd_noise) 
-      
-      print(velocities)
-      
-      # Update location orientation 
-      for k, b in enumerate(self.bodies):
-        b.location_new = b.location + velocities[6*k:6*k+3] * dt
-        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation_new = quaternion_dt * b.orientation
-        
-      # Call postprocess
-      postprocess_result = self.postprocess(self.bodies)
-
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
-        return
-
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
-    return
-
-
-  def solve_mobility_problem(self, RHS = None, noise = None, noise_FT = None, x0 = None, save_first_guess = False): 
+  def solve_mobility_problem(self, RHS = None, noise = None, noise_FT = None, AB = None, x0 = None, save_first_guess = False): 
     ''' 
     Solve the mobility problem using preconditioned GMRES. Compute 
     velocities on the bodies subject to active slip and enternal 
@@ -803,6 +980,8 @@ class QuaternionIntegrator(object):
           slip = np.zeros((self.Nblobs, 3))
         # Calculate force-torque on bodies
         force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
+        if AB is not None:
+	  force_torque = AB*force_torque
         # Add noise to the force/torque
 	if noise_FT is not None:
 	  force_torque += noise_FT
@@ -846,7 +1025,7 @@ class QuaternionIntegrator(object):
         RHS = RHS / RHS_norm
 
       # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restrt=60) #,restart=60 
       if save_first_guess:
         self.first_guess = sol_precond  
 

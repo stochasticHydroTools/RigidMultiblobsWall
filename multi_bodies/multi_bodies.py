@@ -12,7 +12,7 @@ import multi_bodies_functions
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
-from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
+#from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
 from body import body 
 from read_input import read_input
 from read_input import read_vertex_file
@@ -383,6 +383,7 @@ if __name__ == '__main__':
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
+  integrator.K_matrix_vector_prod = K_matrix_vector_prod
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
   integrator.preprocess = multi_bodies_functions.preprocess
   integrator.postprocess = multi_bodies_functions.postprocess
@@ -397,6 +398,27 @@ if __name__ == '__main__':
       print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
       # For each type of structure save locations and orientations to one file
       body_offset = 0
+      
+      for i, ID in enumerate(structures_ID):
+	if step == 0:
+	  status = 'w'
+	else:
+	  status = 'a'
+	name = output_name + '.cross_point_height.' + ID + '.config'
+	with open(name, status) as f_ID:
+	  f_ID.write(str(body_types[i]) + '\n')
+	  for j in range(body_types[i]):
+	    CPh = integrator.CP[j,-1]
+	    f_ID.write('%s\n' % CPh)
+	name = output_name + '.R33.' + ID + '.config'
+	with open(name, status) as f_ID:
+	    f_ID.write(str(body_types[i]) + '\n')
+	    for j in range(body_types[i]):
+	      R_33 = integrator.R33[j]
+	      f_ID.write('%s\n' % R_33)
+		
+      
+      
       if read.save_clones == 'one_file_per_step':
         for i, ID in enumerate(structures_ID):
           name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
