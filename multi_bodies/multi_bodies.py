@@ -266,7 +266,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
                                                   Nblobs = Nblobs)
 
   # Define preconditioned mobility matrix product
-  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None, *args, **kwargs):
     # print 'apply_stochastic_PC'
     result = np.empty_like(w)
     # Multiply by P.T
@@ -275,14 +275,14 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
-    result_2 = mobility_vector_prod(r_vectors, result, eta, a)
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a, *args, **kwargs)
     # Multiply by P
     offset = 0
     for k, b in enumerate(bodies):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     return result
-  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
+  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a, *args, **kwargs)
   
   # Define inverse preconditioner P_inv
   def P_inv_mult(w, bodies = None, P_inv = None):
@@ -410,7 +410,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))   
     
   # Define preconditioned mobility matrix product
-  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None):
+  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None, *args, **kwargs):
     # print 'apply_stochastic_PC'
     result = np.empty_like(w)
     # Multiply by P.T
@@ -419,14 +419,14 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot((P[k]).T, w[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     # Multiply by M
-    result_2 = mobility_vector_prod(r_vectors, result, eta, a)
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a, *args, **kwargs)
     # Multiply by P
     offset = 0
     for k, b in enumerate(bodies):
       result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], result_2[3*offset : 3*(offset + b.Nblobs)])
       offset += b.Nblobs
     return result
-  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a)
+  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a, *args, **kwargs)
   
   # Define inverse preconditioner P_inv
   def P_inv_mult(w, bodies = None, P_inv = None):

@@ -235,7 +235,8 @@ class QuaternionIntegrator(object):
                                                                                                         r_vectors_blobs, 
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
-                                                                                                        self.a)
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -349,7 +350,8 @@ class QuaternionIntegrator(object):
                                                                                                         r_vectors_blobs, 
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
-                                                                                                        self.a)
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2} * W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
