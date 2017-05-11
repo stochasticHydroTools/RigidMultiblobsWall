@@ -3,10 +3,10 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 
-# This lines set the precision of the cuda code
-# single or double. Set the precision
+# These lines set the precision of the cuda code
+# to single or double. Set the precision
 # in the following lines and edit the lines
-# after mod = SourceModule(""" accordingly
+# after   'mod = SourceModule("""'    accordingly
 # precision = 'single'
 precision = 'double'
 

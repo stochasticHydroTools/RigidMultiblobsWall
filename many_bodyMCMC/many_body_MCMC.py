@@ -155,10 +155,10 @@ if __name__ == '__main__':
       acceptance_ratio = acceptance_ratio * 0.95
 	
     # Scale max_translation 
-    if step < 0 and acceptance_ratio > 0.5:
+    if step < 0 and step < read.initial_step / 2 and acceptance_ratio > 0.5:
       max_translation = max_translation * 1.02
       max_angle_shift = max_translation / max_body_length
-    elif step < 0:
+    elif step < 0 and step < read.initial_step / 2:
       max_translation = max_translation * 0.98
       max_angle_shift = max_translation / max_body_length
 
