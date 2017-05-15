@@ -319,11 +319,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-          r_vec = b.get_r_vectors(b.location, b.orientation)
-          rot = b.orientation.rotation_matrix()
-          self.CP[k,:] = r_vec[7,:]
-          self.R33[k] = rot[-1,-1]
-        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
         return
       else:
         for b in self.bodies:
@@ -401,11 +396,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-          r_vec = b.get_r_vectors(b.location, b.orientation)
-          rot = b.orientation.rotation_matrix()
-          self.CP[k,:] = r_vec[7,:]
-          self.R33[k] = rot[-1,-1]
-        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
         return
       else:
         for b in self.bodies:
@@ -543,11 +533,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-          r_vec = b.get_r_vectors(b.location, b.orientation)
-	  rot = b.orientation.rotation_matrix()
-	  self.CP[k,:] = r_vec[7,:]
-	  self.R33[k] = rot[-1,-1]
-	#self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
         return
       else:
         for b in self.bodies:
@@ -605,13 +590,6 @@ class QuaternionIntegrator(object):
                                                                            z = W1)
 
 
-      #mobility_blobs_n = self.mobility_blobs(r_vectors_blobs_n, self.eta, self.a)
-      #velocities_noise_W1 = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(4*self.kT / dt), z = W1)
-      #velocities_noise_Wcor = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(self.kT / dt), z = Wcor)
-
-      #print(self.tolerance)
-      #print(self.rf_delta)
-
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
       # Extract velocities
@@ -650,9 +628,6 @@ class QuaternionIntegrator(object):
       # Extract velocities
       velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
-      #TODO get rid of this TODO
-      #print(velocities_new)
-
       velocities_new = 0.5*(velocities_1 + velocities_2)
 
       # Update location orientation 
@@ -674,12 +649,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-          r_vec = b.get_r_vectors(b.location, b.orientation)
-          rot = b.orientation.rotation_matrix()
-          self.CP[k,:] = r_vec[7,:]
-          self.R33[k] = rot[-1,-1]
-        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
-        #print(self.CPxCP)
         return
       else:
         for b in self.bodies:
@@ -692,7 +661,7 @@ class QuaternionIntegrator(object):
 
 
 
-  def stochastic_Slip_RFD(self, dt): 
+  def stochastic_Slip_Mid(self, dt): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
@@ -748,13 +717,6 @@ class QuaternionIntegrator(object):
                                                                            L_mult = P_inv_mult,
                                                                            z = Wcor)
                                                                            
-                                                                           
-      #mobility_blobs_n = self.mobility_blobs(r_vectors_blobs_n, self.eta, self.a)
-      #velocities_noise_W1 = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(4*self.kT / dt), z = W1)
-      #velocities_noise_Wcor = stochastic.stochastic_forcing_eig_symm(mobility = mobility_blobs_n, factor = np.sqrt(self.kT / dt), z = Wcor)
-
-      #print(self.tolerance)
-      #print(self.rf_delta)
       
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
@@ -794,8 +756,6 @@ class QuaternionIntegrator(object):
       # Extract velocities
       velocities_new = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
-      #TODO get rid of this TODO
-      #print(velocities_new)
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -816,12 +776,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-          r_vec = b.get_r_vectors(b.location, b.orientation)
-	  rot = b.orientation.rotation_matrix()
-	  self.CP[k,:] = r_vec[7,:]
-	  self.R33[k] = rot[-1,-1]
-	#self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
-	#print(self.CPxCP)
         return
       else:
         for b in self.bodies:
@@ -832,7 +786,7 @@ class QuaternionIntegrator(object):
       print 'Invalid configuration'
     return
 
-  def stochastic_Slip_RFD_DLA(self, dt): 
+  def stochastic_Slip_Mid_DLA(self, dt): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
@@ -879,9 +833,6 @@ class QuaternionIntegrator(object):
       
       # Compute pred. step velocities
       velocities_mid += RHS_pred
-        
-      #print(np.linalg.norm(W_RFD , np.inf))
-      #print(np.linalg.norm(velocities_mid))
       
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
@@ -916,8 +867,6 @@ class QuaternionIntegrator(object):
       # Compute cor. step velocities
       velocities_new += np.dot(mobility_bodies_new,RHS_cor)
       
-      #TODO get rid of this TODO
-      print(velocities_new)
         
       # Update location orientation to end point
       for k, b in enumerate(self.bodies):
@@ -938,12 +887,6 @@ class QuaternionIntegrator(object):
         for k, b in enumerate(self.bodies):
           b.location = b.location_new
           b.orientation = b.orientation_new
-	  r_vec = b.get_r_vectors(b.location, b.orientation)
-          rot = b.orientation.rotation_matrix()
-          self.CP[k,:] = r_vec[7,:]
-          self.R33[k] = rot[-1,-1]
-        #self.CPxCP = np.linalg.norm(self.CP[0,:] - self.CP[1,:])
-        #print(self.CP)
         return
       else:
         for b in self.bodies:
