@@ -214,7 +214,7 @@ class QuaternionIntegrator(object):
 
 
 
-  def stochastic_traction_RFD1(self, dt):
+  def stochastic_traction_EM(self, dt):
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
