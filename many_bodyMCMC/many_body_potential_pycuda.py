@@ -82,7 +82,7 @@ __global__ void potential_from_position_blobs(const double *x,
   int ioffset = i * NDIM; 
   int joffset;
   
-  if (x[ioffset+2] > blob_radius){
+  if (x[ioffset+2] > 0){
     // 1. One blob potential
     one_blob_potential(u, x[ioffset], x[ioffset+1], x[ioffset+2], blob_radius, debye_length_wall, eps_wall, weight);
 
@@ -109,7 +109,7 @@ __global__ void potential_from_position_blobs(const double *x,
   {
     // make u large for blobs behind the wall
     // if a particle starts out of bounds somehow, then it won't want to move further out
-    u = 1e+05*(-(x[ioffset+2] - blob_radius) +1); 
+    u = 1e+05*(-x[ioffset+2] +1); 
   }
   //IF END
   //3. Save potential U_i
