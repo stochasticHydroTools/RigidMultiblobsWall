@@ -30,6 +30,7 @@ blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
 The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
+
 However, we provide alternative implementations in _C++_ (through the Boost Python
 library) and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you

@@ -18,6 +18,7 @@ The Journal of Chemical Physics, **143**, 144107 (2015).
 [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
+<<<<<<< HEAD
 rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
 A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, 
 Communications in Applied Mathematics and Computational Science,
@@ -27,6 +28,10 @@ Communications in Applied Mathematics and Computational Science,
 3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
 No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
 submitted to The Journal of Chemical Physics. [arXiv](https://arxiv.org/abs/1612.00474)
+=======
+  rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
+  A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, submitted to CAMCoS. [arXiv](http://arxiv.org/abs/1602.02170)
+>>>>>>> brennansprinkle/PredictorCorrector
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
@@ -37,7 +42,10 @@ For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
+<<<<<<< HEAD
 * **many_bodyMCMC/**: Monte Carlo code for rigid bodies.
+=======
+>>>>>>> brennansprinkle/PredictorCorrector
 * **mobility/**: it has functions to compute the blob mobility matrix **M** and the
 product **Mf**.
 * **multi_bodies/**: codes to run simulations of rigid bodies.

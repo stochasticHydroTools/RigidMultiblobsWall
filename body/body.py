@@ -170,7 +170,7 @@ class Body(object):
     '''
     r_vectors = self.get_r_vectors()
     return self.mobility_blobs(r_vectors, eta, a)
-       
+
 
   def calc_mobility_body(self, eta, a, M = None, M_inv = None):
     '''

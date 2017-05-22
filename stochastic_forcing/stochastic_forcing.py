@@ -240,7 +240,7 @@ def stochastic_forcing_lanczos(factor = 1.0,
       # Compute difference with noise of previous iteration
       noise_old_norm = np.linalg.norm(noise_old)
       diff_norm = np.linalg.norm(noise - noise_old)
-      # print 'noise residual, ', i, diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps)
+
       # (Optional) Save residual
       if i == 1 and name != '':
         with open(name, 'w') as f:

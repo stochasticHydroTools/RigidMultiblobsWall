@@ -10,7 +10,6 @@ import imp
 try:
   import mobility_ext as me
 except ImportError:
-  print 'We don\'t have me' 
   pass
 # If pycuda is installed import mobility_pycuda
 try: 
@@ -25,7 +24,6 @@ try:
   import mobility_fmm as fmm
 except ImportError:
   pass
-
 
 def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   '''

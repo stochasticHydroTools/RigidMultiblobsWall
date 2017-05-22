@@ -63,7 +63,6 @@ def set_slip_by_ID(body):
   body depending on his ID. The ID of a structure
   is the name of the clones file (without .clones)
   given in the input file.
-
   As an example we give a default function which sets the
   slip to zero and a function for active rods with an
   slip along its axis. The user can create new functions
@@ -174,7 +173,6 @@ def set_blob_blob_forces(implementation):
   '''
   Set the function to compute the blob-blob forces
   to the right function.
-
   The implementation in pycuda is much faster than the
   one in C++, which is much faster than the one python; 
   To use the pycuda implementation is necessary to have 
@@ -256,8 +254,10 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   number_of_blobs = r_vectors.size / 3
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
+  if L is None:
+    L = -1.0*np.ones(3)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L)
   return np.reshape(forces, (number_of_blobs, 3))
 
 
@@ -276,7 +276,6 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   '''
   This function compute the force between two bodies
   with vector between locations r.
-
   In this example the torque is zero and the force 
   is derived from a Yukawa potential
   
@@ -378,5 +377,3 @@ def postprocess(bodies, *args, **kwargs):
   the user if he wants to change the schemes.
   '''
   return
-
-

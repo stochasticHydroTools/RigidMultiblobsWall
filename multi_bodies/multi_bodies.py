@@ -17,6 +17,7 @@ from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
 
+
 def calc_slip(bodies, Nblobs):
   '''
   Function to calculate the slip in all the blobs.
@@ -358,7 +359,6 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   independently, i.e., no interation between bodies is taken
   into account.
   '''
-  # print 'apply_CP'
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
@@ -404,14 +404,13 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     # Compute the inverse of the square root of positive eigenvalues and set to zero otherwise
     eig_values_inv_sqrt = np.array([1.0/np.sqrt(x) if x > 0 else 0 for x in eig_values])
     eig_values_sqrt = np.array([np.sqrt(x) if x > 0 else 0 for x in eig_values])
-       
+
     # Form preconditioners version P = V * S^{-1/2} * V.T
     P.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_inv_sqrt), eig_vectors.T)))
     P_inv.append(np.dot(eig_vectors, np.dot((np.eye(3 * b.Nblobs) * eig_values_sqrt), eig_vectors.T)))   
     
   # Define preconditioned mobility matrix product
   def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None, *args, **kwargs):
-    # print 'apply_stochastic_PC'
     result = np.empty_like(w)
     # Multiply by P.T
     offset = 0
@@ -462,8 +461,10 @@ if __name__ == '__main__':
   eta = read.eta 
   g = read.g 
   a = read.blob_radius
+  ###### rf_delta = read.rf_delta
   scheme  = read.scheme 
   output_name = read.output_name 
+  ###### structure_names = read.structure_names
   structures = read.structures
   structures_ID = read.structures_ID
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
@@ -562,6 +563,9 @@ if __name__ == '__main__':
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
+  ###### integrator.rf_delta = rf_delta
+  integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
+  integrator.K_matrix_vector_prod = K_matrix_vector_prod
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
   integrator.preprocess = multi_bodies_functions.preprocess
   integrator.postprocess = multi_bodies_functions.postprocess
