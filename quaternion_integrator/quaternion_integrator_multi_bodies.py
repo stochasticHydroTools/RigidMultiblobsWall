@@ -661,6 +661,7 @@ class QuaternionIntegrator(object):
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
+    This scheme uses dense algebra methods.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -690,7 +691,6 @@ class QuaternionIntegrator(object):
       Ninvhalf_cor = np.dot(np.linalg.pinv(mobility_bodies, rcond=1e-14),Nhalf_Wcor)
      
       velocities_mid += Nhalf_W1
-      # velocities += stochastic.stochastic_forcing_cholesky(mobility_bodies, factor = np.sqrt(2*self.kT / dt))
 
       # Update location orientation to mid point
       for k, b in enumerate(self.bodies):
@@ -707,7 +707,6 @@ class QuaternionIntegrator(object):
 	b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
 	quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
 	b.orientation_new = quaternion_dt * b.orientation_old
-
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
