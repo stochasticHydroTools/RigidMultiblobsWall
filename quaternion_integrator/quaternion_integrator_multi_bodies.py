@@ -897,12 +897,13 @@ class QuaternionIntegrator(object):
       #compute K^T*W to be used by the corrector step
       KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
 
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies,
-                                                                                            r_vectors_blobs_n,
-                                                                                            self.eta,
-                                                                                            self.a)
-
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs_n, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length)
 
       # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
       velocities_noise_W1, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -914,12 +915,15 @@ class QuaternionIntegrator(object):
 
 
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
+                                                x0 = self.first_guess, 
+                                                save_first_guess = True,
+                                                PC_partial = PC_partial)
       # Extract velocities
       velocities_1 = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
       # Solve mobility problem
-      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), x0 = np.zeros(3*self.Nblobs + 6*len(self.bodies)))
+      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), PC_partial = PC_partial)
       # Extract velocities
       W_RFD = np.reshape(slip_precond_rfd[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
@@ -934,10 +938,10 @@ class QuaternionIntegrator(object):
       #compute M*W to be used by the corrector step
       M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a)
       #compute K^T*W to be used by the corrector step
-      KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+      KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies, W_slip, self.Nblobs)
 
-      rand_slip_cor = velocities_noise_W1 + (2.0*self.kT / self.rf_delta)* (M_rfdxW_slip - MxW_slip)
-      rand_force_cor = -2.0*(self.kT / self.rf_delta)*(KT_rfdxW_slip - KTxW_slip)
+      rand_slip_cor = velocities_noise_W1 + (2.0*self.kT / self.rf_delta) * (M_rfdxW_slip - MxW_slip)
+      rand_force_cor = -2.0 * (self.kT / self.rf_delta) * (KT_rfdxW_slip - KTxW_slip)
 
       # Update location orientation to mid point
       for k, b in enumerate(self.bodies):
@@ -946,12 +950,12 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
 
       # Solve mobility problem at the corrector step
-      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT =  rand_force_cor,x0 = self.first_guess, save_first_guess = True)
+      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT = rand_force_cor, x0 = self.first_guess, save_first_guess = True)
 
       # Extract velocities
       velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
-      velocities_new = 0.5*(velocities_1 + velocities_2)
+      velocities_new = 0.5 * (velocities_1 + velocities_2)
 
       # Update location orientation 
       for k, b in enumerate(self.bodies):
@@ -1273,7 +1277,7 @@ class QuaternionIntegrator(object):
       if PC_partial is None:
         PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-
+      
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:
