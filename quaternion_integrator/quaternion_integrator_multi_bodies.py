@@ -552,7 +552,6 @@ class QuaternionIntegrator(object):
       # Call preprocess
       preprocess_result = self.preprocess(self.bodies)
 
-      # scale = 2.1*np.sqrt(2.0) + self.a
       rfd_noise = np.random.normal(0.0, 1.0, 6*len(self.bodies))
       W = np.empty_like(rfd_noise)
 
@@ -737,7 +736,11 @@ class QuaternionIntegrator(object):
   def stochastic_traction_AB(self, dt): 
     ''' 
     Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) schame.
+    Adams-Bashfoth scheme and using a traction method
+    to compute the RFD. 
+
+    The computational cost of this method is 3 rigid solves
+    + 1 lanczos call + 2 blobs mobility product + 4 products with the geometric matrix K.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -747,8 +750,6 @@ class QuaternionIntegrator(object):
       # Call preprocess
       preprocess_result = self.preprocess(self.bodies)
       
-
-      scale = 2.1*np.sqrt(2.0) + self.a
       rfd_noise = np.random.normal(0.0, 1.0, 6*len(self.bodies))
       W = np.empty_like(rfd_noise)
 
@@ -756,30 +757,30 @@ class QuaternionIntegrator(object):
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
         b.orientation_old = b.orientation
-        W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / (self.a))
-	W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * (self.kT / ((self.a/scale)))   
-      
-      # set AB_coef
-      if self.first_step == False:
-        # Use Adams-Bashforth
-        ABfact = 1.5
-      else:
-        # Use forward Euler
-        ABfact = 1.0
+        W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / b.body_length)
+	W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * self.kT   
         
       # Set RHS for RFD increments   
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
       RAND_RHS = np.zeros(System_size)
-      RAND_RHS[3*self.Nblobs:System_size] = -1.0*W
-      
-      # Generate RFD increments
-      sol_precond = self.solve_mobility_problem(RHS = RAND_RHS)
-      U_RFD = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-      Lam_RFD = sol_precond[0:3*self.Nblobs]
+      RAND_RHS[3*self.Nblobs:System_size] = -1.0 * W
       
       # Get blobs vectors
       r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      
+
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs_n, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length)
+
+      # Generate RFD increments
+      sol_precond = self.solve_mobility_problem(RHS = RAND_RHS, PC_partial = PC_partial)
+      U_RFD = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      Lam_RFD = sol_precond[0:3*self.Nblobs]
+         
       # compute M*Lambda_rfd
       MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a)
       # compute K^T*Lambda_rfd
@@ -789,13 +790,12 @@ class QuaternionIntegrator(object):
       
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old + rfd_noise[6*k:6*k+3] * self.rf_delta * self.a
-	quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta * (self.a/scale))
-	b.orientation = quaternion_dt * b.orientation_old
-	
-      r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+	b.location = b.location_old + rfd_noise[6*k:6*k+3] * (self.rf_delta * b.body_length)
+	quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta)
+        b.orientation = quaternion_dt * b.orientation_old    
 	
       # compute (M_rfd-M)*Lambda_rfd
+      r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a) - MxLam
       # compute (K_rfd^T - K^T)*Lambda_rfd
       DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs) - KTxLam
@@ -807,36 +807,32 @@ class QuaternionIntegrator(object):
 	b.location = b.location_old
 	b.orientation = b.orientation_old
 
-
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs_n, 
-                                                                                            self.eta, 
-                                                                                            self.a)
-
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       slip_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2.0*self.kT / dt),
-                                                                           tolerance = self.tolerance, 
-                                                                           dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult)
+                                                                     tolerance = self.tolerance, 
+                                                                     dim = self.Nblobs * 3, 
+                                                                     mobility_mult = mobility_pc_partial,
+                                                                     L_mult = P_inv_mult)
       
       rand_slip = (1.0 / self.rf_delta)* (DxM - DxK)
       rand_force = (-1.0 / self.rf_delta)* DxKT
 
 
       # Solve mobility problem with drift
-      sol_precond_new = self.solve_mobility_problem(noise = rand_slip, noise_FT =  rand_force, x0 = self.first_guess, save_first_guess = True)
+      sol_precond_new = self.solve_mobility_problem(noise = rand_slip, 
+                                                    noise_FT = rand_force, 
+                                                    x0 = self.first_guess, 
+                                                    save_first_guess = True,
+                                                    PC_partial = PC_partial)
       velocities_new = np.reshape(sol_precond_new[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      sol_precond_rand = self.solve_mobility_problem(RHS = np.concatenate([-1.0*slip_noise, np.zeros(len(self.bodies) * 6)]), x0 = np.zeros(3*self.Nblobs + 6*len(self.bodies)))
+      sol_precond_rand = self.solve_mobility_problem(RHS = np.concatenate([-1.0*slip_noise, np.zeros(len(self.bodies) * 6)]), PC_partial = PC_partial)
       velocities_noise = np.reshape(sol_precond_rand[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
       if self.first_step == False:
         # Use Adams-Bashforth
         velocities_AB = 1.5*velocities_new + velocities_noise - 0.5 * self.velocities_previous_step
       else: 
-        #use EM
+        # Use EM
         velocities_AB = velocities_new + velocities_noise
             
       # Update location and orientation
