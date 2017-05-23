@@ -1,8 +1,9 @@
 # location of the Python header files
 PYTHON_VERSION = ???
-PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
-PYTHON_LIB = /usr/lib/python$(PYTHON_VERSION)/config
-# PYTHON_LIB = /usr/local/pkg/python/$(PYTHON_VERSION)/lib/python$(PYTHON_VERSION)/config/
+PYTHON_DIR = /usr/include/python$(PYTHON_VERSION)
+# PYTHON_DIR = /usr/local/pkg/python/$(PYTHON_VERSION)
+PYTHON_INCLUDE = $(PYTHON_DIR)/include/python$(PYTHON_VERSION)
+PYTHON_LIB = $(PYTHON_DIR)/lib/python$(PYTHON_VERSION)/config/
 
 # location of the Boost Python include files and library
 BOOST_INC = ???

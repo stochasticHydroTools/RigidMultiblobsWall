@@ -1,6 +1,9 @@
 # location of the Python header files
 PYTHON_VERSION = ???
-PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
+PYTHON_DIR = /usr/include/python$(PYTHON_VERSION)
+# PYTHON_DIR = /usr/local/pkg/python/$(PYTHON_VERSION)
+PYTHON_INCLUDE = $(PYTHON_DIR)/include/python$(PYTHON_VERSION)
+PYTHON_LIB = $(PYTHON_DIR)/lib/python$(PYTHON_VERSION)/config/
 
 # location of the Boost Python include files and library
 BOOST_INC = ???
@@ -23,7 +26,7 @@ $(TARGET_FORTRAN).so: $(TARGET_FORTRAN).f90
 	f2py $(FORTRAN_LIB) -c $(TARGET_FORTRAN).f90 -m $(TARGET_FORTRAN)
 
 $(TARGET).so: $(TARGET).o
-	g++ -shared  -dynamiclib $(TARGET).o -L$(BOOST_LIB)  -lboost_python -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) -o $(TARGET).so
+	g++ -shared  -dynamiclib $(TARGET).o -L$(BOOST_LIB)  -lboost_python -L$(PYTHON_LIB) -lpython$(PYTHON_VERSION) -o $(TARGET).so
 
 $(TARGET).o: $(TARGET).cc
 	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cc
