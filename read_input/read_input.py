@@ -71,7 +71,11 @@ class ReadInput(object):
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
     self.free_kinematics = str(self.options.get('free_kinematics') or 'False')
     self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
-          
+    self.green_particles = np.fromstring(self.options.get('green_particles') or '0 0', sep=' ', dtype=int)          
+    self.cells = np.fromstring(self.options.get('cells') or '1 1', sep=' ', dtype=int)
+    self.sample_HydroGrid = int(self.options.get('sample_HydroGrid') or 1)
+    self.save_HydroGrid = int(self.options.get('save_HydroGrid') or 0)
+
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):

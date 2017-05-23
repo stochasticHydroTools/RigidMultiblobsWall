@@ -18,6 +18,11 @@ from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
 
+# Add path to HydroGrid and import module
+sys.path.append('../../../../HydroGrid/src/')
+import calculateConcentration as cc
+
+
 
 
 def calc_slip(bodies, Nblobs):
@@ -385,6 +390,20 @@ if __name__ == '__main__':
   integrator.postprocess = multi_bodies_functions.postprocess
   integrator.periodic_length = read.periodic_length
 
+  # Initialize HydroGrid library:
+  cc.calculate_concentration(output_name, 
+                             read.periodic_length[0], 
+                             read.periodic_length[1], 
+                             read.green_particles[0], 
+                             read.green_particles[1], 
+                             int(read.cells[0]), 
+                             int(read.cells[1]), 
+                             0, 
+                             dt, 
+                             Nblobs, 
+                             0, 
+                             get_blobs_r_vectors(bodies, Nblobs))
+
   # Loop over time steps
   start_time = time.time()  
   for step in range(read.initial_step, n_steps):
@@ -448,6 +467,37 @@ if __name__ == '__main__':
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
+    # Update HydroGrid
+    if (step % read.sample_HydroGrid) == 0:
+      cc.calculate_concentration(output_name, 
+                                 read.periodic_length[0], 
+                                 read.periodic_length[1], 
+                                 read.green_particles[0], 
+                                 read.green_particles[1],  
+                                 int(read.cells[0]), 
+                                 int(read.cells[1]), 
+                                 step, 
+                                 dt, 
+                                 Nblobs, 
+                                 1, 
+                                 get_blobs_r_vectors(bodies, Nblobs))
+    
+    # Save HydroGrid data
+    if read.save_HydroGrid > 0:
+      if (step % read.save_HydroGrid) == 0:
+        cc.calculate_concentration(output_name, 
+                                   read.periodic_length[0], 
+                                   read.periodic_length[1], 
+                                   read.green_particles[0], 
+                                   read.green_particles[1],  
+                                   int(read.cells[0]), 
+                                   int(read.cells[1]), 
+                                   step, 
+                                   dt, 
+                                   Nblobs, 
+                                   2, 
+                                   get_blobs_r_vectors(bodies, Nblobs))
+
     # Advance time step
     integrator.advance_time_step(dt)
 
@@ -510,6 +560,55 @@ if __name__ == '__main__':
         name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
+  # Update HydroGrid data
+  if ((step+1) % read.sample_HydroGrid) == 0:    
+    cc.calculate_concentration(output_name, 
+                               read.periodic_length[0], 
+                               read.periodic_length[1], 
+                               read.green_particles[0], 
+                               read.green_particles[1],  
+                               int(read.cells[0]), 
+                               int(read.cells[1]), 
+                               step+1, 
+                               dt, 
+                               Nblobs, 
+                               1, 
+                               get_blobs_r_vectors(bodies, Nblobs))
+
+  # Save HydroGrid data
+  if read.save_HydroGrid > 0:
+    if ((step+1) % read.save_HydroGrid) == 0:
+      cc.calculate_concentration(output_name, 
+                                 read.periodic_length[0], 
+                                 read.periodic_length[1], 
+                                 read.green_particles[0], 
+                                 read.green_particles[1],  
+                                 int(read.cells[0]), 
+                                 int(read.cells[1]), 
+                                 step+1, 
+                                 dt, 
+                                 Nblobs, 
+                                 2, 
+                                 get_blobs_r_vectors(bodies, Nblobs))
+
+
+  # Free HydroGrid
+  cc.calculate_concentration(output_name, 
+                             read.periodic_length[0], 
+                             read.periodic_length[1], 
+                             read.green_particles[0], 
+                             read.green_particles[1],  
+                             int(read.cells[0]), 
+                             int(read.cells[1]), 
+                             step+1, 
+                             dt, 
+                             Nblobs, 
+                             3, 
+                             get_blobs_r_vectors(bodies, Nblobs))
+
+
+
+
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
