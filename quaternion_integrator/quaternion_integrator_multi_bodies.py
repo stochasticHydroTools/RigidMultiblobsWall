@@ -537,8 +537,12 @@ class QuaternionIntegrator(object):
 
   def stochastic_traction_EM(self, dt):
     ''' 
-    Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) scheme.
+    Take a time step of length dt using a stochastic first order 
+    Randon Finite Difference (RFD) scheme. This function uses
+    a traction method to compute the RFD. 
+    
+    The computational cost is 2 rigid solves + 1 lanczos call 
+    + 2 blobs mobility product + 4 products with the geometric matrix K.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
