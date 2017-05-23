@@ -1251,13 +1251,9 @@ class QuaternionIntegrator(object):
           slip = np.zeros((self.Nblobs, 3))
         # Calculate force-torque on bodies
         force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
-        if False:
-          # AB for Adams-Bashforht???
-          if AB is not None:
-            force_torque = AB*force_torque
-          # Add noise to the force/torque
-          if noise_FT is not None:
-            force_torque += noise_FT
+        # Add noise to the force/torque
+        if noise_FT is not None:
+          force_torque += noise_FT
         # Set right hand side
         RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
 
