@@ -54,12 +54,8 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_x = np.array([grid[0,0] + dx_grid[0] * (x+0.5) for x in range(grid_points[0])])
   grid_y = np.array([grid[0,1] + dx_grid[1] * (x+0.5) for x in range(grid_points[1])])
   grid_z = np.array([grid[0,2] + dx_grid[2] * (x+0.5) for x in range(grid_points[2])])
-<<<<<<< HEAD
   # Be aware, x is the fast axis.
   zz, yy, xx = np.meshgrid(grid_z, grid_y, grid_x, indexing = 'ij')
-=======
-  xx, yy, zz = np.meshgrid(grid_x, grid_y, grid_z)
->>>>>>> brennansprinkle/PredictorCorrector
   grid_coor = np.zeros((num_points, 3))
   grid_coor[:,0] = np.reshape(xx, xx.size)
   grid_coor[:,1] = np.reshape(yy, yy.size)
