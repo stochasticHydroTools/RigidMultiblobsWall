@@ -69,7 +69,7 @@ class ReadInput(object):
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
     self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
-    self.free_kinematics = str(self.options.get('free_kinematics') or 'False')
+    self.free_kinematics = str(self.options.get('free_kinematics') or 'True')
     self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
     self.green_particles = np.fromstring(self.options.get('green_particles') or '0 0', sep=' ', dtype=int)          
     self.cells = np.fromstring(self.options.get('cells') or '1 1', sep=' ', dtype=int)
