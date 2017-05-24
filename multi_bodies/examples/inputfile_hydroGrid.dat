@@ -13,7 +13,8 @@ blob_blob_force_implementation	         pycuda
 repulsion_strength			                 0.0165677856
 debye_length	   			                   0.0656
 
-# Set interaction with the wall
+# Set interaction with the wall. The potential is harmonic
+# U = 0.5 * repulsion_strength_wall * (z - debye_length_wall)**2
 repulsion_strength_wall                  0.0165677856
 debye_length_wall	   		                 5.0
 
