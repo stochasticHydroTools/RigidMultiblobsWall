@@ -584,11 +584,11 @@ class QuaternionIntegrator(object):
       Lam_RFD = sol_precond[0:3*self.Nblobs]
 
       # compute M*Lambda_rfd
-      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a)
+      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a, periodic_length = self.periodic_length)
       # compute K^T*Lambda_rfd
-      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs)
+      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD, self.Nblobs)
       # compute K*U_rfd
-      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs)
+      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD, self.Nblobs)
 
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
@@ -598,11 +598,11 @@ class QuaternionIntegrator(object):
       r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
       # compute (M_rfd-M)*Lambda_rfd
-      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a) - MxLam
+      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a, periodic_length = self.periodic_length) - MxLam
       # compute (K_rfd^T - K^T)*Lambda_rfd
-      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs) - KTxLam
+      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD, self.Nblobs) - KTxLam
       # compute (K_rfd - K)*U_rfd
-      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs) - KxU, 3*self.Nblobs)
+      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD, self.Nblobs) - KxU, 3*self.Nblobs)
 
       # reset locs and thetas
       for k, b in enumerate(self.bodies):
@@ -782,11 +782,11 @@ class QuaternionIntegrator(object):
       Lam_RFD = sol_precond[0:3*self.Nblobs]
          
       # compute M*Lambda_rfd
-      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a)
+      MxLam = self.mobility_vector_prod(r_vectors_blobs_n, Lam_RFD, self.eta, self.a, periodic_length = self.periodic_length)
       # compute K^T*Lambda_rfd
-      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs)
+      KTxLam = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD, self.Nblobs)
       # compute K*U_rfd
-      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs)
+      KxU = self.K_matrix_vector_prod(self.bodies, U_RFD, self.Nblobs)
       
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
@@ -796,11 +796,11 @@ class QuaternionIntegrator(object):
 	
       # compute (M_rfd-M)*Lambda_rfd
       r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a) - MxLam
+      DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a, periodic_length = self.periodic_length) - MxLam
       # compute (K_rfd^T - K^T)*Lambda_rfd
-      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD ,self.Nblobs) - KTxLam
+      DxKT = self.K_matrix_T_vector_prod(self.bodies, Lam_RFD, self.Nblobs) - KTxLam
       # compute (K_rfd - K)*U_rfd
-      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD ,self.Nblobs) - KxU, 3*self.Nblobs)
+      DxK = np.reshape( self.K_matrix_vector_prod(self.bodies, U_RFD, self.Nblobs) - KxU, 3*self.Nblobs)
           
       # reset locs and thetas
       for k, b in enumerate(self.bodies):
@@ -869,8 +869,12 @@ class QuaternionIntegrator(object):
 
   def stochastic_Slip_Trapz(self, dt):
     ''' 
-    Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) schame.
+    Take a time step of length dt using a stochastic 
+    trapezoidal method. The thermal drift is handle
+    with a slip method.
+
+    The computational cost of this scheme is 3 rigid solves
+    + 1 lanczos call + 2 blob mobility product + 2 products with the geometri matrix K.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -893,9 +897,9 @@ class QuaternionIntegrator(object):
       r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
       #compute M*W to be used by the corrector step
-      MxW_slip = self.mobility_vector_prod(r_vectors_blobs_n, W_slip, self.eta, self.a)
+      MxW_slip = self.mobility_vector_prod(r_vectors_blobs_n, W_slip, self.eta, self.a, periodic_length = self.periodic_length)
       #compute K^T*W to be used by the corrector step
-      KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+      KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip, self.Nblobs)
 
       # Build preconditioners
       PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
@@ -936,7 +940,7 @@ class QuaternionIntegrator(object):
       # Compute M at RFD time level
       r_vectors_blobs_rfd = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       #compute M*W to be used by the corrector step
-      M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a)
+      M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a, periodic_length = self.periodic_length)
       #compute K^T*W to be used by the corrector step
       KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies, W_slip, self.Nblobs)
 
@@ -990,8 +994,12 @@ class QuaternionIntegrator(object):
 
   def stochastic_Slip_Mid(self, dt): 
     ''' 
-    Take a time step of length dt using a stochastic
-    first order Randon Finite Difference (RFD) schame.
+    Take a time step of length dt using a stochastic 
+    mid-point method. The thermal drift is handle
+    with a slip method.
+
+    The computational cost of this scheme is 3 rigid solves
+    + 2 lanczos call + 2 blob mobility product + 2 products with the geometri matrix K.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -1015,9 +1023,9 @@ class QuaternionIntegrator(object):
       r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       
       #compute M*W to be used by the corrector step
-      MxW_slip = self.mobility_vector_prod(r_vectors_blobs_n, W_slip, self.eta, self.a)
+      MxW_slip = self.mobility_vector_prod(r_vectors_blobs_n, W_slip, self.eta, self.a, periodic_length = self.periodic_length)
       #compute K^T*W to be used by the corrector step
-      KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+      KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip, self.Nblobs)
       
       # Build preconditioners
       PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
@@ -1066,9 +1074,9 @@ class QuaternionIntegrator(object):
       # Compute M at RFD time level
       r_vectors_blobs_rfd = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       #compute M*W to be used by the corrector step
-      M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a)
+      M_rfdxW_slip = self.mobility_vector_prod(r_vectors_blobs_rfd, W_slip, self.eta, self.a, periodic_length = self.periodic_length)
       #compute K^T*W to be used by the corrector step
-      KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
+      KT_rfdxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip, self.Nblobs)
       
       rand_slip_cor = velocities_noise_Wcor + (self.kT / self.rf_delta)* (M_rfdxW_slip - MxW_slip)
       rand_force_cor = -1.0*(self.kT / self.rf_delta)*(KT_rfdxW_slip - KTxW_slip)
@@ -1122,6 +1130,7 @@ class QuaternionIntegrator(object):
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
+    This method uses dense algebra methods.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)

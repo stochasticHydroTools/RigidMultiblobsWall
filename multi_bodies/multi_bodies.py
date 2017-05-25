@@ -461,10 +461,8 @@ if __name__ == '__main__':
   eta = read.eta 
   g = read.g 
   a = read.blob_radius
-  ###### rf_delta = read.rf_delta
   scheme  = read.scheme 
   output_name = read.output_name 
-  ###### structure_names = read.structure_names
   structures = read.structures
   structures_ID = read.structures_ID
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
@@ -565,7 +563,6 @@ if __name__ == '__main__':
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
-  ###### integrator.rf_delta = rf_delta
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
   integrator.K_matrix_vector_prod = K_matrix_vector_prod
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
