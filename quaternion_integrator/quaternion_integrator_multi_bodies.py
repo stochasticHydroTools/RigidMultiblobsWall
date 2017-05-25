@@ -1019,39 +1019,41 @@ class QuaternionIntegrator(object):
       #compute K^T*W to be used by the corrector step
       KTxW_slip = self.K_matrix_T_vector_prod(self.bodies,W_slip ,self.Nblobs)
       
-      # Build stochastic preconditioner
-      mobility_pc_partial, P_inv_mult = self.build_stochastic_block_diagonal_preconditioner(self.bodies, 
-                                                                                            r_vectors_blobs_n, 
-                                                                                            self.eta, 
-                                                                                            self.a)
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs_n, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length)
       
-      def mult_mobility_blobs(force = None, r_vectors = None, eta = None, a = None):
-          return self.mobility_vector_prod(r_vectors, force, eta, a)
-      mobility_mult_partial = partial(mult_mobility_blobs, r_vectors = r_vectors_blobs_n, eta = self.eta, a = self.a)
-
+      
       # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
       velocities_noise_W1, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(4*self.kT / dt),
-                                                                           tolerance = self.tolerance, 
-                                                                           dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult,
-                                                                           z = W1)
+                                                                              tolerance = self.tolerance, 
+                                                                              dim = self.Nblobs * 3, 
+                                                                              mobility_mult = mobility_pc_partial,
+                                                                              L_mult = P_inv_mult,
+                                                                              z = W1)
       
       velocities_noise_Wcor, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(self.kT / dt),
-                                                                           tolerance = self.tolerance, 
-                                                                           dim = self.Nblobs * 3, 
-                                                                           mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult,
-                                                                           z = Wcor)
-                                                                           
+                                                                                tolerance = self.tolerance, 
+                                                                                dim = self.Nblobs * 3, 
+                                                                                mobility_mult = mobility_pc_partial,
+                                                                                L_mult = P_inv_mult,
+                                                                                z = Wcor)                                                                           
       
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
+                                                x0 = self.first_guess, 
+                                                save_first_guess = True, 
+                                                PC_partial = PC_partial)
       # Extract velocities
       velocities_mid = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
       # Solve mobility problem
-      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), x0 = np.zeros(3*self.Nblobs + 6*len(self.bodies)))
+      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), 
+                                                     PC_partial = PC_partial)
       # Extract velocities
       W_RFD = np.reshape(slip_precond_rfd[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
@@ -1078,11 +1080,14 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
 
       # Solve mobility problem at the corrector step
-      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT =  rand_force_cor,x0 = self.first_guess, save_first_guess = True)
+      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, 
+                                                    noise_FT = rand_force_cor,
+                                                    x0 = self.first_guess, 
+                                                    save_first_guess = True,
+                                                    PC_partial = PC_partial)
 
       # Extract velocities
-      velocities_new = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-      
+      velocities_new = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))     
       
       # Update location orientation 
       for k, b in enumerate(self.bodies):
