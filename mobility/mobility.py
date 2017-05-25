@@ -588,13 +588,14 @@ def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
 
       elif j == k:
         # j == k, diagonal block.
-        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = ((1./(6.*np.pi*eta*a))*
-                                                      np.identity(3))
+        fluid_mobility[(j*3):(j*3 + 3), (k*3):(k*3 + 3)] = ((1./(6.*np.pi*eta*a)) * np.identity(3))
   return fluid_mobility
 
 
 def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwargs):
   ''' 
+  WARNING: pseudo-PBC are not implemented for this function.
+
   Product (Mobility * vector). Mobility for particles near a wall.  
   This uses the expression from the Swan and Brady paper for a finite 
   size particle, as opposed to the Blake paper point particle result. 
@@ -645,6 +646,8 @@ def single_wall_self_mobility_with_rotation(location, eta, a, *args, **kwargs):
 
 def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
+  WARNING: pseudo-PBC are not implemented for this function.
+
   Compute the Stokeslet interaction plus self mobility
   II/(6*pi*eta*a) in the presence of a wall at z=0.
   It uses the fmm implemented in the library stfmm3d.
@@ -678,6 +681,8 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
 
 def fmm_rpy(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
+  WARNING: pseudo-PBC are not implemented for this function.
+
   Compute the Stokes interaction using the Rotner-Prager
   tensor. Here there is no wall.
   It uses the fmm implemented in the library rpyfmm.
@@ -696,6 +701,8 @@ def fmm_rpy(r_vectors, force, eta, a, *args, **kwargs):
 
 def mobility_vector_product_source_target_one_wall(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   '''
+  WARNING: pseudo-PBC are not implemented for this function.
+
   Compute velocity of targets of radius radius_target due
   to forces on sources of radius source_targer in half-space. 
 
@@ -769,6 +776,8 @@ def mobility_vector_product_source_target_one_wall(source, target, force, radius
 
 def mobility_vector_product_source_target_unbounded(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   '''
+  WARNING: pseudo-PBC are not implemented for this function.
+
   Compute velocity of targets of radius radius_target due
   to forces on sources of radius source_targer in unbounded domain. 
 
@@ -809,7 +818,6 @@ def mobility_vector_product_source_target_unbounded(source, target, force, radiu
 
 
 def boosted_mobility_vector_product_source_target(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
-  # (r_vectors, vector, eta, a, *args, **kwargs):
   ''' 
   Compute a mobility * vector product boosted in C++ for a
   speedup. It includes wall corrections.
