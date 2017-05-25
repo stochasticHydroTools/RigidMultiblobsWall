@@ -5,6 +5,7 @@ import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
+import copy
 
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
@@ -90,20 +91,10 @@ class QuaternionIntegrator(object):
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      # Check positions, if valid, return 
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
         return
-      
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+
     return
       
 
@@ -133,19 +124,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
         return
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
       
   
@@ -187,22 +168,12 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
         # Save velocities for next step
         self.first_step = False
         self.velocities_previous_step = velocities
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new          
         return
-    
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'      
+
     return
 
 
@@ -221,8 +192,8 @@ class QuaternionIntegrator(object):
       
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
 
       # Generate random vector
       rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
@@ -300,24 +271,11 @@ class QuaternionIntegrator(object):
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
-        return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      # Check positions, if valid return 
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+        return
+
     return
 
 
@@ -336,8 +294,8 @@ class QuaternionIntegrator(object):
       
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
 
       # Generate random vector
       rfd_noise = np.random.normal(0.0, 1.0, len(self.bodies) * 6)     
@@ -429,25 +387,11 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         self.first_step = False
         self.velocities_previous_step = velocities_det
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -518,20 +462,11 @@ class QuaternionIntegrator(object):
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
+
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for b in self.bodies:
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True) is True:
         return
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -557,8 +492,8 @@ class QuaternionIntegrator(object):
 
       # Save initial configuration and scale noise
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
         W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / b.body_length)
         W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * self.kT
 
@@ -606,8 +541,8 @@ class QuaternionIntegrator(object):
 
       # reset locs and thetas
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old
-        b.orientation = b.orientation_old
+        np.copyto(b.location, b.location_old)
+        b.orientation = copy.copy(b.orientation_old)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       slip_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2.0*self.kT / dt),
@@ -637,23 +572,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
   def Fixman(self, dt):
@@ -672,8 +593,8 @@ class QuaternionIntegrator(object):
 
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
      
       # Solve mobility problem
       velocities_mid, mobility_bodies = self.solve_mobility_problem_dense_algebra()
@@ -696,6 +617,10 @@ class QuaternionIntegrator(object):
 	b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
 	quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
 	b.orientation = quaternion_dt * b.orientation_old
+
+      # Check positions, if invalid continue
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+        continue
    
       # Solve mobility problem predictor step
       velocities_new, mobility_bodies = self.solve_mobility_problem_dense_algebra()
@@ -711,25 +636,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        self.first_step = False
-        self.velocities_previous_step = velocities_new
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -755,8 +664,8 @@ class QuaternionIntegrator(object):
 
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
         W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / b.body_length)
 	W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * self.kT   
         
@@ -804,8 +713,8 @@ class QuaternionIntegrator(object):
           
       # reset locs and thetas
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old
-	b.orientation = b.orientation_old
+        np.copyto(b.location, b.location_old)
+        b.orientation = copy.copy(b.orientation_old)
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       slip_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2.0*self.kT / dt),
@@ -844,26 +753,12 @@ class QuaternionIntegrator(object):
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
-      # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
+      # Check positions, if valid return
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = False) is True:
         self.first_step = False
         self.velocities_previous_step = velocities_new
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -886,8 +781,8 @@ class QuaternionIntegrator(object):
 
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
 
       # Generate random vector
       W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
@@ -949,9 +844,13 @@ class QuaternionIntegrator(object):
 
       # Update location orientation to mid point
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + velocities_1[k*6 : k*6+3] * dt
+        b.location = b.location_old + velocities_1[k*6 : k*6+3] * dt 
         quaternion_dt = Quaternion.from_rotation(velocities_1[(k*6+3):(k*6+6)] * dt )
         b.orientation = quaternion_dt * b.orientation_old
+
+      # Check positions, if invalid continue 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+        continue       
 
       # Solve mobility problem at the corrector step
       sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT = rand_force_cor, x0 = self.first_guess, save_first_guess = True)
@@ -971,23 +870,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -1011,8 +896,8 @@ class QuaternionIntegrator(object):
       
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
 
       # Generate random vector
       W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
@@ -1083,9 +968,14 @@ class QuaternionIntegrator(object):
       
       # Update location orientation to mid point
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + velocities_mid[k*6 : k*6+3] * dt * 0.5
+        b.location = b.location_old + velocities_mid[k*6 : k*6+3] * dt * 0.5 
         quaternion_dt = Quaternion.from_rotation(velocities_mid[(k*6+3):(k*6+6)] * dt * 0.5)
         b.orientation = quaternion_dt * b.orientation_old
+
+
+      # Check positions, if invalid continue 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+        continue
 
       # Solve mobility problem at the corrector step
       sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, 
@@ -1107,23 +997,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
   def stochastic_Slip_Mid_DLA(self, dt): 
@@ -1142,8 +1018,8 @@ class QuaternionIntegrator(object):
       
       # Save initial configuration
       for k, b in enumerate(self.bodies):
-        b.location_old = b.location
-        b.orientation_old = b.orientation
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
 
       # Solve mobility problem predictor step
       velocities_mid, mobility_bodies_mid, mobility_blobs_mid, resistance_blobs_mid, K_mid, r_vectors_blobs_mid = self.solve_mobility_problem_DLA()
@@ -1190,12 +1066,16 @@ class QuaternionIntegrator(object):
       DxM = np.dot(mobility_blobs_RFD,W_slip) - MxW_slip
       DxKT = np.dot(K_RFD.T,W_slip) - KTxW_slip
         
-
+      # Update to mid-point
       for k, b in enumerate(self.bodies):
 	b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
 	quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
 	b.orientation = quaternion_dt * b.orientation_old
         
+      # Check positions, if invalid continue 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+        continue
+
       # Solve mobility problem predictor step 
       velocities_new, mobility_bodies_new, mobility_blobs_new, resistance_blobs_new, K_new, r_vectors_blobs_new = self.solve_mobility_problem_DLA()
         
@@ -1219,23 +1099,9 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      valid_configuration = True
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          break
-      if valid_configuration is True:
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_new
-          b.orientation = b.orientation_new
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
         return
-      else:
-        for b in self.bodies:
-          b.location = b.location_old
-          b.orientation = b.orientation_old
 
-      self.invalid_configuration_count += 1
-      print 'Invalid configuration'
     return
 
 
@@ -1336,22 +1202,15 @@ class QuaternionIntegrator(object):
       # Calculate resistance at the blob level (use np.linalg.inv or np.linalg.pinv)
       resistance_blobs = np.linalg.inv(mobility_blobs)
 
-      # Calculate constraint force due to slip l = M^{-1}*slip
-      force_slip = np.dot(resistance_blobs, np.reshape(slip, (3*self.Nblobs,1)))
-
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
-      # Add slip force looping over bodies
-      offset = 0
-      for k, b in enumerate(self.bodies):
-        K = b.calc_K_matrix()
-        force_torque[2*k : 2*(k+1)] -= np.reshape(np.dot(K.T, force_slip[3*offset : 3*(offset+b.Nblobs)]), (2, 3))
-        offset += b.Nblobs    
-
       # Calculate block-diagonal matrix K
       K = self.calc_K_matrix(self.bodies, self.Nblobs)
-    
+
+      # Add slip force = K^T * M^{-1} * slip
+      force_torque -= np.reshape(np.dot(K.T,np.dot(resistance_blobs, np.reshape(slip, (3*self.Nblobs,1)))), force_torque.shape)
+   
       # Calculate mobility (N) at the body level. Use np.linalg.inv or np.linalg.pinv
       mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)), rcond=1e-14)
 
@@ -1403,6 +1262,54 @@ class QuaternionIntegrator(object):
 
       # Compute velocities
       return (np.dot(mobility_bodies, FTS), mobility_bodies, mobility_blobs, resistance_blobs, K, r_vectors_blobs)
+
+
+
+  def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None):
+    '''
+    This function checks if the configuration is valid calling
+    body.check_function. If necessary it updates the configuration
+    of body.location and body.orientation.
+    '''
+    # Check positions, if valid return 
+    valid_configuration = True
+    if new == 'current':
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location, b.orientation)
+        if valid_configuration is False:
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration number ', self.invalid_configuration_count
+          break
+    elif new == 'new':
+      for b in self.bodies:
+        valid_configuration = b.check_function(b.location_new, b.orientation_new)
+        if valid_configuration is False:
+          self.invalid_configuration_count += 1
+          print 'Invalid configuration number ', self.invalid_configuration_count
+          break
+
+    # Update position if necessary
+    if (valid_configuration is False) and (update_in_failure is True):
+      if old == 'old':
+        for b in self.bodies:
+          np.copyto(b.location, b.location_old)
+          b.orientation = copy.copy(b.orientation_old)
+      if old == 'current':
+        for b in self.bodies:
+          b.location = b.location
+          b.orientation = b.orientation          
+    elif (valid_configuration is True) and (update_in_success is True):
+      if new == 'current':
+        for b in self.bodies:
+          b.location = b.location
+          b.orientation = b.orientation
+      if new == 'new':
+        for b in self.bodies:
+          np.copyto(b.location, b.location_new)
+          b.orientation = copy.copy(b.orientation_new)
+
+    # Return true or false
+    return valid_configuration
 
 
 # Callback generator
