@@ -65,7 +65,7 @@ class ReadInput(object):
     self.force_file = self.options.get('force_file')
     self.velocity_file = self.options.get('velocity_file')
     self.solver_tolerance = float(self.options.get('solver_tolerance') or 1e-08)
-    self.rf_delta = float(self.options.get('rf_delta') or 1e-04)
+    self.rf_delta = self.options.get('rf_delta') or None
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
     self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
