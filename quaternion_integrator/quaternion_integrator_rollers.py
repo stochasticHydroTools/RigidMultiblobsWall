@@ -542,9 +542,9 @@ class QuaternionIntegratorRollers(object):
       sol_precond = self.get_torque()
 
     # Compute linear velocity
-    # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors_blobs, force, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
-    velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
+    if np.any(sol_precond):
+      velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     
     # Return linear velocity and torque
     return velocity, sol_precond
