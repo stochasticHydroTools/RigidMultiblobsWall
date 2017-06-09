@@ -24,9 +24,12 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-import visit.visit_writer as visit_writer
 
-
+# Try to import the visit_writer (boost implementation)
+try:
+  import visit.visit_writer as visit_writer
+except ImportError:
+  pass
 
 
 # Callback generator
