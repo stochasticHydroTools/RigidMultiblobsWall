@@ -457,8 +457,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run a multi-body simulation '
                                    'with a deterministic forward Euler '
                                    'scheme and save trajectory.')
-  parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', 
-                      help='name of the input file')
+  parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', help='name of the input file')
+  parser.add_argument('--print_residual', action='store_true', help='print gmres and lanczos residuals')
   args=parser.parse_args()
   input_file = args.input_file
 
@@ -582,6 +582,7 @@ if __name__ == '__main__':
   integrator.postprocess = multi_bodies_functions.postprocess
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
+  integrator.print_residual = args.print_residual
 
   # Loop over time steps
   start_time = time.time()  

@@ -218,7 +218,8 @@ class QuaternionIntegrator(object):
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
                                                                            mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult)
+                                                                           L_mult = P_inv_mult,
+                                                                           print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
 
       # Solve mobility problem
@@ -323,7 +324,8 @@ class QuaternionIntegrator(object):
                                                                            tolerance = self.tolerance, 
                                                                            dim = self.Nblobs * 3, 
                                                                            mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult)
+                                                                           L_mult = P_inv_mult,
+                                                                           print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
 
       # Solve stochastic mobility problem
@@ -559,7 +561,8 @@ class QuaternionIntegrator(object):
                                                                      tolerance = self.tolerance,
                                                                      dim = self.Nblobs * 3,
                                                                      mobility_mult = mobility_pc_partial,
-                                                                     L_mult = P_inv_mult)
+                                                                     L_mult = P_inv_mult,
+                                                                     print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
 
       rand_slip = slip_noise + (1.0 / self.rf_delta) * (DxM - DxK)
@@ -734,7 +737,8 @@ class QuaternionIntegrator(object):
                                                                      tolerance = self.tolerance, 
                                                                      dim = self.Nblobs * 3, 
                                                                      mobility_mult = mobility_pc_partial,
-                                                                     L_mult = P_inv_mult)
+                                                                     L_mult = P_inv_mult,
+                                                                     print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
       
       rand_slip = (1.0 / self.rf_delta)* (DxM - DxK)
@@ -822,11 +826,12 @@ class QuaternionIntegrator(object):
 
       # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
       velocities_noise_W1, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                           tolerance = self.tolerance,
-                                                                           dim = self.Nblobs * 3,
-                                                                           mobility_mult = mobility_pc_partial,
-                                                                           L_mult = P_inv_mult,
-                                                                           z = W1)
+                                                                              tolerance = self.tolerance,
+                                                                              dim = self.Nblobs * 3,
+                                                                              mobility_mult = mobility_pc_partial,
+                                                                              L_mult = P_inv_mult,
+                                                                              z = W1,
+                                                                              print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
 
 
@@ -946,7 +951,8 @@ class QuaternionIntegrator(object):
                                                                               dim = self.Nblobs * 3, 
                                                                               mobility_mult = mobility_pc_partial,
                                                                               L_mult = P_inv_mult,
-                                                                              z = W1)
+                                                                              z = W1,
+                                                                              print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
       
       velocities_noise_Wcor, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(self.kT / dt),
@@ -954,7 +960,8 @@ class QuaternionIntegrator(object):
                                                                                 dim = self.Nblobs * 3, 
                                                                                 mobility_mult = mobility_pc_partial,
                                                                                 L_mult = P_inv_mult,
-                                                                                z = Wcor)
+                                                                                z = Wcor,
+                                                                                print_residual = self.print_residual)
       self.stoch_iterations_count += it_lanczos
       
       # Solve mobility problem
@@ -1185,7 +1192,7 @@ class QuaternionIntegrator(object):
         RHS = RHS / RHS_norm
 
       # Solve preconditioned linear system
-      counter = gmres_counter(print_residual = False)
+      counter = gmres_counter(print_residual = self.print_residual)
       (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
       self.det_iterations_count += counter.niter
 
