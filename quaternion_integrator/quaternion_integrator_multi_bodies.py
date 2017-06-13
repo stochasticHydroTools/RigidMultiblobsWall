@@ -41,6 +41,8 @@ class QuaternionIntegrator(object):
     self.tolerance = 1e-08
     self.rf_delta = 1e-05
     self.invalid_configuration_count = 0
+    self.det_iterations_count = 0
+    self.stoch_iterations_count = 0
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -217,6 +219,7 @@ class QuaternionIntegrator(object):
                                                                            dim = self.Nblobs * 3, 
                                                                            mobility_mult = mobility_pc_partial,
                                                                            L_mult = P_inv_mult)
+      self.stoch_iterations_count += it_lanczos
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True, PC_partial = PC_partial)
@@ -321,6 +324,7 @@ class QuaternionIntegrator(object):
                                                                            dim = self.Nblobs * 3, 
                                                                            mobility_mult = mobility_pc_partial,
                                                                            L_mult = P_inv_mult)
+      self.stoch_iterations_count += it_lanczos
 
       # Solve stochastic mobility problem
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
@@ -556,6 +560,7 @@ class QuaternionIntegrator(object):
                                                                      dim = self.Nblobs * 3,
                                                                      mobility_mult = mobility_pc_partial,
                                                                      L_mult = P_inv_mult)
+      self.stoch_iterations_count += it_lanczos
 
       rand_slip = slip_noise + (1.0 / self.rf_delta) * (DxM - DxK)
       rand_force = (-1.0 / self.rf_delta) * DxKT
@@ -730,6 +735,7 @@ class QuaternionIntegrator(object):
                                                                      dim = self.Nblobs * 3, 
                                                                      mobility_mult = mobility_pc_partial,
                                                                      L_mult = P_inv_mult)
+      self.stoch_iterations_count += it_lanczos
       
       rand_slip = (1.0 / self.rf_delta)* (DxM - DxK)
       rand_force = (-1.0 / self.rf_delta)* DxKT
@@ -821,6 +827,7 @@ class QuaternionIntegrator(object):
                                                                            mobility_mult = mobility_pc_partial,
                                                                            L_mult = P_inv_mult,
                                                                            z = W1)
+      self.stoch_iterations_count += it_lanczos
 
 
       # Solve mobility problem
@@ -940,13 +947,15 @@ class QuaternionIntegrator(object):
                                                                               mobility_mult = mobility_pc_partial,
                                                                               L_mult = P_inv_mult,
                                                                               z = W1)
+      self.stoch_iterations_count += it_lanczos
       
       velocities_noise_Wcor, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(self.kT / dt),
                                                                                 tolerance = self.tolerance, 
                                                                                 dim = self.Nblobs * 3, 
                                                                                 mobility_mult = mobility_pc_partial,
                                                                                 L_mult = P_inv_mult,
-                                                                                z = Wcor)                                                                           
+                                                                                z = Wcor)
+      self.stoch_iterations_count += it_lanczos
       
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
@@ -1175,8 +1184,11 @@ class QuaternionIntegrator(object):
       if RHS_norm > 0:
         RHS = RHS / RHS_norm
 
-      # Solve preconditioned linear system # callback=make_callback()
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60) 
+      # Solve preconditioned linear system
+      counter = gmres_counter(print_residual = False)
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
+      self.det_iterations_count += counter.niter
+
       if save_first_guess:
         self.first_guess = sol_precond  
 
@@ -1324,13 +1336,18 @@ class QuaternionIntegrator(object):
     return valid_configuration
 
 
-# Callback generator
-def make_callback():
-  closure_variables = dict(counter=0, residuals=[]) 
-  def callback(residuals):
-    closure_variables["counter"] += 1
-    closure_variables["residuals"].append(residuals)
-    print closure_variables["counter"], residuals
-  return callback
+class gmres_counter(object):
+  '''
+  Callback generator to count iterations. 
+  '''
+  def __init__(self, print_residual = False):
+    self.print_residual = print_residual
+    self.niter = 0
+  def __call__(self, rk=None):
+    self.niter += 1
+    if self.print_residual is True:
+      if self.niter == 1:
+        print 'gmres =  0 1'
+      print 'gmres = ', self.niter, rk
 
-
+      

@@ -711,8 +711,11 @@ if __name__ == '__main__':
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
-  # Save number of invalid configurations
-  with open(output_name + '.number_invalid_configurations', 'w') as f:
-    f.write(str(integrator.invalid_configuration_count) + '\n')
+  # Save number of invalid configurations and number of iterations in the
+  # deterministic solvers and the Lanczos algorithm
+  with open(output_name + '.info', 'w') as f:
+    f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+            + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+            + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
 
   print '\n\n\n# End'

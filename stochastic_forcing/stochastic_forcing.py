@@ -112,12 +112,12 @@ def stochastic_forcing_cholesky(mobility, factor = 1.0, z = None):
 def stochastic_forcing_lanczos(factor = 1.0, 
                                tolerance = 1e-06, 
                                max_iter = 1000, 
-                               name = '',
                                dim = None, 
                                mobility = None, 
                                mobility_mult = None,
                                L_mult = None,
-                               z = None):
+                               z = None,
+                               print_residual = False):
   '''
   Compute the stochastic forcing (factor * M^{1/2} * z) using
   the Lanczos algorithm, see Krylov subspace methods for 
@@ -134,8 +134,8 @@ def stochastic_forcing_lanczos(factor = 1.0,
   tolerance = the tolerance to determine convergence.
   max_iter = maximum number of iterations allowed.
   dim = The dimension of the noise. If it is not passed dim = len(z).
-  name = (Optional) name of a file to save the residuals. The residuals are
-         not saved if the string name is empty.
+  print_residual = (Optional, default False) If True, it prints the iteration number and the 
+                   residual every iteration.
   z = (Optional) the random vector.
   mobility = the mobility matrix. You can pass it like a list of lists or
              a list of numpy arrays. It is not used if mobility_mult
@@ -241,15 +241,11 @@ def stochastic_forcing_lanczos(factor = 1.0,
       noise_old_norm = np.linalg.norm(noise_old)
       diff_norm = np.linalg.norm(noise - noise_old)
 
-      # (Optional) Save residual
-      if i == 1 and name != '':
-        with open(name, 'w') as f:
-          data = '1\n' + str(diff_norm / noise_old_norm) + '\n'
-          f.write(data)
-      elif i > 1 and name != '':
-        with open(name, 'a') as f:
-          data = str(diff_norm / noise_old_norm) + '\n'
-          f.write(data)
+      # (Optional) Print residual
+      if i > 0 and print_residual is True:
+        if i == 1:
+          print 'lanczos =  0 1' 
+        print 'lanczos = ', i, diff_norm / noise_old_norm
 
       # Check convergence and return if difference < tolerance
       if diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps) < tolerance:
