@@ -59,7 +59,7 @@ class QuaternionIntegratorRollers(object):
       self.tolerance = tolerance
     return 
 
-  def advance_time_step(self, dt):
+  def advance_time_step(self, dt, *args, **kwargs):
     '''
     Advance time step with integrator self.scheme
     '''

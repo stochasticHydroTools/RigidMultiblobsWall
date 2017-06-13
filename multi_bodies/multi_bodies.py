@@ -17,6 +17,7 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
+import utils
 
 def calc_slip(bodies, Nblobs):
   '''
@@ -187,6 +188,12 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   return res
 
 
+@utils.static_var('K_bodies', [])
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('K_bodies', [])
+@utils.static_var('M_factorization_blobs', [])
+@utils.static_var('M_factorization_blobs_inv', [])
+@utils.static_var('mobility_inv_blobs', [])
 def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
   '''
   Build the deterministic and stochastic block diagonal preconditioners for rigid bodies.
@@ -214,23 +221,39 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   M_factorization_blobs_inv = []
   mobility_inv_blobs = []
 
-  # Loop over bodies
-  for b in bodies:
-    # 1. Compute blobs mobility 
-    M = b.calc_mobility_blobs(eta, a)
-    # 2. Compute Cholesy factorization, M = L^T * L
-    L, lower = scipy.linalg.cho_factor(M)
-    L = np.triu(L)   
-    M_factorization_blobs.append(L)
-    # 3. Compute inverse of L
-    M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
-    # 4. Compute inverse mobility blobs
-    mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-    # 5. Compute geometric matrix K
-    K = b.calc_K_matrix()
-    K_bodies.append(K)
-    # 6. Compute body mobility
-    mobility_bodies.append(scipy.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+    # Loop over bodies
+    for b in bodies:
+      # 1. Compute blobs mobility 
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
+      M_factorization_blobs.append(L)
+      # 3. Compute inverse of L
+      M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
+      # 4. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 5. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 6. Compute body mobility
+      mobility_bodies.append(scipy.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+
+      # Save variables to use in next steps if PC is not updated
+      build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
+      build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
+      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
+      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
+      build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+  else:
+    # Use old values
+    mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
+    K_bodies = build_block_diagonal_preconditioners_det_stoch.K_bodies
+    M_factorization_blobs = build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs 
+    M_factorization_blobs_inv = build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv 
+    mobility_inv_blobs = build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs 
+    
 
   def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None, *args, **kwargs):
     '''
@@ -558,6 +581,7 @@ if __name__ == '__main__':
   integrator.preprocess = multi_bodies_functions.preprocess
   integrator.postprocess = multi_bodies_functions.postprocess
   integrator.periodic_length = read.periodic_length
+  integrator.update_PC = read.update_PC
 
   # Loop over time steps
   start_time = time.time()  
@@ -623,7 +647,7 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Advance time step
-    integrator.advance_time_step(dt)
+    integrator.advance_time_step(dt, step = step)
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:

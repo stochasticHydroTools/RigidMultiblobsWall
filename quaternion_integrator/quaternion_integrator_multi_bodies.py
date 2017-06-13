@@ -56,14 +56,14 @@ class QuaternionIntegrator(object):
       self.rf_delta = 0.1 * np.power(self.tolerance, 1.0/3.0)
     return 
 
-  def advance_time_step(self, dt):
+  def advance_time_step(self, dt, *args, **kwargs):
     '''
     Advance time step with integrator self.scheme
     '''
-    return getattr(self, self.scheme)(dt)
+    return getattr(self, self.scheme)(dt, *args, **kwargs)
     
 
-  def deterministic_forward_euler(self, dt): 
+  def deterministic_forward_euler(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses gmres to solve the rigid body equations.
@@ -98,7 +98,7 @@ class QuaternionIntegrator(object):
     return
       
 
-  def deterministic_forward_euler_dense_algebra(self, dt): 
+  def deterministic_forward_euler_dense_algebra(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     The function uses dense algebra methods to solve the equations.
@@ -130,7 +130,7 @@ class QuaternionIntegrator(object):
     return
       
   
-  def deterministic_adams_bashforth(self, dt): 
+  def deterministic_adams_bashforth(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using the deterministic Adams-Bashforth of
     order two scheme. The function uses gmres to solve the rigid body equations.
@@ -177,7 +177,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_first_order_RFD(self, dt): 
+  def stochastic_first_order_RFD(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) scheme.
@@ -207,7 +207,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -279,7 +281,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_adams_bashforth(self, dt): 
+  def stochastic_adams_bashforth(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) scheme.
@@ -309,7 +311,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
 
       # Add noise contribution sqrt(2kT/dt)*N^{1/2} * W
       velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -395,7 +399,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_first_order_RFD_dense_algebra(self, dt): 
+  def stochastic_first_order_RFD_dense_algebra(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) scheme.
@@ -470,7 +474,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_traction_EM(self, dt):
+  def stochastic_traction_EM(self, dt, *args, **kwargs):
     ''' 
     Take a time step of length dt using a stochastic first order 
     Randon Finite Difference (RFD) scheme. This function uses
@@ -511,7 +515,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
 
       # Generate RFD increments
       sol_precond = self.solve_mobility_problem(RHS = RAND_RHS, PC_partial = PC_partial)
@@ -577,7 +583,7 @@ class QuaternionIntegrator(object):
 
     return
 
-  def Fixman(self, dt):
+  def Fixman(self, dt, *args, **kwargs):
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
@@ -642,7 +648,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_traction_AB(self, dt): 
+  def stochastic_traction_AB(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic
     Adams-Bashfoth scheme and using a traction method
@@ -683,7 +689,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
 
       # Generate RFD increments
       sol_precond = self.solve_mobility_problem(RHS = RAND_RHS, PC_partial = PC_partial)
@@ -762,7 +770,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_Slip_Trapz(self, dt):
+  def stochastic_Slip_Trapz(self, dt, *args, **kwargs):
     ''' 
     Take a time step of length dt using a stochastic 
     trapezoidal method. The thermal drift is handle
@@ -802,7 +810,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
 
       # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
       velocities_noise_W1, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
@@ -877,7 +887,7 @@ class QuaternionIntegrator(object):
 
 
 
-  def stochastic_Slip_Mid(self, dt): 
+  def stochastic_Slip_Mid(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic 
     mid-point method. The thermal drift is handle
@@ -918,7 +928,9 @@ class QuaternionIntegrator(object):
                                                                                                         self.Nblobs, 
                                                                                                         self.eta, 
                                                                                                         self.a,
-                                                                                                        periodic_length=self.periodic_length)
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
       
       
       # Calc noise contributions M^{1/2}*W1 and M^{1/2}*(W1+W3)
@@ -1002,7 +1014,7 @@ class QuaternionIntegrator(object):
 
     return
 
-  def stochastic_Slip_Mid_DLA(self, dt): 
+  def stochastic_Slip_Mid_DLA(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic
     first order Randon Finite Difference (RFD) schame.
@@ -1176,7 +1188,7 @@ class QuaternionIntegrator(object):
       return sol_precond
 
 
-  def solve_mobility_problem_dense_algebra(self): 
+  def solve_mobility_problem_dense_algebra(self, *args, **kwargs): 
     ''' 
     Solve the mobility problem using dense algebra methods. Compute 
     velocities on the bodies subject to active slip and enternal 
@@ -1218,7 +1230,7 @@ class QuaternionIntegrator(object):
       return (np.dot(mobility_bodies, np.reshape(force_torque, 6*len(self.bodies))), mobility_bodies)
 
 
-  def solve_mobility_problem_DLA(self): 
+  def solve_mobility_problem_DLA(self, *args, **kwargs): 
     ''' 
     Solve the mobility problem using dense algebra methods. Compute 
     velocities on the bodies subject to active slip and enternal 

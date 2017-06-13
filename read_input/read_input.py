@@ -71,6 +71,7 @@ class ReadInput(object):
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
     self.free_kinematics = str(self.options.get('free_kinematics') or 'True')
     self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
+    self.update_PC = int(self.options.get('update_PC') or 1)
           
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
