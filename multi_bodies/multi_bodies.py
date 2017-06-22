@@ -458,7 +458,7 @@ if __name__ == '__main__':
                                    'with a deterministic forward Euler '
                                    'scheme and save trajectory.')
   parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', help='name of the input file')
-  parser.add_argument('--print_residual', action='store_true', help='print gmres and lanczos residuals')
+  parser.add_argument('--print-residual', action='store_true', help='print gmres and lanczos residuals')
   args=parser.parse_args()
   input_file = args.input_file
 

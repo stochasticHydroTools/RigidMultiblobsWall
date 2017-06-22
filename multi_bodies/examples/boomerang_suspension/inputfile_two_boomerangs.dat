@@ -17,7 +17,7 @@ body_body_force_torque_implementation	   python
 
 # Set time step, number of steps and save frequency
 dt                                       0.01
-n_steps                                  100
+n_steps                                  10
 n_save                                   1
 initial_step				                     0
 
