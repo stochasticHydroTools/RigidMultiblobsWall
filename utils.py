@@ -1,9 +1,12 @@
 '''File with utilities for the scripts and functions in this project.'''
 
 import logging
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot
+try:
+   import matplotlib
+   matplotlib.use('Agg')
+   from matplotlib import pyplot
+except ImportError:
+   pass
 import numpy as np
 import os
 import sys
