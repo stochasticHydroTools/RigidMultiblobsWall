@@ -395,6 +395,11 @@ def postprocess(bodies, *args, **kwargs):
 
 # Override force interactions by user defined functions.
 # This only override the functions implemented in python.
-# If user_defined_functions is empty this import does nothing.
-import user_defined_functions
+# If user_defined_functions is empty or does not exists
+# this import does nothing.
+user_defined_functions_found = False
+if os.path.isfile('user_defined_functions.py'):
+  user_defined_functions_found = True
+if user_defined_functions_found:
+  import user_defined_functions
 
