@@ -75,6 +75,7 @@ class ReadInput(object):
     self.cells = np.fromstring(self.options.get('cells') or '1 1', sep=' ', dtype=int)
     self.sample_HydroGrid = int(self.options.get('sample_HydroGrid') or 1)
     self.save_HydroGrid = int(self.options.get('save_HydroGrid') or 0)
+    self.hydro_interactions = int(self.options.get('hydro_interactions') or 1)    
 
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
