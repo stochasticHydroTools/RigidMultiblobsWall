@@ -1,0 +1,99 @@
+# Select integrator -- stochastic Adams-Bashforth is more accurate and preferred for BD
+scheme					                         stochastic_adams_bashforth_rollers
+# Keep this set to True:
+free_kinematics      True 
+
+# Choose if we take uncorrelated particles with no hydrodynamic interactions
+hydro_interactions   0
+
+# Set the implementation to compute the block-diagonal matrix for the preconditioner
+# Note: This option is  not used for single blobs as in this example
+mobility_blobs_implementation	           C++
+# Define implementation to compute the blob-blob mobility matrix
+mobility_vector_prod_implementation      pycuda
+
+# First choose single or double precision for matrix-vector product by editing the top of file
+# RigidMultiblobsWall/mobility/mobility_pycuda.py
+# The default is single precision.
+# The delta in the centered RFD is related to the precision as eps^(1/3)
+# If you change to double precision change the following line also:
+# For single precision use delta=3e-3, which is the default value
+rf_delta  3e-3
+# For double precision 
+#rf_delta 3e-6
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+# Use implementation=pycuda for GPU-based, None for ideal particles, or C++ for CPU-based
+blob_blob_force_implementation	         None
+#blob_blob_force_implementation	         pycuda 
+# Set parameters for repulsion, which is of form 
+#   U(r) = repulsion_strength * (1.0 + (2*blob_radius - r) /  debye_length) if r <= 2*blob_radius
+#   U(r) = repulsion_strength * exp(-(r-2*blob_radius) / debye_length) if r > 2*blob_radius
+# To change the potential you can edit:
+# blob_blob_force in forces_pycuda.py for the pycuda implementation.
+# See documentation to change the  python or the C++ implementations.
+repulsion_strength			                 0.0165677856
+debye_length	   			                   0.0656
+
+# Set interaction with the wall. Here the potential is harmonic
+# U = 0.5 * repulsion_strength_wall * (z - debye_length_wall)**2
+# There is no additional steric repulsion from the wall, so you have to make sure
+# the harmonic potential is strong enough to keep blobs from ever going on the other side of the wall
+# The code prints out "invalid configurations" which should be very small or zero
+# It tells you how many configurations had a blob on the wrong side of the wall
+# If you want to instead add repulsion with the wall also edit the 
+# function blob_external_force on the file RigidMultiblobsWall/multi_bodies/multi_bodies_functions.py
+# see for example source code which implements a Debye-type potential in the
+# master branch
+repulsion_strength_wall                  0.0662711424
+#0.0165677856
+debye_length_wall	   		                 5.0
+
+# Set time step, number of steps and save frequency for particle configurations
+# To figure out right time step, compute histogram of z positions and compare to Gibbs-Boltzmann.
+# Although it may be that one should also look at pair correlation functions
+# since in fluam2d we found we required smaller time step sizes for Quasi2D than True2D
+dt		 	   	     	                       0.02
+n_steps					                         800
+n_save  				                         80
+
+# Set numer of initialization/equilibration steps: code saves not data for steps < initial_step
+initial_step				                     0
+
+# Set tolerance for iterative solvers (Lanczos and GMRES if used): 1e-3 or 1e-4 should be enough
+solver_tolerance			                   1e-3
+
+# Set viscosity, gravity, blob radius and temperature (k_B*T)
+eta                                      1.0e-3
+g					                               0.0
+blob_radius				                       0.656
+kT					                             0.01656778564
+
+# Seed random number generator, it will be random if not given
+#seed                                   1
+
+# Set output name
+output_name                              data/blobswall
+# By default a file is saved each step -- uncomment next line to get one big file
+#save_clones				                       one_file
+
+# Load structures and initial configuration
+structure	Structures/blob.vertex data/initial.dat
+
+
+# Set pseudo-periodic boundary conditions. System is
+# pseudoperiodic along x,y axes if the length is > 0.
+periodic_length				                   0 0 0
+
+# Options for HydroGrid:
+# First and last green particle
+green_particles                          0 2048
+# Number of hydro cells for FFTs:
+cells                                    32 32
+# How many steps between successive calls to HydroGrid
+sample_HydroGrid                         5
+# How often to dump HydroGrid statistics. zero means just write results at the end
+# Remember that HydroGrid completely resets all statistics once it writes files
+# so don't use this as a way to get output in the middle of the run
+# It is mostly useful for situations where the configuration changes dynamically
+save_HydroGrid                           0
