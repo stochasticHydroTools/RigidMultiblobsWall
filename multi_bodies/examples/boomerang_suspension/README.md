@@ -36,9 +36,10 @@ to compute the blob-blob, blob-wall and body-body interactions.
 The file `forces_pycuda_user_defined.py` re-implements the pycuda
 function to compute the blob-blob interactions.
 
-To run these examples you only need to copy the files in this folder to 
-`RigidMultiblobsWall/multi_bodies/`, move to that folder `cd ../../`
-and run the code as explained in the documentation; for example,
+To run these examples you only need to move to this folder and 
+copy the code `RigidMultiblobsWall/multi_bodies/multi_bodies.py`
+here (i.e. `cp ../../multi_bodies.py ./). Then you can run the
+examples like 
 
 ```
 python multi_bodies.py --input-file inputfile_two_boomerangs.dat
