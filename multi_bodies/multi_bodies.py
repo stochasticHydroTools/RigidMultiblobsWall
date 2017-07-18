@@ -6,18 +6,30 @@ import cPickle
 from functools import partial
 import sys
 import time
-sys.path.append('../')
 
-import multi_bodies_functions
-from mobility import mobility as mb
-from quaternion_integrator.quaternion import Quaternion
-from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
-from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
-from body import body 
-from read_input import read_input
-from read_input import read_vertex_file
-from read_input import read_clones_file
-import utils
+# Find project functions
+found_functions = False
+path_to_append = ''
+while found_functions is False:
+  try:
+    import multi_bodies_functions
+    from mobility import mobility as mb
+    from quaternion_integrator.quaternion import Quaternion
+    from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
+    from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
+    from body import body 
+    from read_input import read_input
+    from read_input import read_vertex_file
+    from read_input import read_clones_file
+    import utils
+    found_functions = True
+  except ImportError:
+    path_to_append += '../'
+    print 'searching functions in path ', path_to_append
+    sys.path.append(path_to_append)
+    if len(path_to_append) > 21:
+      print '\nProjected functions not found. Edit path in multi_bodies.py'
+      sys.exit()
 
 def calc_slip(bodies, Nblobs):
   '''
@@ -454,9 +466,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
 
 if __name__ == '__main__':
   # Get command line arguments
-  parser = argparse.ArgumentParser(description='Run a multi-body simulation '
-                                   'with a deterministic forward Euler '
-                                   'scheme and save trajectory.')
+  parser = argparse.ArgumentParser(description='Run a multi-body simulation and save trajectory.')
   parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', help='name of the input file')
   parser.add_argument('--print-residual', action='store_true', help='print gmres and lanczos residuals')
   args=parser.parse_args()
