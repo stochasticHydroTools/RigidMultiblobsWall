@@ -50,8 +50,8 @@ repulsion_strength	   		               0.095713728509
 debye_length	   			                   0.162278695459
 
 # Set output name
-output_name                              data/run_boomerang_suspension
+output_name                              run_boomerang_suspension
 save_clones				                       one_file
 
-structure	Structures/boomerang_N_15.vertex boomerang_suspension_N_15.clones
+structure	../../Structures/boomerang_N_15.vertex boomerang_suspension_N_15.clones
 
