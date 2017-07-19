@@ -23,6 +23,10 @@ Communications in Applied Mathematics and Computational Science,
 The Journal of Chemical Physics, **146**, 134104 (2017). [arXiv](https://arxiv.org/abs/1612.00474)
 [DOI](http://dx.doi.org/10.1063/1.4979494)
 
+4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
+Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
+A. Donev. _In preparation_, 2017.
+
 Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
@@ -103,13 +107,13 @@ therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids. The code assigns a slip function to each body depending
 on its structure ID; the structure ID is the name of the
 `*.clones` file without the _path_ or the ending _.clones_ 
-(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
+(i.e., _boomerang\_N\_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
 Therefore all the bodies passed to the code in the same `.clones` file
 will have the same slip. This way it is easy to combine active and passive bodies in the same simulation
 by just using different `.clones` files for active and passive bodies. 
 
 Right now, the code only has two active slip functions implemented;
-for bodies with structure ID _active_body_ all blobs have a
+for bodies with structure ID _active\_body_ all blobs have a
 slip along the x-axis in the reference configuration. 
 For bodies with any other structure ID the slip is set to zero,
 i.e., they are passive bodies. It is easy to generalize the code to include other kind of slips,
@@ -234,7 +238,7 @@ corresponding to linear (first three) and angular velocities (last three).
 ### 5.1 Rigid multiblob simulations
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
-See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
+See the instruction in `boomerang/README.md`. Here, we explain how to use the other
 code which allows to run deterministic and stochastic simulations for many bodies. 
 
 First, move to the directory `multi_bodies/` and inspect the input file
@@ -301,6 +305,10 @@ code saves a file with the location and orientation of the rigid
 bodies. The name format is (output_name + structure_name + time_step + .clones)
 The format of the files is the same that in the input .clones files.
 
+* `.info`: It records the number of invalid configurations generated during the simulation 
+(number of times a blob cross the wall), and the total number of iterations to solve the mobility
+problems (GMRES iterations) and to generate the Brownian noise (Lanczos iterations).
+
 * `.inputfile`: a copy of the input file.
 
 * `.random_state`: it saves the state of the random generator at the start of the simulation. 
@@ -310,18 +318,51 @@ It can be used to run a simulation with the same random numbers.
 
 List of options for the input file:
 
-* `scheme`: (string) Options: `deterministic_forward_euler_dense_algebra, deterministic_forward_euler,
-deterministic_adams_bashforth, stochastic_first_order_RFD, 
-stochastic_first_order_RFD_dense_algebra and
-stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
-and integrate the equation of motion. 
-The `*forward_euler*` schemes are first order accurate
-while `*adams_bashforth*` are second order accurate in the
-deterministic case. The scheme `*dense_algebra` uses
-dense algebra methods to solve the mobility problem and therefore the computational
-cost scales like (number_of_blobs)**3.
-The other schemes use preconditioned GMRES
-to solve the mobility problem and are more efficient for large number of bodies.
+* `scheme` (string). There are several schemes implemented to run
+deterministic and stochastic simulations. See reference [4] for a discussion.
+The input file should select one of the following ones
+
++-------------------------------------------+--------------+---------------------------------+
+| Name                                      | Solver type  | Notes                           |
++===========================================+==============+=================================+
+| deterministic_forward_euler               | GMRES        | first order accuracy            |
++-------------------------------------------+--------------+---------------------------------+ 
+| deterministic_forward_euler_              | Direct solve | cost `O(number_of_blobs**3)`    |       
+| dense_algebra                             |              |                                 |
++-------------------------------------------+--------------+---------------------------------+ 
+| stochastic_first_order_RFD                | GMRES        | it uses three mobility solves   |
+|                                           |              | and one Lanczos call            |
++-------------------------------------------+--------------+---------------------------------+ 
+| stochastic_adams_bashforth                | GMRES        |                                 | 
++-------------------------------------------+--------------+---------------------------------+ 
+| stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
+| dense_algebra                             |              |                                 |
++-------------------------------------------+--------------+---------------------------------+ 
+| stochastic_traction_EM                    | GMRES        | it uses two mobility solvers    |
+|                                           |              | and one Lanczos call            |
++-------------------------------------------+--------------+---------------------------------+
+| Fixman                                    | GMRES        | cost `O(number_of_blobs**3)`    |
++-------------------------------------------+--------------+---------------------------------+
+| stochastic_traction_AB                    | GMRES        | second order accuracy           |
+|                                           |              | deterministically and weakly    |
+|                                           |              | first order accurate            |
+|                                           |              | stochastically.                 |
+|                                           |              | It uses three mobility solves   |
+|                                           |              | and one Lanczos call            |
++-------------------------------------------+--------------+---------------------------------+
+| stochastic_Slip_Trapz                     | GMRES        | Cost and accuracy like in       |
+|                                           |              | stochastic_traction_AB          |
++-------------------------------------------+--------------+---------------------------------+
+| stochastic_Slip_Mid                       | GMRES        | Accuracy like in                |
+|                                           |              | stochastic_traction_AB.         |
+|                                           |              | It uses three mobility solves   |
+|                                           |              | and two Lanczos calls           |
++-------------------------------------------+--------------+---------------------------------+
+| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)`    |
++-------------------------------------------+--------------+---------------------------------+
+
+With schemes that use iterative methods you can print the residual of GMRES and the Lanczos
+algorithm to the standard output using the flag `--print-residual`.
 
 * `mobility_blobs_implementation`: Options: `python and C++`. This option
 indicates which implementation is used to compute the blob mobility 
@@ -337,7 +378,7 @@ the others use double precision.
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
-The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
+The cost of this function scales like `(number_of_blobs)**2`, just like the product **Mf**.
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
 Select the implementation to compute the body-body interactions between all
@@ -464,8 +505,10 @@ set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
 ### 5.3 Modify the codes
-Right now, the slip on the rigid bodies and the interactions between blobs and between  
-bodies are hard-coded in the codes. We explain here how the user can change these functions.
+We provide default implementations to calculate the slip on the rigid bodies 
+and the interactions between blobs and between bodies as explained above. However,
+the user can override the default implementation with their own functions. We explain
+here how to do it.
 First, we provide two alternatives to compute the interactions between
 bodies. A direct method that uses the locations
 and orientations of the bodies and a indirect form that compute
@@ -477,28 +520,36 @@ The second approach can be more expensive, since in general
 `number_of_blobs >> number_of_bodies` but it can
 be used with bodies with arbitrary shapes, while the first
 method it is hard to generalize to non-spherical bodies.
-Note that the code can used both methods at the same time.
-You can modify the following functions:
+Note that the code can use both methods at the same time.
+You can override the following functions:
 
-* blob-blob interactions: to modify the _python_ implementation edit
-the function `blob_blob_force` in the file `multi_bodies/multi_bodies_functions.py`.
-To modify the _C++_ implementation edit the function `blobBlobForce` in the
-file `multi_bodies/forces_ext.cc` and recompile the _C++_ code.
-To modify the _pycuda_ version edit the function 
+* blob-blob interactions: to override the _python_ implementation 
+create your own function `blob_blob_force` in the file
+`user_defined_functions.py` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
+To override the _pycuda_ version create your own function `blob_blob_force` in 
+forces_pycuda_user_defined.py as we show also in 
+`multi_bodies/examples/boomerang_suspension/`.
 `blob_blob_force` in the file `multi_bodies/forces_pycuda.py`
+However, to modify the _C++_ implementation you need to edit the function `blobBlobForce` in the
+file `multi_bodies/forces_ext.cc` and recompile the _C++_ code,
+note that this not override the default implementation but it modifies it.
 
-* blob-wall interaction: to modify the _python_ implementation edit
-the function `blob_external_force` in the file `multi_bodies/multi_bodies_functions.py`.
+
+* blob-wall interaction: to override the _python_ implementation 
+create your own function `blob_external_force` in the file
+`user_defined_functions.py` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
 There are not _C++_ or _pycuda_ versions of this function since
 it is not an expensive operation.
 
-* body-body interactions: to modify the _python_ implementation
-edit the function `body_body_force_torque` in the file `multi_bodies/multi_bodies_functions.py`.
+* body-body interactions: to override the _python_ implementation
+create your own function `body_body_force_torque` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
 
-* body external forces: to modify the one-body forces,
-for example gravity or interactions with the wall, edit the 
-function `bodies_external_force_torque` in the file
-`multi_bodies/multi_bodies_functions.py`.
+* body external forces: to override the one-body forces,
+for example gravity or interactions with the wall, create your own
+function `bodies_external_force_torque` in the file `user_defined_functions.py`.
 
 * active slip: The code assigns a slip function to each body depending
 on its structure ID; the structure ID is the name of the
@@ -506,10 +557,9 @@ on its structure ID; the structure ID is the name of the
 (i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
 Therefore all the bodies passed to the code in the same `.clones` file
 will have the same slip.  
-The user can generalize the slip functions by editing the function 
-`set_slip_by_ID` in the file `multi_bodies/multi_bodies_functions.py`.
-We provide an example of how to add a constant slip to all the blobs
-of an active body in the function `active_body_slip` in the same file.
+The user can generalize the slip functions by overriding the function `set_slip_by_ID`
+and creating its own slip functions. You can see an example in 
+`multi_bodies/examples/pair_active_rods/`.
 
 
 ## 6. Run Monte Carlo simulations

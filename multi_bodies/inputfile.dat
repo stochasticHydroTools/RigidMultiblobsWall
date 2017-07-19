@@ -1,29 +1,29 @@
 # Select mobility or resistance problem
-scheme				mobility
+scheme                                 mobility
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         python  # Options: python, C++
-mobility_vector_prod_implementation      python  # Options: python, C++, pycuda
+mobility_blobs_implementation          python  # Options: python, C++
+mobility_vector_prod_implementation    python  # Options: python, C++, pycuda
 
 # Set viscosity, gravity and blob radius
-eta					 1.0 
-g					 0.0 
-blob_radius				 0.25
-solver_tolerance			 1e-08
+eta                                    1.0 
+g                                      0.0 
+blob_radius                            0.25
+solver_tolerance                       1e-08
 
 # Set output name
-output_name				 data/clean/run.mobility
+output_name                            data/run.mobility
 
 # Input files
-force_file				 force.dat
-#velocity_file				 velocity.dat
+force_file                             force.dat
+#velocity_file                         velocity.dat
 
 # Save more info
-save_body_mobility			 False
-save_blobs_mobility			 False
+save_body_mobility                     False
+save_blobs_mobility                    False
 
-structure	Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
-structure	Structures/shell_N_42_Rg_0_225.vertex Structures/shell_N_42_Rg_0_225.clones
+structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
+structure Structures/shell_N_42_Rg_0_225.vertex Structures/shell_N_42_Rg_0_225.clones
 
 
 
