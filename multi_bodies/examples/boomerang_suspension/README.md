@@ -37,8 +37,9 @@ The file `forces_pycuda_user_defined.py` re-implements the pycuda
 function to compute the blob-blob interactions.
 
 To run these examples you only need to move to this folder and 
-create a soft symbolic link to the code `RigidMultiblobsWall/multi_bodies/multi_bodies.py`
-(i.e. `ln -s ../../multi_bodies.py multi_bodies.py`). Then you can run the
+copy the code `RigidMultiblobsWall/multi_bodies/multi_bodies.py` to
+this folder
+(i.e. `cp ../../multi_bodies.py ./`). Then you can run the
 examples like 
 
 ```

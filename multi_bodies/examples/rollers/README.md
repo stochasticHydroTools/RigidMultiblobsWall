@@ -10,10 +10,11 @@ The Journal of Chemical Physics, **146**, 134104 (2017). [arXiv](https://arxiv.o
 To use this example is necessary to have pyCuda installed and a GPU
 compatible with CUDA. To run this example move to the folder
 `RigidMultiblobsWall/multi_bodies/examples/rollers/`
-and create a soft link to the code `RigidMultiblobsWall/multi_bodies/multi_bodies.py` like
+and copy the code `RigidMultiblobsWall/multi_bodies/multi_bodies.py`
+to this folder like
 
 ```
-ln -s ../../multi_bodies.py multi_bodies.py
+cp ../../multi_bodies.py ./
 ```
 
 You can run the simulation with the command

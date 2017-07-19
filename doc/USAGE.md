@@ -577,6 +577,8 @@ python many_body_MCMC.py inputMCMC.dat
 `
 
 The output files are similar to the ones generated with dynamic simulations.
+The user can override the default interactions by creating its own functions
+in the file `potential_pycuda_user_defined.py`.
 
 ## 7. Software organization
 * **body/**: it contains a class to handle a single rigid body.
