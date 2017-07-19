@@ -13,13 +13,15 @@ For the theory consult the references:
 The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
-rigid multiblob approach**, F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
-A. Pal Singh Bhalla, B. E. Griffith and
-A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
+A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, 
+Communications in Applied Mathematics and Computational Science,
+**11**, 217 (2016). 
+[DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
-3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
-No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-submitted to The Journal of Chemical Physics. [arXiv](https://arxiv.org/abs/1612.00474)
+3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
+The Journal of Chemical Physics, **146**, 134104 (2017). [arXiv](https://arxiv.org/abs/1612.00474)
+[DOI](http://dx.doi.org/10.1063/1.4979494)
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
