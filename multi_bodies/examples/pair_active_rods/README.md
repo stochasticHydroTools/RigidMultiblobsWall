@@ -22,9 +22,11 @@ Each resolution has its own `.vertex` and `.clone` file in the folder `multi_bod
 
 ## 2. How to run the example (e.g. with the low resolution)
 
-To run a given resolution you just need the command: 
+First, copy the file
+`RigidMultiblobsWall/multi_bodies/multi_bodies_utilities.py` to this folder.
+Then, to run a given resolution you just need the command: 
 
-`python multi_bodies_utilities.py --input-file ../example_pair_active_rods/inputfile_low_resolution.dat`
+`python multi_bodies_utilities.py --input-file inputfile_low_resolution.dat`
 
 **Note:** If you have compiled the C++ boost library, it is recommended to change `mobility_blobs_implementation` and `mobility_vector_prod_implementation` to `C++` in the input file.
 If you have PyCuda, change `mobility_vector_prod_implementation` to `pycuda`.

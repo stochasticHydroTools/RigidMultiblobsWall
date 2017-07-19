@@ -13,17 +13,29 @@ import cPickle
 from functools import partial
 import sys
 import time
-sys.path.append('../')
 
-import multi_bodies_functions
-import multi_bodies
-from mobility import mobility as mob
-from quaternion_integrator.quaternion import Quaternion
-from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
-from body import body 
-from read_input import read_input
-from read_input import read_vertex_file
-from read_input import read_clones_file
+# Find project functions
+found_functions = False
+path_to_append = ''
+while found_functions is False:
+  try:
+    import multi_bodies_functions
+    import multi_bodies
+    from mobility import mobility as mob
+    from quaternion_integrator.quaternion import Quaternion
+    from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
+    from body import body 
+    from read_input import read_input
+    from read_input import read_vertex_file
+    from read_input import read_clones_file
+    found_functions = True
+  except ImportError:
+    path_to_append += '../'
+    print 'searching functions in path ', path_to_append
+    sys.path.append(path_to_append)
+    if len(path_to_append) > 21:
+      print '\nProjected functions not found. Edit path in multi_bodies_utilities.py'
+      sys.exit()
 
 # Try to import the visit_writer (boost implementation)
 try:
@@ -47,6 +59,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   This function plots the velocity field to a grid. 
   '''
   # Prepare grid values
+  print grid.shape
   grid = np.reshape(grid, (3,3)).T
   grid_length = grid[1] - grid[0]
   grid_points = np.array(grid[2], dtype=np.int32)
@@ -258,8 +271,8 @@ if __name__ ==  '__main__':
     print 'Time to solve mobility problem =', time.time() - start_time 
 
     # Plot velocity field
-    if read.plot_velocity_field.size > 0: 
-      print 'plot_velocity_field' 
+    if read.plot_velocity_field.size > 1: 
+      print 'plot_velocity_field'
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
@@ -291,8 +304,8 @@ if __name__ ==  '__main__':
     print 'Time to solve resistance problem =', time.time() - start_time  
 
     # Plot velocity field
-    if read.plot_velocity_field.size > 0: 
-      print 'plot_velocity_field' 
+    if read.plot_velocity_field.size > 1: 
+      print 'plot_velocity_field'
       lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)

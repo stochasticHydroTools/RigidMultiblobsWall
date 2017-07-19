@@ -1,0 +1,32 @@
+# Select mobility or resistance problem
+scheme                                 mobility
+
+# Define implementation to compute the blobs mobility 
+mobility_blobs_implementation          python  # Options: python, C++
+mobility_vector_prod_implementation    python  # Options: python, C++, pycuda
+
+# Set viscosity, gravity and blob radius
+eta                                    1e-3 
+g                                      0.0 
+blob_radius                            0.0402
+solver_tolerance                       1e-08
+n_steps                                1
+
+# Set output name
+output_name                            run_high_res
+
+# Input files
+force_file                             force_high_resolution.dat
+
+
+# Save more info
+save_body_mobility                     False
+save_blobs_mobility                    False
+
+structure ../../Structures/Cylinder_N_324_Lg_2_0299_Rg_0_1554.vertex ../../Structures/Cylinder_N_324_Lg_2_0299_Rg_0_1554.clones
+
+
+
+
+
+
