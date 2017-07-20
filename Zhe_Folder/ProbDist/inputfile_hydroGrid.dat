@@ -4,7 +4,7 @@ scheme					                         stochastic_adams_bashforth_rollers
 free_kinematics      True 
 
 # Choose if we take uncorrelated particles with no hydrodynamic interactions
-hydro_interactions   0
+hydro_interactions   1
 
 # Set the implementation to compute the block-diagonal matrix for the preconditioner
 # Note: This option is  not used for single blobs as in this example

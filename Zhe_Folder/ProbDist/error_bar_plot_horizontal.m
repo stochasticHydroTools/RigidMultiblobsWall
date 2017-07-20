@@ -40,20 +40,24 @@ if hydro_interaction
         figure1 = figure;
         set(gcf,'visible','off')
         hold on
+        set(gca,'YScale','log');
         % Create errorbar
-        errorbar(r2,p,err,'+','DisplayName','Simulation Data');
+        errorbar(r2,p0,err0,'+','DisplayName','Simulation Data');
         % Create plot
         %     plot(r2(1:r_num),polyval(temp1,r2(1:r_num)));
         Sigma_temp=mean(diag(Sigma(:,:,t)));
+        Sigma_analysis=(2*D*((t-1)*sample*dt+sigma0^2/2/D));
         x=linspace(r2(1),r2(end),100);
-        plot(x,-x/(2*Sigma_temp)-log(2*pi*Sigma_temp),'DisplayName','Estimated Gaussian Distribution');
+        plot(x,exp(-x/(2*Sigma_temp))/(2*pi*Sigma_temp),'DisplayName','Estimated Gaussian Distribution');
+        plot(x,exp(-x/(2*Sigma_analysis))/(2*pi*Sigma_analysis),'DisplayName','Without HI');
+%         plot(x,-x/(2*Sigma_temp)-log(2*pi*Sigma_temp),'DisplayName','Estimated Gaussian Distribution');
         %     plot(r2(1+r_num:end),polyval(temp2,r2(1+r_num:end)));
         % Create xlabel
         xlabel({'$r^2$'});
         % Create title
-        title({['t=',num2str((t-1)*sample*dt),';  $\sigma_{estimate}=$',num2str(sqrt(Sigma_temp)),';With HI']});
+        title({['t=',num2str((t-1)*sample*dt),';  $\sigma_{estimate}=$',num2str(sqrt(Sigma_temp)),';  $\sigma_{without\ HI}=$',num2str(sqrt(Sigma_analysis)),'; With HI']});
         % Create ylabel
-        ylabel({['log(P(r,t=',num2str((t-1)*sample*dt),'))']});
+        ylabel({['P(r,t=',num2str((t-1)*sample*dt),')']});
         legend(gca,'show')
         
 %         annotation(figure1,'textbox',...
@@ -84,6 +88,7 @@ if hydro_interaction
             errorbar(r,p0,err0,'+','DisplayName','Simulation Data');
             x=linspace(r(1),r(end),100);
             plot(x,exp(-x.^2/(2*Sigma_temp))./(2*pi*Sigma_temp),'DisplayName','Estimated Gaussian Distribution');
+            plot(x,exp(-x.^2/(2*Sigma_analysis))/(2*pi*Sigma_analysis),'DisplayName','Without HI');
             %     plot(r2(1+r_num:end),polyval(temp2,r2(1+r_num:end)));
             % Create xlabel
             xlabel({'$r$'});
@@ -108,8 +113,11 @@ else
     sigma_rec=zeros(t_num,1);
     Sigma=squeeze(mean(Sigma,'omitnan'));
     for t=1:t_num
-        temp=log(squeeze(prob(:,:,t)));
+        temp0=squeeze(prob(:,:,t));
+        temp=log(temp0);
+        p0=mean(temp0);
         p=mean(temp);
+        err0=2*std(temp0)/sqrt(repeat);
         err=2*std(temp)/sqrt(repeat);
         r2=((linspace(1,r_num,r_num)-0.5)*r_step).^2;
         %     r2=[-fliplr(r2),r2];
@@ -120,24 +128,25 @@ else
         %     [~,~,~,~,stats2] = regress(p(r_num+1:end)',[r2(r_num+1:end)',ones(r_num,1)]);
         figure1 = figure;
         set(gcf,'visible','off')
+        set(gca, 'YScale', 'log')
         hold on
         % Create errorbar
-        errorbar(r2,p,err,'+','DisplayName','Simulation Data');
+        errorbar(r2,p0,err0,'+','DisplayName','Simulation Data');
         % Create plot
         %     plot(r2(1:r_num),polyval(temp1,r2(1:r_num)));
 %         Sigma_temp=-1/2/temp1(1);
         Sigma_temp=mean(diag(Sigma(:,:,t)));
         Sigma_analysis=(2*D*((t-1)*sample*dt+sigma0^2/2/D));
         x=linspace(r2(1),r2(end),100);
-        plot(x,-x/(2*Sigma_analysis)-log(2*pi*Sigma_analysis),'DisplayName','Analysis');
-        plot(x,-x/(2*Sigma_temp)-log(2*pi*Sigma_temp),'DisplayName','Estimated');
+        plot(x,exp(-x/(2*Sigma_analysis))/(2*pi*Sigma_analysis),'DisplayName','Analysis');
+        plot(x,exp(-x/(2*Sigma_temp))/(2*pi*Sigma_temp),'DisplayName','Estimated');
         %     plot(r2(1+r_num:end),polyval(temp2,r2(1+r_num:end)));
         % Create xlabel
         xlabel({'$r^2$'});
         % Create title
         title({['t=',num2str((t-1)*sample*dt),';  $\sigma_{Estimated}=$',num2str(sqrt(Sigma_temp)),'; $\sigma_{analysis}=$',num2str(sqrt(Sigma_analysis)),'; Without HI']});
         % Create ylabel
-        ylabel({['log(P(r,t=',num2str((t-1)*sample*dt),'))']});
+        ylabel({['P(r,t=',num2str((t-1)*sample*dt),')']});
         
 %         annotation(figure1,'textbox',...
 %             [0.6 0.5 0.3 0.2],...
@@ -164,7 +173,8 @@ else
     set(gcf,'visible','off')
     axes1 = axes('Parent',figure1);
     hold(axes1,'on')
-    fplot(@(t)sqrt(2*D*(t+sigma0^2/2/D)),[0,(t_num-1)*sample*dt],'DisplayName','Analysis',...
+    x=linspace(0,(t_num-1)*sample*dt,100);
+    plot(x, sqrt(2*D*(x+sigma0^2/2/D)),'DisplayName','Analysis',...
         'Color',[0 0 1]);
     scatter((linspace(0,(t_num-1)*sample*dt,t_num))',sigma_rec,20,'filled','DisplayName','Simulation','MarkerFaceColor','flat',...
         'MarkerEdgeColor','none');

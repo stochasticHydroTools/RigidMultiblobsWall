@@ -19,9 +19,11 @@ r_num=r_num/2;
 sigma_rec=zeros(t_num,3);
 Sigma=mean(Sigma,'omitnan');
 for t=2:t_num
-    temp=log(squeeze(prob(:,:,t)));
+    temp0=squeeze(prob(:,:,t));
+    temp=log(temp0);
+    p0=mean(temp0);
     p=mean(temp);
-    err=2*std(temp)/sqrt(repeat);
+    err0=2*std(temp0)/sqrt(repeat);
     r2=((linspace(1,r_num,r_num)-0.5)*r_step).^2;
     r2=[-fliplr(r2),r2];
     %     temp=polyfit(r2(3:end),p(3:end),1);
@@ -31,15 +33,17 @@ for t=2:t_num
     [~,~,~,~,stats2] = regress(p(r_num+1:end)',[r2(r_num+1:end)',ones(r_num,1)]);
     figure1 = figure;
     set(gcf,'visible','off')
-    set(gcf,'Position',[0,0,800,600])
+    set(gca,'YScale','log')
+    set(gcf,'Position',[0,0,850,600])
     hold on
     box on
     % Create errorbar
-    errorbar(r2,p,err,'+','DisplayName','Simulation Data');
+    errorbar(r2,p0,err0,'+','DisplayName','Simulation Data');
     % Create plot
-    plot(r2(1:r_num),polyval(temp1,r2(1:r_num)),'DisplayName','Regress below the plane');
-    plot(r2(1+r_num:end),polyval(temp2,r2(1+r_num:end)),'DisplayName','Regress above the plane');
-    fplot(@(r2)-sign(r2)*r2/(2*Sigma(t))-log(2*pi*Sigma(t))/2,[r2(1),r2(end)],'DisplayName','Estimated');
+    plot(r2(1:r_num),exp(polyval(temp1,r2(1:r_num))),'DisplayName','Regress below the plane');
+    plot(r2(1+r_num:end),exp(polyval(temp2,r2(1+r_num:end))),'DisplayName','Regress above the plane');
+    %     fplot(@(r2) exp(-sign(r2)*r2/(2*Sigma(t)))/sqrt((2*pi*Sigma(t))),[r2(1),r2(end)],'DisplayName','Estimated');
+    plot(r2,exp(-sign(r2).*r2/(2*Sigma(t)))/sqrt((2*pi*Sigma(t))),'DisplayName','Estimated');
     % Create xlabel
     z=xlabel({'$sign(r)r^2$, where r=h-H'});
     set(z,'Interpreter','latex');
@@ -47,7 +51,7 @@ for t=2:t_num
     z=title({['t=',num2str((t-1)*sample*dt),';  $\sigma_{left}=$',num2str(sqrt(1/2/temp1(1))),';  $\sigma_{right}=$',num2str(sqrt(-1/2/temp2(1))),'; $\sigma_{estimate}=$',num2str(sqrt(Sigma(t)))]});
     set(z,'Interpreter','latex');
     % Create ylabel
-    z=ylabel({['$log(P(r,t=$',num2str((t-1)*sample*dt),'))']});
+    z=ylabel({['$P(r,t=$',num2str((t-1)*sample*dt),')']});
     set(z,'Interpreter','latex');
     
     annotation(figure1,'textbox',...
