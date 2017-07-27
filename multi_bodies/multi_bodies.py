@@ -401,7 +401,7 @@ if __name__ == '__main__':
                              int(read.cells[0]), 
                              int(read.cells[1]), 
                              0, 
-                             dt, 
+                             dt * n_save, 
                              Nblobs, 
                              0, 
                              get_blobs_r_vectors(bodies, Nblobs))
@@ -479,7 +479,7 @@ if __name__ == '__main__':
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step, 
-                                 dt, 
+                                 dt * n_save, 
                                  Nblobs, 
                                  1, 
                                  get_blobs_r_vectors(bodies, Nblobs))
@@ -495,7 +495,7 @@ if __name__ == '__main__':
                                    int(read.cells[0]), 
                                    int(read.cells[1]), 
                                    step, 
-                                   dt, 
+                                   dt * n_save, 
                                    Nblobs, 
                                    2, 
                                    get_blobs_r_vectors(bodies, Nblobs))
@@ -572,7 +572,7 @@ if __name__ == '__main__':
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 
-                               dt, 
+                               dt * n_save, 
                                Nblobs, 
                                1, 
                                get_blobs_r_vectors(bodies, Nblobs))
@@ -588,7 +588,7 @@ if __name__ == '__main__':
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
-                                 dt, 
+                                 dt * n_save, 
                                  Nblobs, 
                                  2, 
                                  get_blobs_r_vectors(bodies, Nblobs))
@@ -603,7 +603,7 @@ if __name__ == '__main__':
                              int(read.cells[0]), 
                              int(read.cells[1]), 
                              step+1, 
-                             dt, 
+                             dt * n_save, 
                              Nblobs, 
                              3, 
                              get_blobs_r_vectors(bodies, Nblobs))
