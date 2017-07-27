@@ -6,6 +6,7 @@ import cPickle
 from functools import partial
 import sys
 import time
+sys.path.append('../../RigidMultiblobsWall/')
 sys.path.append('../')
 
 import multi_bodies_functions
@@ -19,8 +20,10 @@ from read_input import read_vertex_file
 from read_input import read_clones_file
 
 # Add path to HydroGrid and import module
-sys.path.append('../../../../HydroGrid/src/')
+sys.path.append('../../HydroGrid/src/')
 import calculateConcentration as cc
+
+
 
 
 
@@ -366,6 +369,7 @@ if __name__ == '__main__':
                                                periodic_length = read.periodic_length)
     integrator.omega_one_roller = read.omega_one_roller
     integrator.free_kinematics = read.free_kinematics
+    integrator.hydro_interactions = read.hydro_interactions
 
   if read.rf_delta is not None:
     integrator.rf_delta = float(read.rf_delta)
@@ -396,8 +400,8 @@ if __name__ == '__main__':
   cc.calculate_concentration(output_name, 
                              read.periodic_length[0], 
                              read.periodic_length[1], 
-                             read.green_particles[0], 
-                             read.green_particles[1], 
+                             int(read.green_particles[0]), 
+                             int(read.green_particles[1]), 
                              int(read.cells[0]), 
                              int(read.cells[1]), 
                              0, 
@@ -474,8 +478,8 @@ if __name__ == '__main__':
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
-                                 read.green_particles[0], 
-                                 read.green_particles[1],  
+                                 int(read.green_particles[0]), 
+                                 int(read.green_particles[1]),  
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step, 
@@ -490,8 +494,8 @@ if __name__ == '__main__':
         cc.calculate_concentration(output_name, 
                                    read.periodic_length[0], 
                                    read.periodic_length[1], 
-                                   read.green_particles[0], 
-                                   read.green_particles[1],  
+                                   int(read.green_particles[0]), 
+                                   int(read.green_particles[1]),  
                                    int(read.cells[0]), 
                                    int(read.cells[1]), 
                                    step, 
@@ -567,8 +571,8 @@ if __name__ == '__main__':
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
-                               read.green_particles[0], 
-                               read.green_particles[1],  
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 

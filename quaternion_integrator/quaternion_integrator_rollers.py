@@ -55,6 +55,7 @@ class QuaternionIntegratorRollers(object):
     self.first_guess = None
     self.preconditioner = None
     self.mobility_vector_prod = None    
+    self.hydro_interactions = None
     if tolerance is not None:
       self.tolerance = tolerance
     return 
@@ -72,7 +73,10 @@ class QuaternionIntegratorRollers(object):
     ''' 
     while True: 
       # Compute deterministic velocity
-      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      if self.hydro_interactions==1: 
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      else:
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
 
       # Update position   
       for k, b in enumerate(self.bodies):
@@ -106,11 +110,16 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
 
-      # Compute deterministic velocity
-      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
       
-      # Compute stochastic velocity
-      stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+      if self.hydro_interactions==1: 
+         # Compute deterministic velocity
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      	# Compute stochastic velocity
+      	stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+      else:
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+      	stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
+
 
       # Add velocities
       velocity = det_velocity + stoch_velocity
@@ -148,7 +157,10 @@ class QuaternionIntegratorRollers(object):
         b.location_old = b.location
 
       # Compute deterministic velocity
-      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      if self.hydro_interactions==1: 
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      else:
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
 
 
       # Add velocities
@@ -194,11 +206,14 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
 
-      # Compute deterministic velocity
-      det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
-
-      # Compute stochastic velocity
-      stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+      if self.hydro_interactions==1: 
+         # Compute deterministic velocity
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+      	# Compute stochastic velocity
+      	stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+      else:
+      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+      	stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
 
       # Add velocities
       if self.first_step is False:
@@ -551,6 +566,96 @@ class QuaternionIntegratorRollers(object):
     return velocity, sol_precond
       
 
+  def compute_deterministic_velocity_and_torque_uncorrelated(self):
+    '''
+    Compute the torque on bodies rotating with a prescribed
+    angular velocity and subject to forces, i.e., solve the
+    linear system
+    
+    M_rr * T = omega - M_rt * forces
+    
+    Then compute the translational velocity
+
+    v = M_tr * T + M_tt * forces
+    
+    It returns the velocities and torques (v,T).
+    '''
+    # Create auxiliar variables
+    Nblobs = len(self.bodies)
+    blob_mass = 1.0
+
+    # Get blobs coordinates
+    r_vectors_blobs = np.empty((Nblobs, 3))
+    for k, b in enumerate(self.bodies):
+      r_vectors_blobs[k] = b.location
+
+    torque = np.empty(3 * Nblobs)
+    
+    # Compute one-blob forces (same function for all blobs)
+    force = self.calc_one_blob_forces(r_vectors_blobs, blob_radius = self.a, blob_mass = blob_mass) 
+    # Compute blob-blob forces (same function for all pair of blobs)
+    force += self.calc_blob_blob_forces(r_vectors_blobs, blob_radius = self.a)  
+    force = np.reshape(force, force.size)
+    
+    # Define prefactor for self rr mobility: 1/(6*pi*eta*a**3)
+    factor_mob_tt = 1/(6*m.pi*self.eta*self.a)
+    
+    # Define prefactor for self rr mobility: 1/(6*pi*eta*a**3)
+    factor_mob_rr = 1/(6*m.pi*self.eta*self.a**3)
+    
+    # Define prefactor for self rt mobility: 1/(6*pi*eta*a**2)
+    factor_mob_rt = 1/(6*m.pi*self.eta*self.a**2)
+    
+    
+    # Compute mobility coeffs
+    h_adim = np.empty(Nblobs)
+    mu_rt_para  = np.empty(Nblobs)
+    mu_tt_para  = np.empty(Nblobs)
+    mu_tt_perp  = np.empty(Nblobs)
+    for i in range(Nblobs):        
+        # h/a
+    	  h_adim[i] = r_vectors_blobs[i][2]/self.a    
+    	  # mu_rt_para from Swan Brady
+    	  mu_rt_para[i] = factor_mob_rt*( 3/(32*h_adim[i]**4) )
+    	  # mu_perp from Swan Brady
+    	  mu_tt_perp[i] = factor_mob_tt*( 1 - 9/(8*h_adim[i]) + 1/(2*h_adim[i]**3) - 1/(8*h_adim[i]**5) )
+        # mu_para from Swan Brady
+    	  mu_tt_para[i] = factor_mob_tt*( 1 - 9/(16*h_adim[i]) + 2/(16*h_adim[i]**3) - 1/(16*h_adim[i]**5) )
+
+    # Use constraint motion or free kinematics
+    if self.free_kinematics == 'False':
+      # Set rollers angular velocity
+      omega = np.empty(3 * Nblobs)      
+      
+      for i in range(Nblobs):
+      	omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
+      	# mu_rr_perp from Swan Brady
+      	mu_rr_perp_inv = 1/( factor_mob_rr*( 3/4 - 3/(32*h_adim[i]**3) ) )
+      	# mu_rr_para from Swan Brady
+      	mu_rr_para_inv = 1/( factor_mob_rr*( 3/4 - 15/(64*h_adim[i]**3) ) )
+      	#  T = M_rr^{-1}*( omega - M_rt * forces )
+        torque[3*i] = mu_rr_para_inv*(omega[3*i] + mu_rt_para[i]*force[3*i+1])
+        torque[3*i+1] = mu_rr_para_inv*(omega[3*i+1] - mu_rt_para[i]*force[3*i])
+        torque[3*i+2] = mu_rr_perp_inv*omega[3*i+2]
+
+     
+    else:
+      # This is free kinematics, compute torque
+      torque = self.get_torque()
+
+    # Compute linear velocity
+    velocity = np.empty(3 * Nblobs)
+    for i in range(Nblobs):
+    	velocity[3*i] = mu_tt_para[i]*force[3*i] + mu_rt_para[i]*torque[3*i+1]
+    	velocity[3*i+1] = mu_tt_para[i]*force[3*i+1] - mu_rt_para[i]*torque[3*i]
+    	velocity[3*i+2] = mu_tt_perp[i]*force[3*i+2]
+    	
+
+    # Return linear velocity and torque
+    return velocity, torque
+
+
+
   def compute_stochastic_velocity(self, dt):
     '''
     Compute stochastic torque and velocity. First,
@@ -723,6 +828,50 @@ class QuaternionIntegratorRollers(object):
     # Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
     return velocities_noise + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
   
+  
+  def compute_stochastic_linear_velocity_uncorrelated(self, dt):
+    '''
+    Compute stochastic linear velocity for uncorrelated particles
+    
+    v_stoch = sqrt(2*kT) * M_tt^{1/2}*W + kT*div_t(M_tt).
+
+    This function returns the stochastic velocity v_stoch.
+    '''
+    # Create auxiliar variables
+    Nblobs = len(self.bodies)
+
+    # Get blobs coordinates
+    r_vectors_blobs = np.empty((Nblobs, 3))
+    for k, b in enumerate(self.bodies):
+      r_vectors_blobs[k] = b.location
+
+    # Generate random vector
+    z = np.random.randn(3 * Nblobs)
+    
+    # Define prefactor for self mobility: 1/(6*pi*eta*a)
+    factor_mob_tt = 1/(6*m.pi*self.eta*self.a)
+    
+    # Define prefactor for Brownian displacement: sqrt(2kT/dt)
+    factor_disp = np.sqrt(2*self.kT / dt)
+    
+    # Define velocity vector
+    v_stoch = np.empty(3*Nblobs)
+    
+    for k in range(Nblobs):
+    	# h/a
+    	h_adim = r_vectors_blobs[k][2]/self.a
+    	# mu_perp from Swan Brady
+    	mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim) + 1/(2*h_adim**3) - 1/(8*h_adim**5) )
+    	# mu_para from Swan Brady
+    	mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim) + 2/(16*h_adim**3) - 1/(16*h_adim**5) )
+    	# div(Mtt) has one nonzero term: d(mu_perp)/dh 
+    	deriv_mu_tt_perp = factor_mob_tt*( 9/(8*h_adim**2) - 3/(2*h_adim**4) + 5/(8*h_adim**6) )
+    	
+    	# Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
+    	v_stoch[3*k:3*k+2] = factor_disp*np.sqrt(mu_tt_para)*z[3*k:3*k+2]
+    	v_stoch[3*k+2] = factor_disp*np.sqrt(mu_tt_perp)*z[3*k+2] + self.kT*deriv_mu_tt_perp  
+    
+    return v_stoch 
 
   def compute_stochastic_linear_velocity_without_drift(self, dt):
     '''
