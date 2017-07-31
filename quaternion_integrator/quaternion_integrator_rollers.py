@@ -608,19 +608,28 @@ class QuaternionIntegratorRollers(object):
     
     
     # Compute mobility coeffs
-    h_adim = np.empty(Nblobs)
+    h_adim_eff = np.empty(Nblobs)
+    damping = np.empty(Nblobs)
     mu_rt_para  = np.empty(Nblobs)
     mu_tt_para  = np.empty(Nblobs)
     mu_tt_perp  = np.empty(Nblobs)
     for i in range(Nblobs):        
-        # h/a
-    	  h_adim[i] = r_vectors_blobs[i][2]/self.a    
+        # max(h/a,1) : artifact to ensure that mobility goes to zero
+          h_over_a = r_vectors_blobs[i][2]/self.a
+    	  h_adim_eff[i] = max(h_over_a, 1.0)    
+    	  # Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
+    	  damping[i] = 1.0
+    	  if h_over_a < 0.0:
+	    damping[i] = 0.0 
+	  elif h_over_a <= 1.0:
+	    damping[i] = h_over_a
+	    
     	  # mu_rt_para from Swan Brady
-    	  mu_rt_para[i] = factor_mob_rt*( 3/(32*h_adim[i]**4) )
+    	  mu_rt_para[i] = factor_mob_rt*( 3/(32*h_adim_eff[i]**4) ) * damping[i]
     	  # mu_perp from Swan Brady
-    	  mu_tt_perp[i] = factor_mob_tt*( 1 - 9/(8*h_adim[i]) + 1/(2*h_adim[i]**3) - 1/(8*h_adim[i]**5) )
+    	  mu_tt_perp[i] = factor_mob_tt*( 1 - 9/(8*h_adim_eff[i]) + 1/(2*h_adim_eff[i]**3) - 1/(8*h_adim_eff[i]**5) ) * damping[i]
         # mu_para from Swan Brady
-    	  mu_tt_para[i] = factor_mob_tt*( 1 - 9/(16*h_adim[i]) + 2/(16*h_adim[i]**3) - 1/(16*h_adim[i]**5) )
+    	  mu_tt_para[i] = factor_mob_tt*( 1 - 9/(16*h_adim_eff[i]) + 2/(16*h_adim_eff[i]**3) - 1/(16*h_adim_eff[i]**5) ) * damping[i]
 
     # Use constraint motion or free kinematics
     if self.free_kinematics == 'False':
@@ -630,9 +639,9 @@ class QuaternionIntegratorRollers(object):
       for i in range(Nblobs):
       	omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
       	# mu_rr_perp from Swan Brady
-      	mu_rr_perp_inv = 1/( factor_mob_rr*( 3/4 - 3/(32*h_adim[i]**3) ) )
+      	mu_rr_perp_inv = 1/( factor_mob_rr*( 3/4 - 3/(32*h_adim_eff[i]**3) ) * damping[i]) 
       	# mu_rr_para from Swan Brady
-      	mu_rr_para_inv = 1/( factor_mob_rr*( 3/4 - 15/(64*h_adim[i]**3) ) )
+      	mu_rr_para_inv = 1/( factor_mob_rr*( 3/4 - 15/(64*h_adim_eff[i]**3) ) * damping[i]) 
       	#  T = M_rr^{-1}*( omega - M_rt * forces )
         torque[3*i] = mu_rr_para_inv*(omega[3*i] + mu_rt_para[i]*force[3*i+1])
         torque[3*i+1] = mu_rr_para_inv*(omega[3*i+1] - mu_rt_para[i]*force[3*i])
@@ -858,14 +867,21 @@ class QuaternionIntegratorRollers(object):
     v_stoch = np.empty(3*Nblobs)
     
     for k in range(Nblobs):
-    	# h/a
-    	h_adim = r_vectors_blobs[k][2]/self.a
+    	# max(h/a,1) : artifact to ensure that mobility goes to zero
+	h_over_a = r_vectors_blobs[k][2]/self.a
+	h_adim_eff = max(h_over_a, 1.0)    
+	# Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
+	damping = 1.0
+	if h_over_a < 0.0:
+	  damping = 0.0 
+	elif h_over_a <= 1.0:
+	  damping = h_over_a
     	# mu_perp from Swan Brady
-    	mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim) + 1/(2*h_adim**3) - 1/(8*h_adim**5) )
+    	mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim_eff) + 1/(2*h_adim_eff**3) - 1/(8*h_adim_eff**5) ) * damping
     	# mu_para from Swan Brady
-    	mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim) + 2/(16*h_adim**3) - 1/(16*h_adim**5) )
+    	mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim_eff) + 2/(16*h_adim_eff**3) - 1/(16*h_adim_eff**5) ) * damping
     	# div(Mtt) has one nonzero term: d(mu_perp)/dh 
-    	deriv_mu_tt_perp = factor_mob_tt*( 9/(8*h_adim**2) - 3/(2*h_adim**4) + 5/(8*h_adim**6) )
+    	deriv_mu_tt_perp = factor_mob_tt*( 9/(8*h_adim_eff**2) - 3/(2*h_adim_eff**4) + 5/(8*h_adim_eff**6) ) * damping
     	
     	# Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
     	v_stoch[3*k:3*k+2] = factor_disp*np.sqrt(mu_tt_para)*z[3*k:3*k+2]
