@@ -405,7 +405,7 @@ if __name__ == '__main__':
                              int(read.cells[0]), 
                              int(read.cells[1]), 
                              0, 
-                             dt * sample_HydroGrid, 
+                             dt * read.sample_HydroGrid, 
                              Nblobs, 
                              0, 
                              get_blobs_r_vectors(bodies, Nblobs))
@@ -483,7 +483,7 @@ if __name__ == '__main__':
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step, 
-                                 dt * sample_HydroGrid, 
+                                 dt * read.sample_HydroGrid, 
                                  Nblobs, 
                                  1, 
                                  get_blobs_r_vectors(bodies, Nblobs))
@@ -499,7 +499,7 @@ if __name__ == '__main__':
                                    int(read.cells[0]), 
                                    int(read.cells[1]), 
                                    step, 
-                                   dt * sample_HydroGrid, 
+                                   dt * read.sample_HydroGrid, 
                                    Nblobs, 
                                    2, 
                                    get_blobs_r_vectors(bodies, Nblobs))
@@ -576,7 +576,7 @@ if __name__ == '__main__':
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 
-                               dt * sample_HydroGrid, 
+                               dt * read.sample_HydroGrid, 
                                Nblobs, 
                                1, 
                                get_blobs_r_vectors(bodies, Nblobs))
@@ -592,7 +592,7 @@ if __name__ == '__main__':
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
-                                 dt * sample_HydroGrid, 
+                                 dt * read.sample_HydroGrid, 
                                  Nblobs, 
                                  2, 
                                  get_blobs_r_vectors(bodies, Nblobs))
@@ -607,7 +607,7 @@ if __name__ == '__main__':
                              int(read.cells[0]), 
                              int(read.cells[1]), 
                              step+1, 
-                             dt * sample_HydroGrid, 
+                             dt * read.sample_HydroGrid, 
                              Nblobs, 
                              3, 
                              get_blobs_r_vectors(bodies, Nblobs))
