@@ -20,8 +20,9 @@ Communications in Applied Mathematics and Computational Science,
 [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-The Journal of Chemical Physics, **146**, 134104 (2017). [arXiv](https://arxiv.org/abs/1612.00474)
-[DOI](http://dx.doi.org/10.1063/1.4979494)
+The Journal of Chemical Physics, **146**, 134104 (2017). [DOI](http://dx.doi.org/10.1063/1.4979494)
+[arXiv](https://arxiv.org/abs/1612.00474)
+
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
@@ -104,26 +105,18 @@ structure of a boomerang-like particle formed by 15 blobs.
 ## 3. Active slip
 The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170), 
 therefore, we can simulate the dynamics of active bodies like bacteria
-or self-propelled colloids. The code assigns a slip function to each body depending
-on its structure ID; the structure ID is the name of the
-`*.clones` file without the _path_ or the ending _.clones_ 
-(i.e., _boomerang\_N\_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
-Therefore all the bodies passed to the code in the same `.clones` file
-will have the same slip. This way it is easy to combine active and passive bodies in the same simulation
-by just using different `.clones` files for active and passive bodies. 
+or self-propelled colloids. 
 
-Right now, the code only has two active slip functions implemented;
-for bodies with structure ID _active\_body_ the slip is assumed
-to be independent of time and is read from a file `*.slip` at the beginning of the simulation.
-Note that the active slip is assumed to be fixed in the reference body frame and
+For each structure the user can include the name of a slip file in the
+input file (in the line `strucutre` see below). In this case the code reads the slip at the beginning of the
+simulation. This active slip is assumed to be time independent and fixed in the reference body frame and
 will be converted to the lab frame as the body moves.
-You can see an example in `multi_bodies/examples/squirmer/` [UNFINISHED].
+You can see an example in `multi_bodies/examples/squirmer/`.
+If the slip file is not given the slip is set to zero.
+
 Note that in practice the slip probably depends on the position of the particles relative to the boundary
 and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime,
-see Section 5.3 for details.
-
-For bodies with any other structure ID the slip is set to zero,
-i.e., they are passive bodies.
+see Section 5.3 for details. 
 
 
 ## 4. Run static simulations
@@ -196,11 +189,14 @@ corresponding to force (first three) and torque (last three).
 If no file is given the code compute the forces on the bodies as
 explained in the section 5.2.
 
-* `structure`: (two strings) name of the vertex and clones files with the rigid 
-bodies configuration, see section 2. To simulate bodies with different
+* `structure`: (two or three strings) name of the vertex, clones and
+optionally slip files with the rigid 
+bodies configuration and the active slip, see sections 2 and 3. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body 
 and give their `vertex` and `clones` files,
-see multibodies/inputfile.dat for an example. 
+see multibodies/inputfile.dat for an example. If the slip file is not
+given the active slip is set to zero for that structure (i.e. it will
+be a passive particle). 
 
 * `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1 N_z) if the
 code is run with this options and the schemes `mobility` or `resistance` the code plots
@@ -462,9 +458,14 @@ if a `random_state` is defined in the input file. If neither `seed` nor
 `random_state` are defined the code will automatically initialized
 to a pseudorandom state (see documentation for numpy.random.RandomState).
 
-* `structure`: (two strings) name of the vertex and clones files with the rigid 
-bodies configuration, see section 2. To simulate bodies with different
-shapes add to the input file one `structure` option per each kind of body.
+* `structure`: (two or three strings) name of the vertex, clones and
+optionally slip files with the rigid 
+bodies configuration and the active slip, see sections 2 and 3. To simulate bodies with different
+shapes add to the input file one `structure` option per each kind of body 
+and give their `vertex` and `clones` files,
+see multibodies/inputfile.dat for an example. If the slip file is not
+given the active slip is set to zero for that structure (i.e. it will
+be a passive particle). 
 
 * `save_clones`: (string (default one_file_per_step)) options
 _one_file_per_step_ and _one_file_. With the option
@@ -572,15 +573,12 @@ for example gravity or interactions with the wall, create your own
 function `bodies_external_force_torque` in the file `user_defined_functions.py`.
 [UNFINISHED: Floren, by default this is gravity only, right?]
 
-* active slip: The code assigns a slip function to each body depending
-on its structure ID; the structure ID is the name of the
-`*.clones` file without the _path_ or the ending _.clones_ 
-(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
-Therefore all the bodies passed to the code in the same `.clones` file
-will have the same slip.  
-The user can generalize the slip functions by overriding the function `set_slip_by_ID`
-and creating its own slip functions. You can see an example in 
-`multi_bodies/examples/pair_active_rods/`.
+* active slip: The code assigns a constant slip to each body if a slip
+file is passed in the inputfile (see section 3). However, you can
+use more general slips like functions that depend on time, distance to the
+wall etc. To override the default python implementation create your
+own function `set_slip_by_ID` in the file `user_defined_functions.py`.
+For a simple example see `multi_bodies/examples/pair_active_rods/`.
 
 
 ## 6. Run Monte Carlo simulations
