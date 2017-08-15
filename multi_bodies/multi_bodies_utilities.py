@@ -165,13 +165,17 @@ if __name__ ==  '__main__':
     print 'Creating structures = ', structure[1]
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
+    # Read slip file if it exists
+    slip = None
+    if(len(structure) > 2):
+      slip = read_slip_file.read_slip_file(structure[2])
     body_types.append(num_bodies_struct)
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, read.blob_radius)
       b.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.structures_ID[ID]
-      multi_bodies_functions.set_slip_by_ID(b)
+      multi_bodies_functions.set_slip_by_ID(b, slip)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

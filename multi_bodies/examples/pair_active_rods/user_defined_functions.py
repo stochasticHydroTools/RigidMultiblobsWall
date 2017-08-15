@@ -24,7 +24,7 @@ from multi_bodies_functions import *
 
 
 
-def set_slip_by_ID_new(body):
+def set_slip_by_ID_new(body, slip):
   '''
   This functions assing a slip function to each
   body depending on his ID. The ID of a structure
