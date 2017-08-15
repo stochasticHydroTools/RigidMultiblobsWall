@@ -7,7 +7,7 @@ expressions (see Ref. [2] in the documentation for details)
 ```
 u_r = 0, 
 u_phi = 0,
-u_theta = B * sin(theta) 
+u_theta = sin(theta) 
 ```
 
 ## 1. Format of slip files
@@ -28,8 +28,8 @@ vector_slip_blob_2
 This slip is rotated with the orientation of the body every step.
 
 The name of the slip file has to be included in the inputfile in the line
-`structure`, see the `inputfile_squirmer.dat`. If no name is given the
-code assumes that the slip is zero for that structure.
+`structure`, see `inputfile_squirmer.dat`. If no name is given the
+code assumes that the slip is zero for that particular structure.
 
 ## 2. How to run the example
 
@@ -42,8 +42,9 @@ python multi_bodies.py --input-file inputfile_squirmer.dat
 ``` 
 
 Note that the squirmer is initially aligned with the x-axis but the  
-Brownian motion change its orientation overtime, therefore its trajectory is
-not a simple straight line, see Figure \ref{fig:squirmer}. 
+Brownian motion change its orientation over time, therefore its trajectory is
+not a simple straight line, see Figure \ref{fig:squirmer} where the
+small dots represent the past locations of the blobs.  
 
 ![\label{fig:squirmer} Trajectory of a squirmer under Brownian
   fluctuations. The small dots represent the past locations of the blobs.](squirmer.png)
