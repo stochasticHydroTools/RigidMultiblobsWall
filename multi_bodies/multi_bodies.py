@@ -21,6 +21,7 @@ while found_functions is False:
     from read_input import read_input
     from read_input import read_vertex_file
     from read_input import read_clones_file
+    from read_input import read_slip_file
     import utils
     found_functions = True
   except ImportError:
@@ -511,11 +512,16 @@ if __name__ == '__main__':
   body_names = []
   for ID, structure in enumerate(structures):
     print 'Creating structures = ', structure[1]
+    # Read vertex and clones files
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
+    # Read slip file if it exists
+    slip = None
+    if(len(structure) > 2):
+      slip = read_slip_file.read_slip_file(structure[2])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
-    # Creat each body of tyoe structure
+    # Create each body of type structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -525,7 +531,7 @@ if __name__ == '__main__':
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
-      multi_bodies_functions.set_slip_by_ID(b)
+      multi_bodies_functions.set_slip_by_ID(b, slip)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

@@ -77,8 +77,8 @@ class ReadInput(object):
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
-      vertex_file, clones_file = str.split(str(self.options.get(option)))
-      self.structures.append([vertex_file, clones_file])
+      structure_files = str.split(str(self.options.get(option)))
+      self.structures.append(structure_files)
 
     # Create structures ID for each kind 
     self.structures_ID = []

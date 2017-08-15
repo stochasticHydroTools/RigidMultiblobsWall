@@ -41,7 +41,7 @@ For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
 ### Software organization
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
-* **boomerang/**: older stochastic example from [1], see documentation `doc/boomerang.txt`.
+* **boomerang/**: older stochastic example from [1], see documentation `boomerang/README.md`.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
