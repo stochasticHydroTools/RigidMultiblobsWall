@@ -331,47 +331,36 @@ List of options for the input file:
 deterministic and stochastic simulations. See reference [4] for a discussion.
 The input file should select one of the following ones
 
-+-------------------------------------------+--------------+---------------------------------+
-| Name                                      | Solver type  | Notes                           |
-+===========================================+==============+=================================+
+
+| Name | Solver type | Notes |
+| ---- | ----------- | ----- |
 | deterministic_forward_euler               | Iterative    | first order accuracy            |
-+-------------------------------------------+--------------+---------------------------------+ 
 | deterministic_forward_euler_              | Direct solve | cost `O(number_of_blobs**3)`    |       
 | dense_algebra                             |              |                                 |
-+-------------------------------------------+--------------+---------------------------------+ 
 | deterministic_adams_bashforth             | Iterative    | second order accuracy           |
-+-------------------------------------------+--------------+---------------------------------+ 
 | stochastic_first_order_RFD                | Iterative    | it uses three mobility solves   |
 |                                           |              | and one Lanczos call per step   |
-+-------------------------------------------+--------------+---------------------------------+ 
 | stochastic_adams_bashforth                | Iterative    | primarily used for microrollers | 
-+-------------------------------------------+--------------+---------------------------------+ 
 | stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
 | dense_algebra                             |              | but faster for small systems    |
-+-------------------------------------------+--------------+---------------------------------+ 
 | stochastic_traction_EM                    | Iterative    | first order. two mobility solves|
 |                                           |              | and one Lanczos call per step.  |
-+-------------------------------------------+--------------+---------------------------------+
 | Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
-+-------------------------------------------+--------------+---------------------------------+
 | stochastic_Slip_Trapz                     | Iterative    | second order accurate           |
 |                                           |              | deterministically and weakly    |
 |                                           |              | first order accurate            |
 |                                           |              | stochastically.                 |
 |                                           |              | It uses three mobility solves   |
 |                                           |              | and one Lanczos call per step   |
-+-------------------------------------------+--------------+---------------------------------+
 | stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy  |
 |                                           |              | like stochastic_traction_AB     |
-+-------------------------------------------+--------------+---------------------------------+
 | stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in   |
 |                                           |              | stochastic_traction_AB.         |
 |                                           |              | It uses three mobility solves   |
 |                                           |              | and two Lanczos calls per step  |
-+-------------------------------------------+--------------+---------------------------------+
 | stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)`    |
 |                                           |              | (dense LA version of Slip_Mid)  |
-+-------------------------------------------+--------------+---------------------------------+
+
 
 We recommend `deterministic_adams_bashforth` for deterministic simulations since it costs
 no more than forward Euler but is more accurate. For Brownian simulation with many 
@@ -477,11 +466,11 @@ see multibodies/inputfile.dat for an example. If the slip file is not
 given the active slip is set to zero for that structure (i.e. it will
 be a passive particle). 
 
-* `save_clones`: (string (default one_file_per_step)) options
-_one_file_per_step_ and _one_file_. With the option
-_one_file_per_step_ the clones configuration are saved in one file per
+* `save_clones`: (string (default `one_file_per_step`)) options
+`_one_file_per_step_` and _one_file_. With the option
+`_one_file_per_step_` the clones configuration are saved in one file per
 kind of structure and per time step as explained above. With the option
-_one_file_ the code saves one file per kind of structure with the
+`_one_file_` the code saves one file per kind of structure with the
 configurations of all the time steps;
 configurations of different time steps are separated by a line with
 the number of rigid bodies.
@@ -529,10 +518,18 @@ with the option `omega_one_roller` but they are free to translate.
 The torque acting on the blobs is a Lagrangian multiplier that
 enforces the prescribed angular velocity.
 
-* `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
+* `omega_one_roller`: (three floats (default 0 0 0)) prescribed angular
 velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
+
+* `domain`: (string) Options: `single_wall` and `no_wall`. With the
+option `single_wall` (default) the mobilities include wall
+corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
+explained in the introduction. With the option `no_wall` the
+mobilities do not include wall corrections, the code uses the
+Rotne-Prager mobilities.
+
 
 ### 5.3 Modify the codes
 We provide default implementations to calculate the slip on the rigid bodies 

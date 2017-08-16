@@ -446,6 +446,18 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
   return velocities
 
 
+def no_wall_mobility_trans_times_torque_pycuda(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs. Mobility for particles in an unbounded domain, it uses
+  the standard RPY tensor.  
+  
+  This function makes use of pycuda.
+  '''
+  vel = mobility_pycuda.no_wall_mobility_trans_times_torque_pycuda(r_vectors, force, eta, a, *args, **kwargs)
+  return vel
+
+
 def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level by the force 
