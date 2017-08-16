@@ -407,8 +407,8 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
+The default soft repulsion is described under `repulsion_strength` below.
 See Section 5.3 for more details on how to implement your own force law in python.
-[UNFINISHED: Floren, if one selects 'python' here than I assume one must supply the over-ride function, i.e., there is no default?]
 
 * `eta`: (float) the fluid viscosity.
 
@@ -565,13 +565,10 @@ it is not an expensive operation.
 * body-body interactions: to override the _python_ implementation
 create your own function `body_body_force_torque` as we show in the example in
 `multi_bodies/examples/boomerang_suspension/`.
-[UNFINISHED: Floren, there is no default body-body force, that is,
-unless one provides this function this is turned off, right?]
 
 * body external forces: to override the one-body forces,
 for example gravity or interactions with the wall, create your own
 function `bodies_external_force_torque` in the file `user_defined_functions.py`.
-[UNFINISHED: Floren, by default this is gravity only, right?]
 
 * active slip: The code assigns a constant slip to each body if a slip
 file is passed in the inputfile (see section 3). However, you can
@@ -596,10 +593,11 @@ python many_body_MCMC.py inputMCMC.dat
 `
 
 The output files are similar to the ones generated with dynamic simulations.
-The user can override the default interactions by creating its own functions
-in the file `potential_pycuda_user_defined.py`.
 
-For an example, see ??? [UNFINISHED].
+The user can override the default interactions by creating its own functions
+in the file `potential_pycuda_user_defined.py`. In the folder 
+`many_bodyMCMC/examples/boomerang_suspension/` we show how to override
+the potentials to simulate a boomerang suspension as in Ref. [4].
 
 ## 7. Software organization
 * **doc/**: documentation.

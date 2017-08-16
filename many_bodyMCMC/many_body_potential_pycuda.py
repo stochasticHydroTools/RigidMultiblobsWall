@@ -52,8 +52,8 @@ __device__ void blob_blob_potential(double &u,
     else{
       u += eps * exp(-(r - 2.0*blob_radius) / debye_length);
     }
-    return;
   }
+  return;
 }
 
 /*
