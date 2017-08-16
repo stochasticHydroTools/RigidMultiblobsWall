@@ -403,11 +403,11 @@ to a pseudorandom state (see documentation for numpy.random.RandomState).
 bodies configuration, see section 2. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body.
 
-* `save_clones`: (string (default one_file_per_step)) options
-_one_file_per_step_ and _one_file_. With the option
-_one_file_per_step_ the clones configuration are saved in one file per
+* `save_clones`: (string (default `one_file_per_step`)) options
+`_one_file_per_step_` and _one_file_. With the option
+`_one_file_per_step_` the clones configuration are saved in one file per
 kind of structure and per time step as explained above. With the option
-_one_file_ the code saves one file per kind of structure with the
+`_one_file_` the code saves one file per kind of structure with the
 configurations of all the time steps;
 configurations of different time steps are separated by a line with
 the number of rigid bodies.
@@ -455,10 +455,18 @@ with the option `omega_one_roller` but they are free to translate.
 The torque acting on the blobs is a Lagrangian multiplier that
 enforces the prescribed angular velocity.
 
-* `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
+* `omega_one_roller`: (three floats (default 0 0 0)) prescribed angular
 velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
+
+* `domain`: (string) Options: `single_wall` and `no_wall`. With the
+option `single_wall` (default) the mobilities include wall
+corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
+explained in the introduction. With the option `no_wall` the
+mobilities do not include wall corrections, the code uses the
+Rotne-Prager mobilities.
+
 
 ### 5.3 Modify the codes
 Right now, the slip on the rigid bodies and the interactions between blobs and between  

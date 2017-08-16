@@ -1409,6 +1409,110 @@ __global__ void velocity_from_torque(const real *x,
 }
 
 
+__global__ void velocity_from_torque_no_wall(const real *x,
+                                             const real *t,
+                                             real *u,
+					     int number_of_blobs,
+					     real eta,
+					     real a,
+                                             real Lx,
+                                             real Ly,
+                                             real Lz){
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= number_of_blobs) return;   
+
+  real invaGPU = real(1.0) / a;
+  real a2 = a*a;
+
+  real Utx=0;
+  real Uty=0;
+  real Utz=0;
+
+  real rx, ry, rz;
+
+  real Mxx, Mxy, Mxz;
+  real Myx, Myy, Myz;
+  real Mzx, Mzy, Mzz;
+
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+  
+  // Determine if the space is pseudo-periodic in any dimension
+  // We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  int periodic_x = 0, periodic_y = 0, periodic_z = 0;
+  if(Lx > 0){
+    periodic_x = 1;
+  }
+  if(Ly > 0){
+    periodic_y = 1;
+  }
+  if(Lz > 0){
+    periodic_z = 1;
+  }
+
+  // Loop over image boxes and then over particles
+  for(int boxX = -periodic_x; boxX <= periodic_x; boxX++){
+    for(int boxY = -periodic_y; boxY <= periodic_y; boxY++){
+      for(int boxZ = -periodic_z; boxZ <= periodic_z; boxZ++){
+        for(int j=0; j<number_of_blobs; j++){
+          joffset = j * NDIM;
+
+          // Compute vector between particles i and j
+          rx = x[ioffset    ] - x[joffset    ];
+          ry = x[ioffset + 1] - x[joffset + 1];
+          rz = x[ioffset + 2] - x[joffset + 2];
+
+	  // Project a vector r to the extended unit cell
+	  // centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+	  // any dimension of L is equal or smaller than zero the 
+	  // box is assumed to be infinite in that direction.
+	  if(Lx > 0){
+	    rx = rx - int(rx / Lx + real(0.5) * (int(rx>0) - int(rx<0))) * Lx;
+            rx = rx + boxX * Lx;
+	  }
+	  if(Ly > 0){
+	    ry = ry - int(ry / Ly + real(0.5) * (int(ry>0) - int(ry<0))) * Ly;
+            ry = ry + boxY * Ly;
+	  }
+	  if(Lz > 0){
+	    rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
+            rz = rz + boxZ * Lz;
+	  }
+  
+	  // 1. Compute mobility for pair i-j, if i==j use self-interation
+          int j_image = j;
+          if(boxX!=0 or boxY!=0 or boxZ!=0){
+            j_image = -1;
+          }
+
+          // 1. Compute UT mobility for pair i-j
+          mobilityUTRPY(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, i,j_image, invaGPU);
+          Myx = -Mxy;
+          Mzx = -Mxz;
+          Mzy = -Myz;
+
+          // 2. Compute product M_ij * T_j
+          Utx = Utx + (Mxx * t[joffset] + Mxy * t[joffset + 1] + Mxz * t[joffset + 2]);
+          Uty = Uty + (Myx * t[joffset] + Myy * t[joffset + 1] + Myz * t[joffset + 2]);
+          Utz = Utz + (Mzx * t[joffset] + Mzy * t[joffset + 1] + Mzz * t[joffset + 2]);
+        }
+      }
+    }
+  }
+  //LOOP END
+
+  //3. Save velocity U_i
+  real pi = real(4.0) * atan(real(1.0));
+  real norm_fact_t = 8 * pi * eta * a2;
+  u[ioffset    ] = Utx / norm_fact_t;
+  u[ioffset + 1] = Uty / norm_fact_t;
+  u[ioffset + 2] = Utz / norm_fact_t;
+
+  return;
+}
+
+
 /*
  mobilityUFRPY computes the 3x3 RPY mobility
  between blobs i and j normalized with 8 pi eta a
@@ -1964,6 +2068,41 @@ def single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *a
 
   return u  
 
+
+def no_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
+   
+  # Determine number of threads and blocks for the GPU
+  number_of_blobs = np.int32(len(r_vectors))
+  threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_blobs)
+
+  # Get parameters from arguments
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Reshape arrays
+  x = real(np.reshape(r_vectors, number_of_blobs * 3))
+  t = real(np.reshape(torque, number_of_blobs * 3))
+        
+  # Allocate GPU memory
+  x_gpu = cuda.mem_alloc(x.nbytes)
+  t_gpu = cuda.mem_alloc(t.nbytes)
+  u_gpu = cuda.mem_alloc(t.nbytes)
+  number_of_blobs_gpu = cuda.mem_alloc(number_of_blobs.nbytes)
+    
+  # Copy data to the GPU (host to device)
+  cuda.memcpy_htod(x_gpu, x)
+  cuda.memcpy_htod(t_gpu, t)
+    
+  # Get mobility function
+  mobility = mod.get_function("velocity_from_torque_no_wall")
+
+  # Compute mobility force product
+  mobility(x_gpu, t_gpu, u_gpu, number_of_blobs, real(eta), real(a), real(L[0]), real(L[1]), real(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+    
+  # Copy data from GPU to CPU (device to host)
+  u = np.empty_like(t)
+  cuda.memcpy_dtoh(u, u_gpu)
+
+  return u  
 
 
 def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
