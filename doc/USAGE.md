@@ -393,7 +393,7 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
-The default soft repulsion is described under `repulsion_strength` below.
+The default soft repulsion is meant for sphere suspensions (no torques) and described under `repulsion_strength` below.
 See Section 5.3 for more details on how to implement your own force law in python.
 
 * `eta`: (float) the fluid viscosity.
@@ -510,12 +510,12 @@ velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
-* `domain`: (string) Options: `single_wall` and `no_wall`. With the
-option `single_wall` (default) the mobilities include wall
+* `domain`: (string) Options: `single_wall` and `no_wall`.
+With the option `single_wall` (default) the mobilities include wall
 corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
 explained in the introduction. With the option `no_wall` the
 mobilities do not include wall corrections, the code uses the
-Rotne-Prager mobilities.
+Rotne-Prager-Yamakawa mobilities.
 
 
 ### 5.3 Modify the codes
