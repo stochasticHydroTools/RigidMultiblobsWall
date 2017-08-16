@@ -82,14 +82,3 @@ h = distance from blob to wall.
 The values of repulsion_strength_wall, debye_length_wall and
 blob_radius are specified in the input files.
 
-## Body-body interactions
-The torque is zero and the pairwise forces between bodies are derived from the
-potential
-
-```
-U(r) = 0.5 * eps * (r - 1.0)**2
-
-with:
-eps = repulsion_strength
-r = distance between bodies location  points.
-```
