@@ -163,13 +163,20 @@ a suspension of rigid bodies subject to external forces and torques (see below).
 with given velocities (see below). `body_mobility` computes the 
 mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python and C++`. It selects
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. It selects
 which implementation is used to compute the blob mobility 
-matrix **M**. See section 1 to use the C++ version.
+matrix **M**. See section 1 to use the C++ versions. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++ and pycuda`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`,
+`pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
 **Mf**. See section 1 to use the C++ or pycuda implementations.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -324,47 +331,23 @@ List of options for the input file:
 deterministic and stochastic simulations. See reference [4] for a discussion.
 The input file should select one of the following ones
 
-+-------------------------------------------+--------------+---------------------------------+
-| Name                                      | Solver type  | Notes                           |
-+===========================================+==============+=================================+
+
+| Name | Solver type | Notes |
+| ---- | ----------- | ----- |
 | deterministic_forward_euler               | Iterative    | first order accuracy            |
-+-------------------------------------------+--------------+---------------------------------+ 
-| deterministic_forward_euler_              | Direct solve | cost `O(number_of_blobs**3)`    |       
-| dense_algebra                             |              |                                 |
-+-------------------------------------------+--------------+---------------------------------+ 
+| deterministic_forward_euler_dense_algebra | Direct solve | cost `O(number_of_blobs**3)`    |       
 | deterministic_adams_bashforth             | Iterative    | second order accuracy           |
-+-------------------------------------------+--------------+---------------------------------+ 
-| stochastic_first_order_RFD                | Iterative    | it uses three mobility solves   |
-|                                           |              | and one Lanczos call per step   |
-+-------------------------------------------+--------------+---------------------------------+ 
+| stochastic_first_order_RFD                | Iterative    | it uses three mobility solves and one Lanczos call per step |
 | stochastic_adams_bashforth                | Iterative    | primarily used for microrollers | 
-+-------------------------------------------+--------------+---------------------------------+ 
 | stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
 | dense_algebra                             |              | but faster for small systems    |
-+-------------------------------------------+--------------+---------------------------------+ 
-| stochastic_traction_EM                    | Iterative    | first order. two mobility solves|
-|                                           |              | and one Lanczos call per step.  |
-+-------------------------------------------+--------------+---------------------------------+
+| stochastic_traction_EM                    | Iterative    | first order. two mobility solves and one Lanczos call per step.|
 | Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
-+-------------------------------------------+--------------+---------------------------------+
-| stochastic_Slip_Trapz                     | Iterative    | second order accurate           |
-|                                           |              | deterministically and weakly    |
-|                                           |              | first order accurate            |
-|                                           |              | stochastically.                 |
-|                                           |              | It uses three mobility solves   |
-|                                           |              | and one Lanczos call per step   |
-+-------------------------------------------+--------------+---------------------------------+
-| stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy  |
-|                                           |              | like stochastic_traction_AB     |
-+-------------------------------------------+--------------+---------------------------------+
-| stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in   |
-|                                           |              | stochastic_traction_AB.         |
-|                                           |              | It uses three mobility solves   |
-|                                           |              | and two Lanczos calls per step  |
-+-------------------------------------------+--------------+---------------------------------+
-| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)`    |
-|                                           |              | (dense LA version of Slip_Mid)  |
-+-------------------------------------------+--------------+---------------------------------+
+| stochastic_Slip_Trapz                     | Iterative    | second order accurate deterministically and weakly first order accurate stochastically. It uses three mobility solves and one Lanczos call per step |
+| stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy like stochastic_traction_AB |
+| stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in stochastic_traction_AB. It uses three mobility solves and two Lanczos calls per step  |
+| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)` (dense LA version of Slip_Mid) |
+
 
 We recommend `deterministic_adams_bashforth` for deterministic simulations since it costs
 no more than forward Euler but is more accurate. For Brownian simulation with many 
@@ -379,16 +362,19 @@ For small systems using dense linear algebra may be faster and then the Fixman s
 With schemes that use iterative methods you can print the residual of GMRES and the Lanczos
 algorithm to the standard output using the flag `--print-residual`.
 
-* `mobility_blobs_implementation`: Options: `python and C++`. This option
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. This option
 indicates which implementation is used to compute the blob mobility 
 matrix **M**. See section 1 to use the C++ version.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++, pycuda
-and pycuda_single`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`, `pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation. The
-option `pycuda_single` uses single precision (it is faster in GPUs)
-the others use double precision. 
+**Mf**. See section 1 to use the C++ or pycuda implementation. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
@@ -407,8 +393,8 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
+The default soft repulsion is described under `repulsion_strength` below.
 See Section 5.3 for more details on how to implement your own force law in python.
-[UNFINISHED: Floren, if one selects 'python' here than I assume one must supply the over-ride function, i.e., there is no default?]
 
 * `eta`: (float) the fluid viscosity.
 
@@ -467,11 +453,11 @@ see multibodies/inputfile.dat for an example. If the slip file is not
 given the active slip is set to zero for that structure (i.e. it will
 be a passive particle). 
 
-* `save_clones`: (string (default one_file_per_step)) options
-_one_file_per_step_ and _one_file_. With the option
-_one_file_per_step_ the clones configuration are saved in one file per
+* `save_clones`: (string (default `one_file_per_step`)) options
+`_one_file_per_step_` and _one_file_. With the option
+`_one_file_per_step_` the clones configuration are saved in one file per
 kind of structure and per time step as explained above. With the option
-_one_file_ the code saves one file per kind of structure with the
+`_one_file_` the code saves one file per kind of structure with the
 configurations of all the time steps;
 configurations of different time steps are separated by a line with
 the number of rigid bodies.
@@ -519,10 +505,18 @@ with the option `omega_one_roller` but they are free to translate.
 The torque acting on the blobs is a Lagrangian multiplier that
 enforces the prescribed angular velocity.
 
-* `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
+* `omega_one_roller`: (three floats (default 0 0 0)) prescribed angular
 velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
+
+* `domain`: (string) Options: `single_wall` and `no_wall`. With the
+option `single_wall` (default) the mobilities include wall
+corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
+explained in the introduction. With the option `no_wall` the
+mobilities do not include wall corrections, the code uses the
+Rotne-Prager mobilities.
+
 
 ### 5.3 Modify the codes
 We provide default implementations to calculate the slip on the rigid bodies 
@@ -565,13 +559,10 @@ it is not an expensive operation.
 * body-body interactions: to override the _python_ implementation
 create your own function `body_body_force_torque` as we show in the example in
 `multi_bodies/examples/boomerang_suspension/`.
-[UNFINISHED: Floren, there is no default body-body force, that is,
-unless one provides this function this is turned off, right?]
 
 * body external forces: to override the one-body forces,
 for example gravity or interactions with the wall, create your own
 function `bodies_external_force_torque` in the file `user_defined_functions.py`.
-[UNFINISHED: Floren, by default this is gravity only, right?]
 
 * active slip: The code assigns a constant slip to each body if a slip
 file is passed in the inputfile (see section 3). However, you can
@@ -596,10 +587,11 @@ python many_body_MCMC.py inputMCMC.dat
 `
 
 The output files are similar to the ones generated with dynamic simulations.
-The user can override the default interactions by creating its own functions
-in the file `potential_pycuda_user_defined.py`.
 
-For an example, see ??? [UNFINISHED].
+The user can override the default interactions by creating its own functions
+in the file `potential_pycuda_user_defined.py`. In the folder 
+`many_bodyMCMC/examples/boomerang_suspension/` we show how to override
+the potentials to simulate a boomerang suspension as in Ref. [4].
 
 ## 7. Software organization
 * **doc/**: documentation.

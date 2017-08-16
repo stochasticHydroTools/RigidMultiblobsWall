@@ -10,6 +10,17 @@ mod = SourceModule("""
 /*
   Cumpute the enery coming from one blob potentials,
   e.g. gravity or interactions with the wall.
+
+  In this example we add gravity and a repulsion with the wall;
+  the interaction with the wall is derived from a Yukawa-like
+  potential
+  U = e * a * exp(-(h-a) / b) / (h - a)
+  with 
+  e = repulsion_strength_wall
+  a = blob_radius
+  h = distance to the wall
+  b = debye_length_wall
+
 */
 __device__ void one_blob_potential(double &u, 
                                    const double rx, 
@@ -23,17 +34,25 @@ __device__ void one_blob_potential(double &u,
   u += weight * rz;
 
   // Add interaction with the wall
-  if (rz < blob_radius){
-    u += eps_wall + eps_wall * (blob_radius - rz) / debye_length_wall;
+  u += eps_wall * blob_radius * exp(-(rz-blob_radius) / debye_length_wall) / abs(rz - blob_radius);  
+
+  // If blob overlaps with the wall increase the energy by a large magnitude;
+  // this prevents the system to access forbidden configurations.
+  if(rz < blob_radius){
+    u += eps_wall * 1e+12;
   }
-  else{
-    u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall);
-  }
-  return;
 }
 
 /*
   Compute the energy coming from blob-blob potentials.
+  In this example the force is derived from a Yukawa potential
+  
+  U = eps * exp(-r_norm / b) / r_norm
+  
+  with
+  eps = potential strength
+  r_norm = distance between blobs
+  b = Debye length
 */
 __device__ void blob_blob_potential(double &u,
                                     const double rx,
@@ -46,14 +65,8 @@ __device__ void blob_blob_potential(double &u,
                                     const double blob_radius){                
   if(i != j){
     double r = sqrt(rx*rx + ry*ry + rz*rz);
-    if(r < 2.0*blob_radius){
-      u += eps + eps * (2.0*blob_radius - r) / debye_length;
-    }
-    else{
-      u += eps * exp(-(r - 2.0*blob_radius) / debye_length);
-    }
+    u += eps * exp(-r / debye_length) / r;
   }
-  return;
 }
 
 /*

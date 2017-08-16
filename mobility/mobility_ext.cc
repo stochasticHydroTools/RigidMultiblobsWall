@@ -160,7 +160,6 @@ void MobilityVectorProduct(bp::numeric::array r_vectors,
     // Loop over image boxes and then over particles
     for(box[0] = -periodic[0]; box[0] <= periodic[0]; box[0]++){
       for(box[1] = -periodic[1]; box[1] <= periodic[1]; box[1]++){
-        // std::cout << "box = " << box[0] << " " << box[1] << " " << j << std::endl;
         for (int k = j; k < num_particles; ++k) {
           // Here notation is based on appendix C of the Swan and Brady paper:
           //  'Simulation of hydrodynamically interacting particles near a no-slip
@@ -279,6 +278,105 @@ void MobilityVectorProduct(bp::numeric::array r_vectors,
 //////////////////////////////////////////////////////////////////////////////////////////
 /////////////// END OF MOBILITY VECTOR PRODUCT TO BE OPTIMIZED /////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
+
+
+void NoWallMobilityVectorProduct(bp::numeric::array r_vectors, 
+                                 double eta,
+                                 double a, 
+                                 int num_particles,
+                                 bp::numeric::array periodic_length,
+                                 bp::numeric::array vector,
+                                 bp::numeric::array vector_res ){
+  double pi = 3.1415926535897932;
+  double C1, C2;
+  double Mlm;
+  double R[3];
+  double Rim[3];
+  double h = 0.0;
+
+  // Determine if the space is pseudo-periodic in the directions x or y
+  // We use a extended unit cell of length L=3*(Lx, Ly)
+  bp::numeric::array L = bp::extract<bp::numeric::array>(periodic_length);  
+  int periodic[2] = {0,0};
+  int box[2];
+  for(int l=0; l<2; l++){
+    if(bp::extract<double>(L[l]) > 0){
+      periodic[l] = 1;
+    }
+  }
+
+  for (int j = 0; j < num_particles; ++j) {
+    bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
+    // Loop over image boxes and then over particles
+    for(box[0] = -periodic[0]; box[0] <= periodic[0]; box[0]++){
+      for(box[1] = -periodic[1]; box[1] <= periodic[1]; box[1]++){
+        for (int k = j; k < num_particles; ++k) {
+          bp::numeric::array  r_vector_2 = bp::extract<bp::numeric::array>(r_vectors[k]);
+          for(int l = 0; l < 3; ++l){
+            R[l] = (bp::extract<double>(r_vector_1[l]) - bp::extract<double>(r_vector_2[l]));
+          }
+	  
+          // Project a vector r to the extended unit cell
+          // centered around (0,0) and of size L=3*(Lx, Ly). If 
+          // any dimension of L is equal or smaller than zero the 
+          // box is assumed to be infinite in that direction.
+          for(int l=0; l<2; ++l){
+            if(bp::extract<double>(L[l]) > 0){
+              R[l] = R[l] - int(R[l] / bp::extract<double>(L[l]) + 0.5 * (int(R[l]>0) - int(R[l]<0))) * bp::extract<double>(L[l]);
+              R[l] = R[l] + box[l] * bp::extract<double>(L[l]);
+            }
+          }
+	  
+          // Scale distances
+          for(int l=0; l<3; l++){
+            R[l] = R[l] / a;
+            Rim[l] = Rim[l] / a;
+          }
+
+          double R_norm = 0.0;
+          for (int l = 0; l < 3; ++l) {
+            R_norm += R[l]*R[l];
+          }
+          R_norm = sqrt(R_norm);
+	  
+          if (R_norm > 2.0) {
+            C1 = 3./(4.*R_norm) + 1./(2.*pow(R_norm,3));
+            C2 = 3./(4.*R_norm) - 3./(2.*pow(R_norm,3));
+          }
+          else if (R_norm <= 2.0) {
+            C1 = 1. - 9./32.*R_norm;
+            C2 = 3./32.*R_norm;
+          }
+	  
+          for (int l = 0; l < 3; ++l) {
+            for (int m = 0; m < 3; ++m) {	
+              // Usual RPY Tensor
+              Mlm = (l == m ? 1.0 : 0.0)*C1 + R[l]*R[m]/pow(R_norm,2)*C2;       
+              Mlm = Mlm / (6.0*pi*eta*a);
+              if((j != k) or (box[0] != 0) or (box[1] !=0)){
+                vector_res[j*3+l] += Mlm*bp::extract<double>(vector[k*3+m]);
+                // Use the fact that M is symmetric 
+                if(j != k){
+                  vector_res[k*3+m] += Mlm*bp::extract<double>(vector[j*3+l]); 
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Diagonal blocks, self mobility.
+  for (int j = 0; j < num_particles; ++j) {
+    bp::numeric::array r_vector_1 = bp::extract<bp::numeric::array>(r_vectors[j]);
+    h = bp::extract<double>(r_vector_1[2])/a;
+    for (int l = 0; l < 3; ++l) {
+      Mlm = 1.0 / (6.0 * pi * eta * a);
+      vector_res[j*3+l]+= Mlm*bp::extract<double>(vector[j*3+l]);
+    }
+  }
+}
 
 
 void SingleWallFluidMobilityCorrection(bp::list r_vectors, 
@@ -490,7 +588,8 @@ void RPYSingleWallFluidMobility(/*bp::list r_vectors,*/
 }
 
 
-void RPYInfiniteFluidMobility(bp::list r_vectors, 
+void RPYInfiniteFluidMobility(/*bp::list r_vectors,*/ 
+  bp::numeric::array r_vectors,
                               double eta,
                               double a, int num_particles,
                               bp::numeric::array mobility) {
@@ -844,6 +943,7 @@ BOOST_PYTHON_MODULE(mobility_ext)
   def("RPY_single_wall_fluid_mobility", RPYSingleWallFluidMobility);
   def("RPY_infinite_fluid_mobility", RPYInfiniteFluidMobility);
   def("mobility_vector_product", MobilityVectorProduct);
+  def("no_wall_mobility_vector_product", NoWallMobilityVectorProduct);
   def("mobility_vector_product_one_particle", MobilityVectorProductOneParticle);
   def("mobility_vector_product_source_target_one_wall", MobilityVectorProductSourceTargetOneWall);
 }

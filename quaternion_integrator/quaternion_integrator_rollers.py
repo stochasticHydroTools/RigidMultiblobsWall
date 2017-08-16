@@ -17,7 +17,7 @@ class QuaternionIntegratorRollers(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
   '''  
-  def __init__(self, bodies, Nblobs, scheme, tolerance = None): 
+  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall'): 
     ''' 
     Init object 
     '''
@@ -47,6 +47,21 @@ class QuaternionIntegratorRollers(object):
     self.free_kinematics = 'True'
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
+    if domain == 'single_wall':
+      self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
+      self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
+      self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_pycuda
+      self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
+      self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
+    elif domain == 'no_wall':
+      print '============================================================= ', domain
+      self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
+      self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
+      self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
+      self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
+      self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
+
+    print '============================================================= ', domain
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -514,12 +529,12 @@ class QuaternionIntegratorRollers(object):
         omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
 
       # Set RHS = omega - M_rt * force 
-      RHS = omega - mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
+      RHS = omega - self.mobility_rot_times_force(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
 
       # Set linear operator 
       system_size = 3 * len(self.bodies)
       def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None, periodic_length = None):
-        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, periodic_length = periodic_length)
+        return self.mobility_rot_times_torque(r_vectors, torque, eta, a, periodic_length = periodic_length)
       linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a, periodic_length = self.periodic_length)
       A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
@@ -547,9 +562,9 @@ class QuaternionIntegratorRollers(object):
       sol_precond = self.get_torque()
 
     # Compute linear velocity
-    velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
+    velocity  = self.mobility_trans_times_force(r_vectors_blobs, force, self.eta, self.a, periodic_length = self.periodic_length)
     if np.any(sol_precond):
-      velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
+      velocity += self.mobility_trans_times_torque(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     
     # Return linear velocity and torque
     return velocity, sol_precond
@@ -589,11 +604,11 @@ class QuaternionIntegratorRollers(object):
     # Define grand mobility matrix
     def grand_mobility_matrix(force_torque, r_vectors = None, eta = None, a = None, periodic_length = None):
       half_size = force_torque.size / 2
-      # velocity = mob.single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a, periodic_length = periodic_length)
-      velocity  = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
-      velocity += mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
-      angular_velocity  = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
-      angular_velocity += mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)      
+      # velocity = self.mobility_trans_times_force_torque(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a, periodic_length = periodic_length)
+      velocity  = self.mobility_trans_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
+      velocity += self.mobility_trans_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
+      angular_velocity  = self.mobility_rot_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
+      angular_velocity += self.mobility_rot_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)      
       return np.concatenate([velocity, angular_velocity])
     partial_grand_mobility_matrix = partial(grand_mobility_matrix, 
                                             r_vectors = r_vectors_blobs, 
@@ -617,16 +632,16 @@ class QuaternionIntegratorRollers(object):
       # 2. Displace blobs
       r_vectors_blobs += dx_stoch * ((self.rf_delta * self.a) * 0.5)
       # 3. Compute M_rt(r+0.5*dx) * dx_stoch
-      div_M_rt = mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_rt = self.mobility_rot_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                  periodic_length = self.periodic_length)
-      div_M_tt = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt = self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                    periodic_length = self.periodic_length)
       # 4. Displace blobs in the other direction
       r_vectors_blobs -= dx_stoch * (self.rf_delta * self.a) 
       # 5. Compute -M_rt(r-0.5*dx) * dx_stoch
-      div_M_rt -= mob.single_wall_mobility_rot_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_rt -= self.mobility_rot_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                   periodic_length = self.periodic_length)
-      div_M_tt -= mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt -= self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                     periodic_length = self.periodic_length)
     
       # Reset blobs location
@@ -643,7 +658,7 @@ class QuaternionIntegratorRollers(object):
       # Set linear operator
       system_size = 3 * len(self.bodies)
       def mobility_rot_torque(torque, r_vectors = None, eta = None, a = None, periodic_length = None):
-        return mob.single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, periodic_length = periodic_length)
+        return self.mobility_rot_times_torque(r_vectors, torque, eta, a, periodic_length = periodic_length)
       linear_operator_partial = partial(mobility_rot_torque, r_vectors = r_vectors_blobs, eta = self.eta, a = self.a, periodic_length = self.periodic_length)
       A = spla.LinearOperator((system_size, system_size), matvec = linear_operator_partial, dtype='float64')
 
@@ -670,7 +685,7 @@ class QuaternionIntegratorRollers(object):
       sol_precond = np.zeros(3 * Nblobs)
 
     # Compute stochastic velocity v_stoch = M_tr * T + sqrt(2*kT) * (N^{1/2}*W)_t + kT*div_t(M_tt).
-    v_stoch = mob.single_wall_mobility_trans_times_torque_pycuda(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
+    v_stoch = self.mobility_trans_times_torque(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
     v_stoch += velocities_noise[0 : velocities_noise.size / 2] + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
     return v_stoch
 
@@ -696,7 +711,7 @@ class QuaternionIntegratorRollers(object):
     
     # Define mobility matrix
     def mobility_matrix(force, r_vectors = None, eta = None, a = None, periodic_length = None):
-      return mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = periodic_length)
+      return self.mobility_trans_times_force(r_vectors, force, eta, a, periodic_length = periodic_length)
     partial_mobility_matrix = partial(mobility_matrix, 
                                             r_vectors = r_vectors_blobs, 
                                             eta = self.eta, 
@@ -719,12 +734,12 @@ class QuaternionIntegratorRollers(object):
       # 2. Displace blobs
       r_vectors_blobs += dx_stoch * ((self.rf_delta * self.a) * 0.5)
       # 3. Compute M_tt(r+0.5*dx) * dx_stoch
-      div_M_tt = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt = self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                    periodic_length = self.periodic_length)
       # 4. Displace blobs in the other direction
       r_vectors_blobs -= dx_stoch * (self.rf_delta * self.a) 
       # 5. Compute -M_tt(r-0.5*dx) * dx_stoch
-      div_M_tt -= mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt -= self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                     periodic_length = self.periodic_length)
       # Reset blobs location
       r_vectors_blobs += dx_stoch * ((self.rf_delta * self.a) * 0.5)
@@ -756,7 +771,7 @@ class QuaternionIntegratorRollers(object):
     
     # Define mobility matrix
     def mobility_matrix(force, r_vectors = None, eta = None, a = None, periodic_length = None):
-      return mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = periodic_length)
+      return self.mobility_trans_times_force(r_vectors, force, eta, a, periodic_length = periodic_length)
     partial_mobility_matrix = partial(mobility_matrix, 
                                             r_vectors = r_vectors_blobs, 
                                             eta = self.eta, 
@@ -797,12 +812,12 @@ class QuaternionIntegratorRollers(object):
       # 2. Displace blobs
       r_vectors_blobs += dx_stoch * ((self.rf_delta * self.a) * 0.5)
       # 3. Compute M_tt(r+0.5*dx) * dx_stoch
-      div_M_tt = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt = self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                    periodic_length = self.periodic_length)
       # 4. Displace blobs in the other direction
       r_vectors_blobs -= dx_stoch * (self.rf_delta * self.a) 
       # 5. Compute -M_tt(r-0.5*dx) * dx_stoch
-      div_M_tt -= mob.single_wall_mobility_trans_times_force_pycuda(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
+      div_M_tt -= self.mobility_trans_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                     periodic_length = self.periodic_length)
     else:
       div_M_tt = np.zeros(velocities_noise.size)

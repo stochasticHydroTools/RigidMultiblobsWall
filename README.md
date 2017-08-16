@@ -26,8 +26,9 @@ Communications in Applied Mathematics and Computational Science,
 [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-The Journal of Chemical Physics, **146**, 134104 (2017). [arXiv](https://arxiv.org/abs/1612.00474)
-[DOI](http://dx.doi.org/10.1063/1.4979494)
+The Journal of Chemical Physics, **146**, 134104
+(2017). [DOI](http://dx.doi.org/10.1063/1.4979494)
+[arXiv](https://arxiv.org/abs/1612.00474)
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and

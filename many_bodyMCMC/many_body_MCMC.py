@@ -25,15 +25,6 @@ while found_functions is False:
       print '\nProjected functions not found. Edit path in many_body_MCMC.py'
       sys.exit()
 
-
-# import many_body_potential_pycuda 
-# sys.path.append('..')
-# from body import body
-# from quaternion_integrator.quaternion import Quaternion
-# from read_input import read_input
-# from read_input import read_vertex_file, read_clones_file
-# import utils
-
 # Override many_body_potential_pycuda.py with user defined functions.
 # If potential_pycuda_user_defined.py does not exists nothing happens.
 potential_pycuda_user_defined = False
