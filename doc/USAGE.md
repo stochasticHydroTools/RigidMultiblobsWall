@@ -335,8 +335,10 @@ The input file should select one of the following ones
 | Name | Solver type | Notes |
 | ---- | ----------- | ----- |
 | deterministic_forward_euler               | Iterative    | first order accuracy            |
+| ---- | ----------- | ----- |
 | deterministic_forward_euler_              | Direct solve | cost `O(number_of_blobs**3)`    |       
 | dense_algebra                             |              |                                 |
+| ---- | ----------- | ----- |
 | deterministic_adams_bashforth             | Iterative    | second order accuracy           |
 | stochastic_first_order_RFD                | Iterative    | it uses three mobility solves   |
 |                                           |              | and one Lanczos call per step   |
