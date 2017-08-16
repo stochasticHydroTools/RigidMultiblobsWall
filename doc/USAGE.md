@@ -335,33 +335,18 @@ The input file should select one of the following ones
 | Name | Solver type | Notes |
 | ---- | ----------- | ----- |
 | deterministic_forward_euler               | Iterative    | first order accuracy            |
-| ---- | ----------- | ----- |
-| deterministic_forward_euler_              | Direct solve | cost `O(number_of_blobs**3)`    |       
-| dense_algebra                             |              |                                 |
-| ---- | ----------- | ----- |
+| deterministic_forward_euler_dense_algebra | Direct solve | cost `O(number_of_blobs**3)`    |       
 | deterministic_adams_bashforth             | Iterative    | second order accuracy           |
-| stochastic_first_order_RFD                | Iterative    | it uses three mobility solves   |
-|                                           |              | and one Lanczos call per step   |
+| stochastic_first_order_RFD                | Iterative    | it uses three mobility solves and one Lanczos call per step |
 | stochastic_adams_bashforth                | Iterative    | primarily used for microrollers | 
 | stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
 | dense_algebra                             |              | but faster for small systems    |
-| stochastic_traction_EM                    | Iterative    | first order. two mobility solves|
-|                                           |              | and one Lanczos call per step.  |
+| stochastic_traction_EM                    | Iterative    | first order. two mobility solves and one Lanczos call per step.|
 | Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
-| stochastic_Slip_Trapz                     | Iterative    | second order accurate           |
-|                                           |              | deterministically and weakly    |
-|                                           |              | first order accurate            |
-|                                           |              | stochastically.                 |
-|                                           |              | It uses three mobility solves   |
-|                                           |              | and one Lanczos call per step   |
-| stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy  |
-|                                           |              | like stochastic_traction_AB     |
-| stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in   |
-|                                           |              | stochastic_traction_AB.         |
-|                                           |              | It uses three mobility solves   |
-|                                           |              | and two Lanczos calls per step  |
-| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)`    |
-|                                           |              | (dense LA version of Slip_Mid)  |
+| stochastic_Slip_Trapz                     | Iterative    | second order accurate deterministically and weakly first order accurate stochastically. It uses three mobility solves and one Lanczos call per step |
+| stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy like stochastic_traction_AB |
+| stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in stochastic_traction_AB. It uses three mobility solves and two Lanczos calls per step  |
+| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)` (dense LA version of Slip_Mid) |
 
 
 We recommend `deterministic_adams_bashforth` for deterministic simulations since it costs
