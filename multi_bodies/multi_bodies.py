@@ -72,7 +72,8 @@ def set_mobility_blobs(implementation):
   # Implementations without wall
   if implementation == 'python_no_wall':
     return mb.rotne_prager_tensor
-
+  elif implementation == 'C++_no_wall':
+    return mb.boosted_infinite_fluid_mobility
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility
@@ -93,15 +94,21 @@ def set_mobility_vector_prod(implementation):
   use the C++ implementation the user has to compile 
   the file mobility/mobility_ext.cc.  
   ''' 
+  # Implementations without wall
+  if implementation == 'python_no_wall':
+    return mb.no_wall_fluid_mobility_product
+  elif implementation == 'C++_no_wall':
+    return mb.boosted_no_wall_mobility_vector_product
+  elif implementation == 'pycuda_no_wall':
+    return mb.no_wall_mobility_trans_times_force_pycuda
   # Implementations with wall
-  if implementation == 'python':
+  elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
   elif implementation == 'C++':
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
-  elif implementation == 'pycuda_single':
-    return mb.single_wall_mobility_trans_times_force_pycuda_single
+
 
 def calc_K_matrix(bodies, Nblobs):
   '''

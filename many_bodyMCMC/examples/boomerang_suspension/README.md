@@ -1,4 +1,4 @@
-# Boomerangs examples
+# Boomerangs example
 
 Here we provide codes and input files to simulate a Monte-Carlo
 simulation for a suspension of boomerangs as in the paper:

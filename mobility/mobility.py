@@ -193,7 +193,8 @@ def boosted_infinite_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   (use Makefile).
   '''
   num_particles = len(r_vectors)
-  fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
+  # fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
+  fluid_mobility = np.zeros((num_particles*3, num_particles*3))
   me.RPY_infinite_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
   return fluid_mobility
 
@@ -230,6 +231,21 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   return vector_res
 
 
+def boosted_no_wall_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
+  ''' 
+  Compute a mobility * vector product boosted in C++ for a
+  speedup. It uses the RPY tensor.
+  Must compile mobility_ext.cc before this will work 
+  (use Makefile).
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  num_particles = r_vectors.size / 3
+  vector_res = np.zeros(r_vectors.size)
+  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))  
+  me.no_wall_mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
+  return vector_res
+
+
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level by the force 
@@ -262,6 +278,18 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
     velocities = B.dot(velocities)
   return velocities
     
+
+def no_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs. Mobility for particles in an unbounded domain, it uses
+  the standard RPY tensor.  
+  
+  This function makes use of pycuda.
+  '''
+  vel = mobility_pycuda.no_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs)
+  return vel
+
 
 def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
@@ -304,6 +332,7 @@ def no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **k
   rot = mobility_pycuda.no_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs)
   return rot
 
+
 def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -331,6 +360,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *arg
     rot = B.dot(rot)
   return rot
 
+
 def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -343,6 +373,7 @@ def no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, *
   '''
   rot = mobility_pycuda.no_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *args, **kwargs)
   return rot
+
 
 def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs):
   ''' 
@@ -384,33 +415,6 @@ def no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, e
   This function makes use of pycuda.
   '''
   velocities = mobility_pycuda.no_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torque, eta, a, *args, **kwargs) 
-  return velocities
-
-def single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a, *args, **kwargs):
-  ''' 
-  Returns the product of the mobility at the blob level to the force 
-  on the blobs.
-  Mobility for particles near a wall.  This uses the expression from
-  the Swan and Brady paper for a finite size particle, as opposed to the 
-  Blake paper point particle result. 
-  
-  For blobs overlaping the wall we use
-  Compute M = B^T * M_tilde(z_effective) * B.
-
-  This function makes use of pycuda.
-  '''
-  # Get effective height
-  r_vectors_effective = shift_heights(r_vectors, a)
-  # Compute damping matrix B
-  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
-  # Compute B * force
-  if overlap is True:
-    force = B.dot(force)
-  # Compute M_tilde * B * force
-  velocities = mobility_pycuda.single_wall_mobility_trans_times_force_pycuda_single(r_vectors_effective, force, eta, a, *args, **kwargs)  
-  # Compute B.T * M * B * force
-  if overlap is True:
-    velocities = B.dot(velocities)
   return velocities
 
 
@@ -604,6 +608,18 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   Compute M = B^T * M_tilde(z_effective) * B.
   '''
   mobility = single_wall_fluid_mobility(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
+  velocities = np.dot(mobility, vector)
+  return velocities
+
+
+def no_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwargs):
+  ''' 
+  WARNING: pseudo-PBC are not implemented for this function.
+
+  Product (Mobility * vector). Mobility for particles in an unbounded domain.
+  This uses the standard Rotne-Prager-Yamakawa expression. 
+  '''
+  mobility = rotne_prager_tensor(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
   velocities = np.dot(mobility, vector)
   return velocities
 

@@ -163,13 +163,20 @@ a suspension of rigid bodies subject to external forces and torques (see below).
 with given velocities (see below). `body_mobility` computes the 
 mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python and C++`. It selects
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. It selects
 which implementation is used to compute the blob mobility 
-matrix **M**. See section 1 to use the C++ version.
+matrix **M**. See section 1 to use the C++ versions. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++ and pycuda`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`,
+`pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
 **Mf**. See section 1 to use the C++ or pycuda implementations.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -379,16 +386,19 @@ For small systems using dense linear algebra may be faster and then the Fixman s
 With schemes that use iterative methods you can print the residual of GMRES and the Lanczos
 algorithm to the standard output using the flag `--print-residual`.
 
-* `mobility_blobs_implementation`: Options: `python and C++`. This option
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. This option
 indicates which implementation is used to compute the blob mobility 
 matrix **M**. See section 1 to use the C++ version.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++, pycuda
-and pycuda_single`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`, `pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation. The
-option `pycuda_single` uses single precision (it is faster in GPUs)
-the others use double precision. 
+**Mf**. See section 1 to use the C++ or pycuda implementation. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
