@@ -108,7 +108,7 @@ therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids. 
 
 For each structure the user can include the name of a slip file in the
-input file (in the line `strucutre` see below). In this case the code reads the slip at the beginning of the
+input file (in the line `structure` see below). In this case the code reads the slip at the beginning of the
 simulation. This active slip is assumed to be time independent and fixed in the reference body frame and
 will be converted to the lab frame as the body moves.
 You can see an example in `multi_bodies/examples/squirmer/`.
