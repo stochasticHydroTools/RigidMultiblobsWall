@@ -112,7 +112,7 @@ therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids. 
 
 For each structure the user can include the name of a slip file in the
-input file (in the line `strucutre` see below). In this case the code reads the slip at the beginning of the
+input file (in the line `structure` see below). In this case the code reads the slip at the beginning of the
 simulation. This active slip is assumed to be time independent and fixed in the reference body frame and
 will be converted to the lab frame as the body moves.
 You can see an example in `multi_bodies/examples/squirmer/`.
@@ -397,7 +397,7 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
-The default soft repulsion is described under `repulsion_strength` below.
+The default soft repulsion is meant for sphere suspensions (no torques) and described under `repulsion_strength` below.
 See Section 5.3 for more details on how to implement your own force law in python.
 
 * `eta`: (float) the fluid viscosity.
@@ -514,12 +514,12 @@ velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
-* `domain`: (string) Options: `single_wall` and `no_wall`. With the
-option `single_wall` (default) the mobilities include wall
+* `domain`: (string) Options: `single_wall` and `no_wall`.
+With the option `single_wall` (default) the mobilities include wall
 corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
 explained in the introduction. With the option `no_wall` the
 mobilities do not include wall corrections, the code uses the
-Rotne-Prager mobilities.
+Rotne-Prager-Yamakawa mobilities.
 
 
 ### 5.3 Modify the codes
