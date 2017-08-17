@@ -1,6 +1,6 @@
 # Documentation 
 This package contains several python codes to run simulations of 
-rigid bodies made out of _blob particles_ rigidly connected near
+rigid bodies made out of rigidly connected _blobs_ (aka rigid multiblobs), confined above
 a single wall (floor). These codes can compute the
 mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
@@ -13,15 +13,22 @@ For the theory consult the references:
 The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
-rigid multiblob approach**, F. Balboa Usabiaga, B. Kallemov, B. Delmotte, 
-A. Pal Singh Bhalla, B. E. Griffith and
-A. Donev. [arXiv](http://arxiv.org/abs/1602.02170)
+rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
+A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, 
+Communications in Applied Mathematics and Computational Science,
+**11**, 217 (2016). 
+[DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
-3. **Brownian Dynamics of Active Sphere Suspensions Confined Near a
-No-Slip Boundary**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-submitted to The Journal of Chemical Physics. [arXiv](https://arxiv.org/abs/1612.00474)
+3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
+The Journal of Chemical Physics, **146**, 134104 (2017). [DOI](http://dx.doi.org/10.1063/1.4979494)
+[arXiv](https://arxiv.org/abs/1612.00474)
 
-Note: The key blob-blob translational mobility in the presence of a wall is computed here using 
+
+4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
+Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
+A. Donev. _In preparation_, 2017.
+
+Note: The key blob-blob translational mobility in the presence of a wall is computed using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
 **Simulation of hydrodynamically interacting particles near a no-slip boundary**,
 James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi.org/10.1063/1.2803837).
@@ -30,6 +37,7 @@ blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
 The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
+
 However, we provide alternative implementations in _C++_ (through the Boost Python
 library) and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you
@@ -97,20 +105,18 @@ structure of a boomerang-like particle formed by 15 blobs.
 ## 3. Active slip
 The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170), 
 therefore, we can simulate the dynamics of active bodies like bacteria
-or self-propelled colloids. The code assigns a slip function to each body depending
-on its structure ID; the structure ID is the name of the
-`*.clones` file without the _path_ or the ending _.clones_ 
-(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
-Therefore all the bodies passed to the code in the same `.clones` file
-will have the same slip. This way it is easy to combine active and passive bodies in the same simulation
-by just using different `.clones` files for active and passive bodies. 
+or self-propelled colloids. 
 
-Right now, the code only has two active slip functions implemented;
-for bodies with structure ID _active_body_ all blobs have a
-slip along the x-axis in the reference configuration. 
-For bodies with any other structure ID the slip is set to zero,
-i.e., they are passive bodies. It is easy to generalize the code to include other kind of slips,
-see Section 5.3 for details.
+For each structure the user can include the name of a slip file in the
+input file (in the line `strucutre` see below). In this case the code reads the slip at the beginning of the
+simulation. This active slip is assumed to be time independent and fixed in the reference body frame and
+will be converted to the lab frame as the body moves.
+You can see an example in `multi_bodies/examples/squirmer/`.
+If the slip file is not given the slip is set to zero.
+
+Note that in practice the slip probably depends on the position of the particles relative to the boundary
+and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime,
+see Section 5.3 for details. 
 
 
 ## 4. Run static simulations
@@ -155,15 +161,22 @@ Select the problem to solve. `mobility` computes the velocities of
 a suspension of rigid bodies subject to external forces and torques (see below).
 `resistance` computes the forces and torques on rigid bodies moving
 with given velocities (see below). `body_mobility` computes the 
-mobility of one rigid body as in the above example.
+mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python and C++`. It selects
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. It selects
 which implementation is used to compute the blob mobility 
-matrix **M**. See section 1 to use the C++ version.
+matrix **M**. See section 1 to use the C++ versions. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++ and pycuda`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`,
+`pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
 **Mf**. See section 1 to use the C++ or pycuda implementations.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -183,11 +196,14 @@ corresponding to force (first three) and torque (last three).
 If no file is given the code compute the forces on the bodies as
 explained in the section 5.2.
 
-* `structure`: (two strings) name of the vertex and clones files with the rigid 
-bodies configuration, see section 2. To simulate bodies with different
+* `structure`: (two or three strings) name of the vertex, clones and
+optionally slip files with the rigid 
+bodies configuration and the active slip, see sections 2 and 3. To simulate bodies with different
 shapes add to the input file one `structure` option per each kind of body 
 and give their `vertex` and `clones` files,
-see multibodies/inputfile.dat for an example. 
+see multibodies/inputfile.dat for an example. If the slip file is not
+given the active slip is set to zero for that structure (i.e. it will
+be a passive particle). 
 
 * `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1 N_z) if the
 code is run with this options and the schemes `mobility` or `resistance` the code plots
@@ -231,7 +247,7 @@ corresponding to linear (first three) and angular velocities (last three).
 ### 5.1 Rigid multiblob simulations
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body. 
-See the instruction in `doc/boomerang.txt`. Here, we explain how to use the other
+See the instruction in `boomerang/README.md`. Here, we explain how to use the other
 code which allows to run deterministic and stochastic simulations for many bodies. 
 
 First, move to the directory `multi_bodies/` and inspect the input file
@@ -298,6 +314,10 @@ code saves a file with the location and orientation of the rigid
 bodies. The name format is (output_name + structure_name + time_step + .clones)
 The format of the files is the same that in the input .clones files.
 
+* `.info`: It records the number of invalid configurations generated during the simulation 
+(number of times a blob cross the wall), and the total number of iterations to solve the mobility
+problems (GMRES iterations) and to generate the Brownian noise (Lanczos iterations).
+
 * `.inputfile`: a copy of the input file.
 
 * `.random_state`: it saves the state of the random generator at the start of the simulation. 
@@ -307,34 +327,61 @@ It can be used to run a simulation with the same random numbers.
 
 List of options for the input file:
 
-* `scheme`: (string) Options: `deterministic_forward_euler_dense_algebra, deterministic_forward_euler,
-deterministic_adams_bashforth, stochastic_first_order_RFD, 
-stochastic_first_order_RFD_dense_algebra and
-stochastic_adams_bashforth`. It selects the scheme to solve the mobility problem
-and integrate the equation of motion. 
-The `*forward_euler*` schemes are first order accurate
-while `*adams_bashforth*` are second order accurate in the
-deterministic case. The scheme `*dense_algebra` uses
-dense algebra methods to solve the mobility problem and therefore the computational
-cost scales like (number_of_blobs)**3.
-The other schemes use preconditioned GMRES
-to solve the mobility problem and are more efficient for large number of bodies.
+* `scheme` (string). There are several schemes implemented to run
+deterministic and stochastic simulations. See reference [4] for a discussion.
+The input file should select one of the following ones
 
-* `mobility_blobs_implementation`: Options: `python and C++`. This option
+
+| Name | Solver type | Notes |
+| ---- | ----------- | ----- |
+| deterministic_forward_euler               | Iterative    | first order accuracy            |
+| deterministic_forward_euler_dense_algebra | Direct solve | cost `O(number_of_blobs**3)`    |       
+| deterministic_adams_bashforth             | Iterative    | second order accuracy           |
+| stochastic_first_order_RFD                | Iterative    | it uses three mobility solves and one Lanczos call per step |
+| stochastic_adams_bashforth                | Iterative    | primarily used for microrollers | 
+| stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
+| dense_algebra                             |              | but faster for small systems    |
+| stochastic_traction_EM                    | Iterative    | first order. two mobility solves and one Lanczos call per step.|
+| Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
+| stochastic_Slip_Trapz                     | Iterative    | second order accurate deterministically and weakly first order accurate stochastically. It uses three mobility solves and one Lanczos call per step |
+| stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy like stochastic_traction_AB |
+| stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in stochastic_traction_AB. It uses three mobility solves and two Lanczos calls per step  |
+| stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)` (dense LA version of Slip_Mid) |
+
+
+We recommend `deterministic_adams_bashforth` for deterministic simulations since it costs
+no more than forward Euler but is more accurate. For Brownian simulation with many 
+rigid multiblobs we recommend the trapezoidal slip scheme `stochastic_Slip_Trapz` [4].
+If time step is restricted by stability rather than accuracy
+you can try the traction Euler-Maruyuama scheme `stochastic_traction_EM` (cheaper but less accurate) [4].
+For minimally-resolved BD as with micro-rollers (see [3]),
+we recommend stochastic_adams_bashforth, which adds 
+Brownian motion to `deterministic_adams_bashforth` using Lanczos+RFD [3] (and is more expensive).
+For small systems using dense linear algebra may be faster and then the Fixman scheme can be used.
+
+With schemes that use iterative methods you can print the residual of GMRES and the Lanczos
+algorithm to the standard output using the flag `--print-residual`.
+
+* `mobility_blobs_implementation`: Options: `python`, `C++`,
+`python_no_wall` and `C++_no_wall`. This option
 indicates which implementation is used to compute the blob mobility 
 matrix **M**. See section 1 to use the C++ version.
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python, C++, pycuda
-and pycuda_single`.
+* `mobility_vector_prod_implementation`: Options: `python`, `C++`, `pycuda`,
+`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation. The
-option `pycuda_single` uses single precision (it is faster in GPUs)
-the others use double precision. 
+**Mf**. See section 1 to use the C++ or pycuda implementation. 
+The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
+corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
-The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
+The cost of this function scales like `(number_of_blobs)**2`, just like the product **Mf**.
+The default soft repulsion is described under `repulsion_strength` below.
+See Section 5.3 for details on how to change this.
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
 Select the implementation to compute the body-body interactions between all
@@ -346,7 +393,8 @@ If None is selected the code does not compute body-body interactions directly
 but it can compute blob-blob interactions which lead to effective 
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
-See Section 5.3 for more details.
+The default soft repulsion is described under `repulsion_strength` below.
+See Section 5.3 for more details on how to implement your own force law in python.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -374,9 +422,8 @@ where `r` is the distance between blobs, `b` is the characteristic
 length, `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
 `eps` in the above expression (see section 5.3 to modify blobs interactions).
 
-* `debye_length`: (float) the blobs interact through a potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
-exp(-(r-d)/b)` if `r >=d`),
-this is the characteristic length of the potential, `b` in the above expression
+* `debye_length`: (float) the characteristic length of the blob-blob soft potential, `b` in the expression
+given above under `repulsion_strength`.
 (see section 5.3 to modify blobs interactions).
 
 * `repulsion_strength_wall`: (float) the blobs interact with the wall
@@ -386,10 +433,8 @@ exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
 the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength. 
 This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.3 to modify blobs interactions). 
 
-* `debye_length_wall`: (float) the blobs interact with the wall with a Yukawa-like 
-potential (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
-exp(-(r-d)/b)` if `r >=d`). 
-This is the characteristic length of the Yukawa potential, `b` in the above expression (see section 5.3 to modify blobs interactions).
+* `debye_length_wall`: (float) the characteristic length of the Yukawa blob-wall potential,
+`b` in the expression given above under `repulsion_strength_wall` (see section 5.3 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
@@ -399,15 +444,20 @@ if a `random_state` is defined in the input file. If neither `seed` nor
 `random_state` are defined the code will automatically initialized
 to a pseudorandom state (see documentation for numpy.random.RandomState).
 
-* `structure`: (two strings) name of the vertex and clones files with the rigid 
-bodies configuration, see section 2. To simulate bodies with different
-shapes add to the input file one `structure` option per each kind of body.
+* `structure`: (two or three strings) name of the vertex, clones and
+optionally slip files with the rigid 
+bodies configuration and the active slip, see sections 2 and 3. To simulate bodies with different
+shapes add to the input file one `structure` option per each kind of body 
+and give their `vertex` and `clones` files,
+see multibodies/inputfile.dat for an example. If the slip file is not
+given the active slip is set to zero for that structure (i.e. it will
+be a passive particle). 
 
-* `save_clones`: (string (default one_file_per_step)) options
-_one_file_per_step_ and _one_file_. With the option
-_one_file_per_step_ the clones configuration are saved in one file per
+* `save_clones`: (string (default `one_file_per_step`)) options
+`_one_file_per_step_` and _one_file_. With the option
+`_one_file_per_step_` the clones configuration are saved in one file per
 kind of structure and per time step as explained above. With the option
-_one_file_ the code saves one file per kind of structure with the
+`_one_file_` the code saves one file per kind of structure with the
 configurations of all the time steps;
 configurations of different time steps are separated by a line with
 the number of rigid bodies.
@@ -439,7 +489,7 @@ following differences:
 stochastic_first_order_rollers, deterministic_adams_bashforth_rollers,
 stochastic_adams_bashforth_rollers, stochastic_mid_point_rollers,
 stochastic_trapezoidal_rollers`. We provide several schemes for
-deterministic and stochastic simulations. 
+deterministic and stochastic simulations, but we recommend using 'stochastic_adams_bashforth_rollers'.
 
 * `structure`: (two strings) name of the vertex and clones files with the rigid 
 bodies configuration, see section 2. However, this code only accepts
@@ -455,14 +505,24 @@ with the option `omega_one_roller` but they are free to translate.
 The torque acting on the blobs is a Lagrangian multiplier that
 enforces the prescribed angular velocity.
 
-* `omega_one_roller` (three floats (default 0 0 0)) prescribed angular
+* `omega_one_roller`: (three floats (default 0 0 0)) prescribed angular
 velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
+* `domain`: (string) Options: `single_wall` and `no_wall`. With the
+option `single_wall` (default) the mobilities include wall
+corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
+explained in the introduction. With the option `no_wall` the
+mobilities do not include wall corrections, the code uses the
+Rotne-Prager mobilities.
+
+
 ### 5.3 Modify the codes
-Right now, the slip on the rigid bodies and the interactions between blobs and between  
-bodies are hard-coded in the codes. We explain here how the user can change these functions.
+We provide default implementations to calculate the slip on the rigid bodies 
+and the interactions between blobs and between bodies as explained above. However,
+the user can override the default implementation with their own functions. We explain
+here how to do it.
 First, we provide two alternatives to compute the interactions between
 bodies. A direct method that uses the locations
 and orientations of the bodies and a indirect form that compute
@@ -474,39 +534,42 @@ The second approach can be more expensive, since in general
 `number_of_blobs >> number_of_bodies` but it can
 be used with bodies with arbitrary shapes, while the first
 method it is hard to generalize to non-spherical bodies.
-Note that the code can used both methods at the same time.
-You can modify the following functions:
+Note that the code can use both methods at the same time.
+You can override the following functions:
 
-* blob-blob interactions: to modify the _python_ implementation edit
-the function `blob_blob_force` in the file `multi_bodies/multi_bodies_functions.py`.
-To modify the _C++_ implementation edit the function `blobBlobForce` in the
-file `multi_bodies/forces_ext.cc` and recompile the _C++_ code.
-To modify the _pycuda_ version edit the function 
+* blob-blob interactions: to override the _python_ implementation 
+create your own function `blob_blob_force` in the file
+`user_defined_functions.py` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
+To override the _pycuda_ version create your own function `blob_blob_force` in 
+forces_pycuda_user_defined.py as we show also in 
+`multi_bodies/examples/boomerang_suspension/`.
 `blob_blob_force` in the file `multi_bodies/forces_pycuda.py`
+However, to modify the _C++_ implementation you need to edit the function `blobBlobForce` in the
+file `multi_bodies/forces_ext.cc` and recompile the _C++_ code,
+note that this not override the default implementation but it modifies it.
 
-* blob-wall interaction: to modify the _python_ implementation edit
-the function `blob_external_force` in the file `multi_bodies/multi_bodies_functions.py`.
+* blob-wall interaction: to override the _python_ implementation 
+create your own function `blob_external_force` in the file
+`user_defined_functions.py` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
 There are not _C++_ or _pycuda_ versions of this function since
 it is not an expensive operation.
 
-* body-body interactions: to modify the _python_ implementation
-edit the function `body_body_force_torque` in the file `multi_bodies/multi_bodies_functions.py`.
+* body-body interactions: to override the _python_ implementation
+create your own function `body_body_force_torque` as we show in the example in
+`multi_bodies/examples/boomerang_suspension/`.
 
-* body external forces: to modify the one-body forces,
-for example gravity or interactions with the wall, edit the 
-function `bodies_external_force_torque` in the file
-`multi_bodies/multi_bodies_functions.py`.
+* body external forces: to override the one-body forces,
+for example gravity or interactions with the wall, create your own
+function `bodies_external_force_torque` in the file `user_defined_functions.py`.
 
-* active slip: The code assigns a slip function to each body depending
-on its structure ID; the structure ID is the name of the
-`*.clones` file without the _path_ or the ending _.clones_ 
-(i.e., _boomerang_N_15_ for the file `multi_bodies/Structures/boomerang_N_15.clones`).
-Therefore all the bodies passed to the code in the same `.clones` file
-will have the same slip.  
-The user can generalize the slip functions by editing the function 
-`set_slip_by_ID` in the file `multi_bodies/multi_bodies_functions.py`.
-We provide an example of how to add a constant slip to all the blobs
-of an active body in the function `active_body_slip` in the same file.
+* active slip: The code assigns a constant slip to each body if a slip
+file is passed in the inputfile (see section 3). However, you can
+use more general slips like functions that depend on time, distance to the
+wall etc. To override the default python implementation create your
+own function `set_slip_by_ID` in the file `user_defined_functions.py`.
+For a simple example see `multi_bodies/examples/pair_active_rods/`.
 
 
 ## 6. Run Monte Carlo simulations
@@ -525,29 +588,31 @@ python many_body_MCMC.py inputMCMC.dat
 
 The output files are similar to the ones generated with dynamic simulations.
 
+The user can override the default interactions by creating its own functions
+in the file `potential_pycuda_user_defined.py`. In the folder 
+`many_bodyMCMC/examples/boomerang_suspension/` we show how to override
+the potentials to simulate a boomerang suspension as in Ref. [4].
+
 ## 7. Software organization
-* **body/**: it contains a class to handle a single rigid body.
-* **boomerang/**: stochastic example, see documentation `doc/boomerang.txt`.
 * **doc/**: documentation.
-* **many_bodyMCMC/**: Monte Carlo code for rigid bodies.
-* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
-product **Mf**.
-* **multi_bodies/**: codes to run simulations of rigid bodies.
-* **quaternion_integrator/**: it has a small class to handle quaternions and
-the schemes to integrate the equations of motion.
+* **body/**: it contains a class to handle a single rigid body.
+* **boomerang/**: older stochastic example from [1], see documentation `doc/boomerang.txt`.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
-in the presence of gravity, as described in Section IV.C in [1](http://dx.doi.org/10.1063/1.4932062).
+in the presence of gravity, as described in Section IV.C in [1].
 Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
 See documentation `doc/boomerang.txt`.
+* **many_bodyMCMC/**: Markov Chain Monte Carlo code for rigid bodies.
+* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
+product **Mf** using CPUs or GPUs, see [2].
+* **multi_bodies/**: codes to run many-body simulations, based on [3] (minimally-resolved active rollers) and primarily on [4] (general many-particle case).
+* **quaternion_integrator/**: it has a small class to handle quaternions and
+the schemes to integrate the equations of motion, see [1] and [4].
 * **stochastic_forcing/**: it contains functions to compute the product
- **M**^{1/2}**z** necessary to perform Brownian simulations.
+ **M**^{1/2}**z** necessary to perform Brownian simulations, see [3] and [4].
 * **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
-
-
-

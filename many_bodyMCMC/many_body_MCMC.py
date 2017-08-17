@@ -3,14 +3,37 @@ import time
 import sys
 import subprocess
 import cPickle
-import many_body_potential_pycuda as pycuda
-sys.path.append('..')
-from body import body
-from quaternion_integrator.quaternion import Quaternion
-from read_input import read_input
-from read_input import read_vertex_file, read_clones_file
-import utils
+import os.path
 
+# Find project functions
+found_functions = False
+path_to_append = ''
+while found_functions is False:
+  try:
+    import many_body_potential_pycuda 
+    from body import body
+    from quaternion_integrator.quaternion import Quaternion
+    from read_input import read_input
+    from read_input import read_vertex_file, read_clones_file
+    import utils
+    found_functions = True
+  except ImportError:
+    path_to_append += '../'
+    print 'searching functions in path ', path_to_append
+    sys.path.append(path_to_append)
+    if len(path_to_append) > 21:
+      print '\nProjected functions not found. Edit path in many_body_MCMC.py'
+      sys.exit()
+
+# Override many_body_potential_pycuda.py with user defined functions.
+# If potential_pycuda_user_defined.py does not exists nothing happens.
+potential_pycuda_user_defined = False
+if os.path.isfile('potential_pycuda_user_defined.py'):
+  potential_pycuda_user_defined = True
+if potential_pycuda_user_defined:
+  del sys.modules['many_body_potential_pycuda']
+  sys.modules['many_body_potential_pycuda'] = __import__('potential_pycuda_user_defined')
+  import many_body_potential_pycuda
 
 def get_blobs_r_vectors(bodies, Nblobs):
   '''
@@ -39,7 +62,7 @@ def set_blob_potential(implementation):
   elif implementation == 'C++':
     return calc_blob_potential_boost 
   elif implementation == 'pycuda':
-    return pycuda.calc_blob_potential_pycuda
+    return many_body_potential_pycuda.calc_blob_potential_pycuda
 
 
 if __name__ == '__main__':
@@ -74,9 +97,6 @@ if __name__ == '__main__':
   weight = 1.0 * read.g
   kT = read.kT
 
-  # Some other parameters
-  max_starting_height = kT/(weight*7)*12 + blob_radius + 4.0 * read.debye_length_wall
-  
   # Create rigid bodies
   bodies = []
   body_types = []
@@ -109,15 +129,15 @@ if __name__ == '__main__':
   # begin MCMC
   # get energy of the current state before jumping into the loop
   start_time = time.time()
-  current_state_energy = pycuda.compute_total_energy(bodies,
-                                                     sample_r_vectors,
-                                                     periodic_length = periodic_length,
-                                                     debye_length_wall = read.debye_length_wall,
-                                                     repulsion_strength_wall = read.repulsion_strength_wall,
-                                                     debye_length = read.debye_length,
-                                                     repulsion_strength = read.repulsion_strength,
-                                                     weight = weight,
-                                                     blob_radius = blob_radius)
+  current_state_energy = many_body_potential_pycuda.compute_total_energy(bodies,
+                                                                         sample_r_vectors,
+                                                                         periodic_length = periodic_length,
+                                                                         debye_length_wall = read.debye_length_wall,
+                                                                         repulsion_strength_wall = read.repulsion_strength_wall,
+                                                                         debye_length = read.debye_length,
+                                                                         repulsion_strength = read.repulsion_strength,
+                                                                         weight = weight,
+                                                                         blob_radius = blob_radius)
 
   # quaternion to be used for disturbing the orientation of each body
   quaternion_shift = Quaternion(np.array([1,0,0,0]))
@@ -137,15 +157,15 @@ if __name__ == '__main__':
       blob_index += body.Nblobs
 
     # calculate potential of proposed new state
-    sample_state_energy = pycuda.compute_total_energy(bodies,
-                                                      sample_r_vectors,
-                                                      periodic_length = periodic_length,
-                                                      debye_length_wall = read.debye_length_wall,
-                                                      repulsion_strength_wall = read.repulsion_strength_wall,
-                                                      debye_length = read.debye_length,
-                                                      repulsion_strength = read.repulsion_strength,
-                                                      weight = weight,
-                                                      blob_radius = blob_radius)
+    sample_state_energy = many_body_potential_pycuda.compute_total_energy(bodies,
+                                                                          sample_r_vectors,
+                                                                          periodic_length = periodic_length,
+                                                                          debye_length_wall = read.debye_length_wall,
+                                                                          repulsion_strength_wall = read.repulsion_strength_wall,
+                                                                          debye_length = read.debye_length,
+                                                                          repulsion_strength = read.repulsion_strength,
+                                                                          weight = weight,
+                                                                          blob_radius = blob_radius)
 
     # accept or reject the sample state and collect data accordingly
     if np.random.uniform(0.0, 1.0) < np.exp(-(sample_state_energy - current_state_energy) / kT):
@@ -158,10 +178,10 @@ if __name__ == '__main__':
       acceptance_ratio = acceptance_ratio * 0.95
 	
     # Scale max_translation 
-    if step < 0 and acceptance_ratio > 0.5:
+    if step < 0 and step < read.initial_step / 2 and acceptance_ratio > 0.5:
       max_translation = max_translation * 1.02
       max_angle_shift = max_translation / max_body_length
-    elif step < 0:
+    elif step < 0 and step < read.initial_step / 2:
       max_translation = max_translation * 0.98
       max_angle_shift = max_translation / max_body_length
 

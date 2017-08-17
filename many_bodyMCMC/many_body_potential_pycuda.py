@@ -24,7 +24,7 @@ __device__ void one_blob_potential(double &u,
 
   // Add interaction with the wall
   if (rz < blob_radius){
-    u += eps_wall + eps * (blob_radius - rz) / debye_length_wall;
+    u += eps_wall + eps_wall * (blob_radius - rz) / debye_length_wall;
   }
   else{
     u += eps_wall * exp(-(rz - blob_radius) / debye_length_wall);
@@ -52,8 +52,8 @@ __device__ void blob_blob_potential(double &u,
     else{
       u += eps * exp(-(r - 2.0*blob_radius) / debye_length);
     }
-    return;
   }
+  return;
 }
 
 /*
@@ -82,7 +82,7 @@ __global__ void potential_from_position_blobs(const double *x,
   int ioffset = i * NDIM; 
   int joffset;
   
-  if (x[ioffset+2] > blob_radius){
+  if (x[ioffset+2] > 0){
     // 1. One blob potential
     one_blob_potential(u, x[ioffset], x[ioffset+1], x[ioffset+2], blob_radius, debye_length_wall, eps_wall, weight);
 
@@ -109,7 +109,7 @@ __global__ void potential_from_position_blobs(const double *x,
   {
     // make u large for blobs behind the wall
     // if a particle starts out of bounds somehow, then it won't want to move further out
-    u = 1e+05*(-(x[ioffset+2] - blob_radius) +1); 
+    u = 1e+05*(-x[ioffset+2] +1); 
   }
   //IF END
   //3. Save potential U_i
@@ -227,7 +227,7 @@ def set_number_of_threads_and_blocks(num_elements):
   if((num_elements/threads_per_block) < 128):
     threads_per_block = 32
   num_blocks = (num_elements-1)/threads_per_block + 1
-  return (threads_per_block, num_blocks)
+  return (threads_per_block, int(num_blocks))
 
 
 def blobs_potential(r_vectors, *args, **kwargs):
@@ -251,10 +251,13 @@ def blobs_potential(r_vectors, *args, **kwargs):
   # Reshape arrays
   x = np.reshape(r_vectors, number_of_blobs * 3)
         
+  # Allocate CPU memory
+  U = np.empty(number_of_blobs)
+
   # Allocate GPU memory
   utype = np.float64(1.)
   x_gpu = cuda.mem_alloc(x.nbytes)
-  u_gpu = cuda.mem_alloc(number_of_blobs * utype.nbytes)
+  u_gpu = cuda.mem_alloc(U.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
@@ -277,7 +280,6 @@ def blobs_potential(r_vectors, *args, **kwargs):
                                 grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  U = np.empty(number_of_blobs)
   cuda.memcpy_dtoh(U, u_gpu)
   return np.sum(U)
   
@@ -302,11 +304,14 @@ def bodies_potential(bodies, *args, **kwargs):
     q[k*4] = b.orientation_new.s
     q[k*4 + 1 : k*4 + 4] = b.orientation_new.p
     
+  # Allocate CPU memory
+  U = np.empty(number_of_bodies)
+
   # Allocate GPU memory
   utype = np.float64(1.)
   x_gpu = cuda.mem_alloc(x.nbytes)
   q_gpu = cuda.mem_alloc(q.nbytes)
-  u_gpu = cuda.mem_alloc(number_of_bodies * utype.nbytes)
+  u_gpu = cuda.mem_alloc(U.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
@@ -324,7 +329,6 @@ def bodies_potential(bodies, *args, **kwargs):
                                  grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  U = np.empty(number_of_bodies)
   cuda.memcpy_dtoh(U, u_gpu)
   return np.sum(U)
 

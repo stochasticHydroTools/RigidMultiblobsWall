@@ -1,15 +1,18 @@
 '''File with utilities for the scripts and functions in this project.'''
 
 import logging
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot
+try:
+   import matplotlib
+   matplotlib.use('Agg')
+   from matplotlib import pyplot
+except ImportError:
+   pass
 import numpy as np
 import os
 import sys
 import time
 
-from quaternion_integrator.quaternion import Quaternion
+# from quaternion_integrator.quaternion import Quaternion
 
 DT_STYLES = {}  # Used for plotting different timesteps of MSD.
 
@@ -494,7 +497,7 @@ def timer(name, print_one = False, print_all = False):
 
   if print_all is True:
     print '\n'
-    for item in timer.timers:
-      print item, ' = ', timer.timers[item][0]
-
+    col_width = max(len(key) for key in timer.timers)
+    for key in sorted(timer.timers):
+      print "".join(key.ljust(col_width)), ' = ', timer.timers[key][0]
   return

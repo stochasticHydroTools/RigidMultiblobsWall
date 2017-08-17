@@ -123,7 +123,7 @@ def set_number_of_threads_and_blocks(num_elements):
     threads_per_block = 32
   num_blocks = (num_elements-1)/threads_per_block + 1
 
-  return (threads_per_block, num_blocks)
+  return (threads_per_block, int(num_blocks))
 
 
 def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):

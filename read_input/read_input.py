@@ -65,19 +65,21 @@ class ReadInput(object):
     self.force_file = self.options.get('force_file')
     self.velocity_file = self.options.get('velocity_file')
     self.solver_tolerance = float(self.options.get('solver_tolerance') or 1e-08)
-    self.rf_delta = float(self.options.get('rf_delta') or 1e-04)
+    self.rf_delta = self.options.get('rf_delta') or None
     self.save_clones = str(self.options.get('save_clones') or 'one_file_per_step')
     self.periodic_length = np.fromstring(self.options.get('periodic_length') or '0 0 0', sep=' ')
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
-    self.free_kinematics = str(self.options.get('free_kinematics') or 'False')
+    self.free_kinematics = str(self.options.get('free_kinematics') or 'True')
     self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
+    self.update_PC = int(self.options.get('update_PC') or 1)
+    self.domain = str(self.options.get('domain') or 'single_wall')
           
     # Create list with [vertex_file, clones_file] for each strcuture
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
-      vertex_file, clones_file = str.split(str(self.options.get(option)))
-      self.structures.append([vertex_file, clones_file])
+      structure_files = str.split(str(self.options.get(option)))
+      self.structures.append(structure_files)
 
     # Create structures ID for each kind 
     self.structures_ID = []
