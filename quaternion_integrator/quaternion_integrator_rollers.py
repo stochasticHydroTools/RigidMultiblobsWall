@@ -54,14 +54,11 @@ class QuaternionIntegratorRollers(object):
       self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
       self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
     elif domain == 'no_wall':
-      print '============================================================= ', domain
       self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
       self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
       self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
       self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
       self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
-
-    print '============================================================= ', domain
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None

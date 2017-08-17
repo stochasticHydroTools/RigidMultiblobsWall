@@ -54,6 +54,10 @@ to modify slightly to reflect your Python version, etc.).
 
 To use the _pycuda_ implementation all you need is _pycuda_ and a GPU compatible with CUDA;
 you don't need to compile any additional file in this package.
+By default we use single precision in the pycuda functions but you can
+use double precision if you prefer. See the top of the file
+`mobility/mobility_pycuda.py` to see how to select double precision.
+
 
 ### 1.2 Blob-blob forces
 In dynamical simulations it is possible to include blob-blob interactions to,

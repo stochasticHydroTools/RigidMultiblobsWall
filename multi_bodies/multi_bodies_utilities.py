@@ -59,7 +59,6 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   This function plots the velocity field to a grid. 
   '''
   # Prepare grid values
-  print grid.shape
   grid = np.reshape(grid, (3,3)).T
   grid_length = grid[1] - grid[0]
   grid_points = np.array(grid[2], dtype=np.int32)
