@@ -47,6 +47,7 @@ class QuaternionIntegratorRollers(object):
     self.free_kinematics = 'True'
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
+    self.domain = domain
     if domain == 'single_wall':
       self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
       self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
@@ -92,17 +93,19 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location + dt * det_velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
-      for b in self.bodies:
-        if b.location_new[2] < 0.0:      
-          valid_configuration = False
-          break
+      if self.domain == 'single_wall':
+        for b in self.bodies:
+          if b.location_new[2] < 0.0:      
+            valid_configuration = False
+            break
       if valid_configuration is True:
         for b in self.bodies:
           b.location = b.location_new            
-          if b.location[2] < self.a:
-            self.wall_overlaps += 1            
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1            
         return
 
       self.invalid_configuration_count += 1
@@ -133,17 +136,19 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
-      for b in self.bodies:
-        if b.location_new[2] < 0.0:      
-          valid_configuration = False
-          break
+      if self.domain == 'single_wall':
+        for b in self.bodies:
+          if b.location_new[2] < 0.0:      
+            valid_configuration = False
+            break
       if valid_configuration is True:
         for b in self.bodies:
           b.location = b.location_new          
-          if b.location[2] < self.a:
-            self.wall_overlaps += 1              
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1              
         return
 
       self.invalid_configuration_count += 1
@@ -178,19 +183,21 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location_new[2] < 0.0:      
-          valid_configuration = False
-          break
+      if self.domain == 'single_wall':
+        for k, b in enumerate(self.bodies):
+          if b.location_new[2] < 0.0:      
+            valid_configuration = False
+            break
       if valid_configuration is True:
         self.first_step = False
         self.velocities_previous_step = det_velocity
         for b in self.bodies:
           b.location = b.location_new          
-          if b.location[2] < self.a:
-            self.wall_overlaps += 1      
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1      
         return
 
       self.invalid_configuration_count += 1
@@ -227,19 +234,21 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location_new[2] < 0.0:      
-          valid_configuration = False
-          break
+      if self.domain == 'single_wall':
+        for k, b in enumerate(self.bodies):
+          if b.location_new[2] < 0.0:      
+            valid_configuration = False
+            break
       if valid_configuration is True:
         self.first_step = False
         self.velocities_previous_step = det_velocity
         for b in self.bodies:
           b.location = b.location_new          
-          if b.location[2] < self.a:
-            self.wall_overlaps += 1      
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1      
         return
 
       self.invalid_configuration_count += 1
@@ -281,18 +290,19 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + (0.5 * dt) * velocity[3*k : 3*(k+1)]
 
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':    
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
 
       # Compute deterministic velocity and torque
       det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
@@ -308,23 +318,23 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
       
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
-
-      # Count overlaps and return
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < self.a:
-          self.wall_overlaps += 1            
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
+        # Count overlaps and return
+        for k, b in enumerate(self.bodies):
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1            
       return
 
 
@@ -365,18 +375,19 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + (0.5 * dt) * velocity[3*k : 3*(k+1)]
 
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':        
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
 
       # Compute deterministic velocity and torque
       det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
@@ -389,23 +400,23 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
       
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':        
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
-
-      # Count overlaps and return
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < self.a:
-          self.wall_overlaps += 1            
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
+        # Count overlaps and return
+        for k, b in enumerate(self.bodies):
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1            
       return
 
 
@@ -443,18 +454,19 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
 
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':        
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
 
       # Compute deterministic velocity and torque
       det_velocity_2, det_torque = self.compute_deterministic_velocity_and_torque()
@@ -467,23 +479,23 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + dt * velocity[3*k : 3*(k+1)]
       
       # Check if configuration is valid if not repeat step
-      valid_configuration = True
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < 0.0:      
-          valid_configuration = False
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration'
-          break
-      if valid_configuration is False:
-        # Restore configuration
+      if self.domain == 'single_wall':        
+        valid_configuration = True
         for k, b in enumerate(self.bodies):
-          b.location = b.location_old
-        continue
-
-      # Count overlaps and return
-      for k, b in enumerate(self.bodies):
-        if b.location[2] < self.a:
-          self.wall_overlaps += 1            
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration'
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
+        # Count overlaps and return
+        for k, b in enumerate(self.bodies):
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1            
       return
 
 
@@ -623,7 +635,7 @@ class QuaternionIntegratorRollers(object):
     self.stoch_iterations_count += it_lanczos
 
     # Compute divergence terms div_t(M_rt) and div_t(M_tt)
-    if self.kT > 0.0:
+    if self.kT > 0.0 and self.domain != 'no_wall':
       # 1. Generate random displacement
       dx_stoch = np.reshape(np.random.randn(Nblobs * 3), (Nblobs, 3))
       # 2. Displace blobs
@@ -726,7 +738,7 @@ class QuaternionIntegratorRollers(object):
 
     # Compute divergence term div_t(M_tt)
     # 1. Generate random displacement
-    if self.kT > 0.0:
+    if self.kT > 0.0 and self.domain != 'no_wall':
       dx_stoch = np.reshape(np.random.randn(Nblobs * 3), (Nblobs, 3))
       # 2. Displace blobs
       r_vectors_blobs += dx_stoch * ((self.rf_delta * self.a) * 0.5)
@@ -799,7 +811,7 @@ class QuaternionIntegratorRollers(object):
     Nblobs = len(self.bodies)
 
     # Compute divergence term div_t(M_tt)
-    if self.kT > 0.0:
+    if self.kT > 0.0 and self.domain != 'no_wall':
       # 0. Get blobs coordinates
       r_vectors_blobs = np.empty((Nblobs, 3))
       for k, b in enumerate(self.bodies):

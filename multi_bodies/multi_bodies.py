@@ -557,7 +557,7 @@ if __name__ == '__main__':
 
   # Create integrator
   if scheme.find('rollers') == -1:
-    integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance) 
+    integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
   else:
     integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
