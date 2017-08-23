@@ -17,7 +17,7 @@ class QuaternionIntegrator(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
   '''  
-  def __init__(self, bodies, Nblobs, scheme, tolerance = None): 
+  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall'): 
     ''' 
     Init object 
     '''
@@ -43,6 +43,7 @@ class QuaternionIntegrator(object):
     self.invalid_configuration_count = 0
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
+    self.domain = domain
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -94,7 +95,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid, return 
-      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
         return
 
     return
@@ -126,7 +127,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
         return
 
     return
@@ -170,7 +171,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'current', update_in_success = True) is True:
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
         # Save velocities for next step
         self.first_step = False
         self.velocities_previous_step = velocities
@@ -279,7 +280,7 @@ class QuaternionIntegrator(object):
 
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -397,7 +398,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         self.first_step = False
         self.velocities_previous_step = velocities_det
         return
@@ -474,7 +475,7 @@ class QuaternionIntegrator(object):
 
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, domain = self.domain) is True:
         return
 
     return
@@ -586,7 +587,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -633,7 +634,7 @@ class QuaternionIntegrator(object):
 	b.orientation = quaternion_dt * b.orientation_old
 
       # Check positions, if invalid continue
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
         continue
    
       # Solve mobility problem predictor step
@@ -650,7 +651,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -772,7 +773,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = False) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = False, domain = self.domain) is True:
         self.first_step = False
         self.velocities_previous_step = velocities_new
         return
@@ -871,7 +872,7 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
 
       # Check positions, if invalid continue 
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
         continue       
 
       # Solve mobility problem at the corrector step
@@ -892,7 +893,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -1002,7 +1003,7 @@ class QuaternionIntegrator(object):
 
 
       # Check positions, if invalid continue 
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
         continue
 
       # Solve mobility problem at the corrector step
@@ -1025,7 +1026,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -1101,7 +1102,7 @@ class QuaternionIntegrator(object):
 	b.orientation = quaternion_dt * b.orientation_old
         
       # Check positions, if invalid continue 
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True) is False:
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
         continue
 
       # Solve mobility problem predictor step 
@@ -1127,7 +1128,7 @@ class QuaternionIntegrator(object):
       postprocess_result = self.postprocess(self.bodies)
 
       # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True) is True:
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
         return
 
     return
@@ -1296,7 +1297,7 @@ class QuaternionIntegrator(object):
 
 
 
-  def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None):
+  def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None, domain = 'single_wall'):
     '''
     This function checks if the configuration is valid calling
     body.check_function. If necessary it updates the configuration
@@ -1304,20 +1305,21 @@ class QuaternionIntegrator(object):
     '''
     # Check positions, if valid return 
     valid_configuration = True
-    if new == 'current':
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location, b.orientation)
-        if valid_configuration is False:
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration number ', self.invalid_configuration_count
-          break
-    elif new == 'new':
-      for b in self.bodies:
-        valid_configuration = b.check_function(b.location_new, b.orientation_new)
-        if valid_configuration is False:
-          self.invalid_configuration_count += 1
-          print 'Invalid configuration number ', self.invalid_configuration_count
-          break
+    if domain == 'single_wall':
+      if new == 'current':
+        for b in self.bodies:
+          valid_configuration = b.check_function(b.location, b.orientation)
+          if valid_configuration is False:
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration number ', self.invalid_configuration_count
+            break
+      elif new == 'new':
+        for b in self.bodies:
+          valid_configuration = b.check_function(b.location_new, b.orientation_new)
+          if valid_configuration is False:
+            self.invalid_configuration_count += 1
+            print 'Invalid configuration number ', self.invalid_configuration_count
+            break
 
     # Update position if necessary
     if (valid_configuration is False) and (update_in_failure is True):
