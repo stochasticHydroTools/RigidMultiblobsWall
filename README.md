@@ -1,5 +1,5 @@
 # Rigid Multiblobs in half-space
-
+ 
 Rotational and Translational Diffusion of Confined Rigid Bodies
 by Steven Delong, Florencio Balboa, Blaise Delmotte, Brennan Sprinkle
 and Aleksandar Donev (donev@courant.nyu.edu)
