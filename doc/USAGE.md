@@ -5,28 +5,29 @@ a single wall (floor). These codes can compute the
 mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
 dynamic simulations.
+Spherical bodies can be made of single blobs (minimally-resolved Brownian-Dynamics)
+for more rapid but less accurate Brownian Dynamics, see section 5.2.
 
 We explain in the next sections how to use the package.
 For the theory consult the references:
 
-1. **Brownian Dynamics of Confined Rigid Bodies**, S. Delong, F. Balboa Usabiaga and A. Donev. 
+1. **Brownian Dynamics of Confined Rigid Bodies**, S. Delong, F. Balboa Usabiaga and A. Donev; largely superceded by [4]. 
 The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org/10.1063/1.4932062) [arXiv](http://arxiv.org/abs/1506.08868)
 
 2. **Hydrodynamics of suspensions of passive and active rigid particles: a
 rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
 A. Pal Singh Bhalla, B. E. Griffith, and A. Donev, 
 Communications in Applied Mathematics and Computational Science,
-**11**, 217 (2016). 
+**11**, 217 (2016); see section 4. 
 [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-The Journal of Chemical Physics, **146**, 134104 (2017). [DOI](http://dx.doi.org/10.1063/1.4979494)
+The Journal of Chemical Physics, **146**, 134104 (2017); see section 5.2. [DOI](http://dx.doi.org/10.1063/1.4979494)
 [arXiv](https://arxiv.org/abs/1612.00474)
-
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
-A. Donev. _In preparation_, 2017.
+A. Donev. _In preparation_, 2017; see section 5.
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
@@ -170,7 +171,8 @@ mobility **matrix** of one rigid body as in the above example.
 * `mobility_blobs_implementation`: Options: `python`, `C++`,
 `python_no_wall` and `C++_no_wall`. It selects
 which implementation is used to compute the blob mobility 
-matrix **M**. See section 1 to use the C++ versions. 
+matrix **M** that is used to construct the block-diagonal preconditioner described in [2,4].
+See section 1 to use the C++ versions.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
@@ -198,7 +200,7 @@ corresponding to linear (first three) and angular velocities (last three).
 in the `mobility` problem. The format of the file is one line per body and six floats per line
 corresponding to force (first three) and torque (last three).
 If no file is given the code compute the forces on the bodies as
-explained in the section 5.2.
+explained in the section 5.3.
 
 * `structure`: (two or three strings) name of the vertex, clones and
 optionally slip files with the rigid 
@@ -488,6 +490,10 @@ To run a simulation use:
 The input file options are the same than for a rigid multiblob
 simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
 following differences:
+
+* `mobility_blobs_implementation` and `mobility_vector_prod_implementation`:
+These options are ignored for rollers -- there is no preconditioner needed for single blobs
+and this code always uses PyCUDA for matrix-vector products.
 
 * `scheme`: (string) Options: `deterministic_forward_euler_rollers,
 stochastic_first_order_rollers, deterministic_adams_bashforth_rollers,
