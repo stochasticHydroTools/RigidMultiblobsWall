@@ -37,7 +37,7 @@ A. Donev. _In preparation_, 2017.
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
 
-For usage see **doc/USAGE.md** (or **doc/USAGE.pdf**).
+For usage see **doc/USAGE.md**.
 
 ### Software organization
 * **doc/**: documentation.
