@@ -483,9 +483,7 @@ We can also use the code `multi_bodies.py` to run simulations of
 bodies discretized with a single blob interacting hydrodynamically with
 a grand-mobility matrix that includes couplings between the linear and
 angular velocities, see Ref. [3] for a detailed description.
-To run a simulation use:
-
-`python multi_bodies_utilities.py --input-file inputfile_body_mobility.dat`
+You can see an example in `multi_bodies/examples/rollers/`.
 
 The input file options are the same than for a rigid multiblob
 simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
