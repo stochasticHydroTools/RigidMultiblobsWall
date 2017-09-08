@@ -6,8 +6,8 @@ import cPickle
 from functools import partial
 import sys
 import time
-sys.path.append('../../../RigidMultiblobsWall-private/')
-sys.path.append('../../')
+sys.path.append('../../RigidMultiblobsWall-private/')
+sys.path.append('../')
 
 import multi_bodies_functions
 from mobility import mobility as mb
@@ -20,7 +20,7 @@ from read_input import read_vertex_file
 from read_input import read_clones_file
 
 # Add path to HydroGrid and import module
-sys.path.append('../../../HydroGrid/src/')
+sys.path.append('../../HydroGrid/src/')
 import calculateConcentration as cc
 
 
