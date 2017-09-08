@@ -6,8 +6,8 @@ import cPickle
 from functools import partial
 import sys
 import time
-sys.path.append('../../RigidMultiblobsWall/')
-sys.path.append('../')
+sys.path.append('../../../RigidMultiblobsWall-private/')
+sys.path.append('../../')
 
 import multi_bodies_functions
 from mobility import mobility as mb
@@ -20,7 +20,7 @@ from read_input import read_vertex_file
 from read_input import read_clones_file
 
 # Add path to HydroGrid and import module
-sys.path.append('../../HydroGrid/src/')
+sys.path.append('../../../HydroGrid/src/')
 import calculateConcentration as cc
 
 
@@ -382,7 +382,8 @@ if __name__ == '__main__':
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
-                                               periodic_length = read.periodic_length) 
+                                               periodic_length = read.periodic_length,
+                                               spring_flag = read.spring_flag)
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
   integrator.preconditioner = block_diagonal_preconditioner

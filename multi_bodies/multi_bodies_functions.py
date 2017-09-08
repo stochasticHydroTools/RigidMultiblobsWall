@@ -141,19 +141,23 @@ def blob_external_force(r_vectors, *args, **kwargs):
   g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall') 
   debye_length_wall = kwargs.get('debye_length_wall')
-
+  spring_flag = kwargs.get('spring_flag')
+  if spring_flag:
+  # Add harmonic potential
+    f[2] += -repulsion_strength_wall * (r_vectors[2] - debye_length_wall)
+  else:
   # Add gravity
-  # f += -g * blob_mass * np.array([0., 0., 1.0])
+    f += -g * blob_mass * np.array([0., 0., 1.0])
 
   # Add wall interaction
-  # h = r_vectors[2]
-  # if h > blob_radius:
-  #   f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
-  # else:
-  #   f[2] += (repulsion_strength_wall / debye_length_wall)
+    h = r_vectors[2]
+    if h > blob_radius:
+      f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
+    else:
+      f[2] += (repulsion_strength_wall / debye_length_wall)
 
-  # Add harmonic potential
-  f[2] += -repulsion_strength_wall * (r_vectors[2] - debye_length_wall)
+  
+  
 
   return f
 
