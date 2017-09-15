@@ -32,7 +32,7 @@ The Journal of Chemical Physics, **146**, 134104
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
-A. Donev. _In preparation_, 2017.
+A. Donev.  arXiv:1709.02410 (2017) [arXiv](https://arxiv.org/abs/1709.02410).
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
