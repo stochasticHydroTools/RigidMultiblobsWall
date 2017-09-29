@@ -24,6 +24,111 @@ from multi_bodies_functions import *
 
 
 
+def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
+  '''
+  This function returns the external force-torques acting on the bodies.
+  It returns an array with shape (2*len(bodies), 3)
+  
+  In this is example we just set it to zero.
+  '''
+  force_torque_bodies = np.zeros((2*len(bodies), 3))
+  ghost_mass = 1.0
+  ghost_radius = 0.15
+  Nghost = 100
+  repulsion_strength_wall = 0.001
+  debye_length_wall = 0.025
+  g = 0.0001539384 * (14.0 / 100.0) 
+
+  # Loop over bodies
+  offset = 0
+  for k, b in enumerate(bodies):
+    # Create force-torque vector
+    F = np.zeros((2*len(bodies), 3))
+
+    # Create ghost blobs along the rod axis in the reference configuration
+    r_ghost_reference = np.zeros((100, 3))
+    r_ghost_reference[:,0] = np.linspace(-1.0, 1.0, r_ghost_reference.shape[0])
+
+    # Get rotation matrix
+    rotation_matrix = b.orientation.rotation_matrix()
+
+    def calc_rot_matrix(r_vectors, location, orientation, Nblobs):
+      ''' 
+      Calculate the matrix R, where the i-th 3x3 block of R gives
+      (R_i x) = -1 (r_i cross x).
+      R has shape (3*Nblobs, 3).
+      '''
+      # r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
+      r = r_vectors - location
+      rot_matrix = np.array([[[0.0,    vec[2], -vec[1]],
+                             [-vec[2], 0.0,    vec[0]],
+                             [vec[1], -vec[0], 0.0]] for vec in r])
+      return np.reshape(rot_matrix, (3*Nblobs, 3))
+
+
+    # Get ghost blob in the current configuration
+    r_ghost = np.array([np.dot(rotation_matrix, vec) for vec in r_ghost_reference])
+    r_ghost += b.location
+
+    # Calc rotation matrix
+    R = calc_rot_matrix(r_ghost, b.location, b.orientation, Nghost)  
+    
+    # Compute one-blob forces (same function for all blobs)
+    force_blobs = multi_bodies_functions.calc_one_blob_forces(r_ghost, 
+                                                              blob_radius = ghost_radius, 
+                                                              blob_mass = ghost_mass, 
+                                                              repulsion_strength_wall = repulsion_strength_wall,
+                                                              debye_length_wall = debye_length_wall,
+                                                              g = g)
+
+    # Compute force and torque on the body
+    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs[offset:(offset+Nghost)])
+    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs[offset:(offset+Nghost)], 3*Nghost))
+    offset += Nghost
+  return force_torque_bodies
+multi_bodies_functions.bodies_external_force_torque = bodies_external_force_torque_new
+
+
+def blob_external_force_new(r_vectors, *args, **kwargs):
+  '''
+  This function compute the external force acting on a
+  single blob. It returns an array with shape (3).
+  
+  In this example we add gravity and a repulsion with the wall;
+  the interaction with the wall is derived from the potential
+
+  U(z) = U0 + U0 * (a-z)/b   if z<a
+  U(z) = U0 * exp(-(z-a)/b)  iz z>=a
+
+  with 
+  e = repulsion_strength_wall
+  a = blob_radius
+  h = distance to the wall
+  b = debye_length_wall
+  '''
+  f = np.zeros(3)
+
+  # Get parameters from arguments
+  blob_mass = kwargs.get('blob_mass')
+  blob_radius = kwargs.get('blob_radius')
+  g = kwargs.get('g')
+  repulsion_strength_wall = kwargs.get('repulsion_strength_wall') 
+  debye_length_wall = kwargs.get('debye_length_wall')
+
+  # Add gravity
+  f += -g * blob_mass * np.array([0., 0., 1.0])
+
+  # Add wall interaction
+  h = r_vectors[2]
+  if h > (blob_radius + 20 * debye_length_wall):
+    pass
+  elif h > blob_radius:
+    f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
+  else:
+    f[2] += (repulsion_strength_wall / debye_length_wall)
+  return f
+multi_bodies_functions.blob_external_force = blob_external_force_new
+
 def set_slip_by_ID_new(body, slip):
   '''
   This functions assing a slip function to each
@@ -37,15 +142,16 @@ def set_slip_by_ID_new(body, slip):
   '''
   if body.ID == 'active_body':
     body.function_slip = active_body_slip
-  elif body.ID == 'rod_minimal':
+  elif body.ID == 'rod_minimal_2':
     body.function_slip = slip_minimal
   elif body.ID == 'rod_resolved':
+    body.function_slip = slip_rod_resolved
+  elif body.ID == 'sheet':
     body.function_slip = slip_rod_resolved
   else:
     body.function_slip = default_zero_blobs
   return
 multi_bodies_functions.set_slip_by_ID = set_slip_by_ID_new
-
 
 
 def slip_minimal(body):
@@ -54,7 +160,7 @@ def slip_minimal(body):
   axis pointing to the closest end. There is slip in only the last blob
   '''
   # Choose number of blobs covered by slip
-  num_active_blobs = 16
+  num_active_blobs = 6
 
   # Slip speed
   speed = -1.0
@@ -71,10 +177,10 @@ def slip_minimal(body):
   
   for i in range(num_active_blobs):
     # if i > 3 and i < 12:
-    if i <= 3 or i >= 12:
+    # if i <= 3 or i >= 12:
     # if i > 7:
     # if i <= 7:
-    # if True:      
+    if True:      
       slip[i] = axis * speed
   return slip
 
@@ -87,7 +193,7 @@ def slip_rod_resolved(body):
   axis pointing to the closest end. 
   '''
   # Distance to center along x-axis to determine active blobs
-  x_distance_to_center = 0.5
+  x_distance_to_center = 64
   x_distance_to_center_2 = 0.4
 
   # Speed slip
@@ -128,14 +234,15 @@ def slip_rod_resolved(body):
       # Compute slip and rotate
       slip_reference = np.array([speed, 0.0, 0.0])
       slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-    elif abs(r_reference[i, 0]) > x_distance_to_center_2:
-      # Compute slip and rotate
-      slip_reference = np.array([0.5 * speed, 0.0, 0.0])
-      slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
+    # elif abs(r_reference[i, 0]) > x_distance_to_center_2:
+    #   # Compute slip and rotate
+    #   slip_reference = np.array([0.5 * speed, 0.0, 0.0])
+    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
     pass
 
   # slip_rotated[-1,:] = np.array([speed, 0.0, 0.0])
-  slip_rotated[-12:,:] = 0
+  # slip_rotated[-12:,:] = 0
 
+  # print r_reference, '\n'
   # print slip_rotated
   return slip_rotated
