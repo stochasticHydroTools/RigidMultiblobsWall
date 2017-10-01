@@ -35,10 +35,10 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
   ghost_mass = 1.0
   ghost_radius = 0.15
   Nghost = 100
-  repulsion_strength_wall = 0.001
-  debye_length_wall = 0.025
-  g = 0.0001539384 * (14.0 / 100.0) 
-
+  # repulsion_strength_wall = 0.001
+  # debye_length_wall = 0.025
+  # g = 0.0001539384 * (14.0 / 100.0) 
+  
   # Loop over bodies
   offset = 0
   for k, b in enumerate(bodies):
@@ -74,13 +74,11 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
     R = calc_rot_matrix(r_ghost, b.location, b.orientation, Nghost)  
     
     # Compute one-blob forces (same function for all blobs)
-    force_blobs = multi_bodies_functions.calc_one_blob_forces(r_ghost, 
-                                                              blob_radius = ghost_radius, 
-                                                              blob_mass = ghost_mass, 
-                                                              repulsion_strength_wall = repulsion_strength_wall,
-                                                              debye_length_wall = debye_length_wall,
-                                                              g = g)
-
+    force_blobs = calc_one_blob_forces_ghost(r_ghost, 
+                                             blob_radius = ghost_radius, 
+                                             blob_mass = ghost_mass,
+                                             *args, **kwargs) 
+                                             
     # Compute force and torque on the body
     force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs[offset:(offset+Nghost)])
     force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs[offset:(offset+Nghost)], 3*Nghost))
@@ -89,7 +87,22 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
 multi_bodies_functions.bodies_external_force_torque = bodies_external_force_torque_new
 
 
-def blob_external_force_new(r_vectors, *args, **kwargs):
+def calc_one_blob_forces_ghost(r_vectors, *args, **kwargs):
+  '''
+  Compute one-blob forces. It returns an array with shape (Nblobs, 3).
+  '''
+  Nblobs = r_vectors.size / 3
+  force_blobs = np.zeros((Nblobs, 3))
+  r_vectors = np.reshape(r_vectors, (Nblobs, 3))
+  
+  # Loop over blobs
+  for blob in range(Nblobs):
+    force_blobs[blob] += blob_external_force_ghost(r_vectors[blob], *args, **kwargs)   
+
+  return force_blobs
+
+
+def blob_external_force_ghost(r_vectors, *args, **kwargs):
   '''
   This function compute the external force acting on a
   single blob. It returns an array with shape (3).
@@ -127,6 +140,10 @@ def blob_external_force_new(r_vectors, *args, **kwargs):
   else:
     f[2] += (repulsion_strength_wall / debye_length_wall)
   return f
+
+
+def blob_external_force_new(r_vectors, *args, **kwargs):
+  return np.zeros(3)
 multi_bodies_functions.blob_external_force = blob_external_force_new
 
 def set_slip_by_ID_new(body, slip):
