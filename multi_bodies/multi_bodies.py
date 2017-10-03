@@ -257,7 +257,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       K = b.calc_K_matrix()
       K_bodies.append(K)
       # 6. Compute body mobility
-      mobility_bodies.append(scipy.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
       # Save variables to use in next steps if PC is not updated
       build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
@@ -430,7 +430,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
   P_inv = []
   for b in bodies:
     # Compute blobs mobility for one body
-    mobility = b.calc_mobility_blobs(eta, a)
+    M = b.calc_mobility_blobs(eta, a)
     
     # 2. Compute Cholesy factorization, M = L^T * L
     L, lower = scipy.linalg.cho_factor(M)
