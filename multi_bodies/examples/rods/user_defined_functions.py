@@ -83,6 +83,7 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
     force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs[offset:(offset+Nghost)])
     force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs[offset:(offset+Nghost)], 3*Nghost))
     offset += Nghost
+
   return force_torque_bodies
 multi_bodies_functions.bodies_external_force_torque = bodies_external_force_torque_new
 
@@ -159,7 +160,7 @@ def set_slip_by_ID_new(body, slip):
   '''
   if body.ID == 'active_body':
     body.function_slip = active_body_slip
-  elif body.ID == 'rod_minimal_2':
+  elif body.ID == 'rod_minimal':
     body.function_slip = slip_minimal
   elif body.ID == 'rod_resolved':
     body.function_slip = slip_rod_resolved
@@ -177,10 +178,10 @@ def slip_minimal(body):
   axis pointing to the closest end. There is slip in only the last blob
   '''
   # Choose number of blobs covered by slip
-  num_active_blobs = 6
+  num_active_blobs = 12
 
   # Slip speed
-  speed = -1.0
+  speed = -10.0
   
   # Set slip to zero
   slip = np.zeros((body.Nblobs, 3))
@@ -193,11 +194,11 @@ def slip_minimal(body):
   axis = axis / np.linalg.norm(axis) 
   
   for i in range(num_active_blobs):
-    # if i > 3 and i < 12:
+    if i >= 0 and i < 6:
     # if i <= 3 or i >= 12:
-    # if i > 7:
+    # if i > 6:
     # if i <= 7:
-    if True:      
+    # if True:      
       slip[i] = axis * speed
   return slip
 
@@ -212,6 +213,9 @@ def slip_rod_resolved(body):
   # Distance to center along x-axis to determine active blobs
   x_distance_to_center = 64
   x_distance_to_center_2 = 0.4
+
+  offset_start = 12 * 16
+  offset_end = offset_start + 192
 
   # Speed slip
   speed = -1.0
@@ -247,17 +251,23 @@ def slip_rod_resolved(body):
     #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
 
     # Slip on the sides
-    if abs(r_reference[i, 0]) > x_distance_to_center:
-      # Compute slip and rotate
-      slip_reference = np.array([speed, 0.0, 0.0])
-      slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
+    # if abs(r_reference[i, 0]) > x_distance_to_center:
+    #   # Compute slip and rotate
+    #   slip_reference = np.array([speed, 0.0, 0.0])
+    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
     # elif abs(r_reference[i, 0]) > x_distance_to_center_2:
     #   # Compute slip and rotate
     #   slip_reference = np.array([0.5 * speed, 0.0, 0.0])
     #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
+
+    # Slip in middle with offset
+    if i >= offset_start and i < offset_end:
+      # Compute slip and rotate
+      slip_reference = np.array([speed, 0.0, 0.0])
+      slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
     pass
 
-  # slip_rotated[-1,:] = np.array([speed, 0.0, 0.0])
+  # slip_rotated[-2,:] = np.array([speed, 0.0, 0.0])
   # slip_rotated[-12:,:] = 0
 
   # print r_reference, '\n'
