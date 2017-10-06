@@ -179,9 +179,12 @@ def slip_minimal(body):
   '''
   # Choose number of blobs covered by slip
   num_active_blobs = 12
+  offset_start = 3
+  offset_end = offset_start + 6
+  
 
   # Slip speed
-  speed = -10.0
+  speed = -100.0
   
   # Set slip to zero
   slip = np.zeros((body.Nblobs, 3))
@@ -194,7 +197,7 @@ def slip_minimal(body):
   axis = axis / np.linalg.norm(axis) 
   
   for i in range(num_active_blobs):
-    if i >= 0 and i < 6:
+    if i >= offset_start and i < offset_end:
     # if i <= 3 or i >= 12:
     # if i > 6:
     # if i <= 7:
