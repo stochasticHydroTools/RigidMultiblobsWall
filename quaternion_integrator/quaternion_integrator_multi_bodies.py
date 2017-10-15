@@ -876,7 +876,11 @@ class QuaternionIntegrator(object):
         continue       
 
       # Solve mobility problem at the corrector step
-      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT = rand_force_cor, x0 = self.first_guess, save_first_guess = True)
+      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, 
+                                                    noise_FT = rand_force_cor, 
+                                                    x0 = self.first_guess, 
+                                                    save_first_guess = True,
+                                                    PC_partial = PC_partial)
 
       # Extract velocities
       velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
