@@ -7,8 +7,6 @@
 ! This function computes the Stokes interaction
 ! in the presence of a no-slip wall at z=0.
 ! Particles should be located at z>0.
-!subroutine fmm_stokeslet_half(ier, iprec, N, N3, X, F, U, RH, viscosity)
-!subroutine fmm_stokeslet_half(ier, iprec, N, N3, x)
 subroutine fmm_stokeslet_half(x, F, U, ier, iprec, RH, viscosity, N)
   implicit none
   integer, intent(in) :: iprec, N
@@ -22,10 +20,7 @@ subroutine fmm_stokeslet_half(x, F, U, ier, iprec, RH, viscosity, N)
   itype = 2
   pi = 4.0d0 * datan(1.0d0)
   
-  !call stfmm3dpartself (ier, iprec, N, source, 1, sigma_sl, 0, sigma_dl, sigma_dv, 1, pot, pre, 0, grad)
   call sthfmm3dpartself(ier, iprec, itype, N, x, 1, F, 0, sigma_dl,sigma_dv, 1, u, pre, 0, grad)
-    
-  
   
   ! Scale velocity and add self mobility
   do i=1, N
@@ -54,7 +49,7 @@ subroutine fmm_rpy(x, F, U, ier, iprec, RH, viscosity, N)
   call rpyfmm3dparttarg(ier, iprec, N, x, 1, F, 0, sigma_dl, sigma_dv, 1, U, & 
        pre, 0, grad, 0, targetLocations, 0, POTtarg, PREtarg, 0, GRADtarg, RH, 0)  
   
-  ! Scale velocity and add self mobility
+  ! Scale velocity 
   do i=1, N
      U(1,i) = U(1,i) / viscosity
      U(2,i) = U(2,i) / viscosity

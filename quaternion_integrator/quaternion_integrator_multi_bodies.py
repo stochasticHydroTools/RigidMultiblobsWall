@@ -1203,6 +1203,8 @@ class QuaternionIntegrator(object):
       # Scale solution with RHS norm
       if RHS_norm > 0:
         sol_precond = sol_precond * RHS_norm
+      else:
+        sol_precond[:] = 0.0
       
       # Return solution
       return sol_precond
