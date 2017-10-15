@@ -348,14 +348,16 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     for b in bodies:
       # 1. Compute blobs mobility and invert it
       M = b.calc_mobility_blobs(eta, a)
-      M_inv = np.linalg.inv(M)
-      mobility_inv_blobs.append(M_inv)
-      # 2. Compute geometric matrix K
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
+      # 3. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 4. Compute geometric matrix K
       K = b.calc_K_matrix()
       K_bodies.append(K)
-      # 3. Compute body mobility
-      N = b.calc_mobility_body(eta, a, M_inv = M_inv)
-      mobility_bodies.append(N)
+      # 5. Compute body mobility
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
