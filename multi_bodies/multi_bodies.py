@@ -344,7 +344,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
-  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
     for b in bodies:
       # 1. Compute blobs mobility and invert it
@@ -358,10 +358,10 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
       N = b.calc_mobility_body(eta, a, M_inv = M_inv)
       mobility_bodies.append(N)
 
-      # Save variables to use in next steps if PC is not updated
-      build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
-      build_block_diagonal_preconditioner.K_bodies = K_bodies
-      build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioner.K_bodies = K_bodies
+    build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
