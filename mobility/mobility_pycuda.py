@@ -2253,24 +2253,22 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
 
   # Reshape arrays
-  x = np.reshape(target, target.size)
-  y = np.reshape(source, source.size)
+  x = real(np.reshape(target, target.size))
+  y = real(np.reshape(source, source.size))
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
   y_gpu = cuda.mem_alloc(y.nbytes)
-  radius_target_gpu = cuda.mem_alloc(radius_target.nbytes)
-  radius_source_gpu = cuda.mem_alloc(radius_source.nbytes)
+  radius_target_gpu = cuda.mem_alloc(real(radius_target).nbytes)
+  radius_source_gpu = cuda.mem_alloc(real(radius_source).nbytes)
   f_gpu = cuda.mem_alloc(force.nbytes)
   u_gpu = cuda.mem_alloc(x.nbytes)
-  # number_of_targets_gpu = cuda.mem_alloc(number_of_targets.nbytes)
-  # number_of_sources_gpu = cuda.mem_alloc(number_of_sources.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
   cuda.memcpy_htod(y_gpu, y)
-  cuda.memcpy_htod(radius_target_gpu, radius_target)
-  cuda.memcpy_htod(radius_source_gpu, radius_source)
+  cuda.memcpy_htod(radius_target_gpu, real(radius_target))
+  cuda.memcpy_htod(radius_source_gpu, real(radius_source))
   cuda.memcpy_htod(f_gpu, force)
     
   # Get mobility function
@@ -2280,6 +2278,6 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   mobility(y_gpu, x_gpu, f_gpu, u_gpu, radius_source_gpu, radius_target_gpu, np.int32(number_of_sources), np.int32(number_of_targets), real(eta), real(L[0]), real(L[1]), real(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(target)
+  u = np.empty_like(x)
   cuda.memcpy_dtoh(u, u_gpu)
-  return np.reshape(u, u.size)
+  return np.reshape(np.float64(u), u.size)
