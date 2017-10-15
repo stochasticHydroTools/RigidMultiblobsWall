@@ -80,7 +80,7 @@ class QuaternionIntegrator(object):
       preprocess_result = self.preprocess(self.bodies)
 
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, update_PC = self.update_PC, step = kwargs.get('step'))
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -147,7 +147,7 @@ class QuaternionIntegrator(object):
       preprocess_result = self.preprocess(self.bodies)
 
       # Solve mobility problem
-      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True)
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, update_PC = self.update_PC, step = kwargs.get('step'))
 
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -876,7 +876,11 @@ class QuaternionIntegrator(object):
         continue       
 
       # Solve mobility problem at the corrector step
-      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, noise_FT = rand_force_cor, x0 = self.first_guess, save_first_guess = True)
+      sol_precond_cor = self.solve_mobility_problem(noise = rand_slip_cor, 
+                                                    noise_FT = rand_force_cor, 
+                                                    x0 = self.first_guess, 
+                                                    save_first_guess = True,
+                                                    PC_partial = PC_partial)
 
       # Extract velocities
       velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -1134,7 +1138,7 @@ class QuaternionIntegrator(object):
     return
 
 
-  def solve_mobility_problem(self, RHS = None, noise = None, noise_FT = None, AB = None, x0 = None, save_first_guess = False, PC_partial = None): 
+  def solve_mobility_problem(self, RHS = None, noise = None, noise_FT = None, AB = None, x0 = None, save_first_guess = False, PC_partial = None, *args, **kwargs): 
     ''' 
     Solve the mobility problem using preconditioned GMRES. Compute 
     velocities on the bodies subject to active slip and enternal 
@@ -1184,7 +1188,7 @@ class QuaternionIntegrator(object):
 
       # Set preconditioner 
       if PC_partial is None:
-        PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a)
+        PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
       
       # Scale RHS to norm 1
