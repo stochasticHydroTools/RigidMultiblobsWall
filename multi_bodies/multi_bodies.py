@@ -208,7 +208,6 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   return res
 
 
-@utils.static_var('K_bodies', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('M_factorization_blobs', [])
@@ -332,6 +331,9 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
 
 
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('K_bodies', [])
+@utils.static_var('mobility_inv_blobs', [])
 def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
   '''
   Build the block diagonal preconditioner for rigid bodies.
@@ -342,18 +344,29 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
-  # Loop over bodies
-  for b in bodies:
-    # 1. Compute blobs mobility and invert it
-    M = b.calc_mobility_blobs(eta, a)
-    M_inv = np.linalg.inv(M)
-    mobility_inv_blobs.append(M_inv)
-    # 2. Compute geometric matrix K
-    K = b.calc_K_matrix()
-    K_bodies.append(K)
-    # 3. Compute body mobility
-    N = b.calc_mobility_body(eta, a, M_inv = M_inv)
-    mobility_bodies.append(N)
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+    # Loop over bodies
+    for b in bodies:
+      # 1. Compute blobs mobility and invert it
+      M = b.calc_mobility_blobs(eta, a)
+      M_inv = np.linalg.inv(M)
+      mobility_inv_blobs.append(M_inv)
+      # 2. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 3. Compute body mobility
+      N = b.calc_mobility_body(eta, a, M_inv = M_inv)
+      mobility_bodies.append(N)
+
+      # Save variables to use in next steps if PC is not updated
+      build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
+      build_block_diagonal_preconditioner.K_bodies = K_bodies
+      build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
+  else:
+    # Use old values
+    mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
+    K_bodies = build_block_diagonal_preconditioner.K_bodies
+    mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
 
   def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
     '''
