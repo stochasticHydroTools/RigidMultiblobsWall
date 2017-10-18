@@ -553,7 +553,7 @@ if __name__ == '__main__':
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
-      multi_bodies_functions.set_slip_by_ID(b, slip)
+      multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

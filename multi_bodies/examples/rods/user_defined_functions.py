@@ -147,7 +147,7 @@ def blob_external_force_new(r_vectors, *args, **kwargs):
   return np.zeros(3)
 multi_bodies_functions.blob_external_force = blob_external_force_new
 
-def set_slip_by_ID_new(body, slip):
+def set_slip_by_ID_new(body, slip, *args, **kwargs):
   '''
   This functions assing a slip function to each
   body depending on his ID. The ID of a structure
@@ -161,30 +161,27 @@ def set_slip_by_ID_new(body, slip):
   if body.ID == 'active_body':
     body.function_slip = active_body_slip
   elif body.ID == 'rod_minimal':
-    body.function_slip = slip_minimal
+    body.function_slip = partial(slip_minimal, *args, **kwargs)
   elif body.ID == 'rod_resolved':
-    body.function_slip = slip_rod_resolved
+    body.function_slip = partial(slip_rod_resolved, *args, **kwargs)
   elif body.ID == 'sheet':
-    body.function_slip = slip_rod_resolved
+    body.function_slip = partial(slip_rod_resolved, *args, **kwargs)
   else:
     body.function_slip = default_zero_blobs
   return
 multi_bodies_functions.set_slip_by_ID = set_slip_by_ID_new
 
 
-def slip_minimal(body):
+def slip_minimal(body, *args, **kwargs):
   '''
   Creates slip for a extensile rod. The slip is along the
   axis pointing to the closest end. There is slip in only the last blob
   '''
-  # Choose number of blobs covered by slip
-  num_active_blobs = 12
-  offset_start = 3
-  offset_end = offset_start + 6
-  
-
-  # Slip speed
-  speed = -100.0
+  # Get slip options, offset start, offset end and speed
+  slip_options = kwargs.get('slip_options')
+  offset_start = slip_options[0]
+  offset_end = slip_options[1]
+  speed = slip_options[2]
   
   # Set slip to zero
   slip = np.zeros((body.Nblobs, 3))
@@ -198,30 +195,26 @@ def slip_minimal(body):
   
   for i in range(num_active_blobs):
     if i >= offset_start and i < offset_end:
-    # if i <= 3 or i >= 12:
-    # if i > 6:
-    # if i <= 7:
-    # if True:      
       slip[i] = axis * speed
   return slip
 
 
 
 
-def slip_rod_resolved(body):
+def slip_rod_resolved(body, *args, **kwargs):
   '''
   Creates slip for a extensile rod. The slip is along the
   axis pointing to the closest end. 
   '''
   # Distance to center along x-axis to determine active blobs
-  x_distance_to_center = 64
-  x_distance_to_center_2 = 0.4
+  # x_distance_to_center = 64
+  # x_distance_to_center_2 = 0.4
 
-  offset_start = 12 * 16
-  offset_end = offset_start + 192
-
-  # Speed slip
-  speed = -1.0
+  # Get slip options, offset start, offset end and speed
+  slip_options = kwargs.get('slip_options')
+  offset_start = slip_options[0]
+  offset_end = slip_options[1]
+  speed = slip_options[2]
 
   # Get rotation matrix
   rotation_matrix = body.orientation.rotation_matrix()
@@ -268,8 +261,7 @@ def slip_rod_resolved(body):
       # Compute slip and rotate
       slip_reference = np.array([speed, 0.0, 0.0])
       slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-    pass
-
+      
   # slip_rotated[-2,:] = np.array([speed, 0.0, 0.0])
   # slip_rotated[-12:,:] = 0
 
