@@ -2261,7 +2261,7 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   y_gpu = cuda.mem_alloc(y.nbytes)
   radius_target_gpu = cuda.mem_alloc(real(radius_target).nbytes)
   radius_source_gpu = cuda.mem_alloc(real(radius_source).nbytes)
-  f_gpu = cuda.mem_alloc(force.nbytes)
+  f_gpu = cuda.mem_alloc(real(force).nbytes)
   u_gpu = cuda.mem_alloc(x.nbytes)
     
   # Copy data to the GPU (host to device)
@@ -2269,7 +2269,7 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   cuda.memcpy_htod(y_gpu, y)
   cuda.memcpy_htod(radius_target_gpu, real(radius_target))
   cuda.memcpy_htod(radius_source_gpu, real(radius_source))
-  cuda.memcpy_htod(f_gpu, force)
+  cuda.memcpy_htod(f_gpu, real(force))
     
   # Get mobility function
   mobility = mod.get_function("velocity_from_force_source_target")
