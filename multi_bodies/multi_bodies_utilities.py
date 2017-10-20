@@ -174,7 +174,7 @@ if __name__ ==  '__main__':
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, read.blob_radius)
       b.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.structures_ID[ID]
-      multi_bodies_functions.set_slip_by_ID(b, slip)
+      multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

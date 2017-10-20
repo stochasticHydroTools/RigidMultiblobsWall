@@ -193,7 +193,7 @@ def slip_minimal(body, *args, **kwargs):
   axis = r_vectors[-1] - r_vectors[0] 
   axis = axis / np.linalg.norm(axis) 
   
-  for i in range(num_active_blobs):
+  for i in range(body.Nblobs):
     if i >= offset_start and i < offset_end:
       slip[i] = axis * speed
   return slip
