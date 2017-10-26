@@ -35,12 +35,8 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
   ghost_mass = 1.0
   ghost_radius = 0.15
   Nghost = 100
-  # repulsion_strength_wall = 0.001
-  # debye_length_wall = 0.025
-  # g = 0.0001539384 * (14.0 / 100.0) 
   
   # Loop over bodies
-  offset = 0
   for k, b in enumerate(bodies):
     # Create force-torque vector
     F = np.zeros((2*len(bodies), 3))
@@ -80,9 +76,9 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
                                              *args, **kwargs) 
                                              
     # Compute force and torque on the body
-    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs[offset:(offset+Nghost)])
-    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs[offset:(offset+Nghost)], 3*Nghost))
-    offset += Nghost
+    force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs)
+    force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs, 3*Nghost))
+
 
   return force_torque_bodies
 multi_bodies_functions.bodies_external_force_torque = bodies_external_force_torque_new
