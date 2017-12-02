@@ -153,8 +153,8 @@ class QuaternionIntegratorRollers(object):
       if valid_configuration is True:
         for b in self.bodies:
           b.location = b.location_new          
-            if b.location[2] < self.a:
-              self.wall_overlaps += 1              
+          if b.location[2] < self.a:
+            self.wall_overlaps += 1              
         return
 
       self.invalid_configuration_count += 1
