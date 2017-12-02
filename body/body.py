@@ -7,6 +7,7 @@ Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 import numpy as np
 import copy
 from quaternion_integrator.quaternion import Quaternion 
+import sys
 
 class Body(object):
   '''
@@ -52,7 +53,6 @@ class Body(object):
     self.mobility_blobs_cholesky = None
     self.ID = None
   
-   
   
   def get_r_vectors(self, location = None, orientation = None):
     '''
@@ -63,28 +63,24 @@ class Body(object):
       location = self.location
     if orientation is None:
       orientation = self.orientation
+
     # Compute blobs coordinates
     rotation_matrix = orientation.rotation_matrix()
-    r_vectors = np.empty([self.Nblobs, 3])
-    for i, vec in enumerate(self.reference_configuration):
-      r_vectors[i] = np.dot(rotation_matrix, vec) + location
-    return r_vectors
-    
+    r_vectors = np.array([np.dot(rotation_matrix, vec) for vec in self.reference_configuration])
+    r_vectors += location
+    return r_vectors   
+
+
   def calc_rot_matrix(self, location = None, orientation = None):
     ''' 
     Calculate the matrix R, where the i-th 3x3 block of R gives
     (R_i x) = -1 (r_i cross x).
     R has shape (3*Nblobs, 3).
     '''
-    rot_matrix = np.empty((self.Nblobs, 3, 3))
     r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
-    for k, vec in enumerate(r_vectors):
-      # Create block
-      block = np.array([[0.0, vec[2], -1.0 * vec[1]],
-                        [-1.0 * vec[2], 0.0, vec[0]],
-                        [vec[1], -1.0 * vec[0], 0.0]])
-      # Assign block
-      rot_matrix[k] = block
+    rot_matrix = np.array([[[0.0,    vec[2], -vec[1]],
+                           [-vec[2], 0.0,    vec[0]],
+                           [vec[1], -vec[0], 0.0]] for vec in r_vectors])
     return np.reshape(rot_matrix, (3*self.Nblobs, 3))
 
 
@@ -92,18 +88,20 @@ class Body(object):
     '''
     Returns a block matrix with dimensions (Nblobs, 1)
     with each block being a 3x3 identity matrix.
-    '''
-    J = np.empty([self.Nblobs, 3, 3])
-    for i in range(self.Nblobs):
-      J[i] = np.eye(3)
-    return np.reshape(J, (3*self.Nblobs, 3))
+    '''  
+    J = np.zeros((3*self.Nblobs, 3))
+    J[0::3,0] = 1.0
+    J[1::3,1] = 1.0
+    J[2::3,2] = 1.0
+    return J
+
 
   def calc_K_matrix(self, location = None, orientation = None):
     '''
     Return geometric matrix K = [J, rot] with shape (3*Nblobs, 6)
     '''
     return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
-                        
+
 
   def check_function(self, location = None, orientation = None, distance = None):
     ''' 
@@ -172,7 +170,7 @@ class Body(object):
     '''
     r_vectors = self.get_r_vectors()
     return self.mobility_blobs(r_vectors, eta, a)
-    
+
 
   def calc_mobility_body(self, eta, a, M = None, M_inv = None):
     '''
@@ -180,7 +178,7 @@ class Body(object):
     forces and torques to velocities and angular
     velocites.
     '''
-    K = self.calc_K_matrix()
+    K = self.calc_K_matrix()      
     if M_inv is not None:
       return np.linalg.pinv( np.dot(K.T, np.dot(M_inv, K)) )
     if M is None:

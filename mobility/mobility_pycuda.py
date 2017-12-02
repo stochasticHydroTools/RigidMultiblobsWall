@@ -356,6 +356,109 @@ __global__ void velocity_from_force_no_wall(const real *x,
 }
 
 
+/*
+ velocity_from_force computes the product
+ U = M*F
+*/
+__global__ void velocity_from_force_no_wall(const real *x,
+                                            const real *f,					
+                                            real *u,
+				            int number_of_blobs,
+                                            real eta,
+                                            real a,
+                                            real Lx,
+                                            real Ly,
+                                            real Lz){
+
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if(i >= number_of_blobs) return;   
+
+  real invaGPU = real(1.0) / a;
+
+  real Ux=0;
+  real Uy=0;
+  real Uz=0;
+
+  real rx, ry, rz;
+
+  real Mxx, Mxy, Mxz;
+  real Myy, Myz;
+  real Mzz;
+
+  int NDIM = 3; // 3 is the spatial dimension
+  int ioffset = i * NDIM; 
+  int joffset;
+
+  // Determine if the space is pseudo-periodic in any dimension
+  // We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  int periodic_x = 0, periodic_y = 0, periodic_z = 0;
+  if(Lx > 0){
+    periodic_x = 1;
+  }
+  if(Ly > 0){
+    periodic_y = 1;
+  }
+  if(Lz > 0){
+    periodic_z = 1;
+  }
+  
+  // Loop over image boxes and then over particles
+  for(int boxX = -periodic_x; boxX <= periodic_x; boxX++){
+    for(int boxY = -periodic_y; boxY <= periodic_y; boxY++){
+      for(int boxZ = -periodic_z; boxZ <= periodic_z; boxZ++){
+	for(int j=0; j<number_of_blobs; j++){
+	  joffset = j * NDIM;
+	  
+	  // Compute vector between particles i and j
+	  rx = x[ioffset    ] - x[joffset    ];
+	  ry = x[ioffset + 1] - x[joffset + 1];
+	  rz = x[ioffset + 2] - x[joffset + 2];
+
+	  // Project a vector r to the extended unit cell
+	  // centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+	  // any dimension of L is equal or smaller than zero the 
+	  // box is assumed to be infinite in that direction.
+	  if(Lx > 0){
+	    rx = rx - int(rx / Lx + real(0.5) * (int(rx>0) - int(rx<0))) * Lx;
+            rx = rx + boxX * Lx;
+	  }
+	  if(Ly > 0){
+	    ry = ry - int(ry / Ly + real(0.5) * (int(ry>0) - int(ry<0))) * Ly;
+            ry = ry + boxY * Ly;
+	  }
+	  if(Lz > 0){
+	    rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
+            rz = rz + boxZ * Lz;
+	  }
+  
+	  // 1. Compute mobility for pair i-j, if i==j use self-interation
+          int j_image = j;
+          if(boxX!=0 or boxY!=0 or boxZ!=0){
+            j_image = -1;
+          }
+	  mobilityUFRPY(rx,ry,rz, Mxx,Mxy,Mxz,Myy,Myz,Mzz, i,j_image, invaGPU);
+	  
+	  //2. Compute product M_ij * F_j
+	  Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1] + Mxz * f[joffset + 2]);
+	  Uy = Uy + (Mxy * f[joffset] + Myy * f[joffset + 1] + Myz * f[joffset + 2]);
+	  Uz = Uz + (Mxz * f[joffset] + Myz * f[joffset + 1] + Mzz * f[joffset + 2]);
+	}
+      }
+    }
+  }
+  //LOOP END
+
+  //3. Save velocity U_i
+  real pi = real(4.0) * atan(real(1.0));
+  real norm_fact_f = real(1.0) / (8 * pi * eta * a);
+  u[ioffset    ] = Ux * norm_fact_f;
+  u[ioffset + 1] = Uy * norm_fact_f;
+  u[ioffset + 2] = Uz * norm_fact_f;
+
+  return;
+}
+
+
 
 ////////// WT //////////////////////////////////////////////////
 
@@ -551,7 +654,7 @@ __global__ void rotation_from_torque(const real *x,
 	    rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
             rz = rz + boxZ * Lz;
 	  }
- 
+
 	  // 1. Compute mobility for pair i-j, if i==j use self-interation
           int j_image = j;
           if(boxX!=0 or boxY!=0 or boxZ!=0){
@@ -1661,7 +1764,6 @@ __device__ void mobilityUFSourceTarget(real rx,
   Mzz = C1 + C2 * rz * rz;
 
   return;
-
 }
 
 
@@ -2254,25 +2356,23 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
 
   # Reshape arrays
-  x = np.reshape(target, target.size)
-  y = np.reshape(source, source.size)
+  x = real(np.reshape(target, target.size))
+  y = real(np.reshape(source, source.size))
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
   y_gpu = cuda.mem_alloc(y.nbytes)
-  radius_target_gpu = cuda.mem_alloc(radius_target.nbytes)
-  radius_source_gpu = cuda.mem_alloc(radius_source.nbytes)
-  f_gpu = cuda.mem_alloc(force.nbytes)
+  radius_target_gpu = cuda.mem_alloc(real(radius_target).nbytes)
+  radius_source_gpu = cuda.mem_alloc(real(radius_source).nbytes)
+  f_gpu = cuda.mem_alloc(real(force).nbytes)
   u_gpu = cuda.mem_alloc(x.nbytes)
-  # number_of_targets_gpu = cuda.mem_alloc(number_of_targets.nbytes)
-  # number_of_sources_gpu = cuda.mem_alloc(number_of_sources.nbytes)
     
   # Copy data to the GPU (host to device)
   cuda.memcpy_htod(x_gpu, x)
   cuda.memcpy_htod(y_gpu, y)
-  cuda.memcpy_htod(radius_target_gpu, radius_target)
-  cuda.memcpy_htod(radius_source_gpu, radius_source)
-  cuda.memcpy_htod(f_gpu, force)
+  cuda.memcpy_htod(radius_target_gpu, real(radius_target))
+  cuda.memcpy_htod(radius_source_gpu, real(radius_source))
+  cuda.memcpy_htod(f_gpu, real(force))
     
   # Get mobility function
   mobility = mod.get_function("velocity_from_force_source_target")
@@ -2281,6 +2381,7 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   mobility(y_gpu, x_gpu, f_gpu, u_gpu, radius_source_gpu, radius_target_gpu, np.int32(number_of_sources), np.int32(number_of_targets), real(eta), real(L[0]), real(L[1]), real(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
     
   # Copy data from GPU to CPU (device to host)
-  u = np.empty_like(target)
+  u = np.empty_like(x)
   cuda.memcpy_dtoh(u, u_gpu)
-  return np.reshape(u, u.size)
+  return np.reshape(np.float64(u), u.size)
+

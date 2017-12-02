@@ -40,7 +40,7 @@ class QuaternionIntegratorRollers(object):
     self.first_step = True
     self.kT = 0.0
     self.tolerance = 1e-08
-    self.rf_delta = 3e-03
+    self.rf_delta = 1e-06
     self.invalid_configuration_count = 0
     self.wall_overlaps = 0
     self.omega_one_roller = None
@@ -75,7 +75,7 @@ class QuaternionIntegratorRollers(object):
       self.tolerance = tolerance
     return 
 
-  def advance_time_step(self, dt):
+  def advance_time_step(self, dt, *args, **kwargs):
     '''
     Advance time step with integrator self.scheme
     '''
@@ -97,7 +97,7 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location + dt * det_velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so       
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
       if self.domain == 'single_wall':
         for b in self.bodies:
@@ -127,7 +127,6 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_old = b.location
 
-      
       if self.hydro_interactions==1: 
          # Compute deterministic velocity
       	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
@@ -137,7 +136,6 @@ class QuaternionIntegratorRollers(object):
       	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
       	stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
 
-
       # Add velocities
       velocity = det_velocity + stoch_velocity
 
@@ -145,7 +143,7 @@ class QuaternionIntegratorRollers(object):
       for k, b in enumerate(self.bodies):
         b.location_new = b.location_old + dt * velocity[3*k : 3*(k+1)]
 
-      # Check if configuration is valid and update postions if so
+      # Check if configuration is valid and update postions if so      
       valid_configuration = True
       if self.domain == 'single_wall':
         for b in self.bodies:
@@ -155,7 +153,6 @@ class QuaternionIntegratorRollers(object):
       if valid_configuration is True:
         for b in self.bodies:
           b.location = b.location_new          
-          if self.domain == 'single_wall':    
             if b.location[2] < self.a:
               self.wall_overlaps += 1              
         return
@@ -251,7 +248,7 @@ class QuaternionIntegratorRollers(object):
 
       # Check if configuration is valid and update postions if so      
       valid_configuration = True
-      if self.domain == 'single_wall':    
+      if self.domain == 'single_wall':
         for k, b in enumerate(self.bodies):
           if b.location_new[2] < 0.0:      
             valid_configuration = False
@@ -261,7 +258,7 @@ class QuaternionIntegratorRollers(object):
         self.velocities_previous_step = det_velocity
         for b in self.bodies:
           b.location = b.location_new          
-          if self.domain == 'single_wall':    
+          if self.domain == 'single_wall':
             if b.location[2] < self.a:
               self.wall_overlaps += 1      
         return
@@ -305,7 +302,7 @@ class QuaternionIntegratorRollers(object):
         b.location = b.location_old + (0.5 * dt) * velocity[3*k : 3*(k+1)]
 
       # Check if configuration is valid if not repeat step
-      if self.domain == 'single_wall':         
+      if self.domain == 'single_wall':    
         valid_configuration = True
         for k, b in enumerate(self.bodies):
           if b.location[2] < 0.0:      
@@ -567,12 +564,15 @@ class QuaternionIntegratorRollers(object):
       if RHS_norm > 0:
         RHS = RHS / RHS_norm
 
-      # Solve linear system # callback=make_callback()
+      # Solve linear system 
+      counter = gmres_counter(print_residual = self.print_residual)
       (sol_precond, info_precond) = spla.gmres(A, 
                                                RHS, 
                                                x0=self.deterministic_torque_previous_step, 
                                                tol=self.tolerance, 
-                                               maxiter=1000) 
+                                               maxiter=1000,
+                                               callback = counter) 
+      self.det_iterations_count += counter.niter
       self.deterministic_torque_previous_step = sol_precond
 
       # Scale solution with RHS norm
@@ -689,7 +689,6 @@ class QuaternionIntegratorRollers(object):
     return velocity, torque
 
 
-
   def compute_stochastic_velocity(self, dt):
     '''
     Compute stochastic torque and velocity. First,
@@ -741,7 +740,9 @@ class QuaternionIntegratorRollers(object):
                                                                          tolerance = self.tolerance, 
                                                                          dim = self.Nblobs * 6, 
                                                                          mobility_mult = partial_grand_mobility_matrix,
-                                                                         z = z)
+                                                                         z = z,
+                                                                         print_residual = self.print_residual)
+    self.stoch_iterations_count += it_lanczos
 
     # Compute divergence terms div_t(M_rt) and div_t(M_tt)
     if self.kT > 0.0 and self.domain != 'no_wall':
@@ -756,6 +757,7 @@ class QuaternionIntegratorRollers(object):
                                                                    periodic_length = self.periodic_length)
       # 4. Displace blobs in the other direction
       r_vectors_blobs -= dx_stoch * self.rf_delta * self.a 
+
       # 5. Compute -M_rt(r-0.5*dx) * dx_stoch
       div_M_rt -= self.mobility_rot_times_force(r_vectors_blobs, np.reshape(dx_stoch, dx_stoch.size), self.eta, self.a, 
                                                                   periodic_length = self.periodic_length)
@@ -785,11 +787,14 @@ class QuaternionIntegratorRollers(object):
       if RHS_norm > 0:
         RHS = RHS / RHS_norm
 
-      # Solve linear system # callback=make_callback()
+      # Solve linear system 
+      counter = gmres_counter(print_residual = self.print_residual)
       (sol_precond, info_precond) = spla.gmres(A, 
                                                RHS, 
                                                tol=self.tolerance, 
-                                               maxiter=1000) 
+                                               maxiter=1000,
+                                               callback=counter) 
+      self.det_iterations_count += counter.niter
 
       # Scale solution with RHS norm
       if RHS_norm > 0:
@@ -838,7 +843,9 @@ class QuaternionIntegratorRollers(object):
                                                                          tolerance = self.tolerance, 
                                                                          dim = self.Nblobs * 3, 
                                                                          mobility_mult = partial_mobility_matrix,
-                                                                         z = z)
+                                                                         z = z,
+                                                                         print_residual = self.print_residual)
+    self.stoch_iterations_count += it_lanczos
 
     # Compute divergence term div_t(M_tt)
     # 1. Generate random displacement
@@ -914,6 +921,7 @@ class QuaternionIntegratorRollers(object):
     
     return v_stoch 
 
+
   def compute_stochastic_linear_velocity_without_drift(self, dt):
     '''
     Compute stochastic linear velocity
@@ -947,7 +955,10 @@ class QuaternionIntegratorRollers(object):
                                                                          tolerance = self.tolerance, 
                                                                          dim = self.Nblobs * 3, 
                                                                          mobility_mult = partial_mobility_matrix,
-                                                                         z = z)
+                                                                         z = z,
+                                                                         print_residual = self.print_residual)
+    self.stoch_iterations_count += it_lanczos
+
     # Return velocity
     return velocities_noise 
 
@@ -1004,13 +1015,18 @@ class QuaternionIntegratorRollers(object):
         torques[3*i: 3*(i+1)] = self.get_omega_one_roller()*8.0*m.pi*self.eta*self.a**3
     return torques
 
-# Callback generator
-def make_callback():
-  closure_variables = dict(counter=0, residuals=[]) 
-  def callback(residuals):
-    closure_variables["counter"] += 1
-    closure_variables["residuals"].append(residuals)
-    print closure_variables["counter"], residuals
-  return callback
 
+class gmres_counter(object):
+  '''
+  Callback generator to count iterations. 
+  '''
+  def __init__(self, print_residual = False):
+    self.print_residual = print_residual
+    self.niter = 0
+  def __call__(self, rk=None):
+    self.niter += 1
+    if self.print_residual is True:
+      if self.niter == 1:
+        print 'gmres =  0 1'
+      print 'gmres = ', self.niter, rk
 

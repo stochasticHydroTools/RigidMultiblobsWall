@@ -6,9 +6,21 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 
-mod = SourceModule("""
-#include <stdio.h>
+# These lines set the precision of the cuda code
+# to single or double. Set the precision
+# in the following lines and edit the lines
+# after   'mod = SourceModule("""'    accordingly
+precision = 'single'
+# precision = 'double'
 
+mod = SourceModule("""
+// Set real to single or double precision.
+// This value has to agree witht the value
+// for precision setted above.
+typedef float real;
+// typedef double real;
+
+#include <stdio.h>
 /*
   This function compute the force between two blobs
   with vector between blob centers r.
@@ -24,18 +36,18 @@ mod = SourceModule("""
   b = Debye length
   a = blob_radius
 */
-__device__ void blob_blob_force(const double rx, 
-                                const double ry, 
-                                const double rz, 
-                                double &fx, 
-                                double &fy, 
-                                double &fz, 
-                                const double eps, 
-                                const double b,
-                                const double a){
+__device__ void blob_blob_force(const real rx, 
+                                const real ry, 
+                                const real rz, 
+                                real &fx, 
+                                real &fy, 
+                                real &fz, 
+                                const real eps, 
+                                const real b,
+                                const real a){
 
-  double r = sqrt(rx*rx + ry*ry + rz*rz);
-  double f;
+  real r = sqrt(rx*rx + ry*ry + rz*rz);
+  real f;
   if(r > 2*a){
     f = -(eps / b) * exp(-(r-2*a) / b) / r; 
   }
@@ -50,24 +62,24 @@ __device__ void blob_blob_force(const double rx,
 /*
  This function computes the blob-blob force for all blobs.
 */
-__global__ void calc_blob_blob_force(const double *x, 
-                                     double *f, 
-                                     const double repulsion_strength, 
-                                     const double debye_length,
-                                     const double blob_radius,
-                                     const double Lx,
-                                     const double Ly,
-                                     const double Lz,
+__global__ void calc_blob_blob_force(const real *x, 
+                                     real *f, 
+                                     const real repulsion_strength, 
+                                     const real debye_length,
+                                     const real blob_radius,
+                                     const real Lx,
+                                     const real Ly,
+                                     const real Lz,
                                      const int number_of_blobs){
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
 
   int offset_i = i * 3;
   int offset_j;
-  double rx, ry, rz;
-  double fx = 0;
-  double fy = 0;
-  double fz = 0;
+  real rx, ry, rz;
+  real fx = 0;
+  real fy = 0;
+  real fz = 0;
 
   // Loop over blobs to add interanctions
   for(int j=0; j<number_of_blobs; j++){
@@ -83,13 +95,13 @@ __global__ void calc_blob_blob_force(const double *x,
     // any dimension of L is equal or smaller than zero the 
     // box is assumed to be infinite in that direction.
     if(Lx > 0){
-      rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx;
+      rx = rx - int(rx / Lx + real(0.5) * (int(rx>0) - int(rx<0))) * Lx;
     }
     if(Ly > 0){
-      ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly;
+      ry = ry - int(ry / Ly + real(0.5) * (int(ry>0) - int(ry<0))) * Ly;
     }
     if(Lz > 0){
-      rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz;
+      rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
     }
 
     // Compute force between blobs i and j
@@ -104,6 +116,12 @@ __global__ void calc_blob_blob_force(const double *x,
   f[offset_i + 2] = fz;
 }
 """)
+
+def real(x):
+  if precision == 'single':
+    return np.float32(x)
+  else:
+    return np.float64(x)
 
 
 def set_number_of_threads_and_blocks(num_elements):
@@ -123,7 +141,7 @@ def set_number_of_threads_and_blocks(num_elements):
     threads_per_block = 32
   num_blocks = (num_elements-1)/threads_per_block + 1
 
-  return (threads_per_block, num_blocks)
+  return (threads_per_block, int(num_blocks))
 
 
 def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
@@ -139,8 +157,8 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   blob_radius = kwargs.get('blob_radius')
 
   # Reshape arrays
-  x = np.reshape(r_vectors, number_of_blobs * 3)
-  f = np.empty_like(x)
+  x = real(np.reshape(r_vectors, number_of_blobs * 3))
+  f = real(np.empty_like(x))
         
   # Allocate GPU memory
   x_gpu = cuda.mem_alloc(x.nbytes)
@@ -153,8 +171,8 @@ def calc_blob_blob_forces_pycuda(r_vectors, *args, **kwargs):
   force = mod.get_function("calc_blob_blob_force")
 
   # Compute mobility force product
-  force(x_gpu, f_gpu, np.float64(eps), np.float64(b), np.float64(blob_radius), np.float64(L[0]), np.float64(L[1]), np.float64(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
-   
+  force(x_gpu, f_gpu, real(eps), real(b), real(blob_radius), real(L[0]), real(L[1]), real(L[2]), number_of_blobs, block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
+
   # Copy data from GPU to CPU (device to host)
   cuda.memcpy_dtoh(f, f_gpu)
 

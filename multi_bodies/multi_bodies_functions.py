@@ -7,9 +7,12 @@ bodies or the slip on the blobs.
 import numpy as np
 import sys
 import imp
+import os.path
+from functools import partial
 
+import utils
 from quaternion_integrator.quaternion import Quaternion
-from example_pair_active_rods import slip_function as ex_rods_slip
+
 # Try to import the forces boost implementation
 try:
   import forces_ext
@@ -24,6 +27,17 @@ except ImportError:
 if found_pycuda:
   import forces_pycuda  
 
+# Override forces_pycuda with user defined functions.
+# If forces_pycuda_user_defined does not exists nothing happens.
+if found_pycuda:
+  forces_pycuda_user_defined = False
+  if os.path.isfile('forces_pycuda_user_defined.py'):
+    forces_pycuda_user_defined = True
+  if forces_pycuda_user_defined:
+    del sys.modules['forces_pycuda']
+    sys.modules['forces_pycuda'] = __import__('forces_pycuda_user_defined')
+    import forces_pycuda
+    
 
 def project_to_periodic_image(r, L):
   '''
@@ -56,54 +70,45 @@ def default_zero_bodies(bodies, *args, **kwargs):
   return np.zeros((2*len(bodies), 3))
   
 
-def set_slip_by_ID(body):
+def set_slip_by_ID(body, slip):
   '''
-  This functions assing a slip function to each
-  body depending on his ID. The ID of a structure
-  is the name of the clones file (without .clones)
-  given in the input file.
+  This function assign a slip function to each body.
+  If the body has an associated slip file the function
+  "active_body_slip" is assigned (see function below).
+  Otherwise the slip is set to zero.
 
-  As an example we give a default function which sets the
-  slip to zero and a function for active rods with an
-  slip along its axis. The user can create new functions
-  for other kind of active bodies.
+  This function can be override to assign other slip
+  functions based on the body ID, (ID of a structure
+  is the name of the clones file (without .clones)).
+  See the example in
+  "examples/pair_active_rods/".
   '''
-  if body.ID == 'active_body':
-    body.function_slip = active_body_slip
-  elif (body.ID == 'Cylinder_N_14_Lg_1_9295_Rg_0_18323') \
-        or (body.ID == 'Cylinder_N_86_Lg_1_9384_Rg_0_1484') \
-        or (body.ID == 'Cylinder_N_324_Lg_2_0299_Rg_0_1554'):
-    body.function_slip = ex_rods_slip.slip_extensile_rod  
+  if slip is not None:
+    active_body_slip_partial = partial(active_body_slip, slip = slip)
+    body.function_slip = active_body_slip_partial
   else:
     body.function_slip = default_zero_blobs
   return
 
 
-def active_body_slip(body):
+def active_body_slip(body, slip):
   '''
-  This function set the slip on all the blobs of a body
-  to a constant value along the x-axis in the body reference 
-  configuration; i.e. if the body changes its orientation the
-  slip will be along the rotated x-axis.
+  This function set the slip read from the *.slip file to the
+  blobs. The slip on the file is given in the body reference 
+  configuration (quaternion = (1,0,0,0)) therefore this
+  function rotates the slip to the current body orientation.
   
   This function can be used, for example, to model active rods
   that propel along their axes. 
   '''
-  # Define slip speed
-  speed = 1.0
-  
-  # Get main axis (rotated x-axis)
+  # Get rotation matrix
   rotation_matrix = body.orientation.rotation_matrix()
-  x = np.zeros(3)
-  x[0] = 1.0
-  axis = np.dot(rotation_matrix, x)
 
-  # Create slip on each blob
-  slip = np.empty((body.Nblobs, 3))
+  # Rotate  slip on each blob
+  slip_rotated = np.empty((body.Nblobs, 3))
   for i in range(body.Nblobs):
-    slip[i] = speed * axis
-
-  return slip
+    slip_rotated[i] = np.dot(rotation_matrix, slip[i])
+  return slip_rotated
 
 
 def bodies_external_force_torque(bodies, r_vectors, *args, **kwargs):
@@ -141,24 +146,15 @@ def blob_external_force(r_vectors, *args, **kwargs):
   g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall') 
   debye_length_wall = kwargs.get('debye_length_wall')
-  spring_flag = kwargs.get('spring_flag')
-  if spring_flag:
-  # Add harmonic potential
-    f[2] += -repulsion_strength_wall * (r_vectors[2] - debye_length_wall)
-  else:
   # Add gravity
     f += -g * blob_mass * np.array([0., 0., 1.0])
 
   # Add wall interaction
-    h = r_vectors[2]
-    if h > blob_radius:
-      f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
-    else:
-      f[2] += (repulsion_strength_wall / debye_length_wall)
-
-  
-  
-
+  h = r_vectors[2]
+  if h > blob_radius:
+    f[2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h-blob_radius)/debye_length_wall)
+  else:
+    f[2] += (repulsion_strength_wall / debye_length_wall)
   return f
 
 
@@ -181,7 +177,6 @@ def set_blob_blob_forces(implementation):
   '''
   Set the function to compute the blob-blob forces
   to the right function.
-
   The implementation in pycuda is much faster than the
   one in C++, which is much faster than the one python; 
   To use the pycuda implementation is necessary to have 
@@ -263,8 +258,10 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   number_of_blobs = r_vectors.size / 3
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
+  if L is None:
+    L = -1.0*np.ones(3)
 
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L) 
+  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L)
   return np.reshape(forces, (number_of_blobs, 3))
 
 
@@ -283,7 +280,6 @@ def body_body_force_torque(r, quaternion_i, quaternion_j, *args, **kwargs):
   '''
   This function compute the force between two bodies
   with vector between locations r.
-
   In this example the torque is zero and the force 
   is derived from a Yukawa potential
   
@@ -366,7 +362,6 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   # Add body-body forces (same for all pair of bodies)
   force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
-
   return force_torque_bodies
 
 
@@ -387,4 +382,19 @@ def postprocess(bodies, *args, **kwargs):
   '''
   return
 
+  # Add body-body forces (same for all pair of bodies)
+  force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
+
+  return force_torque_bodies
+
+
+# Override force interactions by user defined functions.
+# This only override the functions implemented in python.
+# If user_defined_functions is empty or does not exists
+# this import does nothing.
+user_defined_functions_found = False
+if os.path.isfile('user_defined_functions.py'):
+  user_defined_functions_found = True
+if user_defined_functions_found:
+  import user_defined_functions
 

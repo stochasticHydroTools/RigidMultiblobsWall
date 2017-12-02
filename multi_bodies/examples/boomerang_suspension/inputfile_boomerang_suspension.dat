@@ -1,0 +1,57 @@
+# Brownian simulation of a boomerang colloidal suspension.
+# Note, here we use a pycuda implementation to compute
+# the matrix vector product Mf, it is necessary to have
+# GPU compatible with CUDA to use this input file.
+#
+# Length, time and mass are given in units of microns, seconds and miligrams.
+
+# Select scheme to integrate Brownian equations
+scheme                                   stochastic_Slip_Trapz
+
+# Select implementation to compute M and M*f
+# We recommend to use the C++ implementation which is faster,
+# see documentation
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           pycuda
+
+# Set time step, number of steps and save frequency
+dt                                       0.01
+n_steps                                  10
+n_save                                   1
+initial_step				                     0
+
+# Solver params
+solver_tolerance                         1.0e-3
+
+
+# Set fluid viscosity (eta), gravity*blob_mass (g) and blob radius
+eta                                      8.9e-04 
+g                                        0.0001539384
+blob_radius                              0.324557390919
+
+# Stochastic parameters
+kT                                       0.0041419464
+
+# RFD parameters
+rf_delta                                 1.0e-6
+
+# Periodic dimensions
+periodic_length                          45.339607409 45.339607409 0
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.095713728509
+debye_length_wall	   		                 0.162278695459
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+repulsion_strength	   		               0.095713728509
+debye_length	   			                   0.162278695459
+
+# Set output name
+output_name                              run_boomerang_suspension
+save_clones				                       one_file
+
+structure	../../Structures/boomerang_N_15.vertex boomerang_suspension_N_15.clones
+

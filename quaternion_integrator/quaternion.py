@@ -44,14 +44,11 @@ class Quaternion(object):
     by this quaternion.
     '''
     # Cross product matrix for p, actually the negative.
-    P = np.array([[0., -1.*self.p[2], self.p[1]], 
-                  [self.p[2], 0., -1.*self.p[0]],
-                  [-1.*self.p[1], self.p[0], 0.]])
-    # Put pieces together to get rotation matrix.
-    R = 2.*(np.outer(self.p, self.p) + 
-            (self.s**2 - 0.5)*np.identity(3)
-            + self.s*P)
-    return R
+    diag = self.s**2 - 0.5
+    return 2.0 * np.array([[self.p[0]**2+diag,                    self.p[0]*self.p[1]-self.s*self.p[2], self.p[0]*self.p[2]+self.s*self.p[1]], 
+                           [self.p[1]*self.p[0]+self.s*self.p[2], self.p[1]**2+diag,                    self.p[1]*self.p[2]-self.s*self.p[0]],
+                           [self.p[2]*self.p[0]-self.s*self.p[1], self.p[2]*self.p[1]+self.s*self.p[0], self.p[2]**2+diag]])
+
 
   def __str__(self):
     return '[ %f, %f, %f, %f ]' % (self.s, self.p[0], self.p[1], self.p[2])
