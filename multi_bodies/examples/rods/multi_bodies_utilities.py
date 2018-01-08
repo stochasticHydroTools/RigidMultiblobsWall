@@ -226,6 +226,7 @@ if __name__ ==  '__main__':
 
 
   # If scheme == mobility solve mobility problem
+  start_time = time.time()  
   if read.scheme == 'mobility':
     start_time = time.time()  
     # Get blobs coordinates
@@ -374,6 +375,27 @@ if __name__ ==  '__main__':
     # Compute velocity field
 
 
+  # Save wallclock time 
+  elapsed_time = time.time() - start_time
+  with open(read.output_name + '.time', 'w') as f:
+    f.write(str(time.time() - start_time) + '\n')
+
+  # For each type of structure save locations and orientations to one file
+  body_offset = 0
+  for i, ID in enumerate(read.structures_ID):
+    name = read.output_name + '.' + ID + '.clones'
+    with open(name, 'w') as f_ID:
+      f_ID.write(str(body_types[i]) + '\n')
+      for j in range(body_types[i]):
+        orientation = bodies[body_offset + j].orientation.entries
+        f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                               bodies[body_offset + j].location[1], 
+                                               bodies[body_offset + j].location[2], 
+                                               orientation[0], 
+                                               orientation[1], 
+                                               orientation[2], 
+                                               orientation[3]))
+      body_offset += body_types[i]
 
 
   print '\n\n\n# End'
