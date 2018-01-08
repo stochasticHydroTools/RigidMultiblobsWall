@@ -251,7 +251,9 @@ if __name__ ==  '__main__':
     A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
     # Set preconditioner
-    if False:
+    # Set method, block_diag, diag or scalar
+    PC_method = 'scalar'
+    if PC_method == 'block_diag':
       mobility_inv_blobs = []
       mobility_bodies = np.empty((len(bodies), 6, 6))
       # Loop over bodies
@@ -263,8 +265,8 @@ if __name__ ==  '__main__':
         # 2. Compute body mobility
         N = b.calc_mobility_body(read.eta, read.blob_radius, M_inv = M_inv)
         mobility_bodies[k] = N
-
-    else:
+    elif PC_method == 'diag':
+      # Use diagonal PC
       mobility_inv_blobs = []
       mobility_bodies = np.empty((len(bodies), 6, 6))
       # Loop over bodies
@@ -276,11 +278,24 @@ if __name__ ==  '__main__':
         # 2. Compute body mobility
         N = b.calc_mobility_body(read.eta, read.blob_radius, M_inv = M_inv)
         mobility_bodies[k] = N
+    elif PC_method == 'scalar':
+      # Use scalar PC
+      mobility_inv_blobs = []
+      mobility_bodies = np.empty((len(bodies), 6, 6))
+      # Loop over bodies
+      for k, b in enumerate(bodies):
+        # 1. Compute blobs mobility and invert it
+        M = 1.0 / (6 * np.pi * read.eta * read.blob_radius) 
+        M_inv = (6 * np.pi * read.eta * read.blob_radius) 
+        mobility_inv_blobs.append(M_inv)
+        # 2. Compute body mobility
+        N = b.calc_mobility_body_scalar(read.eta, read.blob_radius, M_inv = M_inv)
+        mobility_bodies[k] = N
 
 
     # 4. Pack preconditioner
     PC_partial = partial(multi_bodies.block_diagonal_preconditioner, bodies=bodies, mobility_bodies=mobility_bodies, \
-                         mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs)
+                         mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs, method=PC_method)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')               
       
     # Solve preconditioned linear system 

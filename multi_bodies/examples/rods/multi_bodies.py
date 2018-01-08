@@ -399,7 +399,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs, method='block_diag'):
   '''
   Block diagonal preconditioner for rigid bodies.
   It solves exactly the mobility problem for each body
@@ -411,22 +411,37 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   for k, b in enumerate(bodies):
     # 1. Solve M*Lambda_tilde = slip
     slip = vector[3*offset : 3*(offset + b.Nblobs)]
-    # Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-    Lambda_tilde = np.diag(mobility_inv_blobs[k]) * slip
-
+    if method == 'block_diag':
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+    elif method == 'diag':
+      Lambda_tilde = np.diag(mobility_inv_blobs[k]) * slip
+    elif method == 'scalar':
+      Lambda_tilde = mobility_inv_blobs[k] * slip
+    else:
+      print 'No valid method in block_diagonal_preconditioner'
+      sys.exit()      
+      
     # 2. Compute rigid body velocity
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
     Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
 
     # 3. Solve M*Lambda = (slip + K*Y)
-    # Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-    Lambda = np.diag(mobility_inv_blobs[k]) *  (slip + np.dot(b.calc_K_matrix(), Y))
+    if method == 'block_diag':
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
+    elif method == 'diag':
+      Lambda = np.diag(mobility_inv_blobs[k]) * (slip + np.dot(b.calc_K_matrix(), Y))
+    elif method == 'scalar':
+      Lambda = mobility_inv_blobs[k] *  (slip + np.dot(b.calc_K_matrix(), Y))
+    else:
+      print 'No valid method in block_diagonal_preconditioner'
+      sys.exit() 
 
     # 4. Set result
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
     result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
     offset += b.Nblobs
   return result
+
 
 def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
   '''
