@@ -26,7 +26,7 @@ while found_functions is False:
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    # print 'searching functions in path ', path_to_append
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
       print '\nProjected functions not found. Edit path in multi_bodies.py'
@@ -348,14 +348,17 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     # Loop over bodies
     for b in bodies:
       # 1. Compute blobs mobility and invert it
-      M = np.eye(b.Nblobs * 3) / (6 * np.pi * eta * a)
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
       # 3. Compute inverse mobility blobs
-      mobility_inv_blobs.append(np.eye(b.Nblobs * 3) * (6 * np.pi * eta * a))
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
       # 4. Compute geometric matrix K
       K = b.calc_K_matrix()
       K_bodies.append(K)
       # 5. Compute body mobility
-      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, np.dot(mobility_inv_blobs[-1], K))))
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies

@@ -211,56 +211,23 @@ def slip_rod_resolved(body, *args, **kwargs):
   offset_start = slip_options[0]
   offset_end = slip_options[1]
   speed = slip_options[2]
+  shear = slip_options[3]
 
   # Get rotation matrix
   rotation_matrix = body.orientation.rotation_matrix()
 
   # Get blobs vectors
+  r_configuration = body.get_r_vectors()
   r_reference = body.reference_configuration
 
   slip_rotated = np.zeros((body.Nblobs, 3))
   for i in range(body.Nblobs):
-    # Slip on tail
-    # if r_reference[i, 0] < x_distance_to_center:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-
-    # Slip on head
-    # if r_reference[i, 0] > x_distance_to_center:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-
-    # Slip on the middle
-    # if abs(r_reference[i, 0]) < x_distance_to_center:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-    # elif abs(r_reference[i, 0]) < x_distance_to_center_2:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([0.5 * speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-
-    # Slip on the sides
-    # if abs(r_reference[i, 0]) > x_distance_to_center:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-    # elif abs(r_reference[i, 0]) > x_distance_to_center_2:
-    #   # Compute slip and rotate
-    #   slip_reference = np.array([0.5 * speed, 0.0, 0.0])
-    #   slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
-
-    # Slip in middle with offset
     if i >= offset_start and i < offset_end:
       # Compute slip and rotate
       slip_reference = np.array([speed, 0.0, 0.0])
       slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
       
-  # slip_rotated[-2,:] = np.array([speed, 0.0, 0.0])
-  # slip_rotated[-12:,:] = 0
+      # Add shear (flow along x, gradient along z)
+      slip_rotated[i,0] -= shear * r_configuration[i,2]
 
-  # print r_reference, '\n'
-  # print slip_rotated
   return slip_rotated
