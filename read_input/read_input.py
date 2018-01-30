@@ -78,7 +78,7 @@ class ReadInput(object):
     self.update_PC = int(self.options.get('update_PC') or 1)
     self.domain = str(self.options.get('domain') or 'single_wall')
           
-    # Create list with [vertex_file, clones_file] for each strcuture
+    # Create list with [vertex_file, clones_file] for each structure
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
