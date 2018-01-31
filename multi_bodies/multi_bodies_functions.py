@@ -382,11 +382,6 @@ def postprocess(bodies, *args, **kwargs):
   '''
   return
 
-  # Add body-body forces (same for all pair of bodies)
-  force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
-
-  return force_torque_bodies
-
 
 # Override force interactions by user defined functions.
 # This only override the functions implemented in python.

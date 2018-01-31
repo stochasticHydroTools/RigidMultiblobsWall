@@ -1243,13 +1243,6 @@ class QuaternionIntegrator(object):
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
-      # Add slip force looping over bodies
-      offset = 0
-      for k, b in enumerate(self.bodies):
-        K = b.calc_K_matrix()
-        force_torque[2*k : 2*(k+1)] -= np.reshape(np.dot(K.T, force_slip[3*offset : 3*(offset+b.Nblobs)]), (2, 3))
-        offset += b.Nblobs    
-
       # Calculate block-diagonal matrix K
       K = self.calc_K_matrix(self.bodies, self.Nblobs)
 

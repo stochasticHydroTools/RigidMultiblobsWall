@@ -47,7 +47,6 @@ class ReadInput(object):
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
-    self.structure_names = str.split(str(self.options.get('structure_names')))
     self.random_state = self.options.get('random_state')
     self.seed = self.options.get('seed')
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)
@@ -79,7 +78,7 @@ class ReadInput(object):
     self.update_PC = int(self.options.get('update_PC') or 1)
     self.domain = str(self.options.get('domain') or 'single_wall')
           
-    # Create list with [vertex_file, clones_file] for each strcuture
+    # Create list with [vertex_file, clones_file] for each structure
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
@@ -102,3 +101,4 @@ class ReadInput(object):
         recovery_file = self.output_name + '.'  + self.structures_ID[k] + '.' + str(self.initial_step).zfill(8) + '.clones'
         struct[1] = recovery_file
 
+    return
