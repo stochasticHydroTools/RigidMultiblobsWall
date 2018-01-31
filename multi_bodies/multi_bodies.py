@@ -247,7 +247,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       # 2. Compute Cholesy factorization, M = L^T * L
       L, lower = scipy.linalg.cho_factor(M)
       L = np.triu(L)   
-      M_factorization_blobs.append(L)
+      M_factorization_blobs.append(L.T)
       # 3. Compute inverse of L
       M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
       # 4. Compute inverse mobility blobs
@@ -450,7 +450,7 @@ def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *a
     # 2. Compute Cholesy factorization, M = L^T * L
     L, lower = scipy.linalg.cho_factor(M)
     L = np.triu(L)   
-    P_inv.append(L)
+    P_inv.append(L.T)
 
     # Form preconditioners version P 
     P.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
