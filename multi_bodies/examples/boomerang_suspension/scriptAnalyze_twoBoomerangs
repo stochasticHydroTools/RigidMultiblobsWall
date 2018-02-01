@@ -1,0 +1,41 @@
+#
+# Use this script to analize the data from N simulations for the two boomerang
+# problem; you can compare your results with with the Monte-Carlo results in 
+# Two_Booms_Data/
+#
+# This script analyze N simulations with name run.index.* with index=1, ..., N
+# saved in Two_Booms_Data/
+
+
+
+typeset -i n 
+n=1
+number_of_simulations=4
+while [ $n -le $number_of_simulations ] 
+do 
+
+echo n = $n 
+
+# Get bodies
+python ../../../tools/get_body.py Two_Booms_Data/run."$n".two_boomerangs_N_15.config 2 0 1 > Two_Booms_Data/run."$n".boomerang.0.dat 
+python ../../../tools/get_body.py Two_Booms_Data/run."$n".two_boomerangs_N_15.config 2 1 1 > Two_Booms_Data/run."$n".boomerang.1.dat 
+
+# Get cross point, compute histogram and statistics
+python cross_point_r.py Two_Booms_Data/run."$n".two_boomerangs_N_15.config 2 > Two_Booms_Data/run."$n".cross_point.r.dat
+python ../../../tools/histogram.py Two_Booms_Data/run."$n".cross_point.r.dat 0 0 2.5 100 > Two_Booms_Data/run."$n".cross_point.histogram.r.dat
+
+# Compute histogram heights
+python ../../../tools/histogram.py Two_Booms_Data/run."$n".boomerang.0.dat 3 0 12 100 > Two_Booms_Data/run."$n".boomerang.0.histogram.z.dat
+python ../../../tools/histogram.py Two_Booms_Data/run."$n".boomerang.1.dat 3 0 12 100 > Two_Booms_Data/run."$n".boomerang.1.histogram.z.dat
+
+
+n=$n+1 
+done 
+
+
+
+python ../../../tools/averageFiles.py Two_Booms_Data/run. .cross_point.histogram.r.dat 1 $number_of_simulations 2 > Two_Booms_Data/run.1-"$number_of_simulations".cross_point.histogram.r.dat
+python ../../../tools/averageFiles.py Two_Booms_Data/run. .boomerang.0.histogram.z.dat 1 $number_of_simulations 2 > Two_Booms_Data/run.1-"$number_of_simulations".boomerang.0.histogram.z.dat
+python ../../../tools/averageFiles.py Two_Booms_Data/run. .boomerang.1.histogram.z.dat 1 $number_of_simulations 2 > Two_Booms_Data/run.1-"$number_of_simulations".boomerang.1.histogram.z.dat
+
+
