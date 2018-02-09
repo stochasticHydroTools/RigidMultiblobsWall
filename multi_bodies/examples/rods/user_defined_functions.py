@@ -208,10 +208,13 @@ def slip_rod_resolved(body, *args, **kwargs):
 
   # Get slip options, offset start, offset end and speed
   slip_options = kwargs.get('slip_options')
-  offset_start = slip_options[0]
-  offset_end = slip_options[1]
+  offset_start_0 = slip_options[0]
+  offset_end_0 = slip_options[1]
   speed = slip_options[2]
   shear = slip_options[3]
+  offset_start_1 = slip_options[4]
+  offset_end_1 = slip_options[5]
+
 
   # Get rotation matrix
   rotation_matrix = body.orientation.rotation_matrix()
@@ -222,12 +225,18 @@ def slip_rod_resolved(body, *args, **kwargs):
 
   slip_rotated = np.zeros((body.Nblobs, 3))
   for i in range(body.Nblobs):
-    if i >= offset_start and i < offset_end:
+    if i >= offset_start_0 and i < offset_end_0:
       # Compute slip and rotate
       slip_reference = np.array([speed, 0.0, 0.0])
       slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
+     
+    elif i >= offset_start_1 and i < offset_end_1:
+      # Compute slip and rotate
+      slip_reference = np.array([-speed, 0.0, 0.0])
+      slip_rotated[i] = np.dot(rotation_matrix, slip_reference)
       
-      # Add shear (flow along x, gradient along z)
-      slip_rotated[i,0] -= shear * r_configuration[i,2]
+    # Add shear (flow along x, gradient along z)
+    slip_rotated[i,0] -= shear * r_configuration[i,2]
+
 
   return slip_rotated
