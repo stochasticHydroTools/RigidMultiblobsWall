@@ -148,6 +148,7 @@ if __name__ ==  '__main__':
                                    'for a multi-body suspension and save some data.')
   parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', 
                       help='name of the input file')
+  parser.add_argument('--print-residual', action='store_true', help='print gmres and lanczos residuals')
   args=parser.parse_args()
   input_file = args.input_file
 
@@ -160,6 +161,7 @@ if __name__ ==  '__main__':
   # Create rigid bodies
   bodies = []
   body_types = []
+  body_names = []
   for ID, structure in enumerate(read.structures):
     print 'Creating structures = ', structure[1]
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
@@ -169,6 +171,7 @@ if __name__ ==  '__main__':
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
     body_types.append(num_bodies_struct)
+    body_names.append(read.structures_ID[ID])
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, read.blob_radius)
@@ -180,7 +183,7 @@ if __name__ ==  '__main__':
   bodies = np.array(bodies)
 
   # Set some more variables
-  num_of_body_types = len(read.structure_names)
+  num_of_body_types = len(body_types)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
   multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
@@ -191,6 +194,7 @@ if __name__ ==  '__main__':
   # Write bodies information
   with open(read.output_name + '.bodies_info', 'w') as f:
     f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
+    f.write('body_names         ' + str(body_names) + '\n')
     f.write('body_types         ' + str(body_types) + '\n')
     f.write('num_bodies         ' + str(num_bodies) + '\n')
     f.write('num_blobs          ' + str(Nblobs) + '\n')
@@ -237,7 +241,7 @@ if __name__ ==  '__main__':
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
-    RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
+    RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))       
     
     # Set linear operators 
     linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius)
@@ -334,9 +338,6 @@ if __name__ ==  '__main__':
     # Solve mobility problem
 
     # Compute velocity field
-
-
-
 
   print '\n\n\n# End'
 

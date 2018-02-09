@@ -1,0 +1,57 @@
+# Select integrator 
+#scheme                                  stochastic_first_order_rollers
+scheme					                         stochastic_adams_bashforth_rollers
+#scheme					                         deterministic_forward_euler_rollers
+#scheme					                         stochastic_first_order_RFD
+
+# Define implementation to compute the blobs mobility 
+mobility_blobs_implementation	           C++
+mobility_vector_prod_implementation      pycuda
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+blob_blob_force_implementation	         pycuda 
+repulsion_strength			                 0.0165677856
+debye_length	   			                   0.0656
+
+# Set interaction with the wall. The potential is harmonic
+# U = 0.5 * repulsion_strength_wall * (z - debye_length_wall)**2
+repulsion_strength_wall                  0.0165677856
+debye_length_wall	   		                 5.0
+
+# Set time step, number of steps and save frequency
+dt		 	   	     	                       0.016
+n_steps					                         20
+n_save  				                         5
+
+# Set initial step, code saves not data for steps < 0
+initial_step				                     0
+
+# Set tolerance for iterative solvers (Lanczos and GMRES if used)
+solver_tolerance			                   1e-4
+
+# Set viscosity, gravity, blob radius and temperature (k_B*T)
+eta                                      1.0e-3
+g					                               0.010976
+blob_radius				                       0.656
+kT					                             0.0041419464
+
+# Seed random number generator, it will be random if not given
+# seed                                   1
+
+# Set output name
+output_name                              data/run1
+save_clones				                       one_file
+
+# Load structures and initial configuration
+structure	Structures/blob.vertex Structures/shell.clones
+
+
+# Set pseudo-periodic boundary conditions. System is
+# pseudoperiodic along x,y axes if the length is > 0.
+periodic_length				                   73.5375 73.5375 0
+
+# Options for HydroGrid
+green_particles                          0 499
+cells                                    64 64
+sample_HydroGrid                         5
+save_HydroGrid                           5

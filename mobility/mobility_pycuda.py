@@ -356,6 +356,7 @@ __global__ void velocity_from_force_no_wall(const real *x,
 }
 
 
+
 ////////// WT //////////////////////////////////////////////////
 
 /*
@@ -550,7 +551,7 @@ __global__ void rotation_from_torque(const real *x,
 	    rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
             rz = rz + boxZ * Lz;
 	  }
-  
+
 	  // 1. Compute mobility for pair i-j, if i==j use self-interation
           int j_image = j;
           if(boxX!=0 or boxY!=0 or boxZ!=0){
@@ -1161,7 +1162,6 @@ __global__ void velocity_from_force_and_torque(const real *x,
                                                real Lx,
                                                real Ly,
                                                real Lz){
-
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if(i >= number_of_blobs) return;   
@@ -2088,7 +2088,7 @@ def single_wall_mobility_trans_times_force_torque_pycuda(r_vectors, force, torqu
 
   # Compute mobility force product
   mobility(x_gpu, f_gpu, t_gpu, u_gpu, number_of_blobs, real(eta), real(a), real(L[0]), real(L[1]), real(L[2]), block=(threads_per_block, 1, 1), grid=(num_blocks, 1)) 
-    
+
   # Copy data from GPU to CPU (device to host)
   u = np.empty_like(t)
   cuda.memcpy_dtoh(u, u_gpu)
@@ -2281,3 +2281,4 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   u = np.empty_like(x)
   cuda.memcpy_dtoh(u, u_gpu)
   return np.reshape(np.float64(u), u.size)
+

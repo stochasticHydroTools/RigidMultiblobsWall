@@ -386,9 +386,7 @@ corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
-The cost of this function scales like `(number_of_blobs)**2`, just like the product **Mf**.
-The default soft repulsion is described under `repulsion_strength` below.
-See Section 5.3 for details on how to change this.
+The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
 Select the implementation to compute the body-body interactions between all
@@ -580,6 +578,44 @@ wall etc. To override the default python implementation create your
 own function `set_slip_by_ID` in the file `user_defined_functions.py`.
 For a simple example see `multi_bodies/examples/pair_active_rods/`.
 
+* `save_clones`: (string (default `one_file_per_step`)) options
+`_one_file_per_step_` and _one_file_. With the option
+`_one_file_per_step_` the clones configuration are saved in one file per
+kind of structure and per time step as explained above. With the option
+`_one_file_` the code saves one file per kind of structure with the
+configurations of all the time steps;
+configurations of different time steps are separated by a line with
+the number of rigid bodies.
+
+* `periodic_length`: (three floats (default 0 0 0)) length of the unit
+cell along the x, y and z directions. If the length of the unit cell
+along the x or y directions is larger than zero the code uses Pseudo
+Periodic Boundary Conditions (PPBC) along that axis, otherwise the
+system is considered infinite in that direction. With PPBC, particles forces are
+computed using the minimum image convention as with standard periodic
+boundary conditions. Hydrodynamic interactions are computed between
+particles in the unit cell and the first neighbor cells along the
+pseudo-periodic axis. PPBC along the z axis are not supported.
+
+### 5.2 Rollers simulations
+We can also use the code `multi_bodies.py` to run simulations of
+bodies discretized with a single blob interacting hydrodynamically with
+a grand-mobility matrix that includes couplings between the linear and
+angular velocities, see Ref. [3] for a detailed description.
+To run a simulation use:
+
+`python multi_bodies_utilities.py --input-file inputfile_body_mobility.dat`
+
+The input file options are the same than for a rigid multiblob
+simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
+following differences:
+
+* `scheme`: (string) Options: `deterministic_forward_euler_rollers,
+stochastic_first_order_rollers, deterministic_adams_bashforth_rollers,
+stochastic_adams_bashforth_rollers, stochastic_mid_point_rollers,
+stochastic_trapezoidal_rollers`. We provide several schemes for
+deterministic and stochastic simulations. 
+
 
 ## 6. Run Monte Carlo simulations
 We have a Markov Chain Monte Carlo code to generate equilibrium
@@ -609,7 +645,7 @@ the potentials to simulate a boomerang suspension as in Ref. [4].
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
-in the presence of gravity, as described in Section IV.C in [1].
+in the presence of gravity, as described in Section IV.C in [1](http://dx.doi.org/10.1063/1.4932062).
 Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
