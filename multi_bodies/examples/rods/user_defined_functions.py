@@ -211,10 +211,16 @@ def slip_rod_resolved(body, *args, **kwargs):
   offset_start_0 = slip_options[0]
   offset_end_0 = slip_options[1]
   speed = slip_options[2]
-  shear = slip_options[3]
-  offset_start_1 = slip_options[4]
-  offset_end_1 = slip_options[5]
-
+  if len(slip_options) >= 3:
+    shear = slip_options[3]
+  else:
+    shear = 0.0
+  if len(slip_options) >= 6:
+    offset_start_1 = slip_options[4]
+    offset_end_1 = slip_options[5]
+  else:
+    offset_start_1 = 0
+    offset_end_1 = 0
 
   # Get rotation matrix
   rotation_matrix = body.orientation.rotation_matrix()
