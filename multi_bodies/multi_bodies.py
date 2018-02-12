@@ -26,6 +26,7 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
+    from read_input import read_velocity_file
     import utils
     try:
       import calculateConcentration as cc
@@ -218,10 +219,14 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
-  # Modify "-force_torque" part for prescribed kinematics
+
+  # Modify to account for prescribed kinematics
+  offset = 0
   for k, b in enumerate(bodies):
     if b.prescribed_kinematics is True:
-      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] = b.calc_prescribed_velocity()
+      res[3*offset : 3*(offset+b.Nblobs)] += (K_times_U[offset : (offset+b.Nblobs)]).flatten()
+      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
+    offset += b.Nblobs
   return res
 
 
@@ -298,16 +303,28 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
-      # 1. Solve M*Lambda_tilde = slip
-      slip = vector[3*offset : 3*(offset + b.Nblobs)]
-      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-      # 2. Compute rigid body velocity
-      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
-      # 3. Solve M*Lambda = (slip + K*Y)
-      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
-      # 4. Set result
-      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      if b.prescribed_kinematics is False:
+        # 1. Solve M*Lambda_tilde = slip
+        slip = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+        # 2. Compute rigid body velocity
+        F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+        Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+        # 3. Solve M*Lambda = (slip + K*Y)
+        result[3*offset : 3*(offset + b.Nblobs)] = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+        # 4. Set result
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      if b.prescribed_kinematics is True:
+        # 1. Solve M*Lambda = (slip + K*Y)
+        slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
+
+        # 2. Set force
+        F = np.dot(K_bodies[k].T, Lambda)
+
+        # 3. Set result
+        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
       offset += b.Nblobs
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
@@ -394,20 +411,32 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
-      # 1. Solve M*Lambda_tilde = slip
-      slip = vector[3*offset : 3*(offset + b.Nblobs)]
-      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+      if b.prescribed_kinematics is False:
+        # 1. Solve M*Lambda_tilde = slip
+        slip = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+        
+        # 2. Compute rigid body velocity
+        F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+        Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+        
+        # 3. Solve M*Lambda = (slip + K*Y)
+        Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+        
+        # 4. Set result
+        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      if b.prescribed_kinematics is True:
+        # 1. Solve M*Lambda = (slip + K*Y)
+        slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
 
-      # 2. Compute rigid body velocity
-      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+        # 2. Set force
+        F = np.dot(K_bodies[k].T, Lambda)
 
-      # 3. Solve M*Lambda = (slip + K*Y)
-      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
-
-      # 4. Set result
-      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+        # 3. Set result
+        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
       offset += b.Nblobs
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
@@ -574,9 +603,9 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
-      multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])
       if prescribed_velocity is not None:
         b.prescribed_kinematics = True
+        multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

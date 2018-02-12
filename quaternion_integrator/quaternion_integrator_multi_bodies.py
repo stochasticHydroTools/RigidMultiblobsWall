@@ -1169,11 +1169,15 @@ class QuaternionIntegrator(object):
         # Set right hand side
         RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
         # If prescribed velocity modify RHS
+        offset = 0
         for k, b in enumerate(self.bodies):
-          print 'YYYYYYYYYYYYYYYYYYY', k
           if b.prescribed_kinematics is True:
-            RHS[3 * self.Nblobs + 6 * k : 3 * self.Nblobs + 6 * (k+1)] = b.calc_prescribed_velocity()
-            print 'XXXXXXXXXXXXXX', b.calc_prescribed_velocity()
+            # Add K*U to Right Hand side 
+            KU = np.dot(b.calc_K_matrix(), b.calc_prescribed_velocity())
+            RHS[3*offset : 3*(offset+b.Nblobs)] += KU.flatten()
+            # Set F to zero
+            RHS[3*self.Nblobs+k*6 : 3*self.Nblobs+(k+1)*6] = 0.0
+          offset += b.Nblobs
 
       # Add noise to the slip
       if noise is not None:
@@ -1196,7 +1200,7 @@ class QuaternionIntegrator(object):
       if PC_partial is None:
         PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
       PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-      
+
       # Scale RHS to norm 1
       RHS_norm = np.linalg.norm(RHS)
       if RHS_norm > 0:
@@ -1204,7 +1208,7 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
+      (sol_precond, info_precond) = spla.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1200, restart=60, callback=counter) 
       self.det_iterations_count += counter.niter
 
       if save_first_guess:
@@ -1215,6 +1219,16 @@ class QuaternionIntegrator(object):
         sol_precond = sol_precond * RHS_norm
       else:
         sol_precond[:] = 0.0
+
+      # If prescribed velocity we know the velocity
+      offset = 0
+      for k, b in enumerate(self.bodies):
+        if b.prescribed_kinematics is True:
+          # Test
+          K = b.calc_K_matrix()
+          KF = np.dot(K.T, sol_precond[3*offset : 3*(offset+b.Nblobs)])
+          sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
+        offset += b.Nblobs  
       
       # Return solution
       return sol_precond

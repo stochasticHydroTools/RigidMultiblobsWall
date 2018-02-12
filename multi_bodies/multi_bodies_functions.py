@@ -95,7 +95,7 @@ def set_prescribed_velocity_by_ID(body, prescribed_velocity):
   '''
 
   '''
-  if slip is not None:
+  if prescribed_velocity is not None:
     prescribed_velocity_partial = partial(function_prescribed_velocity, prescribed_velocity = prescribed_velocity)
     body.function_prescribed_velocity = prescribed_velocity_partial
   else:
