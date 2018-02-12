@@ -50,6 +50,8 @@ class Body(object):
     self.function_force = self.default_none
     self.function_torque = self.default_none
     self.function_force_blobs = self.default_zero_blobs
+    self.prescribed_velocity = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    self.prescribed_kinematics = False
     self.mobility_blobs_cholesky = None
     self.ID = None
   
@@ -133,6 +135,13 @@ class Body(object):
     Return the slip on the blobs.
     '''
     return self.function_slip(self)
+
+
+  def calc_prescribed_velocity(self):
+    '''
+    Return the slip on the blobs.
+    '''
+    return self.function_prescribed_velocity(self)
 
 
   def calc_force(self):

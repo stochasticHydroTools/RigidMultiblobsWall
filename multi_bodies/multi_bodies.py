@@ -194,9 +194,13 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
 def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *args, **kwargs):
   '''
   Return the action of the linear operator of the rigid body on vector v.
-  The linear operator is
+  The linear operator for free kinematics is
   |  M   -K|
   | -K^T  0|
+  
+  and for prescribed kinamtics
+  |  M   -K|
+  |  0    1|
   ''' 
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
@@ -214,6 +218,10 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
+  # Modify "-force_torque" part for prescribed kinematics
+  for k, b in enumerate(bodies):
+    if b.prescribed_kinematics is True:
+      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] = b.calc_prescribed_velocity()
   return res
 
 
@@ -550,6 +558,9 @@ if __name__ == '__main__':
     slip = None
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
+    prescribed_velocity = None
+    if(len(structure) > 2):
+      prescribed_velocity = read_velocity_file.read_slip_file(structure[3])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
@@ -563,6 +574,9 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
+      multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])
+      if prescribed_velocity is not None:
+        b.prescribed_kinematics = True
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

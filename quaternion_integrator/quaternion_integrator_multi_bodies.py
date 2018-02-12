@@ -1168,6 +1168,12 @@ class QuaternionIntegrator(object):
           force_torque += noise_FT
         # Set right hand side
         RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
+        # If prescribed velocity modify RHS
+        for k, b in enumerate(self.bodies):
+          print 'YYYYYYYYYYYYYYYYYYY', k
+          if b.prescribed_kinematics is True:
+            RHS[3 * self.Nblobs + 6 * k : 3 * self.Nblobs + 6 * (k+1)] = b.calc_prescribed_velocity()
+            print 'XXXXXXXXXXXXXX', b.calc_prescribed_velocity()
 
       # Add noise to the slip
       if noise is not None:
