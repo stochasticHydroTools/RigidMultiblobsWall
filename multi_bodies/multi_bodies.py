@@ -588,7 +588,7 @@ if __name__ == '__main__':
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
     prescribed_velocity = None
-    if(len(structure) > 2):
+    if(len(structure) > 3):
       prescribed_velocity = read_velocity_file.read_slip_file(structure[3])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])

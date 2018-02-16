@@ -36,7 +36,7 @@ while found_functions is False:
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    # print 'searching functions in path ', path_to_append
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
       print '\nProjected functions not found. Edit path in multi_bodies.py'
@@ -588,7 +588,7 @@ if __name__ == '__main__':
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
     prescribed_velocity = None
-    if(len(structure) > 2):
+    if(len(structure) > 3):
       prescribed_velocity = read_velocity_file.read_slip_file(structure[3])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
