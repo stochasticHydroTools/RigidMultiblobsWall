@@ -380,19 +380,24 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   K_bodies = []
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
-    for b in bodies:
-      # 1. Compute blobs mobility and invert it
-      M = b.calc_mobility_blobs(eta, a)
-      # 2. Compute Cholesy factorization, M = L^T * L
-      L, lower = scipy.linalg.cho_factor(M)
-      L = np.triu(L)   
-      # 3. Compute inverse mobility blobs
-      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-      # 4. Compute geometric matrix K
-      K = b.calc_K_matrix()
-      K_bodies.append(K)
-      # 5. Compute body mobility
-      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+    for k, b in enumerate(bodies):
+      if b.prescribed_kinematics and kwargs.get('step') > 0:
+        mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
+        mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
+        K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
+      else:
+        # 1. Compute blobs mobility and invert it
+        M = b.calc_mobility_blobs(eta, a)
+        # 2. Compute Cholesy factorization, M = L^T * L
+        L, lower = scipy.linalg.cho_factor(M)
+        L = np.triu(L)   
+        # 3. Compute inverse mobility blobs
+        mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+        # 4. Compute geometric matrix K
+        K = b.calc_K_matrix()
+        K_bodies.append(K)
+        # 5. Compute body mobility
+        mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
@@ -598,7 +603,9 @@ if __name__ == '__main__':
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = structures_ID[ID]
       # Calculate body length for the RFD
-      if i == 0:
+      if b.Nblobs > 2000:
+        b.body_length = 10.0
+      elif i == 0:
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
