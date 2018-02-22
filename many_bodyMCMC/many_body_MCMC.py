@@ -116,7 +116,6 @@ if __name__ == '__main__':
   bodies = np.array(bodies)
 
   # Set some more variables
-  num_of_body_types = len(read.structure_names)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
   max_angle_shift = max_translation / max_body_length
