@@ -230,6 +230,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   return res
 
 
+@utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('M_factorization_blobs', [])
@@ -256,6 +257,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   y = P_inv * x
   y = N*F - N*K.T*M^{-1}*slip
   '''
+  initialized = build_block_diagonal_preconditioners_det_stoch.initialized
   mobility_bodies = []
   K_bodies = []
   M_factorization_blobs = []
@@ -264,29 +266,39 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
 
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
     # Loop over bodies
-    for b in bodies:
-      # 1. Compute blobs mobility 
-      M = b.calc_mobility_blobs(eta, a)
-      # 2. Compute Cholesy factorization, M = L^T * L
-      L, lower = scipy.linalg.cho_factor(M)
-      L = np.triu(L)   
-      M_factorization_blobs.append(L.T)
-      # 3. Compute inverse of L
-      M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
-      # 4. Compute inverse mobility blobs
-      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-      # 5. Compute geometric matrix K
-      K = b.calc_K_matrix()
-      K_bodies.append(K)
-      # 6. Compute body mobility
-      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+    for k, b in enumerate(bodies):
+      if b.prescribed_kinematics and len(initialized) > 0:
+        mobility_bodies.append(build_block_diagonal_preconditioners_det_stoch.mobility_bodies[k])
+        K_bodies.append(build_block_diagonal_preconditioners_det_stoch.K_bodies[k])
+        M_factorization_blobs.append(build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs[k])
+        M_factorization_blobs_inv.append(build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv[k])
+        mobility_inv_blobs.append(build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs[k])
+      else:
+        # 1. Compute blobs mobility 
+        M = b.calc_mobility_blobs(eta, a)
+        # 2. Compute Cholesy factorization, M = L^T * L
+        L, lower = scipy.linalg.cho_factor(M)
+        L = np.triu(L)   
+        M_factorization_blobs.append(L.T)
+        # 3. Compute inverse of L
+        M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
+        # 4. Compute inverse mobility blobs
+        mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+        # 5. Compute geometric matrix K
+        K = b.calc_K_matrix()
+        K_bodies.append(K)
+        # 6. Compute body mobility
+        mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
-      # Save variables to use in next steps if PC is not updated
-      build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
-      build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
-      build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
+    build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+
+    # The function is initialized
+    build_block_diagonal_preconditioners_det_stoch.initialized.append(1)
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
@@ -365,6 +377,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
 
 
+@utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('mobility_inv_blobs', [])
@@ -375,13 +388,14 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   independently, i.e., no interation between bodies is taken
   into account.
   '''
+  initialized = build_block_diagonal_preconditioner.initialized
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
-      if b.prescribed_kinematics and kwargs.get('step') > 0:
+      if b.prescribed_kinematics and len(initialized) > 0:
         mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
         mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
         K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
@@ -403,6 +417,9 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
     build_block_diagonal_preconditioner.K_bodies = K_bodies
     build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
+
+    # The function is initialized
+    build_block_diagonal_preconditioner.initialized.append(1)
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
