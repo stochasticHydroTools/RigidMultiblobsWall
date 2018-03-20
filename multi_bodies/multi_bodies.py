@@ -7,6 +7,10 @@ from functools import partial
 import sys
 import time
 
+# Add path to HydroGrid and import module
+# sys.path.append('../../HydroGrid/src/')
+
+
 # Find project functions
 found_functions = False
 path_to_append = ''
@@ -23,6 +27,11 @@ while found_functions is False:
     from read_input import read_clones_file
     from read_input import read_slip_file
     import utils
+    try:
+      import calculateConcentration as cc
+      found_HydroGrid = True
+    except ImportError:
+      found_HydroGrid = False
     found_functions = True
   except ImportError:
     path_to_append += '../'
@@ -108,6 +117,7 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
+
 
 def calc_K_matrix(bodies, Nblobs):
   '''
@@ -258,12 +268,12 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       # 6. Compute body mobility
       mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
-      # Save variables to use in next steps if PC is not updated
-      build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
-      build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
-      build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
+    build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
@@ -588,7 +598,8 @@ if __name__ == '__main__':
                                                periodic_length = read.periodic_length)
     integrator.omega_one_roller = read.omega_one_roller
     integrator.free_kinematics = read.free_kinematics
-  
+    integrator.hydro_interactions = read.hydro_interactions
+
   if read.rf_delta is not None:
     integrator.rf_delta = float(read.rf_delta)
   integrator.calc_slip = calc_slip 
@@ -620,6 +631,21 @@ if __name__ == '__main__':
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
+
+  # Initialize HydroGrid library:
+  if found_HydroGrid:
+    cc.calculate_concentration(output_name, 
+                               read.periodic_length[0], 
+                               read.periodic_length[1], 
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]), 
+                               int(read.cells[0]), 
+                               int(read.cells[1]), 
+                               0, 
+                               dt * read.sample_HydroGrid, 
+                               Nblobs, 
+                               0, 
+                               get_blobs_r_vectors(bodies, Nblobs))
 
   # Loop over time steps
   start_time = time.time()  
@@ -684,6 +710,37 @@ if __name__ == '__main__':
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
+    # Update HydroGrid
+    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
+      cc.calculate_concentration(output_name, 
+                                 read.periodic_length[0], 
+                                 read.periodic_length[1], 
+                                 int(read.green_particles[0]), 
+                                 int(read.green_particles[1]),  
+                                 int(read.cells[0]), 
+                                 int(read.cells[1]), 
+                                 step, 
+                                 dt * read.sample_HydroGrid, 
+                                 Nblobs, 
+                                 1, 
+                                 get_blobs_r_vectors(bodies, Nblobs))
+    
+    # Save HydroGrid data
+    if read.save_HydroGrid > 0 and found_HydroGrid:
+      if (step % read.save_HydroGrid) == 0:
+        cc.calculate_concentration(output_name, 
+                                   read.periodic_length[0], 
+                                   read.periodic_length[1], 
+                                   int(read.green_particles[0]), 
+                                   int(read.green_particles[1]),  
+                                   int(read.cells[0]), 
+                                   int(read.cells[1]), 
+                                   step, 
+                                   dt * read.sample_HydroGrid, 
+                                   Nblobs, 
+                                   2, 
+                                   get_blobs_r_vectors(bodies, Nblobs))
+
     # Advance time step
     integrator.advance_time_step(dt, step = step)
 
@@ -746,6 +803,54 @@ if __name__ == '__main__':
         name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
+  # Update HydroGrid data
+  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    
+    cc.calculate_concentration(output_name, 
+                               read.periodic_length[0], 
+                               read.periodic_length[1], 
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
+                               int(read.cells[0]), 
+                               int(read.cells[1]), 
+                               step+1, 
+                               dt * read.sample_HydroGrid, 
+                               Nblobs, 
+                               1, 
+                               get_blobs_r_vectors(bodies, Nblobs))
+
+  # Save HydroGrid data
+  if read.save_HydroGrid > 0 and found_HydroGrid:
+    if ((step+1) % read.save_HydroGrid) == 0:
+      cc.calculate_concentration(output_name, 
+                                 read.periodic_length[0], 
+                                 read.periodic_length[1], 
+                                 read.green_particles[0], 
+                                 read.green_particles[1],  
+                                 int(read.cells[0]), 
+                                 int(read.cells[1]), 
+                                 step+1, 
+                                 dt * read.sample_HydroGrid, 
+                                 Nblobs, 
+                                 2, 
+                                 get_blobs_r_vectors(bodies, Nblobs))
+
+
+  # Free HydroGrid
+  if found_HydroGrid:
+    cc.calculate_concentration(output_name, 
+                               read.periodic_length[0], 
+                               read.periodic_length[1], 
+                               read.green_particles[0], 
+                               read.green_particles[1],  
+                               int(read.cells[0]), 
+                               int(read.cells[1]), 
+                               step+1, 
+                               dt * read.sample_HydroGrid, 
+                               Nblobs, 
+                               3, 
+                               get_blobs_r_vectors(bodies, Nblobs))
+
+
   # Save wallclock time 
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')

@@ -551,7 +551,7 @@ __global__ void rotation_from_torque(const real *x,
 	    rz = rz - int(rz / Lz + real(0.5) * (int(rz>0) - int(rz<0))) * Lz;
             rz = rz + boxZ * Lz;
 	  }
- 
+
 	  // 1. Compute mobility for pair i-j, if i==j use self-interation
           int j_image = j;
           if(boxX!=0 or boxY!=0 or boxZ!=0){
@@ -1661,7 +1661,6 @@ __device__ void mobilityUFSourceTarget(real rx,
   Mzz = C1 + C2 * rz * rz;
 
   return;
-
 }
 
 
@@ -2282,3 +2281,4 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   u = np.empty_like(x)
   cuda.memcpy_dtoh(u, u_gpu)
   return np.reshape(np.float64(u), u.size)
+

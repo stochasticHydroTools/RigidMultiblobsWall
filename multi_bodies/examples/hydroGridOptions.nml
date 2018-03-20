@@ -1,0 +1,68 @@
+! Numbering of variables is:
+! 1=rho (total density), 2-4 (unused = vx, vy, temperature), 5=rho_green, 6=rho_red
+
+&hydroAnalysisOptions ! This first namelist corresponds to the whole 2D grid
+! In this example this does nothing much except compute horizontally and vertically-averaged stats
+! All the spectral analysis is done only for the 1d projected grid
+
+   writeSnapshotVTK=T ! Save snapshots of the instantaneous fields
+   subtractMeanFT=F ! Keep this at F
+
+   ! Means file: column 1=y, 2=rho, 3=v_x, 4=v_y, 5=T, 6=rho_green, 7=rho_red
+   storeConserved = F ! Leave at F
+   writeMeansVTK = F ! Write the means to a VTK file
+
+   ! Variances
+   writeVariancesVTK = F ! Should we save a VTK file
+   nVariances = 0 ! How many co-variances to calculate and save
+   variancePairs = ""
+   
+   ! Static structure factors
+   writeSpectrumVTK = F
+   writeAbsValue = T ! Only write absolute values of complex values to VTK file?
+   nStructureFactors = 0 ! Do not compute S(kx,ky)
+   ! Compute rho-rho structure factor
+   structureFactorPairs = "0 1 0 1" ! The zeros have to be here but mean nothing to us
+   
+   ! Dynamic structure factors:
+   nWavenumbers=0 ! Negative value means specify a range of wavenumbers, zero means don't compute
+   selectedWavenumbers="0 8, 0 4"
+   nSavedSnapshots=500 ! How many snapshots to compute time-correlation functions over
+   
+   outputFolder = "./data"
+   filePrefix = "Quasi2D" ! Prefix for all file names
+   axisToPrint = 2 ! 1=x, 2=y, 3=z axis
+   periodic = T ! Is the system periodic along the y axes
+/
+
+&hydroAnalysisOptions ! This corresponds to the projection along the y axes, which is a 1D grid
+
+   writeSnapshotVTK=F ! Save snapshots of the instantaneous fields
+   subtractMeanFT=F ! Keep this at F
+
+   ! Means file: column 1=y, 2=rho, 3=v_x, 4=v_y, 5=T, 6=rho_green, 7=rho_red
+   storeConserved = F ! Leave at F
+   writeMeansVTK = F ! Write the means to a VTK file
+
+   ! Variances
+   writeVariancesVTK = F ! Should we save a VTK file
+   nVariances = 0 ! How many co-variances to calculate and save
+   variancePairs = ""
+   
+   ! Static structure factors
+   writeSpectrumVTK = F
+   writeAbsValue = F ! Only write absolute values of complex values to VTK file?
+   nStructureFactors = 4 ! How many S(kx) to compute
+   ! 1=rho-rho, 2=green-green, 3=red-red, 4=red-green
+   structureFactorPairs = "0 1 0 1, 0 5 0 5, 0 6 0 6, 0 5 0 6"
+   
+   ! Dynamic structure factors:
+   nWavenumbers=-1
+   selectedWavenumbers="1 32, 0 0" ! Compute S(k,w) for kx=1:16
+   nSavedSnapshots=2500 ! How many snapshots to compute time-correlation functions over
+   
+   outputFolder = "./data"
+   filePrefix = "Quasi2DProj" ! Prefix for all file names
+   axisToPrint = 1 ! 1=x, 2=y, 3=z axis
+   periodic = T ! Is the system periodic along the y axes
+/

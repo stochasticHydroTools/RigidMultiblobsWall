@@ -47,7 +47,6 @@ class ReadInput(object):
     self.kT = float(self.options.get('kT') or 1.0)
     self.scheme = str(self.options.get('scheme') or 'deterministic_forward_euler')
     self.output_name = str(self.options.get('output_name') or 'run')
-    self.structure_names = str.split(str(self.options.get('structure_names')))
     self.random_state = self.options.get('random_state')
     self.seed = self.options.get('seed')
     self.repulsion_strength_wall = float(self.options.get('repulsion_strength_wall') or 1.0)
@@ -71,10 +70,15 @@ class ReadInput(object):
     self.omega_one_roller = np.fromstring(self.options.get('omega_one_roller') or '0 0 0', sep=' ')
     self.free_kinematics = str(self.options.get('free_kinematics') or 'True')
     self.plot_velocity_field = np.fromstring(self.options.get('plot_velocity_field') or 'None', sep=' ')
+    self.green_particles = np.fromstring(self.options.get('green_particles') or '0 0', sep=' ', dtype=int)          
+    self.cells = np.fromstring(self.options.get('cells') or '1 1', sep=' ', dtype=int)
+    self.sample_HydroGrid = int(self.options.get('sample_HydroGrid') or 1)
+    self.save_HydroGrid = int(self.options.get('save_HydroGrid') or 0)
+    self.hydro_interactions = int(self.options.get('hydro_interactions') or 1)    
     self.update_PC = int(self.options.get('update_PC') or 1)
     self.domain = str(self.options.get('domain') or 'single_wall')
           
-    # Create list with [vertex_file, clones_file] for each strcuture
+    # Create list with [vertex_file, clones_file] for each structure
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
@@ -97,3 +101,4 @@ class ReadInput(object):
         recovery_file = self.output_name + '.'  + self.structures_ID[k] + '.' + str(self.initial_step).zfill(8) + '.clones'
         struct[1] = recovery_file
 
+    return

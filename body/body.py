@@ -102,6 +102,7 @@ class Body(object):
     '''
     return np.concatenate([self.calc_J_matrix(), self.calc_rot_matrix(location, orientation)], axis=1)
 
+
   def check_function(self, location = None, orientation = None, distance = None):
     ''' 
     Function to check that the body didn't cross the wall,

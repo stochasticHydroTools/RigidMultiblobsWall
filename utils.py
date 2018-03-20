@@ -500,4 +500,5 @@ def timer(name, print_one = False, print_all = False):
     col_width = max(len(key) for key in timer.timers)
     for key in sorted(timer.timers):
       print "".join(key.ljust(col_width)), ' = ', timer.timers[key][0]
+
   return

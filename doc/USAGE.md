@@ -27,8 +27,9 @@ The Journal of Chemical Physics, **146**, 134104 (2017); see section 5.2. [DOI](
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
-A. Donev; see section 5. arXiv:1709.02410 (2017) [arXiv](https://arxiv.org/abs/1709.02410).
-
+A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5.
+[DOI](http://dx.doi.org/10.1063/1.5003833)
+[arXiv](https://arxiv.org/abs/1709.02410).
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
@@ -386,9 +387,7 @@ corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 * `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
-The cost of this function scales like `(number_of_blobs)**2`, just like the product **Mf**.
-The default soft repulsion is described under `repulsion_strength` below.
-See Section 5.3 for details on how to change this.
+The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
 Select the implementation to compute the body-body interactions between all
