@@ -268,12 +268,12 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
       # 6. Compute body mobility
       mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
-      # Save variables to use in next steps if PC is not updated
-      build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
-      build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
-      build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
-      build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
+    build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
+    build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
