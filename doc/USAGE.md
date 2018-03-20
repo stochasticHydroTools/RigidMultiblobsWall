@@ -27,8 +27,9 @@ The Journal of Chemical Physics, **146**, 134104 (2017); see section 5.2. [DOI](
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
-A. Donev; see section 5. arXiv:1709.02410 (2017) [arXiv](https://arxiv.org/abs/1709.02410).
-
+A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5.
+[DOI](http://dx.doi.org/10.1063/1.5003833)
+[arXiv](https://arxiv.org/abs/1709.02410).
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using 
 the Rotne-Prager-Blake tensor in the appendices B and C of:
