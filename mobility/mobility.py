@@ -18,7 +18,13 @@ try:
 except ImportError:
   found_pycuda = False
 if found_pycuda:
-  import mobility_pycuda
+  try:
+    import pycuda.autoinit
+    autoinit_pycuda = True
+  except:
+    autoinit_pycuda = False
+  if autoinit_pycuda:
+    import mobility_pycuda
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm
