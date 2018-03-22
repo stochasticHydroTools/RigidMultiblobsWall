@@ -25,7 +25,13 @@ try:
 except ImportError:
   found_pycuda = False
 if found_pycuda:
-  import forces_pycuda  
+  try:
+    import pycuda.autoinit
+    autoinit_pycuda = True
+  except:
+    autoinit_pycuda = False
+  if autoinit_pycuda:
+    import forces_pycuda  
 
 # Override forces_pycuda with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
