@@ -187,7 +187,7 @@ if __name__ ==  '__main__':
   bodies = np.array(bodies)
 
   # Set some more variables
-  num_of_body_types = len(read.structure_names)
+  num_of_body_types = len(body_types)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
   multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
@@ -253,7 +253,7 @@ if __name__ ==  '__main__':
 
     # Set preconditioner
     # Set method, block_diag, diag or scalar
-    PC_method = 'scalar'
+    PC_method = 'block_diag'
     if PC_method == 'block_diag':
       mobility_inv_blobs = []
       mobility_bodies = np.empty((len(bodies), 6, 6))
@@ -315,6 +315,7 @@ if __name__ ==  '__main__':
     # Plot velocity field
     if read.plot_velocity_field.size > 1:
       print 'plot_velocity_field'
+      np.savetxt(read.output_name + '.lambda.dat', lambda_blobs)
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
