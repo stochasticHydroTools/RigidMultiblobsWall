@@ -178,7 +178,8 @@ def set_slip_by_ID_new(body, slip, *args, **kwargs):
     body.function_slip = active_body_slip
   elif body.ID == 'rod_minimal':
     body.function_slip = partial(slip_minimal, *args, **kwargs)
-  elif body.ID == 'rod_resolved':
+  # elif body.ID == 'rod_resolved':
+  elif 'rod_resolved' in body.ID:
     body.function_slip = partial(slip_rod_resolved, *args, **kwargs)
   elif body.ID == 'sheet':
     body.function_slip = partial(slip_rod_resolved, *args, **kwargs)

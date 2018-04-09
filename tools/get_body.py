@@ -26,6 +26,5 @@ if __name__ == '__main__':
         count = 0
       else:
         if count == body:
-          data = line.split()
           print time, line.strip()
         count += 1
