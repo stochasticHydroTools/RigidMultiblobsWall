@@ -4,11 +4,16 @@ import sys
 if __name__ == '__main__':
     
     # Set parameters
-    Lg = 1.70508734
-    Rg = 0.155400002
-    Nx = 24
-    Ntheta = 12
-    caps_layers = 2
+    Lg = 2.0
+    Rg = 0.15
+    Nx = 48
+    Ntheta = 24
+    caps_layers = 4
+
+    print '# a  = '
+    print '# Rg = ', Rg
+    print '# Lg = ', Lg
+    print '# caps_layers = ', caps_layers
 
     # Calculate additional parameters
     dx = Lg / (Nx - 1)
