@@ -510,11 +510,11 @@ def timer(name, print_one = False, print_all = False):
 
 def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=None, callback=None, restrt=None, PC_side='right'):
   '''
-  Wrapper to scipy gmres to use either right or left preconditioner.
+  Wrapper for scipy gmres to use right or left preconditioner.
   Solve the linear system A*x = b, using right or left preconditioning.
   Inputs and outputs as in scipy gmres plus PC_side ('right' or 'left').
 
-  Right Preconditioner:
+  Right Preconditioner (default):
     First solve A*P^{-1} * y = b for y
     then solve P*x = y, for x.
 
@@ -594,11 +594,9 @@ def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=No
   if PC_side == 'left' or M is None:
     return scspla.gmres(A, b, M=M, x0=x0, tol=tol, maxiter=maxiter, restart=restart, callback=callback)
 
-  # Create LinearOperator for P^{-1}
-  M_LO = scspla.aslinearoperator(M)
-
-  # Create LinearOperator for A
+  # Create LinearOperator for A and P^{-1}
   A_LO = scspla.aslinearoperator(A)
+  M_LO = scspla.aslinearoperator(M)
 
   # Define new LinearOperator A*P^{-1}
   def APinv(x,A,M):
