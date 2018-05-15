@@ -600,7 +600,7 @@ def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=No
 
   # Define new LinearOperator A*P^{-1}
   def APinv(x,A,M):
-    return A.matvec(M_LO.matvec(x))
+    return A.matvec(M.matvec(x))
   APinv_partial = partial(APinv, A=A_LO, M=M_LO)
   APinv_partial_LO = scspla.LinearOperator((b.size, b.size), matvec = APinv_partial, dtype='float64') 
 
