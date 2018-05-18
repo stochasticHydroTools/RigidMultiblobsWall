@@ -838,9 +838,9 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
-                                                x0 = self.first_guess, 
-                                                save_first_guess = True,
-                                                PC_partial = PC_partial)
+                                                x0 = self.first_guess,    
+                                                save_first_guess = True,  
+                                                PC_partial = PC_partial)  
       # Extract velocities
       velocities_1 = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
@@ -1224,9 +1224,6 @@ class QuaternionIntegrator(object):
       offset = 0
       for k, b in enumerate(self.bodies):
         if b.prescribed_kinematics is True:
-          # Test
-          K = b.calc_K_matrix()
-          KF = np.dot(K.T, sol_precond[3*offset : 3*(offset+b.Nblobs)])
           sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
         offset += b.Nblobs  
       

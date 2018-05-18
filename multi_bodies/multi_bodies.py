@@ -196,12 +196,12 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   '''
   Return the action of the linear operator of the rigid body on vector v.
   The linear operator for free kinematics is
-  |  M   -K|
-  | -K^T  0|
+  |  M   -K||lambda| = | slip + noise_1|
+  | -K^T  0||  U   |   | -F   + noise_2|
   
   and for prescribed kinamtics
-  |  M   -K|
-  |  0    1|
+  |  M    0||lambda| = | slip + KU + noise_1|
+  | -K^T  1||  F   |   |         0          |
   ''' 
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
