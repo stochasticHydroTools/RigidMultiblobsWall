@@ -4,7 +4,7 @@ Use trajectory file to write file with columns sqrt(x**2 + y**2) and z.
 How to use:
 python blob_r_z.py file_name num_blobs
 '''
-
+from __future__ import division, print_function
 import numpy as np
 import sys
 
@@ -30,5 +30,5 @@ if __name__ == '__main__':
         z[count] = float(data[2])
         count += 1
       if count == (num_bodies):
-        print np.sqrt((x[0]-x[1])**2 + (y[0]-y[1])**2 + (z[0]-z[1])**2)
+        print(np.sqrt((x[0]-x[1])**2 + (y[0]-y[1])**2 + (z[0]-z[1])**2))
         

@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import sys
 import mmap
@@ -18,7 +19,8 @@ if __name__ == '__main__':
     f_read = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
     
     # Read file and create histogram
-    for line in iter(f_read.readline, ''):
+    for line_b in iter(f_read.readline, b''):
+      line = line_b.decode()
       # Strip comments
       if comment_symbols[0] in line:
         line, comment = line.split(comment_symbols[0], 1)
@@ -32,4 +34,5 @@ if __name__ == '__main__':
   # Print histogram
   norm = sum(histogram) * dx
   for i in range(num_intervales):
-    print start + (i+0.5) * dx, histogram[i] / norm
+    print(start + (i+0.5) * dx, histogram[i] / norm)
+    

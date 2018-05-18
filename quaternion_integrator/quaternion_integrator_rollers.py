@@ -10,6 +10,7 @@ import time
 from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
+import utils
 
 import scipy
 
@@ -566,12 +567,12 @@ class QuaternionIntegratorRollers(object):
 
       # Solve linear system 
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = spla.gmres(A, 
-                                               RHS, 
-                                               x0=self.deterministic_torque_previous_step, 
-                                               tol=self.tolerance, 
-                                               maxiter=1000,
-                                               callback = counter) 
+      (sol_precond, info_precond) = utils.gmres(A, 
+                                                RHS, 
+                                                x0=self.deterministic_torque_previous_step, 
+                                                tol=self.tolerance, 
+                                                maxiter=1000,
+                                                callback = counter) 
       self.det_iterations_count += counter.niter
       self.deterministic_torque_previous_step = sol_precond
 
@@ -789,11 +790,11 @@ class QuaternionIntegratorRollers(object):
 
       # Solve linear system 
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = spla.gmres(A, 
-                                               RHS, 
-                                               tol=self.tolerance, 
-                                               maxiter=1000,
-                                               callback=counter) 
+      (sol_precond, info_precond) = utils.gmres(A, 
+                                                RHS, 
+                                                tol=self.tolerance, 
+                                                maxiter=1000,
+                                                callback=counter) 
       self.det_iterations_count += counter.niter
 
       # Scale solution with RHS norm

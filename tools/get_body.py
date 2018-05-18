@@ -4,7 +4,7 @@ Extract one body trajectory from configurational files.
 How to use:
 python get_body.py file_name num_bodies body_number dt
 '''
-
+from __future__ import division, print_function
 import numpy as np
 import sys
 
@@ -26,5 +26,6 @@ if __name__ == '__main__':
         count = 0
       else:
         if count == body:
-          print time, line.strip()
+          data = line.split()
+          print(time, line.strip())
         count += 1
