@@ -852,9 +852,10 @@ class QuaternionIntegrator(object):
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + W_RFD[k*6 : k*6+3] * self.rf_delta
-        quaternion_dt = Quaternion.from_rotation(W_RFD[(k*6+3):(k*6+6)] * self.rf_delta )
-        b.orientation = quaternion_dt * b.orientation_old
+        if b.prescribed_kinematics is False:
+          b.location = b.location_old + W_RFD[k*6 : k*6+3] * self.rf_delta
+          quaternion_dt = Quaternion.from_rotation(W_RFD[(k*6+3):(k*6+6)] * self.rf_delta )
+          b.orientation = quaternion_dt * b.orientation_old        
 
       # Compute M at RFD time level
       r_vectors_blobs_rfd = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
