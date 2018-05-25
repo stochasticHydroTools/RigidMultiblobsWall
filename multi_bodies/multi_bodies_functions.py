@@ -76,7 +76,7 @@ def default_zero_bodies(bodies, *args, **kwargs):
   return np.zeros((2*len(bodies), 3))
   
 
-def set_slip_by_ID(body, slip):
+def set_slip_by_ID(body, slip, *args, **kwargs):
   '''
   This function assign a slip function to each body.
   If the body has an associated slip file the function
