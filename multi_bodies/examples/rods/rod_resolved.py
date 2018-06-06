@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import sys
 
@@ -10,10 +11,10 @@ if __name__ == '__main__':
     Ntheta = 24
     caps_layers = 4
 
-    print '# a  = '
-    print '# Rg = ', Rg
-    print '# Lg = ', Lg
-    print '# caps_layers = ', caps_layers
+    print('# a  = ')
+    print('# Rg = ', Rg)
+    print('# Lg = ', Lg)
+    print('# caps_layers = ', caps_layers)
 
     # Calculate additional parameters
     dx = Lg / (Nx - 1)
@@ -21,7 +22,7 @@ if __name__ == '__main__':
     dcaps = Rg / np.maximum(caps_layers, 1)
     
     # Print rod sides
-    print Nx * Ntheta 
+    print(Nx * Ntheta)
     for ix in range(Nx):
         for itheta in range(Ntheta):
             rx = ix * dx - Lg * 0.5
