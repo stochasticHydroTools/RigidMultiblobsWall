@@ -28,6 +28,7 @@ while found_functions is False:
     from read_input import read_input
     from read_input import read_vertex_file
     from read_input import read_clones_file
+    import utils
     found_functions = True
   except ImportError:
     path_to_append += '../'
@@ -266,7 +267,7 @@ if __name__ ==  '__main__':
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Solve preconditioned linear system # callback=make_callback()
-    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
+    (sol_precond, info_precond) = utils.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
     
     # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
