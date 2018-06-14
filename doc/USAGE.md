@@ -406,7 +406,12 @@ See Section 5.3 for more details on how to implement your own force law in pytho
 
 * `blob_radius`: (float) the hydrodynamic radius of the blobs.
 
-* `solver_tolerance`: (float) the relative tolerance for the iterative mobility solver.
+* `solver_tolerance`: (float) the relative tolerance for the iterative
+mobility solver.
+
+* `rf_delta`: (float) the amplitude of the Random Finite Difference
+(RFD) see Ref. [4]. If not provided the code uses `rf_delta = 0.1 *
+power(solver_tolerance, 1.0/3.0)` which is in general a good choice.
 
 * `output_name`: (string) the prefix used to save the output files.
 
