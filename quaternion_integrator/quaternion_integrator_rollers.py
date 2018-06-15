@@ -41,7 +41,6 @@ class QuaternionIntegratorRollers(object):
     self.first_step = True
     self.kT = 0.0
     self.tolerance = 1e-08
-    self.rf_delta = 1e-06
     self.invalid_configuration_count = 0
     self.wall_overlaps = 0
     self.omega_one_roller = None
