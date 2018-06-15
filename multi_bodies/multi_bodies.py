@@ -600,8 +600,6 @@ if __name__ == '__main__':
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
 
-  if read.rf_delta is not None:
-    integrator.rf_delta = float(read.rf_delta)
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)

@@ -347,8 +347,7 @@ The input file should select one of the following ones
 | deterministic_adams_bashforth             | Iterative    | second order accuracy           |
 | stochastic_first_order_RFD                | Iterative    | it uses three mobility solves and one Lanczos call per step |
 | stochastic_adams_bashforth                | Iterative    | primarily used for microrollers | 
-| stochastic_first_order_RFD_               | Direct solve | cost `O(number_of_blobs**3)`    |
-| dense_algebra                             |              | but faster for small systems    |
+| stochastic_first_order_RFD_dense_algebra  | Direct solve | cost `O(number_of_blobs**3)` but faster for small systems    |
 | stochastic_traction_EM                    | Iterative    | first order. two mobility solves and one Lanczos call per step.|
 | Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
 | stochastic_Slip_Trapz                     | Iterative    | second order accurate deterministically and weakly first order accurate stochastically. It uses three mobility solves and one Lanczos call per step |
@@ -410,8 +409,17 @@ See Section 5.3 for more details on how to implement your own force law in pytho
 mobility solver.
 
 * `rf_delta`: (float) the amplitude of the Random Finite Difference
-(RFD) see Ref. [4]. If not provided the code uses `rf_delta = 0.1 *
-power(solver_tolerance, 1.0/3.0)` which is in general a good choice.
+(RFD), by default set to `1e-03`. With the schemes
+`stochastic_Slip_Trapz`, `stochastic_traction_AB` and
+`stochastic_Slip_Mid` we suggest using `1e-03` if the matrix vector
+product with the blob mobility is computed with single precision
+(default for pycuda) or `1e-06` if double precision is used, see
+Ref. [4]. With the schemes `stochastic_first_order_RFD` and
+`stochastic_adams_bashforth` we suggest using `rf_delta = 0.1 *
+power(solver_tolerance, 1.0/3.0)` to balance the truncation error of
+the RFD with the accuracy of the mobility solver. With the schemes
+for rollers we also suggest to use `1e-03` or `1e-06` for single and double
+precision respectively. 
 
 * `output_name`: (string) the prefix used to save the output files.
 
