@@ -89,6 +89,9 @@ def set_mobility_blobs(implementation):
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
     return  mb.boosted_single_wall_fluid_mobility
+  # Implementation free surface
+  elif implementation == 'C++_free_surface':
+    return  mb.boosted_free_surface_mobility
 
 
 def set_mobility_vector_prod(implementation):
@@ -118,6 +121,9 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
+  # Implementations free surface
+  elif implementation == 'pycuda_free_surface':
+    return mb.free_surface_mobility_trans_times_force_pycuda
 
 
 def calc_K_matrix(bodies, Nblobs):

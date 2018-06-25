@@ -890,6 +890,48 @@ def boosted_mobility_vector_product_source_target(source, target, force, radius_
     vector_res = B_target.dot(vector_res)
   return vector_res
 
+
+def boosted_free_surface_mobility(r_vectors, eta, a, *args, **kwargs):
+  '''
+  Compute the mobility in half space with a flat free surface at z=0.
+  The mobility is (see Swan and Brady, Journal of Chemical Physics, 2007)
+
+  M(x,y) = M_RP(x,y) + M_RP(x, Py)P
+
+  with P_ij = (delta_ij - 2delta_i3 delta_3j) and M_RP the Rotne-Prager
+  mobility in an unbounded domain.
+  '''
+
+  # Prepare diagonal matrix P and mobilities
+  p = np.ones(r_vectors.size)
+  p[2::3] = -1.0
+  num_particles = r_vectors.size / 3
+  M = np.zeros((num_particles*3, num_particles*3))
+  M_image = np.zeros((num_particles*3, num_particles*3))
+
+  # Compute mobility (z>0), image mobility (z<0) and return
+  me.RPY_infinite_fluid_mobility(r_vectors, eta, a, num_particles, M)
+  me.RPY_free_surface_correction_mobility(r_vectors, eta, a, num_particles, M_image)
+  return M + p * M_image
+
+
+def free_surface_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level by the force 
+  on the blobs. Mobility for particles near a free surface at z=0. 
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
+  This function makes use of pycuda.
+  '''
+  # Compute M * force
+  velocities = mobility_pycuda.free_surface_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs) 
+  return velocities
+
+
 def epsilon_tensor(i, j, k):
   ''' 
   Epsilon tensor (cross product).  Only works for arguments

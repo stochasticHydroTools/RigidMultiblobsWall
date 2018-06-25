@@ -8,11 +8,11 @@ if __name__ == '__main__':
     escale_factor = 0.872249
     Lg = 2.0
     Rg = 0.15
-    Nx = 12
+    Nx = 15
     Ntheta = 6
     caps_layers = 1
     a = Rg * np.sin(np.pi / Ntheta)
-    pattern = 'square' # square or hexagonal pattern
+    pattern = 'hexagonal' # square or hexagonal pattern
 
     # Scale Lg, Rg and a
     alpha  = Lg / (2.0 * Rg)
