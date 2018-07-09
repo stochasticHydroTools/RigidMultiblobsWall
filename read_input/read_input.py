@@ -77,7 +77,10 @@ class ReadInput(object):
     self.hydro_interactions = int(self.options.get('hydro_interactions') or 1)    
     self.update_PC = int(self.options.get('update_PC') or 1)
     self.domain = str(self.options.get('domain') or 'single_wall')
+    # slip_options = blob_start, blob_end, slip, shear
     self.slip_options = np.fromstring(self.options.get('slip_options') or '0 0 0 0 0 0', sep=' ')
+    # mass_options = mass_default, start_0, end_0, mass_0, start_1, end_1, mass_1
+    self.mass_options = np.fromstring(self.options.get('mass_options') or '1.0 0 0 1.0 0 0 1.0', sep=' ')
           
     # Create list with [vertex_file, clones_file] for each structure
     self.structures = []
