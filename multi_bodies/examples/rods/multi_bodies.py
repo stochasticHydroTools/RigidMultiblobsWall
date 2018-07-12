@@ -782,6 +782,15 @@ if __name__ == '__main__':
           mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
+
+      # Save wallclock time 
+      with open(output_name + '.time', 'w', 1) as f:
+        f.write(str(time.time() - start_time) + '\n')
+      with open(output_name + '.info', 'w', 1) as f:
+        f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+                + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+                + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
+
         
     # Update HydroGrid
     if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
