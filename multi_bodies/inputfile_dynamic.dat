@@ -32,4 +32,4 @@ output_name                              data/run
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
 structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
-structure Structures/shell_N_12_Rg_1.vertex Structures/shell_N_12_Rg_1.clones
+structure Structures/shell_N_12_Rg_1_Rh_1_2625.vertex Structures/shell_N_12_Rg_1.clones

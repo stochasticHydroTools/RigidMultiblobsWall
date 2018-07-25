@@ -23,7 +23,8 @@ save_body_mobility                     False
 save_blobs_mobility                    False
 
 structure Structures/boomerang_N_15.vertex Structures/boomerang_N_15.clones
-structure Structures/shell_N_42_Rg_0_225.vertex Structures/shell_N_42_Rg_0_225.clones
+structure Structures/shell_N_12_Rg_1_Rh_1_2625.vertex Structures/shell_N_12_Rg_1.clones
+
 
 
 
