@@ -13,6 +13,6 @@ blob_radius                 0.25
 save_clones                 one_file
 output_name                 run
 
-structure  ../multi_bodies/Structures/shell_N_42_Rg_0_225.vertex  ../multi_bodies/Structures/shell_N_42_Rg_0_225.clones
+structure ../multi_bodies/Structures/shell_N_12_Rg_1_Rh_1_2625.vertex ../multi_bodies/Structures/shell_N_12_Rg_1.clones
 
 
