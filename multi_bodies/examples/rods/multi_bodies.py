@@ -89,6 +89,9 @@ def set_mobility_blobs(implementation):
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
     return  mb.boosted_single_wall_fluid_mobility
+  # Implementation free surface
+  elif implementation == 'C++_free_surface':
+    return  mb.boosted_free_surface_mobility
 
 
 def set_mobility_vector_prod(implementation):
@@ -118,6 +121,9 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
+  # Implementations free surface
+  elif implementation == 'pycuda_free_surface':
+    return mb.free_surface_mobility_trans_times_force_pycuda
 
 
 def calc_K_matrix(bodies, Nblobs):
@@ -470,7 +476,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs, method='block_diag'):
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
   '''
   Block diagonal preconditioner for rigid bodies.
   It solves exactly the mobility problem for each body
@@ -482,30 +488,14 @@ def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_
   for k, b in enumerate(bodies):
     # 1. Solve M*Lambda_tilde = slip
     slip = vector[3*offset : 3*(offset + b.Nblobs)]
-    if method == 'block_diag':
-      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-    elif method == 'diag':
-      Lambda_tilde = np.diag(mobility_inv_blobs[k]) * slip
-    elif method == 'scalar':
-      Lambda_tilde = mobility_inv_blobs[k] * slip
-    else:
-      print 'No valid method in block_diagonal_preconditioner'
-      sys.exit()   
+    Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
 
     # 2. Compute rigid body velocity
     F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
     Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
 
     # 3. Solve M*Lambda = (slip + K*Y)
-    if method == 'block_diag':
-      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-    elif method == 'diag':
-      Lambda = np.diag(mobility_inv_blobs[k]) * (slip + np.dot(b.calc_K_matrix(), Y))
-    elif method == 'scalar':
-      Lambda = mobility_inv_blobs[k] *  (slip + np.dot(b.calc_K_matrix(), Y))
-    else:
-      print 'No valid method in block_diagonal_preconditioner'
-      sys.exit() 
+    Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
 
     # 4. Set result
     result[3*offset : 3*(offset + b.Nblobs)] = Lambda
@@ -694,7 +684,8 @@ if __name__ == '__main__':
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
-                                               periodic_length = read.periodic_length) 
+                                               periodic_length = read.periodic_length,
+                                               mass_options = read.mass_options) 
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
@@ -792,6 +783,15 @@ if __name__ == '__main__':
           mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
+
+      # Save wallclock time 
+      with open(output_name + '.time', 'w', 1) as f:
+        f.write(str(time.time() - start_time) + '\n')
+      with open(output_name + '.info', 'w', 1) as f:
+        f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+                + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+                + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
+
         
     # Update HydroGrid
     if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
@@ -885,6 +885,16 @@ if __name__ == '__main__':
         mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
         name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_bodies, delimiter='  ')
+
+    # Save wallclock time 
+    with open(output_name + '.time', 'w') as f:
+      f.write(str(time.time() - start_time) + '\n')
+    # Save number of invalid configurations and number of iterations in the
+    # deterministic solvers and the Lanczos algorithm
+    with open(output_name + '.info', 'w') as f:
+      f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+              + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+              + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
         
   # Update HydroGrid data
   if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    

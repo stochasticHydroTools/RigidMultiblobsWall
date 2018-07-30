@@ -15,10 +15,13 @@ if __name__ == '__main__':
     pattern = 'square' # square or hexagonal pattern
 
     # Scale Lg, Rg and a
-    Lg = Lg * escale_factor
     Rg = Rg * escale_factor
     a  = a * escale_factor
-    
+    if pattern == 'hexagonal':
+        Lg = escale_factor * (alpha * (2 * Rg + a) - a)
+    elif pattern == 'square':
+        Lg = Lg * escale_factor
+        
     print('# a  = ', a)
     print('# Rg = ', Rg)
     print('# Lg = ', Lg)
@@ -29,8 +32,18 @@ if __name__ == '__main__':
     dtheta = 2 * np.pi / Ntheta
     dcaps = Rg / np.maximum(caps_layers, 1)
     
+    # Count caps
+    Ncaps = 0
+    for ilayer in range(caps_layers):
+        perimeter = 2 * np.pi * ilayer * dcaps
+        Ntheta_layer = int(np.floor((perimeter / (2 * np.pi * Rg)) * Ntheta)) + 1
+        for itheta in range(Ntheta_layer):
+            Ncaps += 2
+
+
     # Print rod sides
-    print(Nx * Ntheta)
+    print(Nx * Ntheta + Ncaps)
+    # print('# a = ', a)
     for ix in range(Nx):
         for itheta in range(Ntheta):
             rx = ix * dx - Lg * 0.5
@@ -44,6 +57,7 @@ if __name__ == '__main__':
 
             r = np.array([rx, ry, rz])
             np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            # print('O ', rx, ry, rz)
 
 
     # Print rod caps 
@@ -61,6 +75,7 @@ if __name__ == '__main__':
             
             r = np.array([rx, ry, rz])
             np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            # print('O ', rx, ry, rz)
             
         # Other cap
         rx = Lg * 0.5
@@ -71,4 +86,5 @@ if __name__ == '__main__':
             
             r = np.array([rx, ry, rz])
             np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            # print('O ', rx, ry, rz)
             

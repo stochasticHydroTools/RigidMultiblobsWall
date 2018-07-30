@@ -79,13 +79,13 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
     force_torque_bodies[2*k:(2*k+1)] += sum(force_blobs)
     force_torque_bodies[2*k+1:2*k+2] += np.dot(R.T, np.reshape(force_blobs, 3*Nghost))
 
-    # if False:
+    # if True:
     #   # Set parameters
-    #   k_spring = 4.0
+    #   k_spring = 10.0
     #   h_eq = 4.199231342006282119e-01
     #   cosTheta_eq = -0.100088053776
     #   # Add harmonic for to keep height constant
-    #   force_torque_bodies[2*k,2] += -k_spring * (b.location[2] - h_eq)
+    #   # force_torque_bodies[2*k,2] += -k_spring * (b.location[2] - h_eq)
     #   # Get rotation matrix
     #   rotation_matrix = b.orientation.rotation_matrix()
     #   # Get axis along rod
