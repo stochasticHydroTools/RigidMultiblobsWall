@@ -5,13 +5,21 @@ import sys
 if __name__ == '__main__':
     
     # Set parameters
+    escale_factor = 1.0
     Lg = 2.0
     Rg = 0.15
-    Nx = 48
-    Ntheta = 24
-    caps_layers = 4
+    Nx = 12
+    Ntheta = 5
+    caps_layers = 1
+    a = Rg * np.sin(np.pi / Ntheta)
+    pattern = 'square' # square or hexagonal pattern
 
-    print('# a  = ')
+    # Scale Lg, Rg and a
+    Lg = Lg * escale_factor
+    Rg = Rg * escale_factor
+    a  = a * escale_factor
+    
+    print('# a  = ', a)
     print('# Rg = ', Rg)
     print('# Lg = ', Lg)
     print('# caps_layers = ', caps_layers)
@@ -27,7 +35,10 @@ if __name__ == '__main__':
         for itheta in range(Ntheta):
             rx = ix * dx - Lg * 0.5
 
-            theta = dtheta * (itheta + 0.5 * (ix % 2))
+            if pattern == 'hexagonal':
+                theta = dtheta * (itheta + 0.5 * (ix % 2))
+            elif pattern == 'square':
+                theta = dtheta * itheta
             ry = Rg * np.cos(theta)
             rz = Rg * np.sin(theta)
 
