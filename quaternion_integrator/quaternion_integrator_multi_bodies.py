@@ -40,7 +40,7 @@ class QuaternionIntegrator(object):
     self.first_step = True
     self.kT = 0.0
     self.tolerance = 1e-08
-    self.rf_delta = 1e-05
+    self.rf_delta = 1e-03
     self.invalid_configuration_count = 0
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
@@ -57,7 +57,6 @@ class QuaternionIntegrator(object):
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
-      self.rf_delta = 0.1 * np.power(self.tolerance, 1.0/3.0)
     return 
 
   def advance_time_step(self, dt, *args, **kwargs):

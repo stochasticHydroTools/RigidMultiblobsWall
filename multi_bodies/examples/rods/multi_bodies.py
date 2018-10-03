@@ -673,8 +673,6 @@ if __name__ == '__main__':
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
 
-  if read.rf_delta is not None:
-    integrator.rf_delta = float(read.rf_delta)
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -705,6 +703,7 @@ if __name__ == '__main__':
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
+  integrator.rf_delta = float(read.rf_delta)
 
   # Initialize HydroGrid library:
   if found_HydroGrid:
