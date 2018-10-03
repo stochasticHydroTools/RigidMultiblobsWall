@@ -629,6 +629,7 @@ if __name__ == '__main__':
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
+  integrator.rf_delta = read.rf_delta
 
   # Initialize HydroGrid library:
   if found_HydroGrid:
