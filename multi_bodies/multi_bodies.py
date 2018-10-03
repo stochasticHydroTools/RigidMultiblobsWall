@@ -8,7 +8,7 @@ import sys
 import time
 
 # Add path to HydroGrid and import module
-sys.path.append('../../HydroGrid/src/')
+# sys.path.append('../../HydroGrid/src/')
 
 
 # Find project functions
