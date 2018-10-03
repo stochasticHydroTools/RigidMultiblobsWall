@@ -40,7 +40,7 @@ class QuaternionIntegrator(object):
     self.first_step = True
     self.kT = 0.0
     self.tolerance = 1e-08
-    self.rf_delta = 1e-05
+    self.rf_delta = 1e-03
     self.invalid_configuration_count = 0
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
