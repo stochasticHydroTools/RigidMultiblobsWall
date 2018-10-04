@@ -704,6 +704,9 @@ if __name__ == '__main__':
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
   integrator.rf_delta = float(read.rf_delta)
+  integrator.plot_velocity_field = read.plot_velocity_field
+  integrator.output_name = read.output_name
+  integrator.tracer_radius = read.tracer_radius
 
   # Initialize HydroGrid library:
   if found_HydroGrid:
@@ -824,7 +827,7 @@ if __name__ == '__main__':
                                    get_blobs_r_vectors(bodies, Nblobs))
 
     # Advance time step
-    integrator.advance_time_step(dt, step = step)
+    integrator.advance_time_step(dt, step = step, n_save = read.n_save)
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
