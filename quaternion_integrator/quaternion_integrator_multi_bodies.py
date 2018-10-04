@@ -917,9 +917,9 @@ class QuaternionIntegrator(object):
                                     lambda_blobs, 
                                     self.bodies[0].blob_radius, 
                                     self.eta, 
-                                    self.output_name, 
+                                    self.output_name + '.' + str(step+1), 
                                     self.tracer_radius,
-                                    mobility_vector_prod_implementation = 'pycuda')
+                                    mobility_vector_prod_implementation = 'C++')
             print 'ZZZZZZZZZZZZZZZZZZZZZZZZ'
         return
 
