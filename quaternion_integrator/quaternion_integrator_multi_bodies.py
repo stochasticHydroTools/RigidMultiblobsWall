@@ -915,7 +915,7 @@ class QuaternionIntegrator(object):
                                     self.eta, 
                                     self.output_name + '.' + str(0), 
                                     self.tracer_radius,
-                                    mobility_vector_prod_implementation = 'C++')
+                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
         if ((step+1) % n_save) == 0 and step >= 0:
           # Plot velocity field
           if self.plot_velocity_field.size > 1: 
@@ -926,7 +926,7 @@ class QuaternionIntegrator(object):
                                     self.eta, 
                                     self.output_name + '.' + str(step+1), 
                                     self.tracer_radius,
-                                    mobility_vector_prod_implementation = 'C++')
+                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
         return
 
     return
