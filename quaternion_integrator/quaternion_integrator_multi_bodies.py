@@ -888,8 +888,6 @@ class QuaternionIntegrator(object):
 
       # Extract velocities
       velocities_2 = np.reshape(sol_precond_cor[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-      lambda_blobs += sol_precond_cor[0:3*self.Nblobs]
-      lambda_blobs *= 0.5
 
       velocities_new = 0.5 * (velocities_1 + velocities_2)
 
@@ -907,11 +905,20 @@ class QuaternionIntegrator(object):
         
         step = kwargs.get('step')
         n_save = kwargs.get('n_save')
-        if ((step+1) % n_save) == 0 and step >= 0:
-          print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+        if step == 0:
           # Plot velocity field
           if self.plot_velocity_field.size > 1: 
-            print 'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY'
+            pvf.plot_velocity_field(self.plot_velocity_field, 
+                                    self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
+                                    np.zeros(self.Nblobs * 3), 
+                                    self.bodies[0].blob_radius, 
+                                    self.eta, 
+                                    self.output_name + '.' + str(0), 
+                                    self.tracer_radius,
+                                    mobility_vector_prod_implementation = 'C++')
+        if ((step+1) % n_save) == 0 and step >= 0:
+          # Plot velocity field
+          if self.plot_velocity_field.size > 1: 
             pvf.plot_velocity_field(self.plot_velocity_field, 
                                     self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
                                     lambda_blobs, 
@@ -920,7 +927,6 @@ class QuaternionIntegrator(object):
                                     self.output_name + '.' + str(step+1), 
                                     self.tracer_radius,
                                     mobility_vector_prod_implementation = 'C++')
-            print 'ZZZZZZZZZZZZZZZZZZZZZZZZ'
         return
 
     return
