@@ -955,6 +955,103 @@ def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   return M
 
 
+def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
+  ''' 
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+  '''
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B_damp, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  num_particles = len(r_vectors_effective)
+  # We add the corrections from the appendix of the paper to the unbounded mobility.
+  fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
+
+  # Extract variables
+  r_vectors_effective = r_vectors_effective.reshape((r_vectors_effective.size / 3, 3))
+  N = r_vectors.size / 3
+  x = r_vectors_effective[:,0]
+  y = r_vectors_effective[:,1]
+  z = r_vectors_effective[:,2]
+  
+  # Compute distances between blobs
+  dx = (x[:, None] - x) / a
+  dy = (y[:, None] - y) / a
+  dz = (z[:, None] + z) / a
+  dr = np.sqrt(dx**2 + dy**2 + dz**2)
+  h_hat = z[:, None] / (a * dz)
+  h = z / a
+  ex = dx / dr
+  ey = dy / dr
+  ez = dz / dr
+
+  # Compute scalar functions, the mobility is
+  # M = A*delta_ij + B*e_i*e_j + C*e_i*delta_3j + D*delta_i3*e_j + E*delta_i3*delta_3j 
+  factor = 1.0 / (6.0 * np.pi * eta * a)  
+  sel = dr > 1e-12 * a
+  rows, columns = np.diag_indices(N)
+  sel[rows, columns] = False
+
+  # Allocate memory
+  M = np.zeros((r_vectors.size, r_vectors.size)) 
+  rows, columns = np.diag_indices(r_vectors.size) 
+  
+  A = np.zeros_like(dr)
+  B = np.zeros_like(dr)
+  C = np.zeros_like(dr)
+  D = np.zeros_like(dr)
+  E = np.zeros_like(dr)
+
+
+  # Self-mobility terms
+  A_vec = -0.0625 * (9.0 / h - 2.0 / h**3 + 1.0 / h**5)
+  E_vec = -A_vec - 0.125 * (9.0 / h - 4.0 / h**3 + 1.0 / h**5)
+  M[rows[0::3], columns[0::3]] += A_vec
+  M[rows[1::3], columns[1::3]] += A_vec
+  M[rows[2::3], columns[2::3]] += A_vec + E_vec
+
+  # Particle-particle terms
+  A[sel] = -0.25 * (3.0 * (1.0 + 2*h_hat[sel]*(1.0-h_hat[sel])*ez[sel]**2) / dr[sel] + 
+                    2.0*(1-3.0*ez[sel]**2) / dr[sel]**3 - 2.0*(1-5.0*ez[sel]**2) / dr[sel]**5)
+
+  B[sel] = -0.25 * (3.0 * (1.0 - 6.0*h_hat[sel]*(1.0-h_hat[sel])*ez[sel]**2) / dr[sel] - 
+                    6.0 * (1.0 - 5.0*ez[sel]**2) / dr[sel]**3 + 10.0 * (1.0 - 7.0*ez[sel]**2) / dr[sel]**5)
+
+  C[sel] = 0.5 * ez[sel] * (3.0 * h_hat[sel]*(1.0 - 6.0*(1.0-h_hat[sel])*ez[sel]**2) / dr[sel] - 
+                            6.0 * (1.0 - 5.0*ez[sel]**2) / dr[sel]**3 + 10.0 * (2.0 - 7.0*ez[sel]**2) / dr[sel]**5)
+
+  D[sel] = 0.5 * ez[sel] * (3.0 * h_hat[sel] / dr[sel] - 10.0 / dr[sel]**5)
+
+  E[sel] = -(3.0 * h_hat[sel]**2 * ez[sel]**2 / dr[sel] + 3.0 * ez[sel]**2 / dr[sel]**3 + (2.0 - 15.0*ez[sel]**2) / dr[sel]**5)
+  
+  # Build mobility matrix of size 3N \times 3N
+  M[0::3, 0::3] += A + B * ex * ex 
+  M[0::3, 1::3] +=     B * ex * ey
+  M[0::3, 2::3] +=     B * ex * ez + C.T * ex
+
+  M[1::3, 0::3] +=     B * ey * ex
+  M[1::3, 1::3] += A + B * ey * ey
+  M[1::3, 2::3] +=     B * ey * ez + C.T * ey 
+
+  M[2::3, 0::3] +=     B * ez * ex            + D.T * ex 
+  M[2::3, 1::3] +=     B * ez * ey            + D.T * ey 
+  M[2::3, 2::3] += A + B * ez * ez + C.T * ez + D.T * ez + E.T
+
+  M *= factor
+  M += fluid_mobility
+
+  # Compute M = B^T * M_tilde * B
+  if overlap is True:
+    return B_damp.dot( (B_damp.dot(M.T)).T )
+  else:
+    return M
+
+
 def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -997,7 +1094,6 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args
   # Compute M_tilde * B * force
   velocities = mobility_numba.single_wall_mobility_trans_times_force_numba(r_vectors_effective, force, eta, a, L)
   # Compute B.T * M * B * vector
-  print 'overlap = ', overlap
   if overlap is True:
     velocities = B.dot(velocities)
   return velocities

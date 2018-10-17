@@ -30,6 +30,8 @@ if __name__ == '__main__':
     orientation = Quaternion([1., 0., 0., 0.])
     r_vectors = 5 * a * np.random.rand(1000, 3) + np.array([0., 0., 0.])
     
+    L = np.array([10., 10., 0.])
+
     # Generate random forces
     force = np.random.randn(len(r_vectors), 3) 
     force[:,:] = 0.
@@ -75,8 +77,8 @@ if __name__ == '__main__':
     timer('python_loops')
 
     timer('python')
-    #mobility = mob.single_wall_fluid_mobility(r_vectors, eta, a)
-    #u = np.dot(mobility, force.flatten())
+    mobility = mob.single_wall_fluid_mobility(r_vectors, eta, a)
+    u = np.dot(mobility, force.flatten())
     timer('python')
     
     timer('boost_full_matrix')
@@ -86,18 +88,18 @@ if __name__ == '__main__':
 
     timer('boost')
     force_hstack=np.hstack(force)
-    u_boost =  mob.boosted_mobility_vector_product(r_vectors, force_hstack, eta, a) 
+    u_boost =  mob.boosted_mobility_vector_product(r_vectors, force_hstack, eta, a, periodic_length = L) 
     timer('boost')
 
     u_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a)
     timer('numba')
-    u_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a)
+    u_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, periodic_length = L)
     timer('numba')
 
     if found_pycuda:
         u_gpu = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a)
         timer('pycuda')
-        u_gpu = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a)
+        u_gpu = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = L)
         timer('pycuda')
     
 
@@ -119,12 +121,17 @@ if __name__ == '__main__':
     print '|u_no_wall_pycuda - u_no_wall_loops_full| / |u_no_wall_loops_full| = ', np.linalg.norm(u_no_wall_pycuda - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full)
     print '|u_no_wall_numba - u_no_wall_loops_full| / |u_no_wall_loops_full|  = ', np.linalg.norm(u_no_wall_numba - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full)
     print('===================================================')
-    # print '|u - u_loops| / |u_loops|                                          = ', np.linalg.norm(u - u_loops) / np.linalg.norm(u_loops)
+    print '|u - u_loops| / |u_loops|                                          = ', np.linalg.norm(u - u_loops) / np.linalg.norm(u_loops)
     print '|u_boost_full - u_loops| / |u_loops|                               = ', np.linalg.norm(u_boost_full - u_loops) / np.linalg.norm(u_loops)
     print '|u_boost - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_boost - u_loops) / np.linalg.norm(u_loops)
     print '|u_numba - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_numba - u_loops) / np.linalg.norm(u_loops)
     if found_pycuda:
         print '|u_gpu - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_gpu - u_loops) / np.linalg.norm(u_loops)
+
+    if L[0] > 0. or L[1] > 0.:
+        print('===================================================')
+        print '|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost)
+        print '|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost)
 
 
 
