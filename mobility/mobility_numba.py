@@ -55,13 +55,12 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
             # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
             # any dimension of L is equal or smaller than zero the 
             # box is assumed to be infinite in that direction.
-            if L[2] > 0:
+            if L[0] > 0:
               rx = rx - int(rx / L[0] + 0.5 * (int(rx>0) - int(rx<0))) * L[0]
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -172,8 +171,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -321,8 +319,7 @@ def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -429,8 +426,7 @@ def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -573,8 +569,7 @@ def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -680,8 +675,7 @@ def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]             
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -820,8 +814,7 @@ def no_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            
@@ -933,8 +926,7 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
               rx = rx + boxX * L[0]
             if L[1] > 0:
               ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]
-              
+              ry = ry + boxY * L[1]              
             if L[2] > 0:
               rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
               rz = rz + boxZ * L[2]            

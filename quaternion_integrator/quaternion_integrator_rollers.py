@@ -18,7 +18,7 @@ class QuaternionIntegratorRollers(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
   '''  
-  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall'): 
+  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall', mobility_vector_prod_implementation = 'pycuda'): 
     ''' 
     Init object 
     '''
@@ -50,17 +50,31 @@ class QuaternionIntegratorRollers(object):
     self.stoch_iterations_count = 0
     self.domain = domain
     if domain == 'single_wall':
-      self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
-      self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
-      self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_pycuda
-      self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
-      self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
+      if mobility_vector_prod_implementation.find('pycuda') > -1:
+        self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
+        self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
+        self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_pycuda
+        self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
+        self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
+      elif mobility_vector_prod_implementation.find('numba') > -1:
+        self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_numba
+        self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_numba
+        self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_numba
+        self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_numba
+        self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_numba
     elif domain == 'no_wall':
-      self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
-      self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
-      self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
-      self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
-      self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
+      if mobility_vector_prod_implementation.find('pycuda') > -1:
+        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
+        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
+        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
+        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
+        self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
+      elif mobility_vector_prod_implementation.find('numba') > -1:
+        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_numba
+        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_numba
+        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_numba
+        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_numba
+        self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_numba
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None

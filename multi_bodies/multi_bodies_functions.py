@@ -12,6 +12,7 @@ from functools import partial
 
 import utils
 from quaternion_integrator.quaternion import Quaternion
+import forces_numba
 
 # Try to import the forces boost implementation
 try:
@@ -198,6 +199,9 @@ def set_blob_blob_forces(implementation):
     return calc_blob_blob_forces_boost 
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
+  elif implementation == 'numba':
+    return forces_numba.calc_blob_blob_forces_numba
+
 
 
 def blob_blob_force(r, *args, **kwargs):
