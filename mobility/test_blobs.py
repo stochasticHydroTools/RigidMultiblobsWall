@@ -8,6 +8,9 @@ try:
 except ImportError:
     found_pycuda = False
 
+
+
+
 sys.path.append('../')
 from quaternion_integrator.quaternion import Quaternion
 import mobility as mob
@@ -28,14 +31,14 @@ if __name__ == '__main__':
     location = [0., 0., 1]
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion([1., 0., 0., 0.])
-    r_vectors = 5 * a * np.random.rand(1000, 3) + np.array([0., 0., 0.])
+    r_vectors = 5 * a * np.random.rand(200, 3) + np.array([0., 0., 0.])
     
-    L = np.array([10., 10., 0.])
+    L = np.array([0., 0., 0.])
 
     # Generate random forces
     force = np.random.randn(len(r_vectors), 3) 
-    force[:,:] = 0.
-    force[0, 0] = 1.0
+    # force[:,:] = 0.
+    # force[0, 0] = 1.0
     
     print 'r_vectors \n', r_vectors, '\n\n'
     # print 'force \n', force, '\n\n'
@@ -101,7 +104,7 @@ if __name__ == '__main__':
         timer('pycuda')
         u_gpu = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = L)
         timer('pycuda')
-    
+ 
 
     if False:
         np.set_printoptions(precision=6)
@@ -133,8 +136,41 @@ if __name__ == '__main__':
         print '|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost)
         print '|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost)
 
+    timer('', print_all=True, clean_all=True)
 
 
-    timer('', print_all=True)
 
+
+    # ==========================================================
+    # Rot tests
+    # ==========================================================
+    print '\n\n\n\n'
+    print '=========================================================='
+    if found_pycuda:
+        timer('u_no_wall_trans_times_torque_gpu')
+        u_no_wall_trans_times_torque_gpu = mob.no_wall_mobility_trans_times_torque_pycuda(r_vectors, force, eta, a, periodic_length = L)
+        timer('u_no_wall_trans_times_torque_gpu')
+
+        u_no_wall_trans_times_torque_numba = mob.no_wall_mobility_trans_times_torque_numba(r_vectors, force, eta, a, periodic_length = L)
+        timer('u_no_wall_trans_times_torque_numba')
+        u_no_wall_trans_times_torque_numba = mob.no_wall_mobility_trans_times_torque_numba(r_vectors, force, eta, a, periodic_length = L)
+        timer('u_no_wall_trans_times_torque_numba')
+
+        print '|u_no_wall_trans_times_torque_numba - u_no_wall_trans_times_torque_gpu| / |u_no_wall_trans_times_torque_gpu| = ', \
+            np.linalg.norm(u_no_wall_trans_times_torque_numba - u_no_wall_trans_times_torque_gpu) / np.linalg.norm(u_no_wall_trans_times_torque_gpu)
+
+
+
+        #timer('u_wall_trans_times_torque_gpu')
+        #u_wall_trans_times_torque_gpu = mob.no_wall_mobility_trans_times_torque_pycuda(r_vectors, force, eta, a, periodic_length = L)
+        #timer('u_wall_trans_times_torque_gpu')
+        #timer('u_wall_trans_times_torque_numba')
+        #u_wall_trans_times_torque_numba = mob.no_wall_mobility_trans_times_torque_pycuda(r_vectors, force, eta, a, periodic_length = L)
+        #timer('u_wall_trans_times_torque_numba')
+
+
+
+
+        timer('', print_all=True)
+    
     print '# End'

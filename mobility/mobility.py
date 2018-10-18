@@ -1097,3 +1097,16 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args
   if overlap is True:
     velocities = B.dot(velocities)
   return velocities
+
+
+def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs. Mobility for particles in an unbounded domain, it uses
+  the standard RPY tensor.  
+  
+  This function makes use of pycuda.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  vel = mobility_numba.no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L)
+  return vel
