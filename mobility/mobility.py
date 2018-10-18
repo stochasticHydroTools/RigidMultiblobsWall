@@ -1134,3 +1134,45 @@ def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, *ar
     velocities = B.dot(velocities)
   return velocities
 
+
+def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility rotational-translation at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+  
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  rot = mobility_numba.no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L)
+  return rot
+
+
+def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+  
+  This function uses pycuda.
+  '''
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  # Compute B * force
+  if overlap is True:
+    force = B.dot(force)
+  # Compute M_tilde * B * force
+  rot = mobility_pycuda.single_wall_mobility_rot_times_force_numba(r_vectors_effective, force, eta, a, *args, **kwargs)
+  # Compute B.T * M * B * force
+  if overlap is True:
+    rot = B.dot(rot)
+  return rot
