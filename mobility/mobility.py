@@ -361,7 +361,7 @@ def single_wall_mobility_rot_times_torque_pycuda(r_vectors, torque, eta, a, *arg
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * vector
   if overlap is True:
-    torque = B.dot(torque)
+    torque = B.dot(torque.flatten())
   # Compute M_tilde * B * torque
   rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors_effective, torque, eta, a, *args, **kwargs)
   # Compute B.T * M * B * torque
@@ -1214,9 +1214,9 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, *args
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * vector
   if overlap is True:
-    torque = B.dot(torque)
+    torque = B.dot(torque.flatten())
   # Compute M_tilde * B * torque
-  rot = mobility_pycuda.single_wall_mobility_rot_times_torque_pycuda(r_vectors_effective, torque, eta, a, *args, **kwargs)
+  rot = mobility_numba.single_wall_mobility_rot_times_torque_numba(r_vectors_effective, torque, eta, a, L)
   # Compute B.T * M * B * torque
   if overlap is True:
     rot = B.dot(rot)
