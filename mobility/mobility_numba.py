@@ -627,3 +627,143 @@ def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
             u[i,2] += (Mzx * force[j,0] + Mzy * force[j,1] + Mzz * force[j,2]) * norm_fact_f
 
   return u.flatten()
+
+
+@njit(parallel=True)
+def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
+  ''' 
+  Returns the product of the mobility translation-rotation at the blob level to the torque 
+  on the blobs. Mobility for particles in an unbounded domain, it uses
+  the standard RPY tensor.  
+  
+  This function uses numba.
+  '''
+  # Variables
+  N = r_vectors.size / 3
+  r_vectors = r_vectors.reshape(N, 3)
+  force = force.reshape(N, 3)
+  u = np.zeros((N, 3))
+  fourOverThree = 4.0 / 3.0
+  inva = 1.0 / a
+  norm_fact_f = 1.0 / (8.0 * np.pi * eta * a**2)
+
+  # Determine if the space is pseudo-periodic in any dimension
+  # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  periodic_x = 0
+  periodic_y = 0 
+  periodic_z = 0
+  if L[0] > 0:
+    periodic_x = 1
+  if L[1] > 0:
+    periodic_y = 1
+  if L[2] > 0:
+    periodic_z = 1
+  
+  # Loop over image boxes and then over particles
+  for i in prange(N):
+    for boxX in range(-periodic_x, periodic_x+1):
+      for boxY in range(-periodic_y, periodic_y+1):
+        for boxZ in range(-periodic_z, periodic_z+1):
+          for j in range(N):
+            
+            # Compute vector between particles i and j
+            rx = r_vectors[i,0] - r_vectors[j,0]
+            ry = r_vectors[i,1] - r_vectors[j,1]
+            rz = r_vectors[i,2] - r_vectors[j,2]
+
+            # Project a vector r to the extended unit cell
+            # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+            # any dimension of L is equal or smaller than zero the 
+            # box is assumed to be infinite in that direction.
+            if L[0] > 0:
+              rx = rx - int(rx / L[0] + 0.5 * (int(rx>0) - int(rx<0))) * L[0]
+              rx = rx + boxX * L[0]
+            if L[1] > 0:
+              ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
+              ry = ry + boxY * L[1]
+              
+            if L[2] > 0:
+              rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
+              rz = rz + boxZ * L[2]            
+               
+            # 1. Compute mobility for pair i-j, if i==j use self-interation
+            j_image = j
+            if boxX != 0 or boxY != 0 or boxZ != 0:
+              j_image = -1           
+
+            rx = rx * inva
+            ry = ry * inva
+            rz = rz * inva
+            if i==j_image:
+              Mxx = 0
+              Mxy = 0
+              Mxz = 0
+              Myy = 0
+              Myz = 0
+              Mzz = 0
+            else:
+              # Normalize distance with hydrodynamic radius
+              r2 = rx*rx + ry*ry + rz*rz
+              r = np.sqrt(r2)
+              r3 = r2*r
+              # TODO: We should not divide by zero 
+              invr3 = 1.0 / r3
+              if r >= 2.0:
+                Mxx =  0
+                Mxy =  rz * invr3
+                Mxz = -ry * invr3
+                Myy =  0
+                Myz =  rx * invr3
+                Mzz =  0
+              else:
+                c1 =  0.5 * (1.0 - 0.375 * r) # 3/8 = 0.375
+                Mxx =  0
+                Mxy =  c1 * rz
+                Mxz = -c1 * ry 
+                Myy =  0
+                Myz =  c1 * rx
+                Mzz =  0
+
+            Myx = -Mxy
+            Mzx = -Mxz
+            Mzy = -Myz
+	  
+            # Wall correction
+            # mobilityWFSingleWallCorrection(rx/a, ry/a, (rz+2*x[joffset+2])/a, Mxx,Mxy,Mxz,Myx,Myy,Myz,Mzx,Mzy, i,j_image, invaGPU, x[joffset+2]/a);
+            rz = (r_vectors[i,2] + r_vectors[j,2]) * inva
+            hj = r_vectors[j,2] * inva
+            
+            if i == j_image:
+              invZi = 1.0 / hj
+              invZi4 = invZi**4
+              Mxy += -invZi4 * 0.125 # 3/24 = 0.125
+              Myx +=  invZi4 * 0.125 # 3/24 = 0.125
+            else:
+              h_hat = hj / rz
+              invR = 1.0 / np.sqrt(rx*rx + ry*ry + rz*rz)
+              invR2 = invR * invR
+              invR4 = invR2 * invR2
+              ex = rx * invR
+              ey = ry * invR
+              ez = rz * invR
+    
+              fact1 =  invR2
+              fact2 = (6.0 * h_hat * ez*ez * invR2 + (1.0 - 10.0 * ez*ez) * invR4) * 2.0
+              fact3 = -ez * (3.0 * h_hat*invR2 - 5.0 * invR4) * 2.0
+              fact4 = -ez * (h_hat * invR2 - invR4) * 2.0
+    
+              Mxx -=                       - fact3*ex*ey
+              Mxy -=   fact1*ez            - fact3*ey*ey + fact4
+              Mxz -= - fact1*ey - fact2*ey - fact3*ey*ez
+              Myx -= - fact1*ez            + fact3*ex*ex - fact4
+              Myy -=                         fact3*ex*ey
+              Myz -=   fact1*ex + fact2*ex + fact3*ex*ez
+              Mzx -=   fact1*ey
+              Mzy -= - fact1*ex
+  
+            # 2. Compute product M_ij * T_j
+            u[i,0] += (Mxx * force[j,0] + Mxy * force[j,1] + Mxz * force[j,2]) * norm_fact_f
+            u[i,1] += (Myx * force[j,0] + Myy * force[j,1] + Myz * force[j,2]) * norm_fact_f
+            u[i,2] += (Mzx * force[j,0] + Mzy * force[j,1] + Mzz * force[j,2]) * norm_fact_f
+
+  return u.flatten()

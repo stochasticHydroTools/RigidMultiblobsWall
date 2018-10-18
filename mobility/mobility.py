@@ -319,7 +319,7 @@ def single_wall_mobility_rot_times_force_pycuda(r_vectors, force, eta, a, *args,
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
   if overlap is True:
-    force = B.dot(force)
+    force = B.dot(force.flatten())
   # Compute M_tilde * B * force
   rot = mobility_pycuda.single_wall_mobility_rot_times_force_pycuda(r_vectors_effective, force, eta, a, *args, **kwargs)
   # Compute B.T * M * B * force
@@ -1163,15 +1163,16 @@ def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, *args, 
   
   This function uses pycuda.
   '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   # Compute B * force
   if overlap is True:
-    force = B.dot(force)
+    force = B.dot(force.flatten())
   # Compute M_tilde * B * force
-  rot = mobility_pycuda.single_wall_mobility_rot_times_force_numba(r_vectors_effective, force, eta, a, *args, **kwargs)
+  rot = mobility_numba.single_wall_mobility_rot_times_force_numba(r_vectors_effective, force, eta, a, L)
   # Compute B.T * M * B * force
   if overlap is True:
     rot = B.dot(rot)
