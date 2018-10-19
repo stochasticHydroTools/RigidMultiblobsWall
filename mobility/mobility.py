@@ -1282,4 +1282,4 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, *args
   return rot
 
 
->>>>>>> numba2
+
