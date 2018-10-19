@@ -12,7 +12,6 @@ from functools import partial
 
 import utils
 from quaternion_integrator.quaternion import Quaternion
-import forces_numba
 
 # Try to import the forces boost implementation
 try:
@@ -33,6 +32,14 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     import forces_pycuda  
+# If numba is installed import forces_numba
+try: 
+  imp.find_module('numba')
+  found_numba = True
+except ImportError:
+  found_numba = False
+if found_numba:
+  import forces_numba
 
 
 # Override forces_pycuda with user defined functions.
@@ -49,13 +56,14 @@ if found_pycuda:
 
 # Override forces_numba with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
-forces_numba_user_defined = False
-if os.path.isfile('forces_numba_user_defined.py'):
-  forces_numba_user_defined = True
-if forces_numba_user_defined:
-  del sys.modules['forces_numba']
-  sys.modules['forces_numba'] = __import__('forces_numba_user_defined')
-  import forces_numba
+if found_numba:
+  forces_numba_user_defined = False
+  if os.path.isfile('forces_numba_user_defined.py'):
+    forces_numba_user_defined = True
+  if forces_numba_user_defined:
+    del sys.modules['forces_numba']
+    sys.modules['forces_numba'] = __import__('forces_numba_user_defined')
+    import forces_numba
     
 
 def project_to_periodic_image(r, L):

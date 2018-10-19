@@ -6,9 +6,6 @@ sys.path.append('../')
 import time
 import imp
 
-# Import numba implementations
-import mobility_numba
-
 # Try to import the mobility boost implementation
 try:
   import mobility_ext as me
@@ -28,6 +25,14 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     import mobility_pycuda
+# If numba is installed import mobility_numba
+try: 
+  imp.find_module('numba')
+  found_numba = True
+except ImportError:
+  found_numba = False
+if found_numba:
+  import mobility_numba
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm
