@@ -5,6 +5,10 @@
 *.pyc
 *.so
 
+# config files #
+################
+*.config
+
 # tmp files #
 ############
 *~
