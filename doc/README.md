@@ -66,7 +66,7 @@ for example, simulate a colloid suspension with a given steric repulsion.
 We provide versions in _python_, _C++_, _numba_ and _pycuda_. 
 We recommend to use the _pycuda_ or the _numba_ implementations.
 
-To use the _numba_ implementation all you need is that package _numba_._ 
+To use the _numba_ implementation all you need is the package _numba_.
 To use the _pycuda_ implementation you need _pycuda_ and a GPU compatible with CUDA;
 you don't need to compile any additional file in this package.
 
