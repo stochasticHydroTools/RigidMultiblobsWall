@@ -61,7 +61,7 @@ class QuaternionIntegratorRollers(object):
         self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_numba
         self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_numba
         self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_numba
-        self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_numba
+        # self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_numba
     elif domain == 'no_wall':
       if mobility_vector_prod_implementation.find('pycuda') > -1:
         self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
@@ -74,7 +74,7 @@ class QuaternionIntegratorRollers(object):
         self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_numba
         self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_numba
         self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_numba
-        self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_numba
+        # self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_numba
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
