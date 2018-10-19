@@ -34,6 +34,7 @@ if found_pycuda:
   if autoinit_pycuda:
     import forces_pycuda  
 
+
 # Override forces_pycuda with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
 if found_pycuda:
@@ -44,6 +45,17 @@ if found_pycuda:
     del sys.modules['forces_pycuda']
     sys.modules['forces_pycuda'] = __import__('forces_pycuda_user_defined')
     import forces_pycuda
+
+
+# Override forces_numba with user defined functions.
+# If forces_pycuda_user_defined does not exists nothing happens.
+forces_numba_user_defined = False
+if os.path.isfile('forces_numba_user_defined.py'):
+  forces_numba_user_defined = True
+if forces_numba_user_defined:
+  del sys.modules['forces_numba']
+  sys.modules['forces_numba'] = __import__('forces_numba_user_defined')
+  import forces_numba
     
 
 def project_to_periodic_image(r, L):
