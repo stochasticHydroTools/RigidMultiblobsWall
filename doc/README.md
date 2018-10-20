@@ -530,12 +530,16 @@ velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
-* `domain`: (string) Options: `single_wall` and `no_wall`.
+* `domain`: (string) Options: `single_wall`, `no_wall`, and `in_plane`.
 With the option `single_wall` (default) the mobilities include wall
 corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
 explained in the introduction. With the option `no_wall` the
 mobilities do not include wall corrections, the code uses the
-Rotne-Prager-Yamakawa mobilities.
+Rotne-Prager-Yamakawa mobilities. With the option `in_plane`, the 
+single wall mobilities are used but modified so that the z component 
+of the velocities is zero. This ensures that the partilces position
+in the z direction never changes from that specified in the initial
+`.clones` file.
 
 
 ### 5.3 Modify the codes
