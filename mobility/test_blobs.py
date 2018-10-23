@@ -8,6 +8,11 @@ try:
     found_pycuda = True
 except ImportError:
     found_pycuda = False
+try:
+    import mobility_ext 
+    found_boost = True
+except ImportError:
+    found_boost = False
 
 
 
@@ -32,21 +37,11 @@ if __name__ == '__main__':
     location = [0., 0., 1]
     theta = np.random.normal(0., 1., 4)
     orientation = Quaternion([1., 0., 0., 0.])
-    r_vectors = 5 * a * np.random.rand(200, 3) + np.array([0., 0., 0.])
-    
+    r_vectors = 5 * a * np.random.rand(200, 3) + np.array([0., 0., 0.])  
     L = np.array([0., 0., 0.])
 
     # Generate random forces
     force = np.random.randn(len(r_vectors), 3) 
-    # force[:,:] = 0.
-    # force[0, 0] = 1.0
-    
-    print('r_vectors \n', r_vectors, '\n\n')
-    # print 'force \n', force, '\n\n'
-
-    print('r_vectors =', r_vectors.shape)
-    print('force =', force.shape, '\n\n')
-
 
     # ================================================================
     # NO WALL TESTS
@@ -85,15 +80,17 @@ if __name__ == '__main__':
     u = np.dot(mobility, force.flatten())
     timer('python')
     
-    timer('boost_full_matrix')
-    mobility_boost = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
-    u_boost_full = np.dot(mobility_boost, force.flatten())
-    timer('boost_full_matrix')
 
-    timer('boost')
-    force_hstack=np.hstack(force)
-    u_boost =  mob.boosted_mobility_vector_product(r_vectors, force_hstack, eta, a, periodic_length = L) 
-    timer('boost')
+    if found_boost:
+        timer('boost_full_matrix')
+        mobility_boost = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
+        u_boost_full = np.dot(mobility_boost, force.flatten())
+        timer('boost_full_matrix')
+
+        timer('boost')
+        force_hstack=np.hstack(force)
+        u_boost =  mob.boosted_mobility_vector_product(r_vectors, force_hstack, eta, a, periodic_length = L) 
+        timer('boost')
 
     u_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a)
     timer('numba')
@@ -126,16 +123,19 @@ if __name__ == '__main__':
     print('|u_no_wall_numba - u_no_wall_loops_full| / |u_no_wall_loops_full|  = ', np.linalg.norm(u_no_wall_numba - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full))
     print('===================================================')
     print('|u - u_loops| / |u_loops|                                          = ', np.linalg.norm(u - u_loops) / np.linalg.norm(u_loops))
-    print('|u_boost_full - u_loops| / |u_loops|                               = ', np.linalg.norm(u_boost_full - u_loops) / np.linalg.norm(u_loops))
-    print('|u_boost - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_boost - u_loops) / np.linalg.norm(u_loops))
+    if found_boost:
+        print('|u_boost_full - u_loops| / |u_loops|                               = ', np.linalg.norm(u_boost_full - u_loops) / np.linalg.norm(u_loops))
+        print('|u_boost - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_boost - u_loops) / np.linalg.norm(u_loops))
     print('|u_numba - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_numba - u_loops) / np.linalg.norm(u_loops))
     if found_pycuda:
         print('|u_gpu - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_gpu - u_loops) / np.linalg.norm(u_loops))
 
     if L[0] > 0. or L[1] > 0.:
         print('===================================================')
-        print('|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost))
-        print('|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost))
+        print('|u_numba - u_gpu| / |u_gpu|                                    = ', np.linalg.norm(u_numba - u_gpu) / np.linalg.norm(u_gpu))
+        if found_boost:
+            print('|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost))
+            print('|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost))
 
     timer('', print_all=True, clean_all=True)
 

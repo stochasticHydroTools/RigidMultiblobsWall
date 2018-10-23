@@ -108,7 +108,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
                 Myz =      c2 * ry*rz 
                 Mzz = c1 + c2 * rz*rz 
                 
-	    Myx = Mxy
+            Myx = Mxy
             Mzx = Mxz
             Mzy = Myz
 	  
@@ -219,7 +219,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
                 Myz =      c2 * ry*rz 
                 Mzz = c1 + c2 * rz*rz 
                 
-	    Myx = Mxy
+            Myx = Mxy
             Mzx = Mxz
             Mzy = Myz
 
