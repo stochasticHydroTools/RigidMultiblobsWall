@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import division, print_function
 import numpy as np
 import scipy.sparse
 
@@ -19,7 +19,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   force = force.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -130,7 +130,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   force = force.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -278,7 +278,7 @@ def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   torque = torque.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -385,7 +385,7 @@ def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   torque = torque.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -528,7 +528,7 @@ def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   force = force.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -634,7 +634,7 @@ def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   force = force.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -773,7 +773,7 @@ def no_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   torque = torque.reshape(N, 3)
   u = np.zeros((N, 3))
@@ -885,7 +885,7 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
   This function uses numba.
   '''
   # Variables
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   torque = torque.reshape(N, 3)
   u = np.zeros((N, 3))

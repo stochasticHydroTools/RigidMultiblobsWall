@@ -1,4 +1,5 @@
 ''' Test the fluid mobilities. '''
+from __future__ import division, print_function
 import unittest
 import numpy as np
 import random

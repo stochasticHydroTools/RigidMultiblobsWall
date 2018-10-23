@@ -1,6 +1,7 @@
 '''
 Integrator for several rigid bodies.
 '''
+from __future__ import division, print_function
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
@@ -1317,14 +1318,14 @@ class QuaternionIntegrator(object):
           valid_configuration = b.check_function(b.location, b.orientation)
           if valid_configuration is False:
             self.invalid_configuration_count += 1
-            print 'Invalid configuration number ', self.invalid_configuration_count
+            print('Invalid configuration number ', self.invalid_configuration_count)
             break
       elif new == 'new':
         for b in self.bodies:
           valid_configuration = b.check_function(b.location_new, b.orientation_new)
           if valid_configuration is False:
             self.invalid_configuration_count += 1
-            print 'Invalid configuration number ', self.invalid_configuration_count
+            print('Invalid configuration number ', self.invalid_configuration_count)
             break
 
     # Update position if necessary
@@ -1362,7 +1363,7 @@ class gmres_counter(object):
     self.niter += 1
     if self.print_residual is True:
       if self.niter == 1:
-        print 'gmres =  0 1'
-      print 'gmres = ', self.niter, rk
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 
       

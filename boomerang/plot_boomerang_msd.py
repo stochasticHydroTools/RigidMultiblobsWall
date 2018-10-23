@@ -3,7 +3,7 @@ Plot the MSD of a boomerang. This script takes 1
 argument, which is the name of a .pkl file containing MSD data generated
 by calculate_boomerang_msd_from_trajectories.py
 '''
-
+from __future__ import division, print_function
 import cPickle
 import matplotlib
 matplotlib.use('Agg')

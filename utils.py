@@ -1,5 +1,6 @@
 '''File with utilities for the scripts and functions in this project.'''
 
+from __future__ import division, print_function
 import logging
 try:
   import matplotlib
@@ -95,8 +96,8 @@ class MSDStatistics(object):
 
 
   def print_params(self):
-     print "Parameters are: "
-     print self.params
+     print("Parameters are: ")
+     print(self.params)
      
 
 def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None,
@@ -254,7 +255,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
               number of analyzed points roughly this value.
  '''
   data_interval = int(end/dt/trajectory_length) + 1
-  print "data_interval is ", data_interval
+  print("data_interval is ", data_interval)
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])
@@ -289,8 +290,8 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
           lagged_rotation_trajectory[l]))
         average_rotational_msd[l] += current_rot_msd
     if (k % print_increment) == 0 and k > 0:
-      print 'At step %s of %s' % (k, n_steps)
-      print 'For this run, time status is:'
+      print('At step %s of %s' % (k, n_steps))
+      print('For this run, time status is:')
       elapsed = time.time() - start_time
       log_time_progress(elapsed, k, n_steps)
 
@@ -497,13 +498,13 @@ def timer(name, print_one = False, print_all = False, clean_all = False):
     time_tuple = (timer.timers[name][0] + (time.time() - timer.timers[name][1]), None)
     timer.timers[name] = time_tuple
     if print_one is True:
-      print name, ' = ', timer.timers[name][0]
+      print(name, ' = ', timer.timers[name][0])
 
   if print_all is True:
-    print '\n'
+    print('\n')
     col_width = max(len(key) for key in timer.timers)
     for key in sorted(timer.timers):
-      print "".join(key.ljust(col_width)), ' = ', timer.timers[key][0]
+      print("".join(key.ljust(col_width)), ' = ', timer.timers[key][0])
       
   if clean_all:
     timer.timers = {}

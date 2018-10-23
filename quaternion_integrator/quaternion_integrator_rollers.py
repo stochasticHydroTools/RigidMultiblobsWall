@@ -1,6 +1,7 @@
 '''
 Integrator for several rigid bodies.
 '''
+from __future__ import division, print_function
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
@@ -128,7 +129,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
 
   
@@ -173,7 +174,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
 
 
@@ -225,7 +226,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
     
 
@@ -279,7 +280,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
     
 
@@ -323,7 +324,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -351,7 +352,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -408,7 +409,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -433,7 +434,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -487,7 +488,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -512,7 +513,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -737,7 +738,7 @@ class QuaternionIntegratorRollers(object):
     
     # Define grand mobility matrix
     def grand_mobility_matrix(force_torque, r_vectors = None, eta = None, a = None, periodic_length = None):
-      half_size = force_torque.size / 2
+      half_size = force_torque.size // 2
       # velocity = self.mobility_trans_times_force_torque(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a, periodic_length = periodic_length)
       velocity  = self.mobility_trans_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
       velocity += self.mobility_trans_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
@@ -788,7 +789,7 @@ class QuaternionIntegratorRollers(object):
     # Use constraint motion or free kinematics
     if self.free_kinematics == 'False':
        # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
-      RHS = -velocities_noise[velocities_noise.size / 2:] - div_M_rt * (self.kT / (self.rf_delta * self.a))
+      RHS = -velocities_noise[velocities_noise.size // 2:] - div_M_rt * (self.kT / (self.rf_delta * self.a))
 
       # Set linear operator
       system_size = 3 * len(self.bodies)
@@ -821,7 +822,7 @@ class QuaternionIntegratorRollers(object):
 
     # Compute stochastic velocity v_stoch = M_tr * T + sqrt(2*kT) * (N^{1/2}*W)_t + kT*div_t(M_tt).
     v_stoch = self.mobility_trans_times_torque(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
-    v_stoch += velocities_noise[0 : velocities_noise.size / 2] + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
+    v_stoch += velocities_noise[0 : velocities_noise.size // 2] + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
     return v_stoch
 
 
@@ -1042,6 +1043,6 @@ class gmres_counter(object):
     self.niter += 1
     if self.print_residual is True:
       if self.niter == 1:
-        print 'gmres =  0 1'
-      print 'gmres = ', self.niter, rk
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 

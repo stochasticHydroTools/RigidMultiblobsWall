@@ -4,6 +4,7 @@ configuration of a multibody supensions and it can save some data like
 the velocities or forces on the bodies, the mobility of a body or
 the mobility of the blobs.
 '''
+from __future__ import division, print_function
 import argparse
 import numpy as np
 import scipy.linalg as sla
@@ -32,10 +33,10 @@ while found_functions is False:
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
-      print '\nProjected functions not found. Edit path in multi_bodies_utilities.py'
+      print('\nProjected functions not found. Edit path in multi_bodies_utilities.py')
       sys.exit()
 
 # Try to import the visit_writer (boost implementation)
@@ -51,7 +52,7 @@ def make_callback():
   def callback(residuals):
     closure_variables["counter"] += 1
     closure_variables["residuals"].append(residuals)
-    print closure_variables["counter"], residuals
+    print(closure_variables["counter"], residuals)
   return callback
 
 
@@ -78,8 +79,8 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,2] = np.reshape(zz, zz.size)
 
   # Set radius of blobs (= a) and grid nodes (= 0)
-  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
-  radius_target = np.ones(grid_coor.size / 3) * tracer_radius
+  radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
+  radius_target = np.ones(grid_coor.size // 3) * tracer_radius
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
@@ -164,7 +165,7 @@ if __name__ ==  '__main__':
   body_types = []
   body_names = []
   for ID, structure in enumerate(read.structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     # Read slip file if it exists
@@ -276,11 +277,11 @@ if __name__ ==  '__main__':
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
-    print 'Time to solve mobility problem =', time.time() - start_time 
+    print('Time to solve mobility problem =', time.time() - start_time )
 
     # Plot velocity field
     if read.plot_velocity_field.size > 1: 
-      print 'plot_velocity_field'
+      print('plot_velocity_field')
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
@@ -309,11 +310,11 @@ if __name__ ==  '__main__':
     # Save force
     name = read.output_name + '.force.dat'
     np.savetxt(name, force, delimiter='  ')
-    print 'Time to solve resistance problem =', time.time() - start_time  
+    print('Time to solve resistance problem =', time.time() - start_time  )
 
     # Plot velocity field
     if read.plot_velocity_field.size > 1: 
-      print 'plot_velocity_field'
+      print('plot_velocity_field')
       lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
@@ -328,10 +329,10 @@ if __name__ ==  '__main__':
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
-    print 'Time to compute body mobility =', time.time() - start_time
+    print('Time to compute body mobility =', time.time() - start_time)
     
   elif (read.scheme == 'plot_velocity_field' and False):
-    print 'plot_velocity_field'
+    print('plot_velocity_field')
     # Compute slip 
 
     # Compute forces
@@ -340,7 +341,7 @@ if __name__ ==  '__main__':
 
     # Compute velocity field
 
-  print '\n\n\n# End'
+  print('\n\n\n# End')
 
 
 

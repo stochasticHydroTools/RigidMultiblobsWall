@@ -12,7 +12,7 @@ This call would analyze trajectories from 4 runs performed with the
 given parameters using --data-name=example-1 --data-name=example-2
 --data-name=example-3 and --data-name=example-4.
 '''
-
+from __future__ import division, print_function
 import argparse
 import cPickle
 import cProfile
@@ -222,7 +222,7 @@ if __name__ == '__main__':
                                                trajectory_length=trajectory_length)
     # append to calculate Mean and Std.
     msd_runs.append(msd_data)
-    print 'Completed run %s of %s' % (ctr, len(trajectory_file_names))
+    print('Completed run %s of %s' % (ctr, len(trajectory_file_names)))
 
   mean_msd = np.mean(np.array(msd_runs), axis=0)
   std_msd = np.std(np.array(msd_runs), axis=0)/np.sqrt(len(trajectory_file_names))
@@ -267,6 +267,6 @@ if __name__ == '__main__':
     sortby = 'cumulative'
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
-    print s.getvalue()  
+    print(s.getvalue())
   
   

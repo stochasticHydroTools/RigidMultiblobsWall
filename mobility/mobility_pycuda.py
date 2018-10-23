@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit
@@ -2091,15 +2092,15 @@ def set_number_of_threads_and_blocks(num_elements):
   used in CUDA kernels.
   '''
   threads_per_block=512
-  if((num_elements/threads_per_block) < 512):
+  if((num_elements//threads_per_block) < 512):
     threads_per_block = 256
-  if((num_elements/threads_per_block) < 256):
+  if((num_elements//threads_per_block) < 256):
     threads_per_block = 128
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements//threads_per_block) < 128):
     threads_per_block = 64
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements//threads_per_block) < 128):
     threads_per_block = 32
-  num_blocks = (num_elements-1)/threads_per_block + 1
+  num_blocks = (num_elements-1)//threads_per_block + 1
 
   return (threads_per_block, int(num_blocks))
 
@@ -2539,8 +2540,8 @@ def no_wall_mobility_trans_times_torque_pycuda(r_vectors, torque, eta, a, *args,
 def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
 
   # Determine number of threads and blocks for the GPU
-  number_of_sources = np.int32(source.size / 3)
-  number_of_targets = np.int32(target.size / 3)
+  number_of_sources = np.int32(source.size // 3)
+  number_of_targets = np.int32(target.size // 3)
   threads_per_block, num_blocks = set_number_of_threads_and_blocks(number_of_targets)
 
   # Get parameters from arguments

@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import argparse
 import numpy as np
 import scipy.linalg
@@ -35,10 +36,10 @@ while found_functions is False:
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
-      print '\nProjected functions not found. Edit path in multi_bodies.py'
+      print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
 
 def calc_slip(bodies, Nblobs):
@@ -201,10 +202,10 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   Ncomp_bodies = 6 * len(bodies)
   res = np.empty((Ncomp_blobs + Ncomp_bodies))
-  v = np.reshape(vector, (vector.size/3, 3))
+  v = np.reshape(vector, (vector.size//3, 3))
   
   # Compute the "slip" part
   res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
@@ -543,7 +544,7 @@ if __name__ == '__main__':
   body_types = []
   body_names = []
   for ID, structure in enumerate(structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     # Read vertex and clones files
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
@@ -656,7 +657,7 @@ if __name__ == '__main__':
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
+      print('Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time)
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -694,8 +695,8 @@ if __name__ == '__main__':
                                                      orientation[3]))
             body_offset += body_types[i]
       else:
-        print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-        print 'Use \"one_file_per_step\" or \"one_file\". \n'
+        print('Error, save_clones =', read.save_clones, 'is not implemented.')
+        print('Use \"one_file_per_step\" or \"one_file\". \n')
         break
 
       # Save mobilities
@@ -749,7 +750,7 @@ if __name__ == '__main__':
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
-    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
+    print('Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time)
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
@@ -788,8 +789,8 @@ if __name__ == '__main__':
                                                    orientation[3]))
           body_offset += body_types[i]
     else:
-      print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-      print 'Use \"one_file_per_step\" or \"one_file\". \n'
+      print('Error, save_clones =', read.save_clones, 'is not implemented.')
+      print('Use \"one_file_per_step\" or \"one_file\". \n')
 
     # Save mobilities
     if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
@@ -864,4 +865,4 @@ if __name__ == '__main__':
             + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
             + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
 
-  print '\n\n\n# End'
+  print('\n\n\n# End')

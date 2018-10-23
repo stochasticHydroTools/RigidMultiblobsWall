@@ -1,4 +1,5 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
+from __future__ import division, print_function
 import numpy as np
 import scipy.sparse
 import sys
@@ -189,7 +190,7 @@ def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   # Compute damping matrix B
   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
 
-  num_particles = r_vectors.size / 3
+  num_particles = r_vectors.size // 3
   fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
   me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
 
@@ -235,9 +236,9 @@ def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
   if overlap is True:
     vector = B.dot(vector)
   # Compute M_tilde * B * vector
-  num_particles = r_vectors.size / 3
+  num_particles = r_vectors.size // 3
   vector_res = np.zeros(r_vectors.size)
-  r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size / 3, 3))
+  r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size // 3, 3))
   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   # Compute B.T * M * B * vector
   if overlap is True:
@@ -253,9 +254,9 @@ def boosted_no_wall_mobility_vector_product(r_vectors, vector, eta, a, *args, **
   (use Makefile).
   '''
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
-  num_particles = r_vectors.size / 3
+  num_particles = r_vectors.size // 3
   vector_res = np.zeros(r_vectors.size)
-  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size / 3, 3))
+  r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size // 3, 3))
   me.no_wall_mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   return vector_res
 
@@ -692,7 +693,7 @@ def single_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwarg
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
   '''
-  mobility = single_wall_fluid_mobility(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
+  mobility = single_wall_fluid_mobility(np.reshape(r_vectors, (r_vectors.size // 3, 3)), eta, a)
   velocities = np.dot(mobility, vector)
   return velocities
 
@@ -704,7 +705,7 @@ def no_wall_fluid_mobility_product(r_vectors, vector, eta, a, *args, **kwargs):
   Product (Mobility * vector). Mobility for particles in an unbounded domain.
   This uses the standard Rotne-Prager-Yamakawa expression.
   '''
-  mobility = rotne_prager_tensor(np.reshape(r_vectors, (r_vectors.size / 3, 3)), eta, a)
+  mobility = rotne_prager_tensor(np.reshape(r_vectors, (r_vectors.size // 3, 3)), eta, a)
   velocities = np.dot(mobility, vector)
   return velocities
 
@@ -766,7 +767,7 @@ def fmm_single_wall_stokeslet(r_vectors, force, eta, a, *args, **kwargs):
   if overlap is True:
     force = B.dot(force)
   # Compute M_tilde * B * vector
-  num_particles = r_vectors.size / 3
+  num_particles = r_vectors.size // 3
   ier = 0
   iprec = 5
   r_vectors_fortran = np.copy(r_vectors_effective.T, order='F')
@@ -790,7 +791,7 @@ def fmm_rpy(r_vectors, force, eta, a, *args, **kwargs):
   Must compile mobility_fmm.f90 before this will work
   (see Makefile).
   '''
-  num_particles = r_vectors.size / 3
+  num_particles = r_vectors.size // 3
   ier = 0
   iprec = 1
   r_vectors_fortran = np.copy(r_vectors.T, order='F')
@@ -824,7 +825,7 @@ def mobility_vector_product_source_target_one_wall(source, target, force, radius
     force = B_source.dot(force.flatten())
 
   # Compute unbounded contribution
-  force = np.reshape(force, (force.size / 3, 3))
+  force = np.reshape(force, (force.size // 3, 3))
   velocity = mobility_vector_product_source_target_unbounded(y, x, force, radius_source, radius_target, eta, *args, **kwargs)
   y_image = np.copy(y)
   y_image[:,2] = -y[:,2]
@@ -888,8 +889,8 @@ def mobility_vector_product_source_target_unbounded(source, target, force, radiu
 
   See Reference P. J. Zuk et al. J. Fluid Mech. (2014), vol. 741, R5, doi:10.1017/jfm.2013.668
   '''
-  force = np.reshape(force, (force.size / 3, 3))
-  velocity = np.zeros((target.size / 3, 3))
+  force = np.reshape(force, (force.size // 3, 3))
+  velocity = np.zeros((target.size // 3, 3))
   prefactor = 1.0 / (8 * np.pi * eta)
   b2 = radius_target**2
   a2 = radius_source**2
@@ -943,11 +944,11 @@ def boosted_mobility_vector_product_source_target(source, target, force, radius_
     force = B_source.dot(force.flatten())
 
   # Compute M_tilde * B * vector
-  num_sources = source.size / 3
-  num_targets = target.size / 3
+  num_sources = source.size // 3
+  num_targets = target.size // 3
   vector_res = np.zeros(target.size)
-  x_for_mob = np.reshape(x, (x.size / 3, 3))
-  y_for_mob = np.reshape(y, (y.size / 3, 3))
+  x_for_mob = np.reshape(x, (x.size // 3, 3))
+  y_for_mob = np.reshape(y, (y.size // 3, 3))
   force = np.reshape(force, force.size)
 
   me.mobility_vector_product_source_target_one_wall(y_for_mob, x_for_mob, force, radius_source, radius_target, vector_res, L, eta, num_sources, num_targets)
@@ -976,7 +977,7 @@ def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   r_vectors of radius a.
   '''
   # Extract variables
-  r_vectors = r_vectors.reshape((r_vectors.size / 3, 3))
+  r_vectors = r_vectors.reshape((r_vectors.size // 3, 3))
   x = r_vectors[:,0]
   y = r_vectors[:,1]
   z = r_vectors[:,2]
@@ -1037,8 +1038,8 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
 
   # Extract variables
-  r_vectors_effective = r_vectors_effective.reshape((r_vectors_effective.size / 3, 3))
-  N = r_vectors.size / 3
+  r_vectors_effective = r_vectors_effective.reshape((r_vectors_effective.size // 3, 3))
+  N = r_vectors.size // 3
   x = r_vectors_effective[:,0]
   y = r_vectors_effective[:,1]
   z = r_vectors_effective[:,2]

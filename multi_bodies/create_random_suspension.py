@@ -13,7 +13,7 @@ Ly = length along y-axis.
 z = average height of particles.
 rand_factor = amplitude perturbation from the square lattice.
 '''
-
+from __future__ import division, print_function
 import sys
 import numpy as np
 
@@ -29,11 +29,11 @@ if __name__ == '__main__':
   dy = Ly / Ny
   dz = z_0
 
-  print Nx * Ny
+  print(Nx * Ny)
   for k in range(Ny):
     for l in range(Nx):
       x = float(l) * dx + (2.0 * np.random.random() - 1.0) * rand_factor
       y = float(k) * dy + (2.0 * np.random.random() - 1.0) * rand_factor
       z = dz + (2.0 * np.random.random() - 1.0) * rand_factor
-      print x, y, z, 1.0, 0.0, 0.0, 0.0
+      print(x, y, z, 1.0, 0.0, 0.0, 0.0)
 

@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import sys
 
@@ -36,7 +37,7 @@ def get_r_vectors(location, orientation):
 if __name__ == '__main__':
 
 
-    print '# Start'
+    print('# Start')
     
     # Create rod
     eta = 1.0
@@ -49,12 +50,12 @@ if __name__ == '__main__':
     # Generate random forces
     force = np.random.randn(len(r_vectors), 3)
     
-    print 'r_vectors \n', r_vectors, '\n\n'
-    print 'force \n', force, '\n\n'
+    print('r_vectors \n', r_vectors, '\n\n')
+    print('force \n', force, '\n\n')
 
     
     velocities_from_gpu = mob.single_wall_mobility_trans_times_force_pycuda_single(r_vectors, force, eta, a)
-    print 'velocities_from_gpu \n', velocities_from_gpu, '\n\n'
+    print('velocities_from_gpu \n', velocities_from_gpu, '\n\n')
 
     mobility = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
 
@@ -65,15 +66,15 @@ if __name__ == '__main__':
                 u[i] += mobility[i][j*3+axis_j] * force[j][axis_j]
                 pass
 	   
-    print 'velocities_cpu \n', u, '\n\n'
+    print('velocities_cpu \n', u, '\n\n')
     
     force_hstack=np.hstack(force)
-    # print 'force_hstack \n', force_hstack, '\n\n'
+    # print('force_hstack \n', force_hstack, '\n\n')
     u2 =  mob.boosted_mobility_vector_product(r_vectors, eta, a,force_hstack) 
-    print 'velocities_cpu Matrix_vector C++ \n', u2, '\n\n'
+    print('velocities_cpu Matrix_vector C++ \n', u2, '\n\n')
     
-    print 'Are the two velocities equal for tol=1e-08?', np.allclose(velocities_from_gpu, u, atol=1e-08)
-    print 'Are the two velocities equal for tol=1e-06?', np.allclose(velocities_from_gpu, u, atol=1e-06)
-    print 'Are the two velocities equal for tol=1e-04?', np.allclose(velocities_from_gpu, u, atol=1e-04)
+    print('Are the two velocities equal for tol=1e-08?', np.allclose(velocities_from_gpu, u, atol=1e-08))
+    print('Are the two velocities equal for tol=1e-06?', np.allclose(velocities_from_gpu, u, atol=1e-06))
+    print('Are the two velocities equal for tol=1e-04?', np.allclose(velocities_from_gpu, u, atol=1e-04))
 
-    print '# End'
+    print('# End')

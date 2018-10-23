@@ -3,6 +3,7 @@
 On top of the histogram is a plot of the analytical GB distribution  
 Prints the time taken for all the calculations'''
 
+from __future__ import division, print_function
 import numpy as np
 import time
 import non_sphere as s
@@ -49,10 +50,10 @@ for i in range(n_steps):
 f.close()
 
 end_time = time.time() - start_time
-print end_time # should take somewhere around 80 seconds for one million heights
+print(end_time) # should take somewhere around 80 seconds for one million heights
 
 num_points = 100
 start_time = time.time()
 x, y = s.analytical_distribution_non_sphere(num_points) # calculate points for the analytical curve
-print time.time() - start_time
+print(time.time() - start_time)
 s.plot_distribution(outFile, x, y, n_steps) # generate historgram and analytical curve

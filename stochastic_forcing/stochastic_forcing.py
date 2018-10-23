@@ -1,6 +1,7 @@
 '''
 Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with several algorithms.
 '''
+from __future__ import division, print_function
 import numpy as np
 
 def stochastic_forcing_eig(mobility, factor = 1.0, z = None):
@@ -244,8 +245,8 @@ def stochastic_forcing_lanczos(factor = 1.0,
       # (Optional) Print residual
       if i > 0 and print_residual is True:
         if i == 1:
-          print 'lanczos =  0 1' 
-        print 'lanczos = ', i, diff_norm / noise_old_norm
+          print('lanczos =  0 1')
+        print('lanczos = ', i, diff_norm / noise_old_norm)
 
       # Check convergence and return if difference < tolerance
       if diff_norm / np.maximum(noise_old_norm, np.finfo(float).eps) < tolerance:

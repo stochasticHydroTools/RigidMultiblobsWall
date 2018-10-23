@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import division, print_function
 import numpy as np
 import scipy.sparse
 
@@ -27,7 +27,7 @@ def blob_blob_force_numba(r_vectors, L, eps, b, a):
   a = blob_radius
   '''
 
-  N = r_vectors.size / 3
+  N = r_vectors.size // 3
   r_vectors = r_vectors.reshape((N, 3))
   force = np.zeros((N, 3))
 

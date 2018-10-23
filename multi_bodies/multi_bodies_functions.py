@@ -4,6 +4,7 @@ code multi_blobs.py. For example, functions to define the
 blobs-blobs interactions, the forces and torques on the rigid
 bodies or the slip on the blobs.
 '''
+from __future__ import division, print_function
 import numpy as np
 import sys
 import imp
@@ -80,7 +81,7 @@ def project_to_periodic_image(r, L):
   return r
 
 def default_zero_r_vectors(r_vectors, *args, **kwargs):
-  return np.zeros((r_vectors.size / 3, 3))
+  return np.zeros((r_vectors.size // 3, 3))
 
 
 def default_zero_blobs(body, *args, **kwargs):
@@ -189,7 +190,7 @@ def calc_one_blob_forces(r_vectors, *args, **kwargs):
   '''
   Compute one-blob forces. It returns an array with shape (Nblobs, 3).
   '''
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   force_blobs = np.zeros((Nblobs, 3))
   r_vectors = np.reshape(r_vectors, (Nblobs, 3))
   
@@ -260,7 +261,7 @@ def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
   This function computes the blob-blob forces and returns
   an array with shape (Nblobs, 3).
   '''
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   force_blobs = np.zeros((Nblobs, 3))
 
   # Double loop over blobs to compute forces
@@ -285,7 +286,7 @@ def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
   b = kwargs.get('debye_length')  
   blob_radius = kwargs.get('blob_radius')  
 
-  number_of_blobs = r_vectors.size / 3
+  number_of_blobs = r_vectors.size // 3
   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
   forces = np.empty(r_vectors.size)
   if L is None:
@@ -365,7 +366,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   where f_i and t_i are the force and torque on the body i.
   '''
   # Create auxiliar variables
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   force_torque_bodies = np.zeros((2*len(bodies), 3))
   force_blobs = np.zeros((Nblobs, 3))
   blob_mass = 1.0
