@@ -522,7 +522,7 @@ if __name__ == '__main__':
   n_steps = read.n_steps 
   n_save = read.n_save
   n_relaxation = read.n_relaxation
-  dt = read.dt 
+  dt = read.dt
   eta = read.eta 
   g = read.g 
   a = read.blob_radius

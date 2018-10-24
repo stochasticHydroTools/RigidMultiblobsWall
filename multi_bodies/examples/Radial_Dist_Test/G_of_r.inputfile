@@ -68,5 +68,5 @@ debye_length	   			 0.21
 output_name                              /fhd/bsprinkle/Sedimentation/G_of_R
 save_clones				                       one_file
 
-structure	/home/bs162/Sedimentation/RigidMultiblobsWall/multi_bodies/Structures/blob.vertex	./G_of_R.clones
+structure	../../Structures/blob.vertex	./G_of_R.clones
 

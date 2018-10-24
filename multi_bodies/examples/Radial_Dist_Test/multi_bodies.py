@@ -3,10 +3,16 @@ import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
-import cPickle
 from functools import partial
 import sys
 import time
+try:
+  import cPickle as cpickle
+except:
+  try:
+    import cpickle
+  except:
+    import _pickle as cpickle
 
 # Add path to HydroGrid and import module
 # sys.path.append('../../HydroGrid/src/')
@@ -111,6 +117,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_no_wall_mobility_vector_product
   elif implementation == 'pycuda_no_wall':
     return mb.no_wall_mobility_trans_times_force_pycuda
+  elif implementation == 'numba_no_wall':
+    return mb.no_wall_mobility_trans_times_force_numba
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
@@ -118,6 +126,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
+  elif implementation == 'numba':
+    return mb.single_wall_mobility_trans_times_force_numba
 
 
 def calc_K_matrix(bodies, Nblobs):
@@ -531,13 +541,13 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(cpickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    cpickle.dump(np.random.get_state(), f)
 
   # Create rigid bodies
   bodies = []
@@ -586,7 +596,8 @@ if __name__ == '__main__':
   if scheme.find('rollers') == -1:
     integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
   else:
-    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
+    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain, 
+                                             mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
                                               g = g,
                                               tilt_angle = read.theta,

@@ -3,8 +3,14 @@ import numpy as np
 import time
 import sys
 import subprocess
-import cPickle
 import os.path
+try:
+  import cPickle as cpickle
+except:
+  try:
+    import cpickle
+  except:
+    import _pickle as cpickle
 
 # Find project functions
 found_functions = False
@@ -83,13 +89,13 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(cpickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(read.output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    cpickle.dump(np.random.get_state(), f)
 
   # Parameters from the input file
   blob_radius = read.blob_radius

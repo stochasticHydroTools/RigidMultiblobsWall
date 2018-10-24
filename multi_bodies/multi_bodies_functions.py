@@ -33,9 +33,9 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     try:
-      import mobility_pycuda
+      import forces_pycuda
     except ImportError:
-      from mobility import mobility_pycuda
+      from multi_bodies import forces_pycuda
 # If numba is installed import forces_numba
 try: 
   imp.find_module('numba')
