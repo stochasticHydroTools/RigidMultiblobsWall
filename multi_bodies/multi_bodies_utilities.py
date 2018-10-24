@@ -10,7 +10,6 @@ import numpy as np
 import scipy.linalg as sla
 import scipy.sparse.linalg as spla
 import subprocess
-import cPickle
 from functools import partial
 import sys
 import time
@@ -208,21 +207,19 @@ if __name__ ==  '__main__':
     slip = np.zeros((Nblobs, 3))
 
   # Read forces file
-  force_torque = np.zeros((num_bodies, 6))
   if read.force_file is not None:
-    with open(read.force_file, 'r') as f:
-      for k, line in enumerate(f):
-        force_torque[k] = np.array(map(float, line.split()))
-  force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+    force_torque = np.loadtxt(read.force_file)
+    force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+  else:
+    force_torque = np.zeros((2*num_bodies, 3))
     
   # Read velocity file
-  velocity = np.zeros((num_bodies, 6))
   if read.velocity_file is not None:
-    with open(read.velocity_file, 'r') as f:
-      for k, line in enumerate(f):
-        velocity[k] = np.array(map(float, line.split()))
+    velocity = np.loadtxt(read.velocity_file)
     velocity = np.reshape(velocity, (2*num_bodies, 3))
-
+  else:
+    velocity = np.zeros((2*num_bodies, 3))
+    
 
   # If scheme == mobility solve mobility problem
   if read.scheme == 'mobility':
