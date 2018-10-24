@@ -24,7 +24,10 @@ if found_pycuda:
   except:
     autoinit_pycuda = False
   if autoinit_pycuda:
-    import mobility_pycuda
+    try:
+      import mobility_pycuda
+    except ImportError:
+      from mobility import mobility_pycuda
 # If numba is installed import mobility_numba
 try: 
   imp.find_module('numba')
