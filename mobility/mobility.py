@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import numpy as np
 import scipy.sparse
 import sys
-sys.path.append('../')
 import time
 import imp
 
@@ -33,7 +32,10 @@ try:
 except ImportError:
   found_numba = False
 if found_numba:
-  import mobility_numba
+  try:
+    import mobility_numba
+  except ImportError:
+    from mobility import mobility_numba
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm

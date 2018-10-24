@@ -3,10 +3,16 @@ import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
-import cPickle
 from functools import partial
 import sys
 import time
+try:
+  import cPickle as cpickle
+except:
+  try:
+    import cpickle
+  except:
+    import _pickle as cpickle
 
 # Add path to HydroGrid and import module
 # sys.path.append('../../HydroGrid/src/')
@@ -534,13 +540,13 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(cpickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    cpickle.dump(np.random.get_state(), f)
 
   # Create rigid bodies
   bodies = []
