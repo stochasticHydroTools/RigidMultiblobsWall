@@ -14,7 +14,7 @@ BOOST_LIB = ???
 TARGET = forces_ext
 
 $(TARGET).so: $(TARGET).o
-	g++ -O3 -shared  -dynamiclib $(TARGET).o -L$(BOOST_LIB) -lboost_python -lboost_numpy -L$(PYTHON_LIB) -lpython$(PYTHON_VERSION) -o $(TARGET).so
+	g++ -O3 -shared  -dynamiclib $(TARGET).o -L$(BOOST_LIB) -lboost_python -L$(PYTHON_LIB) -lpython$(PYTHON_VERSION) -o $(TARGET).so
 
 $(TARGET).o: $(TARGET).cc
 	g++ -O3 -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cc
