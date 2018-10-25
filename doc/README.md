@@ -59,7 +59,6 @@ By default we use single precision in the pycuda functions but you can
 use double precision if you prefer. See the top of the file
 `mobility/mobility_pycuda.py` to see how to select double precision.
 
-
 ### 1.2 Blob-blob forces
 In dynamical simulations it is possible to include blob-blob interactions to,
 for example, simulate a colloid suspension with a given steric repulsion. 
@@ -75,6 +74,25 @@ move to the directory `multi_bodies/` and compile `forces_ext.cc` to
 a `.so` file using the Makefile provided (which you will need 
 to modify slightly to reflect your Python version, etc.).
 
+### 1.3 Visit interface
+The code includes a utility to write the fluid velocity field to VTK
+files. To use it is necessary to compile the _C++_ code in `visit/`,
+you need to edit the Makefile to reflect your environment.
+
+### 1.4 HydroGrid interface
+Our codes can call HydroGrid
+(https://github.com/stochasticHydroTools/HydroGrid) to calculate
+Structure factors from the particles concentration. To use it the
+first step is to download and build HydroGrid including the library
+`calculateConcentration.so`. Then either copy that file to `multi_bodies/`
+or edit the lines
+
+```
+# Add path to HydroGrid and import module
+# sys.path.append('../../HydroGrid/src/')
+```
+
+in `multi_bodies/multi_bodies.py` with the path to `calculateConcentration.so`.
 
 ## 2. Rigid bodies configuration
 We use a vector (3 numbers) and a quaternion (4 numbers) to represent the 

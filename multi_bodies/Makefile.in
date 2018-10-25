@@ -1,3 +1,7 @@
+#
+# Use with boost 1.63 or newer.
+#
+
 # location of the Python header files
 PYTHON_VERSION = ???
 # PYTHON_DIR = /usr

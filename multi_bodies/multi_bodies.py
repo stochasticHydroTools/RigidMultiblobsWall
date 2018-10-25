@@ -644,7 +644,7 @@ if __name__ == '__main__':
   integrator.rf_delta = read.rf_delta
 
   # Initialize HydroGrid library:
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -722,7 +722,7 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Update HydroGrid
-    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
+    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
@@ -737,7 +737,7 @@ if __name__ == '__main__':
                                  get_blobs_r_vectors(bodies, Nblobs))
     
     # Save HydroGrid data
-    if read.save_HydroGrid > 0 and found_HydroGrid:
+    if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
       if (step % read.save_HydroGrid) == 0:
         cc.calculate_concentration(output_name, 
                                    read.periodic_length[0], 
@@ -815,7 +815,7 @@ if __name__ == '__main__':
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
   # Update HydroGrid data
-  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    
+  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -830,7 +830,7 @@ if __name__ == '__main__':
                                get_blobs_r_vectors(bodies, Nblobs))
 
   # Save HydroGrid data
-  if read.save_HydroGrid > 0 and found_HydroGrid:
+  if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
     if ((step+1) % read.save_HydroGrid) == 0:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
@@ -847,7 +847,7 @@ if __name__ == '__main__':
 
 
   # Free HydroGrid
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
