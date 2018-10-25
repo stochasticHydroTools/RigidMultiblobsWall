@@ -12,17 +12,21 @@ namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
 void visitWriterInterface(std::string name,
-                          int format,
+                          /*int format_file,*/
+                          np::ndarray format_file,
                           np::ndarray dims,
                           np::ndarray x,
                           np::ndarray y,
                           np::ndarray z,
-                          int nvars,
+                          /*int nvars,*/
+                          np::ndarray nvars,
                           np::ndarray vardims,
                           np::ndarray centering,
                           bp::list varnames,
                           bp::list variables){
 
+  int *format_array = reinterpret_cast<int *>(format_file.get_data());
+  int *nvars_array = reinterpret_cast<int *>(nvars.get_data());
   int *dims_array = reinterpret_cast<int *>(dims.get_data());
   int *vardims_array = reinterpret_cast<int *>(vardims.get_data());
   int *centering_array = reinterpret_cast<int *>(centering.get_data());
@@ -51,9 +55,9 @@ void visitWriterInterface(std::string name,
   if(1){
     std::cout << std::endl << "visitWriterInterface " << std::endl;
     std::cout << "name: " << name << std::endl;
-    std::cout << "format: " << format << std::endl;
+    std::cout << "format: " << format_array[0] << std::endl;
     std::cout << "dims: " << dims_array[0] << "  " << dims_array[1] << "  " << dims_array[2] << std::endl;
-    std::cout << "nvars: " << nvars << std::endl;
+    std::cout << "nvars: " << nvars_array[0] << std::endl;
     std::cout << "vardims: " << vardims_array[0] << std::endl;
     std::cout << "centering: " << centering_array[0] << std::endl;
     std::cout << "varnames: " << varnames_array[0] << std::endl;
@@ -63,12 +67,12 @@ void visitWriterInterface(std::string name,
   // Call visit_writer
   /*Use visit_writer to write a regular mesh with data. */
   write_rectilinear_mesh(name.c_str(),    // Output file
-                         format,          // 0=ASCII,  1=Binary
+                         format_array[0],          // 0=ASCII,  1=Binary
                          dims_array,      // {mx, my, mz}
                          xmesh,           
                          ymesh,
                          zmesh,
-                         nvars,           // number of variables
+                         nvars_array[0],           // number of variables
                          vardims_array,   // Size of each variable, 1=scalar, velocity=3*scalars
                          centering_array,  
                          varnames_char,   

@@ -63,7 +63,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid = np.reshape(grid, (3,3)).T
   grid_length = grid[1] - grid[0]
   grid_points = np.array(grid[2], dtype=np.int32)
-  num_points = reduce(lambda x,y: x*y, grid_points)
+  num_points = grid_points[0] * grid_points[1] * grid_points[2]
 
   # Set grid coordinates
   dx_grid = grid_length / grid_points
@@ -100,7 +100,16 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       radius_target, 
                                                                       eta, 
                                                                       *args, 
-                                                                      **kwargs) 
+                                                                      **kwargs)
+  elif mobility_vector_prod_implementation == 'numba':
+    grid_velocity = mob.mobility_vector_product_source_target_one_wall_numba(r_vectors_blobs, 
+                                                                             grid_coor, 
+                                                                             lambda_blobs, 
+                                                                             radius_source, 
+                                                                             radius_target, 
+                                                                             eta, 
+                                                                             *args, 
+                                                                             **kwargs) 
   else:
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 
@@ -113,7 +122,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
-  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
+  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1], dtype=np.int32) 
   nvars = 1
   vardims = np.array([3])
   centering = np.array([0])
