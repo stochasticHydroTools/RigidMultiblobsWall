@@ -35,7 +35,7 @@ while found_functions is False:
     from read_input import read_slip_file
     import utils
     try:
-      import calculateConcentration as cc
+      import libCallHydroGrid as cc
       found_HydroGrid = True
     except ImportError:
       found_HydroGrid = False
@@ -835,8 +835,8 @@ if __name__ == '__main__':
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
-                                 read.green_particles[0], 
-                                 read.green_particles[1],  
+                                 int(read.green_particles[0]),
+                                 int(read.green_particles[1]), 
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
@@ -851,8 +851,8 @@ if __name__ == '__main__':
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
-                               read.green_particles[0], 
-                               read.green_particles[1],  
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 
