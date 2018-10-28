@@ -346,7 +346,6 @@ __global__ void velocity_from_force_in_plane(const real *x,
 	  //2. Compute product M_ij * F_j
 	  Ux = Ux + (Mxx * f[joffset] + Mxy * f[joffset + 1]); //  + Mxz * f[joffset + 2]
 	  Uy = Uy + (Myx * f[joffset] + Myy * f[joffset + 1]); //  + Myz * f[joffset + 2]
-	  Uz = 0;
 	}
       }
     }
@@ -1715,7 +1714,6 @@ __global__ void velocity_from_torque_in_plane(const real *x,
           // 2. Compute product M_ij * T_j
           Utx = Utx + (Mxx * t[joffset] + Mxy * t[joffset + 1]); // + Mxz * t[joffset + 2]
           Uty = Uty + (Myx * t[joffset] + Myy * t[joffset + 1]); // + Myz * t[joffset + 2]
-          Utz = 0;
         }
       }
     }
