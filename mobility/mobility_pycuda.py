@@ -275,7 +275,6 @@ __global__ void velocity_from_force_in_plane(const real *x,
 
   real Ux=0;
   real Uy=0;
-  real Uz=0;
 
   real rx, ry, rz;
 
@@ -1642,7 +1641,6 @@ __global__ void velocity_from_torque_in_plane(const real *x,
 
   real Utx=0;
   real Uty=0;
-  real Utz=0;
 
   real rx, ry, rz;
 
