@@ -10,7 +10,7 @@ the boomerang, and contains several parameters for the run.
 Running this script will generate a boomerang trajectory
 which can be analyzed with other python scripts in this folder.
 '''
-
+from __future__ import division, print_function
 import argparse
 import cProfile
 import numpy as np
@@ -358,7 +358,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=20000):
     accept_prob = boomerang_gibbs_boltzmann_distribution(location, orientation)/(
       2.5*normalization_factor)
     if accept_prob > 1.:
-      print 'Accept probability %s is greater than 1' % accept_prob
+      print('Accept probability %s is greater than 1' % accept_prob)
     
     if np.random.uniform(0., 1.) < accept_prob:
       return [location, orientation]
@@ -466,7 +466,7 @@ if __name__ == '__main__':
             'gfactor': args.gravity_factor, 'scheme': args.scheme,
             'KT': KT}
 
-  print "Parameters for this run are: ", params
+  print("Parameters for this run are: ", params)
 
   # Script to run the various integrators on the quaternion.
   initial_location = [[0., 0., 2.]]
@@ -533,7 +533,7 @@ if __name__ == '__main__':
 
       if k % print_increment == 0:
         elapsed_time = time.time() - start_time
-        print 'At step %s out of %s' % (k, n_steps)
+        print('At step %s out of %s' % (k, n_steps))
         log_time_progress(elapsed_time, k, n_steps)
       
 
@@ -555,6 +555,6 @@ if __name__ == '__main__':
     sortby = 'cumulative'
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
-    print s.getvalue()
+    print(s.getvalue())
 
  

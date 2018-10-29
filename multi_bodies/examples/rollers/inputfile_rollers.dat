@@ -9,7 +9,6 @@
 scheme					                       stochastic_adams_bashforth_rollers
 
 # Define implementation to compute the blobs mobility 
-mobility_blobs_implementation	         C++
 mobility_vector_prod_implementation    pycuda
 
 # Define implementation to compute the blobs-blob force and pass its arguments

@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit
@@ -231,15 +232,15 @@ def set_number_of_threads_and_blocks(num_elements):
   used in CUDA kernels.
   '''
   threads_per_block=512
-  if((num_elements/threads_per_block) < 512):
+  if((num_elements//threads_per_block) < 512):
     threads_per_block = 256
-  if((num_elements/threads_per_block) < 256):
+  if((num_elements//threads_per_block) < 256):
     threads_per_block = 128
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements//threads_per_block) < 128):
     threads_per_block = 64
-  if((num_elements/threads_per_block) < 128):
+  if((num_elements//threads_per_block) < 128):
     threads_per_block = 32
-  num_blocks = (num_elements-1)/threads_per_block + 1
+  num_blocks = (num_elements-1)//threads_per_block + 1
   return (threads_per_block, int(num_blocks))
 
 

@@ -41,37 +41,59 @@ blobs and the wall, see Ref. [3].
 ## 1. Prepare the package
 The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
 
-However, we provide alternative implementations in _C++_ (through the Boost Python
-library) and _pycuda_ for some of the most computationally 
+We provide alternative implementations in _C++_ (through the Boost Python
+library), _numba_ and _pycuda_ for some of the most computationally 
 expensive functions. You can skip to section 2 but come back if you
 want to take fully advantage of this package.
 
 ### 1.1 Prepare the mobility functions
 The codes use functions to compute the blob mobility matrix **M** and the
 matrix vector product **Mf**. For some functions we provide
-a _C++_ implementation which can be around five times faster than the python version. We also
-provide _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
-To use the _C++_ implementation move to the directory `mobility/` and compile
-`mobility_ext.cc` to a `.so` file using the Makefile provided (which you will need 
-to modify slightly to reflect your Python version, etc.).
+_numba_ and _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
 
-To use the _pycuda_ implementation all you need is _pycuda_ and a GPU compatible with CUDA;
+To use the _numba_ implementation all you need is the package _numba_
+installed in your python environment. To use the _pycuda_
+implementation you need _pycuda_ and a GPU compatible with CUDA;
 you don't need to compile any additional file in this package.
 By default we use single precision in the pycuda functions but you can
 use double precision if you prefer. See the top of the file
 `mobility/mobility_pycuda.py` to see how to select double precision.
 
-
 ### 1.2 Blob-blob forces
 In dynamical simulations it is possible to include blob-blob interactions to,
 for example, simulate a colloid suspension with a given steric repulsion. 
-Again, we provide versions in _python_, _C++_ and _pycuda_. To use the _C++_
-version move to the directory `multi_bodies/` and compile `forces_ext.cc` to
+We provide versions in _python_, _C++_, _numba_ and _pycuda_. 
+We recommend to use the _pycuda_ or the _numba_ implementations.
+
+To use the _numba_ implementation all you need is the package _numba_.
+To use the _pycuda_ implementation you need _pycuda_ and a GPU compatible with CUDA;
+you don't need to compile any additional file in this package.
+
+To use the _C++_ version (faster than _python_ but slower than _numba_ or _pycuda_)
+move to the directory `multi_bodies/` and compile `forces_ext.cc` to
 a `.so` file using the Makefile provided (which you will need 
 to modify slightly to reflect your Python version, etc.).
 
-To use the _pycuda_ implementation all you need is _pycuda_ and a GPU compatible with CUDA;
-you don't need to compile any additional file in this package.
+### 1.3 Visit interface
+The code includes a utility to write the fluid velocity field to VTK
+files. To use it is necessary to compile the _C++_ code in `visit/`,
+you need to edit the Makefile to reflect your environment.
+You need the library boost 1.63 or higher.
+
+### 1.4 HydroGrid interface
+Our codes can call HydroGrid
+(https://github.com/stochasticHydroTools/HydroGrid) to calculate
+structure factors from the particles concentration. To use it the
+first step is to download and build HydroGrid including the library
+`calculateConcentration.so`. Then either copy that file to `multi_bodies/`
+or edit the lines
+
+```
+# Add path to HydroGrid and import module
+# sys.path.append('../../HydroGrid/src/')
+```
+
+in `multi_bodies/multi_bodies.py` with the path to `libCallHydroGrid.so`.
 
 ## 2. Rigid bodies configuration
 We use a vector (3 numbers) and a quaternion (4 numbers) to represent the 
@@ -170,19 +192,16 @@ a suspension of rigid bodies subject to external forces and torques (see below).
 with given velocities (see below). `body_mobility` computes the 
 mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python`, `C++`,
-`python_no_wall` and `C++_no_wall`. It selects
+* `mobility_blobs_implementation`: Options: `python` and `python_no_wall`. It selects
 which implementation is used to compute the blob mobility 
 matrix **M** that is used to construct the block-diagonal preconditioner described in [2,4].
-See section 1 to use the C++ versions.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python`, `C++`,
-`pycuda`,
-`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
+* `mobility_vector_prod_implementation`: Options: `python`, `numba`,
+`pycuda`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementations.
+**Mf**. 
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
@@ -369,21 +388,20 @@ For small systems using dense linear algebra may be faster and then the Fixman s
 With schemes that use iterative methods you can print the residual of GMRES and the Lanczos
 algorithm to the standard output using the flag `--print-residual`.
 
-* `mobility_blobs_implementation`: Options: `python`, `C++`,
-`python_no_wall` and `C++_no_wall`. This option
-indicates which implementation is used to compute the blob mobility 
-matrix **M**. See section 1 to use the C++ version.
+* `mobility_blobs_implementation`: Options: `python` and
+`python_no_wall`. This option indicates which implementation is used
+to compute the blob mobility  matrix **M**. 
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python`, `C++`, `pycuda`,
-`python_no_wall`, `C++_no_wall` and `pycuda_no_wall`.
+* `mobility_vector_prod_implementation`: Options: `python`, `numba`, `pycuda`,
+`python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
 This option select the implementation to compute the matrix vector product
-**Mf**. See section 1 to use the C++ or pycuda implementation. 
+**Mf**. 
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `blob_blob_force_implementation`: Options: `None, python, C++ and pycuda`.
+* `blob_blob_force_implementation`: Options: `None, python, C++, numba and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
 The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
@@ -491,6 +509,33 @@ boundary conditions. Hydrodynamic interactions are computed between
 particles in the unit cell and the first neighbor cells along the
 pseudo-periodic axis. PPBC along the z axis are not supported.
 
+* `call_HydroGrid`: (string (default `False`)) if True and the library
+`HydroGrid` is available it will call `HydroGrid` to compute several structure
+factors. See section 1.4 to see how to install HydroGrid. This option
+should be used with periodic domains in the xy plane (see option
+`periodic_length`). You need to have a file `hydroGridOptions.nml` in
+the folder where you run the simulation. See the example in
+`multi_bodies/examples/HydroGrid/`. 
+
+* `sample_HydroGrid`: (int (default 1)) call HydroGrid every
+`sample_HydroGrid` steps to sample the system.
+
+* `save_HydroGrid`: (int (default 0)) save HydroGrid information every
+`save_HydroGrid` steps. The average restarts after saving the data.
+If 0 the conde only saves the final information. Use 0 if you want to
+average over the whole simulations.
+
+* `cells`: (two ints (default 1 1)) The blobs location define a 
+discrete concentration field in the xy plane c(x,y) with `cells`
+number of cells along the x and y axes. This concentration is passed
+to HydroGrid to compute several structures factors.
+
+* `green_particles`: (two ints (default 0 0)) Bolbs with index
+`green_particles[0] <= index < green_particles[1]` are labeled green,
+the others are labelled red. This option has not any effect on the
+dynamics of the simulation but it is used by HydroGrid to compute
+several structures factors. 
+
 ### 5.2 Rollers simulations
 We can also use the code `multi_bodies.py` to run simulations of
 bodies discretized with a single blob interacting hydrodynamically with
@@ -531,12 +576,16 @@ velocity of the blobs if the option `free_kinematics` is
 set to False. If `free_kinematics` is set to True the blobs are
 subject to a constant torque `T=8*pi*eta*a^3*omega_one_roller`.
 
-* `domain`: (string) Options: `single_wall` and `no_wall`.
+* `domain`: (string) Options: `single_wall`, `no_wall`, and `in_plane`.
 With the option `single_wall` (default) the mobilities include wall
 corrections, i.e. the code uses the Rotne-Prager-Blake tensor as
 explained in the introduction. With the option `no_wall` the
 mobilities do not include wall corrections, the code uses the
-Rotne-Prager-Yamakawa mobilities.
+Rotne-Prager-Yamakawa mobilities. With the option `in_plane`, the 
+single wall mobilities are used but modified so that the z component 
+of the velocities is zero. This ensures that the partilces position
+in the z direction never changes from that specified in the initial
+`.clones` file.
 
 
 ### 5.3 Modify the codes
@@ -563,9 +612,12 @@ create your own function `blob_blob_force` in the file
 `user_defined_functions.py` as we show in the example in
 `multi_bodies/examples/boomerang_suspension/`.
 To override the _pycuda_ version create your own function `blob_blob_force` in 
-forces_pycuda_user_defined.py as we show also in 
+`forces_pycuda_user_defined.py` as we show also in 
 `multi_bodies/examples/boomerang_suspension/`.
-`blob_blob_force` in the file `multi_bodies/forces_pycuda.py`
+In the same way, to override the _numba_ implementation
+create your own function `calc_blob_blob_forces_numba` in 
+`forces_numba_user_defined.py` as we show also in 
+`multi_bodies/examples/boomerang_suspension/`.
 However, to modify the _C++_ implementation you need to edit the function `blobBlobForce` in the
 file `multi_bodies/forces_ext.cc` and recompile the _C++_ code,
 note that this not override the default implementation but it modifies it.
@@ -574,7 +626,7 @@ note that this not override the default implementation but it modifies it.
 create your own function `blob_external_force` in the file
 `user_defined_functions.py` as we show in the example in
 `multi_bodies/examples/boomerang_suspension/`.
-There are not _C++_ or _pycuda_ versions of this function since
+There are not _C++_, _numba_ or _pycuda_ versions of this function since
 it is not an expensive operation.
 
 * body-body interactions: to override the _python_ implementation

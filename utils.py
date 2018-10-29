@@ -1,12 +1,13 @@
 '''File with utilities for the scripts and functions in this project.'''
 
+from __future__ import division, print_function
 import logging
 try:
-   import matplotlib
-   matplotlib.use('Agg')
-   from matplotlib import pyplot
+  import matplotlib
+  matplotlib.use('Agg')
+  from matplotlib import pyplot
 except ImportError:
-   pass
+  pass
 import numpy as np
 import scipy.sparse.linalg as scspla
 import os
@@ -22,36 +23,36 @@ DT_STYLES = {}  # Used for plotting different timesteps of MSD.
 
 # Fake log-like class to redirect stdout to log file.
 class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
+  """
+  Fake file-like stream object that redirects writes to a logger instance.
+  """
+  def __init__(self, logger, log_level=logging.INFO):
+    self.logger = logger
+    self.log_level = log_level
+    self.linebuf = ''
  
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
+  def write(self, buf):
+    for line in buf.rstrip().splitlines():
+      self.logger.log(self.log_level, line.rstrip())
 
 
 class Tee(object):
-    def __init__(self, *files):
-        self.files = files
-    def write(self, obj):
-        for f in self.files:
-            f.write(obj)
-            f.flush() # If you want the output to be visible immediately
-    def flush(self) :
-        for f in self.files:
-            f.flush()
+  def __init__(self, *files):
+    self.files = files
+  def write(self, obj):
+    for f in self.files:
+      f.write(obj)
+      f.flush() # If you want the output to be visible immediately
+  def flush(self) :
+    for f in self.files:
+      f.flush()
 
 # Static Variable decorator for calculating acceptance rate.
 def static_var(varname, value):
-    def decorate(func):
-        setattr(func, varname, value)
-        return func
-    return decorate
+  def decorate(func):
+    setattr(func, varname, value)
+    return func
+  return decorate
 
 def set_up_logger(file_name):
   ''' Set up logging info, write all print statements and errors to
@@ -95,8 +96,8 @@ class MSDStatistics(object):
 
 
   def print_params(self):
-     print "Parameters are: "
-     print self.params
+     print("Parameters are: ")
+     print(self.params)
      
 
 def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None,
@@ -128,20 +129,20 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
     for dt in msd_statistics.data[scheme].keys():
       if dt in DT_STYLES.keys():
         if not symbol:
-           style = ''
-           nosymbol_style = DT_STYLES[dt]
+          style = ''
+          nosymbol_style = DT_STYLES[dt]
         else:
-           style = symbol #+ DT_STYLES[dt]
-           nosymbol_style = DT_STYLES[dt]
+          style = symbol #+ DT_STYLES[dt]
+          nosymbol_style = DT_STYLES[dt]
       else:
         if not symbol:
-           style = '' #linestyles[len(DT_STYLES)]
-           DT_STYLES[dt] = linestyles[len(DT_STYLES)]
-           nosymbol_style = DT_STYLES[dt]
+          style = '' #linestyles[len(DT_STYLES)]
+          DT_STYLES[dt] = linestyles[len(DT_STYLES)]
+          nosymbol_style = DT_STYLES[dt]
         else:
-           DT_STYLES[dt] = linestyles[len(DT_STYLES)]
-           style = symbol #+ DT_STYLES[dt]
-           nosymbol_style = DT_STYLES[dt]
+          DT_STYLES[dt] = linestyles[len(DT_STYLES)]
+          style = symbol #+ DT_STYLES[dt]
+          nosymbol_style = DT_STYLES[dt]
       # Extract the entry specified by ind to plot.
       num_steps = len(msd_statistics.data[scheme][dt][0])
       # Don't put error bars at every point
@@ -153,21 +154,21 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
          for _ in range(num_steps)])
       # Set label and style.
       if label:
-         if scheme == 'FIXMAN':
-            plot_label = scheme.capitalize() + label
-         else:
-            plot_label = scheme + label
+        if scheme == 'FIXMAN':
+          plot_label = scheme.capitalize() + label
+        else:
+          plot_label = scheme + label
       else:
-         plot_label = '%s, dt=%s' % (scheme, dt)
+        plot_label = '%s, dt=%s' % (scheme, dt)
 
       if color:
-         plot_style = color + style
-         nosymbol_plot_style = color + nosymbol_style
-         err_bar_color = color
+        plot_style = color + style
+        nosymbol_plot_style = color + nosymbol_style
+        err_bar_color = color
       else:
-         plot_style = scheme_colors[scheme] + style
-         nosymbol_plot_style = scheme_colors[scheme] + nosymbol_style
-         err_bar_color = scheme_colors[scheme]
+        plot_style = scheme_colors[scheme] + style
+        nosymbol_plot_style = scheme_colors[scheme] + nosymbol_style
+        err_bar_color = scheme_colors[scheme]
 
       pyplot.plot(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
                   msd_entries[err_idx],
@@ -186,10 +187,10 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
           f.write("Std Dev:  %s \n" % msd_entries_std)
 
       if ind[0] in error_indices:
-         pyplot.errorbar(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
-                         msd_entries[err_idx],
-                         yerr = 2.*msd_entries_std[err_idx],
-                         fmt = err_bar_color + '.')
+        pyplot.errorbar(np.array(msd_statistics.data[scheme][dt][0])[err_idx],
+                        msd_entries[err_idx],
+                        yerr = 2.*msd_entries_std[err_idx],
+                        fmt = err_bar_color + '.')
   pyplot.ylabel('MSD')
   pyplot.xlabel('time')
 
@@ -254,7 +255,7 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
               number of analyzed points roughly this value.
  '''
   data_interval = int(end/dt/trajectory_length) + 1
-  print "data_interval is ", data_interval
+  print("data_interval is ", data_interval)
   n_steps = len(locations)
   e_1 = np.array([1., 0., 0.])
   e_2 = np.array([0., 1., 0.])
@@ -271,28 +272,28 @@ def calc_msd_data_from_trajectory(locations, orientations, calc_center_function,
   start_time = time.time()
   for k in range(n_steps):
     if k > burn_in and (k % data_interval == 0):
-       orientation = Quaternion(orientations[k])
-       R = orientation.rotation_matrix()
-       u_hat = [np.inner(R, e_1),
-                np.inner(R, e_2),
-                np.inner(R,e_3)]
-       lagged_rotation_trajectory.append(u_hat)
-       lagged_location_trajectory.append(calc_center_function(locations[k], orientation))
+      orientation = Quaternion(orientations[k])
+      R = orientation.rotation_matrix()
+      u_hat = [np.inner(R, e_1),
+               np.inner(R, e_2),
+               np.inner(R,e_3)]
+      lagged_rotation_trajectory.append(u_hat)
+      lagged_location_trajectory.append(calc_center_function(locations[k], orientation))
     if len(lagged_location_trajectory) > trajectory_length:
       lagged_location_trajectory = lagged_location_trajectory[1:]
       lagged_rotation_trajectory = lagged_rotation_trajectory[1:]
       for l in range(trajectory_length):
         current_rot_msd = (calc_total_msd_from_matrix_and_center(
-           lagged_location_trajectory[0],
-           lagged_rotation_trajectory[0],
-           lagged_location_trajectory[l],
-           lagged_rotation_trajectory[l]))
+          lagged_location_trajectory[0],
+          lagged_rotation_trajectory[0],
+          lagged_location_trajectory[l],
+          lagged_rotation_trajectory[l]))
         average_rotational_msd[l] += current_rot_msd
     if (k % print_increment) == 0 and k > 0:
-       print 'At step %s of %s' % (k, n_steps)
-       print 'For this run, time status is:'
-       elapsed = time.time() - start_time
-       log_time_progress(elapsed, k, n_steps)
+      print('At step %s of %s' % (k, n_steps))
+      print('For this run, time status is:')
+      elapsed = time.time() - start_time
+      log_time_progress(elapsed, k, n_steps)
 
   average_rotational_msd = (average_rotational_msd/
                             (n_steps/data_interval - trajectory_length - 
@@ -483,7 +484,7 @@ def vector_cross_tensor(v, T):
   return result
 
 @static_var('timers', {})   
-def timer(name, print_one = False, print_all = False):
+def timer(name, print_one = False, print_all = False, clean_all = False):
   '''
   Timer to profile the code. It measures the time elapsed between successive
   calls and it prints the total time elapsed after sucesive calls.  
@@ -497,14 +498,16 @@ def timer(name, print_one = False, print_all = False):
     time_tuple = (timer.timers[name][0] + (time.time() - timer.timers[name][1]), None)
     timer.timers[name] = time_tuple
     if print_one is True:
-      print name, ' = ', timer.timers[name][0]
+      print(name, ' = ', timer.timers[name][0])
 
   if print_all is True:
-    print '\n'
+    print('\n')
     col_width = max(len(key) for key in timer.timers)
     for key in sorted(timer.timers):
-      print "".join(key.ljust(col_width)), ' = ', timer.timers[key][0]
-
+      print("".join(key.ljust(col_width)), ' = ', timer.timers[key][0])
+      
+  if clean_all:
+    timer.timers = {}
   return
 
 

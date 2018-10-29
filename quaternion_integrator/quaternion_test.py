@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import unittest
 import numpy as np
 import random
@@ -20,7 +21,6 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(theta.entries[2], np.sin(phi_norm/2.)*phi[1]/phi_norm)
     self.assertAlmostEqual(theta.entries[3], np.sin(phi_norm/2.)*phi[2]/phi_norm)
 
-<<<<<<< HEAD
   def test_quaternion_rot_matrix_det_one(self):
     ''' Test that the determinant of the rotation matrix is 1.'''
     for _ in range(10):
@@ -30,9 +30,6 @@ class TestQuaternion(unittest.TestCase):
       self.assertAlmostEqual(np.linalg.det(R), 1.0)
 
   
-=======
-
->>>>>>> 9d81c63e9e914c3783b81d215bcfbe1e16011e79
   def test_multiply_quaternions(self):
     ''' Test that quaternion multiplication works '''
     # First construct any random unit quaternion. Not uniform.
@@ -159,7 +156,7 @@ class TestQuaternion(unittest.TestCase):
                      - 1.0)
       if norm_err > max_err:
         max_err = norm_err 
-    print 'max_err is ', max_err
+    print('max_err is ', max_err)
     self.assertAlmostEqual(max_err, 0.0)
 
 
@@ -193,8 +190,8 @@ class TestQuaternion(unittest.TestCase):
         max_orthogonal_err = orthogonal_err 
 
 
-    print 'max_norm_err is ', max_norm_err
-    print 'max_orthogonal_err is ', max_orthogonal_err
+    print('max_norm_err is ', max_norm_err)
+    print('max_orthogonal_err is ', max_orthogonal_err)
     self.assertAlmostEqual(max_norm_err, 0.0)
     self.assertAlmostEqual(max_orthogonal_err, 0.0)
 

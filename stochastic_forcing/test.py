@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 from functools import partial
 import stochastic_forcing as stoch
@@ -60,11 +61,11 @@ if __name__ == '__main__':
 
   # Compute noise 
   noise_chol = stoch.stochastic_forcing_cholesky(mobility_body, 1.0, z = z)
-  print 'noise_chol     ', noise_chol, '\n'
+  print('noise_chol     ', noise_chol, '\n')
   noise_eig = stoch.stochastic_forcing_eig(mobility_body, 1.0, z = z)
-  print 'noise_eig      ', noise_eig, '\n'
+  print('noise_eig      ', noise_eig, '\n')
   noise_eig = stoch.stochastic_forcing_eig_symm(mobility_body, 1.0, z = z)
-  print 'noise_eig_symm ', noise_eig, '\n'
+  print('noise_eig_symm ', noise_eig, '\n')
 
   
   noise_lanczos = np.copy(noise_eig)
@@ -89,18 +90,18 @@ if __name__ == '__main__':
                                                          name='residual.dat', 
                                                          mobility = mobility_body,
                                                          z = z)
-  print '\n', 'noise     ', noise_lanczos, '\n'
-  print 'number of iterations', it
+  print('\n', 'noise     ', noise_lanczos, '\n')
+  print('number of iterations', it)
 
   if 1:
-    print 'all close, tol=1e-04', np.allclose(noise_eig, noise_lanczos, atol=1e-04)
-    print 'all close, tol=1e-06', np.allclose(noise_eig, noise_lanczos, atol=1e-06)
-    print 'all close, tol=1e-08', np.allclose(noise_eig, noise_lanczos, atol=1e-08)
-    print 'all close, tol=1e-10', np.allclose(noise_eig, noise_lanczos, atol=1e-10)
-    print 'relative error =    ', np.linalg.norm(noise_eig - noise_lanczos) / np.linalg.norm(noise_eig)
-    # print '\nmobility_body\n', mobility_body
+    print('all close, tol=1e-04', np.allclose(noise_eig, noise_lanczos, atol=1e-04))
+    print('all close, tol=1e-06', np.allclose(noise_eig, noise_lanczos, atol=1e-06))
+    print('all close, tol=1e-08', np.allclose(noise_eig, noise_lanczos, atol=1e-08))
+    print('all close, tol=1e-10', np.allclose(noise_eig, noise_lanczos, atol=1e-10))
+    print('relative error =    ', np.linalg.norm(noise_eig - noise_lanczos) / np.linalg.norm(noise_eig))
+    # print('\nmobility_body\n', mobility_body)
   else:
-    print '\nmobility_blobs\n', mobility_blobs
+    print('\nmobility_blobs\n', mobility_blobs)
 
   # v = [np.random.normal(0.0, 1.0, len(r_vectors)*3)]
   # vv = []
@@ -120,5 +121,5 @@ if __name__ == '__main__':
 
 
   
-  print '# End'
+  print('# End')
   

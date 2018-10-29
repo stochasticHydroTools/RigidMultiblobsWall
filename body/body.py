@@ -4,6 +4,7 @@ loosely the paper Brownian dynamics of confined rigid
 bodies, Steven Delong et al. The Journal of Chemical
 Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
+from __future__ import division, print_function
 import numpy as np
 import copy
 from quaternion_integrator.quaternion import Quaternion 
@@ -26,7 +27,7 @@ class Body(object):
     self.orientation_new = copy.copy(orientation)
     self.orientation_old = copy.copy(orientation)
     # Number of blobs
-    self.Nblobs = reference_configuration.size / 3
+    self.Nblobs = reference_configuration.size // 3
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
     # and location = np.array[0, 0, 0]) as a np.array.shape = (Nblobs, 3) 
     # or np.array.shape = (Nblobs * 3)

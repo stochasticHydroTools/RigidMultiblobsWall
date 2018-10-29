@@ -1,9 +1,16 @@
+from __future__ import division, print_function
 import numpy as np
 import time
 import sys
 import subprocess
-import cPickle
 import os.path
+try:
+  import cPickle as cpickle
+except:
+  try:
+    import cpickle
+  except:
+    import _pickle as cpickle
 
 # Find project functions
 found_functions = False
@@ -19,10 +26,10 @@ while found_functions is False:
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
-      print '\nProjected functions not found. Edit path in many_body_MCMC.py'
+      print('\nProjected functions not found. Edit path in many_body_MCMC.py')
       sys.exit()
 
 # Override many_body_potential_pycuda.py with user defined functions.
@@ -82,13 +89,13 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(cpickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(read.output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    cpickle.dump(np.random.get_state(), f)
 
   # Parameters from the input file
   blob_radius = read.blob_radius
@@ -102,7 +109,7 @@ if __name__ == '__main__':
   body_types = []
   max_body_length = 0.0
   for ID, structure in enumerate(read.structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     body_types.append(num_bodies_struct)
@@ -177,17 +184,17 @@ if __name__ == '__main__':
       acceptance_ratio = acceptance_ratio * 0.95
 	
     # Scale max_translation 
-    if step < 0 and step < read.initial_step / 2 and acceptance_ratio > 0.5:
+    if step < 0 and step < read.initial_step // 2 and acceptance_ratio > 0.5:
       max_translation = max_translation * 1.02
       max_angle_shift = max_translation / max_body_length
-    elif step < 0 and step < read.initial_step / 2:
+    elif step < 0 and step < read.initial_step // 2:
       max_translation = max_translation * 0.98
       max_angle_shift = max_translation / max_body_length
 
     # Save data if...
     if (step % read.n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'MCMC, step = ', step, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+1.0-read.initial_step)
+      print('MCMC, step = ', step, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+1.0-read.initial_step))
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -225,13 +232,13 @@ if __name__ == '__main__':
                                                      orientation[3]))
             body_offset += body_types[i]
       else:
-        print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-        print 'Use \"one_file_per_step\" or \"one_file\". \n'
+        print('Error, save_clones =', read.save_clones, 'is not implemented.')
+        print('Use \"one_file_per_step\" or \"one_file\". \n')
         break
 
   # Save final data if...
   if ((step+1) % read.n_save) == 0 and step >= 0:
-    print 'MCMC, step = ', step+1, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+2.0-read.initial_step)
+    print('MCMC, step = ', step+1, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+2.0-read.initial_step))
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
@@ -270,15 +277,15 @@ if __name__ == '__main__':
                                                    orientation[3]))
           body_offset += body_types[i]
     else:
-      print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-      print 'Use \"one_file_per_step\" or \"one_file\". \n'
+      print('Error, save_clones =', read.save_clones, 'is not implemented.')
+      print('Use \"one_file_per_step\" or \"one_file\". \n')
 
 
 
   end_time = time.time() - start_time
-  print '\nacceptance ratio = ', accepted_moves / (step+2.0-read.initial_step)
-  print 'accepted_moves = ', accepted_moves
-  print 'Total time = ', end_time
+  print('\nacceptance ratio = ', accepted_moves / (step+2.0-read.initial_step))
+  print('accepted_moves = ', accepted_moves)
+  print('Total time = ', end_time)
 
   # Save wallclock time 
   with open(read.output_name + '.time', 'w') as f:

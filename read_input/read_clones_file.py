@@ -2,6 +2,7 @@
 Small module to read a file with the initial locations and orientation
 of the rigid bodies.
 '''
+from __future__ import division, print_function
 import numpy as np
 import sys
 sys.path.append('../')

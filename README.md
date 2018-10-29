@@ -39,7 +39,7 @@ A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017)
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
 
-For usage see **doc/USAGE.md**.
+For usage see **doc/README.md**.
 
 ### Software organization
 * **doc/**: documentation.
