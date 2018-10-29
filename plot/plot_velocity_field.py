@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 from mobility import mobility as mob
 
@@ -16,7 +17,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid = np.reshape(grid, (3,3)).T
   grid_length = grid[1] - grid[0]
   grid_points = np.array(grid[2], dtype=np.int32)
-  num_points = reduce(lambda x,y: x*y, grid_points)
+  num_points = grid_points[0] * grid_points[1] * grid_points[2]
 
   # Set grid coordinates
   dx_grid = grid_length / grid_points
@@ -31,8 +32,8 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,2] = np.reshape(zz, zz.size)
 
   # Set radius of blobs (= a) and grid nodes (= 0)
-  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
-  radius_target = np.ones(grid_coor.size / 3) * tracer_radius
+  radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
+  radius_target = np.ones(grid_coor.size // 3) * tracer_radius
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')

@@ -52,7 +52,7 @@ void visitWriterInterface(std::string name,
     
 
   // Print variables
-  if(1){
+  if(0){
     std::cout << std::endl << "visitWriterInterface " << std::endl;
     std::cout << "name: " << name << std::endl;
     std::cout << "format: " << format_array[0] << std::endl;
