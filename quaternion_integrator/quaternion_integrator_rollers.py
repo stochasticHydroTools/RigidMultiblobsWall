@@ -1,24 +1,27 @@
 '''
 Integrator for several rigid bodies.
 '''
+from __future__ import division, print_function
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
 import time
 
-from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 import utils
+try:
+  from quaternion import Quaternion
+except ImportError:
+  from quaternion_integrator.quaternion import Quaternion
 
-import scipy
 
 class QuaternionIntegratorRollers(object):
   '''
   Integrator that timesteps using deterministic forwars Euler scheme.
   '''  
-  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall'): 
+  def __init__(self, bodies, Nblobs, scheme, tolerance = None, domain = 'single_wall', mobility_vector_prod_implementation = 'pycuda'): 
     ''' 
     Init object 
     '''
@@ -50,17 +53,31 @@ class QuaternionIntegratorRollers(object):
     self.stoch_iterations_count = 0
     self.domain = domain
     if domain == 'single_wall':
-      self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
-      self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
-      self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_pycuda
-      self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
-      self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
+      if mobility_vector_prod_implementation.find('pycuda') > -1:
+        self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
+        self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_pycuda
+        self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_pycuda
+        self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_pycuda
+        self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_pycuda
+      elif mobility_vector_prod_implementation.find('numba') > -1:
+        self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_numba
+        self.mobility_trans_times_torque = mob.single_wall_mobility_trans_times_torque_numba
+        self.mobility_rot_times_force = mob.single_wall_mobility_rot_times_force_numba
+        self.mobility_rot_times_torque = mob.single_wall_mobility_rot_times_torque_numba
+        # self.mobilit_trans_times_force_torque = mob.single_wall_mobility_trans_times_force_torque_numba
     elif domain == 'no_wall':
-      self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
-      self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
-      self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
-      self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
-      self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
+      if mobility_vector_prod_implementation.find('pycuda') > -1:
+        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda
+        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda
+        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda
+        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda
+        self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_pycuda
+      elif mobility_vector_prod_implementation.find('numba') > -1:
+        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_numba
+        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_numba
+        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_numba
+        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_numba
+        # self.mobilit_trans_times_force_torque = mob.no_wall_mobility_trans_times_force_torque_numba
 
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
@@ -90,9 +107,9 @@ class QuaternionIntegratorRollers(object):
     while True: 
       # Compute deterministic velocity
       if self.hydro_interactions==1: 
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
       else:
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
 
       # Update position   
       for k, b in enumerate(self.bodies):
@@ -114,7 +131,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
 
   
@@ -130,12 +147,12 @@ class QuaternionIntegratorRollers(object):
 
       if self.hydro_interactions==1: 
          # Compute deterministic velocity
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
-      	# Compute stochastic velocity
-      	stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        # Compute stochastic velocity
+        stoch_velocity = self.compute_stochastic_linear_velocity(dt)
       else:
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
-      	stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
 
       # Add velocities
       velocity = det_velocity + stoch_velocity
@@ -159,7 +176,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
 
 
@@ -175,9 +192,9 @@ class QuaternionIntegratorRollers(object):
 
       # Compute deterministic velocity
       if self.hydro_interactions==1: 
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
       else:
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
 
 
       # Add velocities
@@ -211,7 +228,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
     
 
@@ -227,12 +244,12 @@ class QuaternionIntegratorRollers(object):
 
       if self.hydro_interactions==1: 
          # Compute deterministic velocity
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
-      	# Compute stochastic velocity
-      	stoch_velocity = self.compute_stochastic_linear_velocity(dt)
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        # Compute stochastic velocity
+        stoch_velocity = self.compute_stochastic_linear_velocity(dt)
       else:
-      	det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
-      	stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
 
       # Add velocities
       if self.first_step is False:
@@ -265,7 +282,7 @@ class QuaternionIntegratorRollers(object):
         return
 
       self.invalid_configuration_count += 1
-      print 'Invalid configuration'
+      print('Invalid configuration')
     return
     
 
@@ -309,7 +326,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -337,7 +354,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -394,7 +411,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -419,7 +436,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -473,7 +490,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -498,7 +515,7 @@ class QuaternionIntegratorRollers(object):
           if b.location[2] < 0.0:      
             valid_configuration = False
             self.invalid_configuration_count += 1
-            print 'Invalid configuration'
+            print('Invalid configuration')
             break
         if valid_configuration is False:
           # Restore configuration
@@ -642,20 +659,20 @@ class QuaternionIntegratorRollers(object):
     for i in range(Nblobs):        
         # max(h/a,1) : artifact to ensure that mobility goes to zero
           h_over_a = r_vectors_blobs[i][2]/self.a
-    	  h_adim_eff[i] = max(h_over_a, 1.0)    
-    	  # Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
-    	  damping[i] = 1.0
-    	  if h_over_a < 0.0:
-	    damping[i] = 0.0 
-	  elif h_over_a <= 1.0:
-	    damping[i] = h_over_a
-	    
-    	  # mu_rt_para from Swan Brady
-    	  mu_rt_para[i] = factor_mob_rt*( 3/(32*h_adim_eff[i]**4) ) * damping[i]
-    	  # mu_perp from Swan Brady
-    	  mu_tt_perp[i] = factor_mob_tt*( 1 - 9/(8*h_adim_eff[i]) + 1/(2*h_adim_eff[i]**3) - 1/(8*h_adim_eff[i]**5) ) * damping[i]
-        # mu_para from Swan Brady
-    	  mu_tt_para[i] = factor_mob_tt*( 1 - 9/(16*h_adim_eff[i]) + 2/(16*h_adim_eff[i]**3) - 1/(16*h_adim_eff[i]**5) ) * damping[i]
+          h_adim_eff[i] = max(h_over_a, 1.0)    
+          # Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
+          damping[i] = 1.0
+          if h_over_a < 0.0:
+            damping[i] = 0.0 
+          elif h_over_a <= 1.0:
+            damping[i] = h_over_a
+
+          # mu_rt_para from Swan Brady
+          mu_rt_para[i] = factor_mob_rt*( 3/(32*h_adim_eff[i]**4) ) * damping[i]
+          # mu_perp from Swan Brady
+          mu_tt_perp[i] = factor_mob_tt*( 1 - 9/(8*h_adim_eff[i]) + 1/(2*h_adim_eff[i]**3) - 1/(8*h_adim_eff[i]**5) ) * damping[i]
+          # mu_para from Swan Brady
+          mu_tt_para[i] = factor_mob_tt*( 1 - 9/(16*h_adim_eff[i]) + 2/(16*h_adim_eff[i]**3) - 1/(16*h_adim_eff[i]**5) ) * damping[i]
 
     # Use constraint motion or free kinematics
     if self.free_kinematics == 'False':
@@ -663,12 +680,12 @@ class QuaternionIntegratorRollers(object):
       omega = np.empty(3 * Nblobs)      
       
       for i in range(Nblobs):
-      	omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
-      	# mu_rr_perp from Swan Brady
-      	mu_rr_perp_inv = 1/( factor_mob_rr*( 3/4 - 3/(32*h_adim_eff[i]**3) ) * damping[i]) 
-      	# mu_rr_para from Swan Brady
-      	mu_rr_para_inv = 1/( factor_mob_rr*( 3/4 - 15/(64*h_adim_eff[i]**3) ) * damping[i]) 
-      	#  T = M_rr^{-1}*( omega - M_rt * forces )
+        omega[3*i : 3*(i+1)] = self.get_omega_one_roller()
+        # mu_rr_perp from Swan Brady
+        mu_rr_perp_inv = 1/( factor_mob_rr*( 3/4 - 3/(32*h_adim_eff[i]**3) ) * damping[i]) 
+        # mu_rr_para from Swan Brady
+        mu_rr_para_inv = 1/( factor_mob_rr*( 3/4 - 15/(64*h_adim_eff[i]**3) ) * damping[i]) 
+        #  T = M_rr^{-1}*( omega - M_rt * forces )
         torque[3*i] = mu_rr_para_inv*(omega[3*i] + mu_rt_para[i]*force[3*i+1])
         torque[3*i+1] = mu_rr_para_inv*(omega[3*i+1] - mu_rt_para[i]*force[3*i])
         torque[3*i+2] = mu_rr_perp_inv*omega[3*i+2]
@@ -681,10 +698,9 @@ class QuaternionIntegratorRollers(object):
     # Compute linear velocity
     velocity = np.empty(3 * Nblobs)
     for i in range(Nblobs):
-    	velocity[3*i] = mu_tt_para[i]*force[3*i] + mu_rt_para[i]*torque[3*i+1]
-    	velocity[3*i+1] = mu_tt_para[i]*force[3*i+1] - mu_rt_para[i]*torque[3*i]
-    	velocity[3*i+2] = mu_tt_perp[i]*force[3*i+2]
-    	
+      velocity[3*i] = mu_tt_para[i]*force[3*i] + mu_rt_para[i]*torque[3*i+1]
+      velocity[3*i+1] = mu_tt_para[i]*force[3*i+1] - mu_rt_para[i]*torque[3*i]
+      velocity[3*i+2] = mu_tt_perp[i]*force[3*i+2]
 
     # Return linear velocity and torque
     return velocity, torque
@@ -723,7 +739,7 @@ class QuaternionIntegratorRollers(object):
     
     # Define grand mobility matrix
     def grand_mobility_matrix(force_torque, r_vectors = None, eta = None, a = None, periodic_length = None):
-      half_size = force_torque.size / 2
+      half_size = force_torque.size // 2
       # velocity = self.mobility_trans_times_force_torque(r_vectors, force_torque[0:half_size], force_torque[half_size:], eta, a, periodic_length = periodic_length)
       velocity  = self.mobility_trans_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
       velocity += self.mobility_trans_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
@@ -774,7 +790,7 @@ class QuaternionIntegratorRollers(object):
     # Use constraint motion or free kinematics
     if self.free_kinematics == 'False':
        # Set RHS = -kT*div_t(M_rt) - sqrt(2*kT) * (N^{1/2}*W)_r,
-      RHS = -velocities_noise[velocities_noise.size / 2:] - div_M_rt * (self.kT / (self.rf_delta * self.a))
+      RHS = -velocities_noise[velocities_noise.size // 2:] - div_M_rt * (self.kT / (self.rf_delta * self.a))
 
       # Set linear operator
       system_size = 3 * len(self.bodies)
@@ -807,7 +823,7 @@ class QuaternionIntegratorRollers(object):
 
     # Compute stochastic velocity v_stoch = M_tr * T + sqrt(2*kT) * (N^{1/2}*W)_t + kT*div_t(M_tt).
     v_stoch = self.mobility_trans_times_torque(r_vectors_blobs, sol_precond, self.eta, self.a, periodic_length = self.periodic_length)
-    v_stoch += velocities_noise[0 : velocities_noise.size / 2] + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
+    v_stoch += velocities_noise[0 : velocities_noise.size // 2] + (self.kT / (self.rf_delta * self.a)) * div_M_tt 
     return v_stoch
 
 
@@ -900,25 +916,25 @@ class QuaternionIntegratorRollers(object):
     v_stoch = np.empty(3*Nblobs)
     
     for k in range(Nblobs):
-    	# max(h/a,1) : artifact to ensure that mobility goes to zero
-	h_over_a = r_vectors_blobs[k][2]/self.a
-	h_adim_eff = max(h_over_a, 1.0)    
-	# Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
-	damping = 1.0
-	if h_over_a < 0.0:
-	  damping = 0.0 
-	elif h_over_a <= 1.0:
-	  damping = h_over_a
-    	# mu_perp from Swan Brady
-    	mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim_eff) + 1/(2*h_adim_eff**3) - 1/(8*h_adim_eff**5) ) * damping
-    	# mu_para from Swan Brady
-    	mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim_eff) + 2/(16*h_adim_eff**3) - 1/(16*h_adim_eff**5) ) * damping
-    	# div(Mtt) has one nonzero term: d(mu_perp)/dh 
-    	deriv_mu_tt_perp = factor_mob_tt*( 9/(8*h_adim_eff**2) - 3/(2*h_adim_eff**4) + 5/(8*h_adim_eff**6) ) * damping
-    	
-    	# Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
-    	v_stoch[3*k:3*k+2] = factor_disp*np.sqrt(mu_tt_para)*z[3*k:3*k+2]
-    	v_stoch[3*k+2] = factor_disp*np.sqrt(mu_tt_perp)*z[3*k+2] + self.kT*deriv_mu_tt_perp  
+      # max(h/a,1) : artifact to ensure that mobility goes to zero
+      h_over_a = r_vectors_blobs[k][2]/self.a
+      h_adim_eff = max(h_over_a, 1.0)    
+      # Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
+      damping = 1.0
+      if h_over_a < 0.0:
+        damping = 0.0 
+      elif h_over_a <= 1.0:
+        damping = h_over_a
+      # mu_perp from Swan Brady
+      mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim_eff) + 1/(2*h_adim_eff**3) - 1/(8*h_adim_eff**5) ) * damping
+      # mu_para from Swan Brady
+      mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim_eff) + 2/(16*h_adim_eff**3) - 1/(16*h_adim_eff**5) ) * damping
+      # div(Mtt) has one nonzero term: d(mu_perp)/dh 
+      deriv_mu_tt_perp = factor_mob_tt*( 9/(8*h_adim_eff**2) - 3/(2*h_adim_eff**4) + 5/(8*h_adim_eff**6) ) * damping
+
+      # Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W + kT*div_t(M_tt).
+      v_stoch[3*k:3*k+2] = factor_disp*np.sqrt(mu_tt_para)*z[3*k:3*k+2]
+      v_stoch[3*k+2] = factor_disp*np.sqrt(mu_tt_perp)*z[3*k+2] + self.kT*deriv_mu_tt_perp  
     
     return v_stoch 
 
@@ -1028,6 +1044,6 @@ class gmres_counter(object):
     self.niter += 1
     if self.print_residual is True:
       if self.niter == 1:
-        print 'gmres =  0 1'
-      print 'gmres = ', self.niter, rk
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 

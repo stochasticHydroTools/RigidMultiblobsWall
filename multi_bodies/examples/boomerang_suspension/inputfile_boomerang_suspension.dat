@@ -36,7 +36,7 @@ blob_radius                              0.324557390919
 kT                                       0.0041419464
 
 # RFD parameters
-rf_delta                                 1.0e-6
+rf_delta                                 1.0e-3
 
 # Periodic dimensions
 periodic_length                          45.339607409 45.339607409 0

@@ -1,0 +1,60 @@
+# Input file to simulate microllers above a wall as in
+# Brownian dynamics of confined suspensions of active microrollers
+# J. Chem. Phys. 2017.
+#
+# Units for length, time and mass are micrometers, seconds and
+# milligrams
+
+# Select integrator
+scheme					                       stochastic_adams_bashforth_rollers
+
+# Define implementation to compute the blobs mobility 
+mobility_vector_prod_implementation    numba
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+blob_blob_force_implementation	       numba
+repulsion_strength	   		             0.0165677856
+debye_length	   			                 0.0656
+
+# Set time step, number of steps and save frequency
+dt		 	   	     	                     0.01
+n_steps					                       100
+n_save  				                       1
+initial_step				                   0
+
+# Set viscosity, gravity and blob radius
+# In units of micrometers, seconds and milligrams
+eta					                           1.0e-3
+g					                             0.0024892
+blob_radius				                     0.656
+kT					                           0.0041419464
+
+# Select free or constrained kinematics
+free_kinematics				                 True
+
+# Set interaction with the wall
+repulsion_strength_wall			           0.0165677856
+debye_length_wall	   		               0.0656
+
+# Seed random number generator
+# seed                                   0
+
+# PBC
+periodic_length                        30 30 0
+
+# HydroGrid options
+call_HydroGrid                         True
+save_HydroGrid                         0
+sample_HydroGrid                       1
+green_particles                        0 450
+cells                                  60 60
+
+# Set output name
+output_name				                     run
+save_clones				                     one_file
+
+# Read structures
+structure	../../Structures/blob.vertex Structures/rollers.clones
+
+
+

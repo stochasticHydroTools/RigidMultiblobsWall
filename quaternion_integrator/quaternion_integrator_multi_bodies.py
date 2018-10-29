@@ -1,20 +1,23 @@
 '''
 Integrator for several rigid bodies.
 '''
+from __future__ import division, print_function
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
 import copy
 
-from quaternion import Quaternion
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 # from multi_bodies import multi_bodies_utilities as mbu
 from plot import plot_velocity_field as pvf
 import utils
+try:
+  from quaternion import Quaternion
+except ImportError:
+  from quaternion_integrator.quaternion import Quaternion
 
-import scipy
 
 class QuaternionIntegrator(object):
   '''
@@ -631,9 +634,9 @@ class QuaternionIntegrator(object):
 
       # Update location orientation to mid point
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
-	quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
-	b.orientation = quaternion_dt * b.orientation_old
+        b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
+        quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
+        b.orientation = quaternion_dt * b.orientation_old
 
       # Check positions, if invalid continue
       if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
@@ -645,9 +648,9 @@ class QuaternionIntegrator(object):
    
       # Update location orientation to end point
       for k, b in enumerate(self.bodies):
-	b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
-	quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
-	b.orientation_new = quaternion_dt * b.orientation_old
+        b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
@@ -684,7 +687,7 @@ class QuaternionIntegrator(object):
         np.copyto(b.location_old, b.location)
         b.orientation_old = copy.copy(b.orientation)
         W[k*6 : k*6+3] = rfd_noise[k*6 : k*6+3] * (self.kT / b.body_length)
-	W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * self.kT   
+        W[(k*6+3):(k*6+6)] = rfd_noise[(k*6+3):(k*6+6)] * self.kT   
         
       # Set RHS for RFD increments   
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
@@ -718,10 +721,10 @@ class QuaternionIntegrator(object):
       
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old + rfd_noise[6*k:6*k+3] * (self.rf_delta * b.body_length)
-	quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta)
+        b.location = b.location_old + rfd_noise[6*k:6*k+3] * (self.rf_delta * b.body_length)
+        quaternion_dt = Quaternion.from_rotation(rfd_noise[6*k+3:6*k+6] * self.rf_delta)
         b.orientation = quaternion_dt * b.orientation_old    
-	
+
       # compute (M_rfd-M)*Lambda_rfd
       r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       DxM = self.mobility_vector_prod(r_vectors_blobs_RFD, Lam_RFD, self.eta, self.a, periodic_length = self.periodic_length) - MxLam
@@ -767,9 +770,9 @@ class QuaternionIntegrator(object):
             
       # Update location and orientation
       for k, b in enumerate(self.bodies):
-	b.location_new = b.location_old + velocities_AB[6*k:6*k+3] * dt
-	quaternion_dt = Quaternion.from_rotation((velocities_AB[6*k+3:6*k+6]) * dt)
-	b.orientation_new = quaternion_dt * b.orientation_old
+        b.location_new = b.location_old + velocities_AB[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_AB[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
       
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
@@ -1085,16 +1088,13 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem predictor step
       velocities_mid, mobility_bodies_mid, mobility_blobs_mid, resistance_blobs_mid, K_mid, r_vectors_blobs_mid = self.solve_mobility_problem_DLA()
-	
+
       # generate all of the necisarry random increments for the predictor step
       W1 = np.random.normal(0.0, 1.0, self.Nblobs*3)
       W_slip = np.random.normal(0.0, 1.0, self.Nblobs*3)
       Wcor = W1 + np.random.normal(0.0, 1.0, self.Nblobs*3)
         
-      W_RFD = np.dot(mobility_bodies_mid,
-			  np.dot(K_mid.T,
-			  np.dot(resistance_blobs_mid,
-			  W_slip)))
+      W_RFD = np.dot(mobility_bodies_mid, np.dot(K_mid.T, np.dot(resistance_blobs_mid, W_slip)))
 
       # Compute K^{T}*W2 and M*W2 to be used by the corrector step
       MxW_slip = np.dot(mobility_blobs_mid,W_slip)
@@ -1105,34 +1105,31 @@ class QuaternionIntegrator(object):
       Mhalf_Wcor = stochastic.stochastic_forcing_eig_symm(mobility_blobs_mid, factor = 1.0, z = Wcor)
         
       # Compute c1*N*K^T*M^(-1)*(c1*W2 + M^(1/2)*W1) for pred. step
-      RHS_pred = np.sqrt(4*self.kT / dt)*np.dot(mobility_bodies_mid,
-						  np.dot(K_mid.T,
-						  np.dot(resistance_blobs_mid,
-						  (Mhalf_W1))))
+      RHS_pred = np.sqrt(4*self.kT / dt)*np.dot(mobility_bodies_mid, np.dot(K_mid.T, np.dot(resistance_blobs_mid, (Mhalf_W1))))
       
       # Compute pred. step velocities
       velocities_mid += RHS_pred
       
       # Compute RFD bits
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old + W_RFD[6*k:6*k+3] * self.rf_delta
-	quaternion_dt = Quaternion.from_rotation(W_RFD[6*k+3:6*k+6] * self.rf_delta)
-	b.orientation = quaternion_dt * b.orientation_old
-	
+        b.location = b.location_old + W_RFD[6*k:6*k+3] * self.rf_delta
+        quaternion_dt = Quaternion.from_rotation(W_RFD[6*k+3:6*k+6] * self.rf_delta)
+        b.orientation = quaternion_dt * b.orientation_old
+
       r_vectors_blobs_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       # Calculate mobility (M) at the blob level
       mobility_blobs_RFD = self.mobility_blobs(r_vectors_blobs_RFD, self.eta, self.a)
       # Calculate block-diagonal matrix K
       K_RFD = self.calc_K_matrix(self.bodies, self.Nblobs)
-	
+
       DxM = np.dot(mobility_blobs_RFD,W_slip) - MxW_slip
       DxKT = np.dot(K_RFD.T,W_slip) - KTxW_slip
         
       # Update to mid-point
       for k, b in enumerate(self.bodies):
-	b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
-	quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
-	b.orientation = quaternion_dt * b.orientation_old
+        b.location = b.location_old + velocities_mid[6*k:6*k+3] * dt * 0.5
+        quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt * 0.5)
+        b.orientation = quaternion_dt * b.orientation_old
         
       # Check positions, if invalid continue 
       if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
@@ -1143,9 +1140,8 @@ class QuaternionIntegrator(object):
         
         
       # Compute RHS of cor step so that N*RHS_cor is the correct increment
-      RHS_cor = -(self.kT / self.rf_delta)*DxKT + np.dot(K_new.T,np.dot(resistance_blobs_new,
-										np.sqrt(self.kT / dt)*Mhalf_Wcor
-										+(self.kT / self.rf_delta)*DxM))
+      RHS_cor = -(self.kT / self.rf_delta)*DxKT + np.dot(K_new.T,np.dot(resistance_blobs_new, np.sqrt(self.kT / dt)*Mhalf_Wcor
+                                                                        +(self.kT / self.rf_delta)*DxM))
         
       # Compute cor. step velocities
       velocities_new += np.dot(mobility_bodies_new,RHS_cor)
@@ -1153,9 +1149,9 @@ class QuaternionIntegrator(object):
         
       # Update location orientation to end point
       for k, b in enumerate(self.bodies):
-	b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
-	quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
-	b.orientation_new = quaternion_dt * b.orientation_old
+        b.location_new = b.location_old + velocities_new[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_new[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
@@ -1363,14 +1359,14 @@ class QuaternionIntegrator(object):
           valid_configuration = b.check_function(b.location, b.orientation)
           if valid_configuration is False:
             self.invalid_configuration_count += 1
-            print 'Invalid configuration number ', self.invalid_configuration_count
+            print('Invalid configuration number ', self.invalid_configuration_count)
             break
       elif new == 'new':
         for b in self.bodies:
           valid_configuration = b.check_function(b.location_new, b.orientation_new)
           if valid_configuration is False:
             self.invalid_configuration_count += 1
-            print 'Invalid configuration number ', self.invalid_configuration_count
+            print('Invalid configuration number ', self.invalid_configuration_count)
             break
 
     # Update position if necessary
@@ -1408,7 +1404,7 @@ class gmres_counter(object):
     self.niter += 1
     if self.print_residual is True:
       if self.niter == 1:
-        print 'gmres =  0 1'
-      print 'gmres = ', self.niter, rk
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 
       

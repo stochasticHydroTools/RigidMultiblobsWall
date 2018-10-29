@@ -1,0 +1,68 @@
+! Numbering of variables is:
+! 1=rho (total density), 2-4 (unused = vx, vy, temperature), 5=rho_green, 6=rho_red
+
+&hydroAnalysisOptions ! This first namelist corresponds to the whole 2D grid
+
+   writeSnapshotVTK=T ! Save snapshots of the instantaneous fields
+   subtractMeanFT=F ! Keep this at F
+
+   ! Means file: column 1=y, 2=rho, 3=v_x, 4=v_y, 5=T, 6=rho_green, 7=rho_red
+   storeConserved = F ! Leave at F
+   writeMeansVTK = F ! Write the means to a VTK file
+
+   ! Variances
+   writeVariancesVTK = F ! Should we save a VTK file
+   nVariances = 0 ! How many co-variances to calculate and save, zero to turn off
+   variancePairs = "0 1 0 1"
+   
+   ! Static structure factors
+   writeSpectrumVTK = T
+   writeAbsValue = F ! Only write absolute values of complex values to VTK file?
+   nStructureFactors = 4 ! Set to zer to turn off
+   ! Compute rho-rho structure factor
+   structureFactorPairs = "0 1 0 1, 0 5 0 5, 0 6 0 6, 0 5 0 6" ! The zeros have to be here but mean nothing to us
+   
+   ! Dynamic structure factors:
+   nWavenumbers=0 ! Negative value means specify a range of wavenumbers, zero to turn off S(k,w)
+   ! Specify range of wavenumbers to output, here index kx=-4:4, ky=0:4
+   selectedWavenumbers="-4 4, 0 4"
+   nSavedSnapshots=100 ! How many snapshots to compute time-correlation functions for
+   
+   outputFolder = "./"
+   filePrefix = "run" ! Prefix for all file names
+   axisToPrint = 2 ! 1=x, 2=y, 3=z axis
+   periodic = T ! Is the system periodic along the y axes
+/
+
+&hydroAnalysisOptions ! This corresponds to the projection along the y axes, which is a 1D grid
+
+   writeSnapshotVTK=F ! Save snapshots of the instantaneous fields
+   subtractMeanFT=F ! Keep this at F
+
+   ! Means file: column 1=y, 2=rho, 3=v_x, 4=v_y, 5=T, 6=rho_green, 7=rho_red
+   storeConserved = F ! Leave at F
+   writeMeansVTK = F ! Write the means to a VTK file
+
+   ! Variances
+   writeVariancesVTK = F ! Should we save a VTK file
+   nVariances = 0 ! How many co-variances to calculate and save, zero to turn off
+   variancePairs = "0 1 0 1"
+   
+   ! Static structure factors
+   writeSpectrumVTK = F
+   writeAbsValue = F ! Only write absolute values of complex values to VTK file?
+   nStructureFactors = 4 ! Zero to turn off
+   ! 1=rho-rho, 2=green-green, 3=red-red, 4=red-green
+   structureFactorPairs = "0 1 0 1, 0 5 0 5, 0 6 0 6, 0 5 0 6"
+   
+   ! Dynamic structure factors:
+   nWavenumbers=0 ! Negative value means specify a range of wavenumbers, zero to turn off S(k,w)
+   selectedWavenumbers="1 16, 0 0" ! Compute S(k,w) for kx=1:16
+   nSavedSnapshots=100
+   
+   outputFolder = "./"
+   filePrefix = "run_proj" ! Prefix for all file names
+   axisToPrint = 1 ! 1=x, 2=y, 3=z axis
+   periodic = T ! Is the system periodic along the y axes
+/
+

@@ -1,6 +1,7 @@
 '''
 Simple quaternion object for use with quaternion integrators.
 '''
+from __future__ import division, print_function
 import numpy as np
 
 class Quaternion(object):

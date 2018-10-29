@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import numpy as np
 import time
 import sys
@@ -83,7 +84,7 @@ if __name__ == '__main__':
   body_types = []
   max_body_length = 0.0
   for ID, structure in enumerate(read.structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     body_types.append(num_bodies_struct)
@@ -98,7 +99,7 @@ if __name__ == '__main__':
 
   # Set some more variables
   max_translation = max_body_length * 5.0
-  print '  max_translation = ', max_translation
+  print('  max_translation = ', max_translation)
   num_of_body_types = len(read.structure_names)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
@@ -120,7 +121,7 @@ if __name__ == '__main__':
       f_ID.write(str(''))
   start_time = time.time()
   minimum_energy = 1.0e+99
-  for step in range(np.maximum(read.n_steps / 100, 100000)):
+  for step in range(np.maximum(read.n_steps // 100, 100000)):
     blob_index = 0
     for i, body in enumerate(bodies): 
       body.location_new = np.random.uniform(0.0, max_translation, 3) 
@@ -141,10 +142,10 @@ if __name__ == '__main__':
 
     if sample_state_energy < minimum_energy:
       minimum_energy = sample_state_energy
-      print 'step = ', step,  ', minimum energy = ', minimum_energy
+      print('step = ', step,  ', minimum energy = ', minimum_energy)
   # Safty factor for minimum energy
   minimum_energy = minimum_energy - kT * 1.0
-  print 'minimum_energy Computed. minimum_energy = ', minimum_energy, ', Time = ', time.time() - start_time, '\n'
+  print('minimum_energy Computed. minimum_energy = ', minimum_energy, ', Time = ', time.time() - start_time, '\n')
 
   # for each step in the Markov chain, disturb each body's location and orientation and obtain the new list of r_vectors
   # of each blob. Calculate the potential of the new state, and accept or reject it according to the Markov chain rules:
@@ -172,14 +173,14 @@ if __name__ == '__main__':
 
     accept_probability = np.exp(-(sample_state_energy-minimum_energy) / kT) 
     if accept_probability > 1.0:
-      print 'minimum_energy', sample_state_energy
+      print('minimum_energy', sample_state_energy)
       raise InvalidProbability('Acceptance Probability is greater than 1')
     if np.random.uniform(0.0, 1.0) < accept_probability:
       # Save data if...
       if (step % read.n_save) == 0 and step >= 0:
         accepted_moves += 1
         elapsed_time = time.time() - start_time
-        print 'MCMC, step = ', step, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+1.0-read.initial_step)
+        print('MCMC, step = ', step, ', wallclock time = ', time.time() - start_time, ', acceptance ratio = ', accepted_moves / (step+1.0-read.initial_step))
         # For each type of structure save locations and orientations to one file
         body_offset = 0
         if read.save_clones == 'one_file_per_step':
@@ -214,15 +215,15 @@ if __name__ == '__main__':
                                                        orientation[3]))
               body_offset += body_types[i]
         else:
-          print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-          print 'Use \"one_file_per_step\" or \"one_file\". \n'
+          print('Error, save_clones =', read.save_clones, 'is not implemented.')
+          print('Use \"one_file_per_step\" or \"one_file\". \n')
           break
           
 
   end_time = time.time() - start_time
-  print '\nacceptance ratio = ', accepted_moves / (step+2.0-read.initial_step)
-  print 'accepted_moves = ', accepted_moves
-  print 'Total time = ', end_time
+  print('\nacceptance ratio = ', accepted_moves / (step+2.0-read.initial_step))
+  print('accepted_moves = ', accepted_moves)
+  print('Total time = ', end_time)
 
   # Save wallclock time 
   with open(read.output_name + '.time', 'w') as f:

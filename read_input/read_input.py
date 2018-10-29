@@ -1,6 +1,7 @@
 '''
 Simple class to read the input files to run a simulation.
 '''
+from __future__ import division, print_function
 import numpy as np
 import ntpath
 
@@ -81,6 +82,7 @@ class ReadInput(object):
     self.slip_options = np.fromstring(self.options.get('slip_options') or '0 0 0 0 0 0', sep=' ')
     # mass_options = mass_default, start_0, end_0, mass_0, start_1, end_1, mass_1, alpha; g=(sin(alpha), 0, cos(alpha))
     self.mass_options = np.fromstring(self.options.get('mass_options') or '1.0 0 0 1.0 0 0 1.0, 0.', sep=' ')
+    self.call_HydroGrid = str(self.options.get('call_HydroGrid') or 'False') == 'True'
           
     # Create list with [vertex_file, clones_file] for each structure
     self.structures = []

@@ -1,14 +1,21 @@
+from __future__ import division, print_function
 import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
-import cPickle
 from functools import partial
 import sys
 import time
+try:
+  import cPickle as cpickle
+except:
+  try:
+    import cpickle
+  except:
+    import _pickle as cpickle
 
 # Add path to HydroGrid and import module
-sys.path.append('../../HydroGrid/src/')
+# sys.path.append('../../HydroGrid/src/')
 
 
 # Find project functions
@@ -29,17 +36,17 @@ while found_functions is False:
     from read_input import read_velocity_file
     import utils
     try:
-      import calculateConcentration as cc
+      import libCallHydroGrid as cc
       found_HydroGrid = True
     except ImportError:
       found_HydroGrid = False
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    # print 'searching functions in path ', path_to_append
+    print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
-      print '\nProjected functions not found. Edit path in multi_bodies.py'
+      print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
 
 def calc_slip(bodies, Nblobs):
@@ -114,6 +121,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_no_wall_mobility_vector_product
   elif implementation == 'pycuda_no_wall':
     return mb.no_wall_mobility_trans_times_force_pycuda
+  elif implementation == 'numba_no_wall':
+    return mb.no_wall_mobility_trans_times_force_numba
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
@@ -121,6 +130,8 @@ def set_mobility_vector_prod(implementation):
     return mb.boosted_mobility_vector_product
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
+  elif implementation == 'numba':
+    return mb.single_wall_mobility_trans_times_force_numba
   # Implementations free surface
   elif implementation == 'pycuda_free_surface':
     return mb.free_surface_mobility_trans_times_force_pycuda
@@ -212,10 +223,10 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
   Ncomp_blobs = r_vectors.size
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   Ncomp_bodies = 6 * len(bodies)
   res = np.empty((Ncomp_blobs + Ncomp_bodies))
-  v = np.reshape(vector, (vector.size/3, 3))
+  v = np.reshape(vector, (vector.size//3, 3))
   
   # Compute the "slip" part
   res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
@@ -576,7 +587,7 @@ if __name__ == '__main__':
   n_steps = read.n_steps 
   n_save = read.n_save
   n_relaxation = read.n_relaxation
-  dt = read.dt 
+  dt = read.dt
   eta = read.eta 
   g = read.g 
   a = read.blob_radius
@@ -594,20 +605,20 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(cpickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    cpickle.dump(np.random.get_state(), f)
 
   # Create rigid bodies
   bodies = []
   body_types = []
   body_names = []
   for ID, structure in enumerate(structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     # Read vertex and clones files
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
@@ -657,7 +668,8 @@ if __name__ == '__main__':
   if scheme.find('rollers') == -1:
     integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
   else:
-    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
+    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain, 
+                                             mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
                                               g = g,
                                               repulsion_strength_wall = read.repulsion_strength_wall, 
@@ -706,7 +718,7 @@ if __name__ == '__main__':
   integrator.rf_delta = read.rf_delta
 
   # Initialize HydroGrid library:
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -726,7 +738,7 @@ if __name__ == '__main__':
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
       elapsed_time = time.time() - start_time
-      print 'Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
+      print('Integrator = ', scheme, ', step = ', step, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time)
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
@@ -764,8 +776,8 @@ if __name__ == '__main__':
                                                      orientation[3]))
             body_offset += body_types[i]
       else:
-        print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-        print 'Use \"one_file_per_step\" or \"one_file\". \n'
+        print('Error, save_clones =', read.save_clones, 'is not implemented.')
+        print('Use \"one_file_per_step\" or \"one_file\". \n')
         break
 
       # Save mobilities
@@ -784,7 +796,7 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Update HydroGrid
-    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
+    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
@@ -799,7 +811,7 @@ if __name__ == '__main__':
                                  get_blobs_r_vectors(bodies, Nblobs))
     
     # Save HydroGrid data
-    if read.save_HydroGrid > 0 and found_HydroGrid:
+    if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
       if (step % read.save_HydroGrid) == 0:
         cc.calculate_concentration(output_name, 
                                    read.periodic_length[0], 
@@ -819,7 +831,7 @@ if __name__ == '__main__':
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
-    print 'Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time
+    print('Integrator = ', scheme, ', step = ', step+1, ', invalid configurations', integrator.invalid_configuration_count, ', wallclock time = ', time.time() - start_time)
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
@@ -858,8 +870,8 @@ if __name__ == '__main__':
                                                    orientation[3]))
           body_offset += body_types[i]
     else:
-      print 'Error, save_clones =', read.save_clones, 'is not implemented.'
-      print 'Use \"one_file_per_step\" or \"one_file\". \n'
+      print('Error, save_clones =', read.save_clones, 'is not implemented.')
+      print('Use \"one_file_per_step\" or \"one_file\". \n')
 
     # Save mobilities
     if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
@@ -877,7 +889,7 @@ if __name__ == '__main__':
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
   # Update HydroGrid data
-  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    
+  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -892,13 +904,13 @@ if __name__ == '__main__':
                                get_blobs_r_vectors(bodies, Nblobs))
 
   # Save HydroGrid data
-  if read.save_HydroGrid > 0 and found_HydroGrid:
+  if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
     if ((step+1) % read.save_HydroGrid) == 0:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
-                                 read.green_particles[0], 
-                                 read.green_particles[1],  
+                                 int(read.green_particles[0]),
+                                 int(read.green_particles[1]), 
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
@@ -909,12 +921,12 @@ if __name__ == '__main__':
 
 
   # Free HydroGrid
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
-                               read.green_particles[0], 
-                               read.green_particles[1],  
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 
@@ -934,4 +946,4 @@ if __name__ == '__main__':
             + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
             + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
 
-  print '\n\n\n# End'
+  print('\n\n\n# End')

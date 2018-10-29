@@ -18,7 +18,7 @@ tip1= [ 0.  2.1  0.]
 alpha= 6.43600016e-01
 beta = 6.43600016e-01
 '''
-
+from __future__ import division, print_function
 import numpy as np
 
 import boomerang as bm
@@ -82,31 +82,31 @@ if __name__ == '__main__':
     C[2,i] = B[i,1,2]
   
   r = np.linalg.solve(C,RHS)
-  print 'locarion=', location
-  print 'CoM respect location r=', r, '\n'
+  print('locarion=', location)
+  print('CoM respect location r=', r, '\n')
 
   # Define vectors from cross point to tips
   tip0 = r_vectors[0]  - location
   tip1 = r_vectors[14] - location
-  print 'boomerang tip0=', tip0
-  print 'boomerang tip1=', tip1
-  print '\nif location_CoM = location + alpha * tip0/norm(tip0) + beta * tip1/norm(tip1)'
-  print 'alpha=', ((r[0]*tip0[0]) + (r[1]*tip0[1]) + (r[2]*tip0[2])) / np.sqrt(tip0[0]**2 + tip0[1]**2 + tip0[2]**2)
-  print 'beta =', ((r[0]*tip1[0]) + (r[1]*tip1[1]) + (r[2]*tip1[2])) / np.sqrt(tip1[0]**2 + tip1[1]**2 + tip1[2]**2)
+  print('boomerang tip0=', tip0)
+  print('boomerang tip1=', tip1)
+  print('\nif location_CoM = location + alpha * tip0/norm(tip0) + beta * tip1/norm(tip1)')
+  print('alpha=', ((r[0]*tip0[0]) + (r[1]*tip0[1]) + (r[2]*tip0[2])) / np.sqrt(tip0[0]**2 + tip0[1]**2 + tip0[2]**2))
+  print('beta =', ((r[0]*tip1[0]) + (r[1]*tip1[1]) + (r[2]*tip1[2])) / np.sqrt(tip1[0]**2 + tip1[1]**2 + tip1[2]**2))
 
   #print mobilities
-  print '\n\nMobility defined at the location'
+  print('\n\nMobility defined at the location')
   mobility = bm.force_and_torque_boomerang_mobility(r_vectors, location)
   for i in range(6):
-    print mobility[i, 0], mobility[i, 1], mobility[i, 2], mobility[i, 3], mobility[i, 4], mobility[i, 5]
+    print(mobility[i, 0], mobility[i, 1], mobility[i, 2], mobility[i, 3], mobility[i, 4], mobility[i, 5])
 
   print '\n\nMobility defined at the CoM'
   mobility = bm.force_and_torque_boomerang_mobility(r_vectors, location+r)
   for i in range(6):
-    print mobility[i, 0], mobility[i, 1], mobility[i, 2], mobility[i, 3], mobility[i, 4], mobility[i, 5]
+    print(mobility[i, 0], mobility[i, 1], mobility[i, 2], mobility[i, 3], mobility[i, 4], mobility[i, 5])
   
-  print '\nAverage translational mobility at CoM = ', (mobility[0, 0]+mobility[1, 1]+mobility[2, 2])/3.0
-  print '#END'
+  print('\nAverage translational mobility at CoM = ', (mobility[0, 0]+mobility[1, 1]+mobility[2, 2])/3.0)
+  print('#END')
 
 
 
