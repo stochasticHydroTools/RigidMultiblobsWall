@@ -67,7 +67,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
-  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
+  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1], dtype=np.int32) 
   nvars = 1
   vardims = np.array([3])
   centering = np.array([0])
