@@ -39,7 +39,7 @@ We modify the mobility to allow overlaps between blobs and between
 blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
-The codes are implemented in python (version 2.x) and it is not necessary to compile the package to use it. 
+The codes are implemented in python (version 3.x or 2.7) and it is not necessary to compile the package to use it. 
 
 We provide alternative implementations in _C++_ (through the Boost Python
 library), _numba_ and _pycuda_ for some of the most computationally 
