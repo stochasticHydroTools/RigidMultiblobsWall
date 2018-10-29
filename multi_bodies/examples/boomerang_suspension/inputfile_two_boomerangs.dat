@@ -9,7 +9,7 @@ scheme                                   stochastic_Slip_Trapz
 # We recommend to use the C++ implementation which is faster,
 # see documentation
 mobility_blobs_implementation            python
-mobility_vector_prod_implementation      numba
+mobility_vector_prod_implementation      python
 
 # Select implementation to compute the blobs-blob interactions
 blob_blob_force_implementation           python
@@ -17,8 +17,8 @@ body_body_force_torque_implementation	   python
 
 # Set time step, number of steps and save frequency
 dt                                       0.01
-n_steps                                  100000
-n_save                                   100
+n_steps                                  10
+n_save                                   1
 initial_step				                     0
 
 # Solver params
