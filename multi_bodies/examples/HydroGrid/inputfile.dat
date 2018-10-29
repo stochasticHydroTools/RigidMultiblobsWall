@@ -46,11 +46,11 @@ periodic_length                        30 30 0
 call_HydroGrid                         True
 save_HydroGrid                         0
 sample_HydroGrid                       1
-green_particles                        0 10
+green_particles                        0 450
 cells                                  60 60
 
 # Set output name
-output_name				                     data/run
+output_name				                     run
 save_clones				                     one_file
 
 # Read structures

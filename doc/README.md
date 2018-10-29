@@ -78,11 +78,12 @@ to modify slightly to reflect your Python version, etc.).
 The code includes a utility to write the fluid velocity field to VTK
 files. To use it is necessary to compile the _C++_ code in `visit/`,
 you need to edit the Makefile to reflect your environment.
+You need the library boost 1.63 or higher.
 
 ### 1.4 HydroGrid interface
 Our codes can call HydroGrid
 (https://github.com/stochasticHydroTools/HydroGrid) to calculate
-Structure factors from the particles concentration. To use it the
+structure factors from the particles concentration. To use it the
 first step is to download and build HydroGrid including the library
 `calculateConcentration.so`. Then either copy that file to `multi_bodies/`
 or edit the lines
@@ -92,7 +93,7 @@ or edit the lines
 # sys.path.append('../../HydroGrid/src/')
 ```
 
-in `multi_bodies/multi_bodies.py` with the path to `calculateConcentration.so`.
+in `multi_bodies/multi_bodies.py` with the path to `libCallHydroGrid.so`.
 
 ## 2. Rigid bodies configuration
 We use a vector (3 numbers) and a quaternion (4 numbers) to represent the 
@@ -507,6 +508,33 @@ computed using the minimum image convention as with standard periodic
 boundary conditions. Hydrodynamic interactions are computed between
 particles in the unit cell and the first neighbor cells along the
 pseudo-periodic axis. PPBC along the z axis are not supported.
+
+* `call_HydroGrid`: (string (default `False`)) if True and the library
+`HydroGrid` is available it will call `HydroGrid` to compute several structure
+factors. See section 1.4 to see how to install HydroGrid. This option
+should be used with periodic domains in the xy plane (see option
+`periodic_length`). You need to have a file `hydroGridOptions.nml` in
+the folder where you run the simulation. See the example in
+`multi_bodies/examples/HydroGrid/`. 
+
+* `sample_HydroGrid`: (int (default 1)) call HydroGrid every
+`sample_HydroGrid` steps to sample the system.
+
+* `save_HydroGrid`: (int (default 0)) save HydroGrid information every
+`save_HydroGrid` steps. The average restarts after saving the data.
+If 0 the conde only saves the final information. Use 0 if you want to
+average over the whole simulations.
+
+* `cells`: (two ints (default 1 1)) The blobs location define a 
+discrete concentration field in the xy plane c(x,y) with `cells`
+number of cells along the x and y axes. This concentration is passed
+to HydroGrid to compute several structures factors.
+
+* `green_particles`: (two ints (default 0 0)) Bolbs with index
+`green_particles[0] <= index < green_particles[1]` are labeled green,
+the others are labelled red. This option has not any effect on the
+dynamics of the simulation but it is used by HydroGrid to compute
+several structures factors. 
 
 ### 5.2 Rollers simulations
 We can also use the code `multi_bodies.py` to run simulations of
