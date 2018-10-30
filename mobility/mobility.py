@@ -1169,6 +1169,40 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args
   return velocities
 
 
+def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level by the force 
+  on the blobs.
+  Mobility for particles near a wall, fixed in a plane.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  # Compute B * force
+  if overlap is True:
+    force = B.dot(force.flatten())
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.in_plane_mobility_trans_times_force_numba(r_vectors_effective, force, eta, a, L)
+  # Compute B.T * M * B * vector
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
+
+
 def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, *args, **kwargs):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -1199,6 +1233,28 @@ def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, *ar
     torque = B.dot(torque.flatten())
   # Compute M_tilde * B * force
   velocities = mobility_numba.single_wall_mobility_trans_times_torque_numba(r_vectors_effective, torque, eta, a, L)
+  # Compute B.T * M * B * vector
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
+
+def in_plane_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs. Mobility for particles on top of an infinite wall.
+  
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+  # Compute B * force
+  if overlap is True:
+    torque = B.dot(torque.flatten())
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.in_plane_mobility_trans_times_torque_numba(r_vectors_effective, torque, eta, a, L)
   # Compute B.T * M * B * vector
   if overlap is True:
     velocities = B.dot(velocities)

@@ -1,0 +1,11 @@
+to run the example, type
+python multi_bodies.py --input-file G_of_R.inputfile
+
+to analyze the pair correlation function (PCF), type:
+make 
+to generate n executable 'gr_pseudo2D'
+then run:
+./gr_pseudo2D run.N_1875_tilt_0.0.config 1875 402.75 161.25 0 > G_of_R_data.dat
+to generate a file with the PCF data
+comparre this with the file:
+MCMC_G_of_R_data.dat
