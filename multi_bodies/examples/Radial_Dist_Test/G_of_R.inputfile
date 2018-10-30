@@ -11,14 +11,14 @@ scheme                                   stochastic_adams_bashforth_rollers
 # Select implementation to compute M and M*f
 # We recommend to use the C++ implementation which is faster,
 # see documentation
-mobility_blobs_implementation            C++
+mobility_blobs_implementation            numba
 mobility_vector_prod_implementation      pycuda
 
 # Select implementation to compute the blobs-blob interactions
-blob_blob_force_implementation           pycuda
+blob_blob_force_implementation           numba
 
 # Set time step, number of steps and save frequency
-dt                                       0.25
+dt                                       1.0 #0.25
 n_steps                                  42580
 n_save                                   5
 initial_step			         0
@@ -34,8 +34,8 @@ initial_step			         0
 
 
 # Solver params
-solver_tolerance                         1.0e-3
-
+solver_tolerance                         1.0e-12
+seed 					 1
 
 # Set fluid viscosity (eta), gravity*blob_mass (g) and blob radius
 eta                                      1.0e-3
@@ -65,7 +65,7 @@ repulsion_strength	   		 0.016
 debye_length	   			 0.21
 
 # Set output name
-output_name                              /fhd/bsprinkle/Sedimentation/G_of_R
+output_name                              ./run
 save_clones				                       one_file
 
 structure	../../Structures/blob.vertex	./G_of_R.clones
