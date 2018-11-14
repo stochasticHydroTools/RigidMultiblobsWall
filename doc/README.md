@@ -547,9 +547,11 @@ The input file options are the same than for a rigid multiblob
 simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
 following differences:
 
-* `mobility_blobs_implementation` and `mobility_vector_prod_implementation`:
-These options are ignored for rollers -- there is no preconditioner needed for single blobs
-and this code always uses PyCUDA for matrix-vector products.
+* `mobility_blobs_implementation`:
+This option is ignored for rollers -- there is no preconditioner needed for single blobs
+
+* `mobility_vector_prod_implementation`:
+Set this option to use PyCUDA (`pycuda`) or Numba (`numba`) for matrix-vector products.
 
 * `scheme`: (string) Options: `deterministic_forward_euler_rollers,
 stochastic_first_order_rollers, deterministic_adams_bashforth_rollers,
