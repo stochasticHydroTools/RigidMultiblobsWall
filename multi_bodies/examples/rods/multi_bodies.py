@@ -736,6 +736,14 @@ if __name__ == '__main__':
                                0, 
                                get_blobs_r_vectors(bodies, Nblobs))
 
+  # Open config files
+  if read.save_clones == 'one_file':
+    f_ID = []
+    for i, ID in enumerate(structures_ID):
+      name = output_name + '.' + ID + '.config'
+      f = open(name, 'w')
+      f_ID.append(f)
+
   # Loop over time steps
   start_time = time.time()  
   for step in range(read.initial_step, n_steps):
@@ -762,16 +770,17 @@ if __name__ == '__main__':
             body_offset += body_types[i]
       elif read.save_clones == 'one_file':
         for i, ID in enumerate(structures_ID):
-          name = output_name + '.' + ID + '.config'
-          if step == 0:
-            status = 'w'
-          else:
-            status = 'a'
-          with open(name, status) as f_ID:
-            f_ID.write(str(body_types[i]) + '\n')
+          # name = output_name + '.' + ID + '.config'
+          # if step == 0:
+          #   status = 'w'
+          # else:
+          #   status = 'a'
+          # with open(name, status) as f_ID:
+          if True:
+            f_ID[i].write(str(body_types[i]) + '\n')
             for j in range(body_types[i]):
               orientation = bodies[body_offset + j].orientation.entries
-              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+              f_ID[i].write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
                                                      bodies[body_offset + j].location[1], 
                                                      bodies[body_offset + j].location[2], 
                                                      orientation[0], 
@@ -800,12 +809,13 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
 
       # Save wallclock time 
-      with open(output_name + '.time', 'w', 1) as f:
-        f.write(str(time.time() - start_time) + '\n')
-      with open(output_name + '.info', 'w', 1) as f:
-        f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
-                + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
-                + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
+      if step % max(1, n_steps // 100) == 0:
+        with open(output_name + '.time', 'w', 1) as f:
+          f.write(str(time.time() - start_time) + '\n')
+          with open(output_name + '.info', 'w', 1) as f:
+            f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+                    + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+                    + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
 
         
     # Update HydroGrid
@@ -841,6 +851,12 @@ if __name__ == '__main__':
 
     # Advance time step
     integrator.advance_time_step(dt, step = step, n_save = read.n_save)
+
+  # Close config files
+  if read.save_clones == 'one_file':
+    for i, ID in enumerate(structures_ID):
+      f_ID[i].close()
+
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:

@@ -18,7 +18,7 @@ This module defines (and override) the slip function:
 and it defines the new slip function slip_extensile_rod, 
 see below.
 '''
-
+from __future__ import division, print_function
 import multi_bodies_functions
 from multi_bodies_functions import *
 
@@ -66,7 +66,7 @@ def calc_one_blob_forces_new(r_vectors, *args, **kwargs):
   '''
   Compute one-blob forces. It returns an array with shape (Nblobs, 3).
   '''
-  Nblobs = r_vectors.size / 3
+  Nblobs = r_vectors.size // 3
   force_blobs = np.zeros((Nblobs, 3))
   r_vectors = np.reshape(r_vectors, (Nblobs, 3))
   mass_options = kwargs.get('mass_options')
