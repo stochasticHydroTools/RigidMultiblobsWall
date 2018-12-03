@@ -738,10 +738,11 @@ if __name__ == '__main__':
 
   # Open config files
   if read.save_clones == 'one_file':
+    buffering = max(1, min(body_types) * n_steps // n_save // 200)
     f_ID = []
     for i, ID in enumerate(structures_ID):
       name = output_name + '.' + ID + '.config'
-      f = open(name, 'w')
+      f = open(name, 'w', buffering=100)
       f_ID.append(f)
 
   # Loop over time steps
