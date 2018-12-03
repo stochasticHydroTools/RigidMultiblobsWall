@@ -742,7 +742,7 @@ if __name__ == '__main__':
     f_ID = []
     for i, ID in enumerate(structures_ID):
       name = output_name + '.' + ID + '.config'
-      f = open(name, 'w', buffering=100)
+      f = open(name, 'w', buffering=buffering)
       f_ID.append(f)
 
   # Loop over time steps
