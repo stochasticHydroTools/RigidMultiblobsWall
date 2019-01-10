@@ -27,10 +27,10 @@ from config_local import DATA_DIR
 from mobility import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-from utils import log_time_progress
-from utils import static_var
-from utils import StreamToLogger
-from utils import write_trajectory_to_txt
+from general_application_utils import log_time_progress
+from general_application_utils import static_var
+from general_application_utils import StreamToLogger
+from general_application_utils import write_trajectory_to_txt
 
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):

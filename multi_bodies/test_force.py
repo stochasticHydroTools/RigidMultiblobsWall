@@ -4,7 +4,7 @@ import sys
 import imp
 sys.path.append('../')
 
-from utils import timer
+from general_application_utils import timer
 import forces_numba
 import multi_bodies_functions as mbf
 

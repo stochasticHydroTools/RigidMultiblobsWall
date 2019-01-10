@@ -22,7 +22,7 @@ while found_functions is False:
     from quaternion_integrator.quaternion import Quaternion
     from read_input import read_input
     from read_input import read_vertex_file, read_clones_file
-    import utils
+    import general_application_utils as utils
     found_functions = True
   except ImportError:
     path_to_append += '../'

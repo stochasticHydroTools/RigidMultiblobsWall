@@ -10,7 +10,7 @@ import copy
 
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
-import utils
+import general_application_utils as utils
 try:
   from quaternion import Quaternion
 except ImportError:

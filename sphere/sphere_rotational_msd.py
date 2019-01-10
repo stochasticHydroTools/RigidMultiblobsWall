@@ -27,10 +27,10 @@ from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
 import sphere as sph
-from utils import log_time_progress
-from utils import static_var
-from utils import MSDStatistics
-from utils import StreamToLogger
+from general_application_utils import log_time_progress
+from general_application_utils import static_var
+from general_application_utils import MSDStatistics
+from general_application_utils import StreamToLogger
 
 
 

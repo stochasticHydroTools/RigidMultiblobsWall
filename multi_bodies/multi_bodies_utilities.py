@@ -28,7 +28,7 @@ while found_functions is False:
     from read_input import read_input
     from read_input import read_vertex_file
     from read_input import read_clones_file
-    import utils
+    import general_application_utils as utils
     found_functions = True
   except ImportError:
     path_to_append += '../'

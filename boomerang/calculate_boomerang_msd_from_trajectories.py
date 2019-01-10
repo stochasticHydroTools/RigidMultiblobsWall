@@ -27,10 +27,10 @@ sys.path.append('..')
 import boomerang as bm
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
-from utils import MSDStatistics
-from utils import calc_msd_data_from_trajectory
-from utils import read_trajectory_from_txt
-from utils import StreamToLogger
+from general_application_utils import MSDStatistics
+from general_application_utils import calc_msd_data_from_trajectory
+from general_application_utils import read_trajectory_from_txt
+from general_application_utils import StreamToLogger
 
 # Make sure data folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'data')):
