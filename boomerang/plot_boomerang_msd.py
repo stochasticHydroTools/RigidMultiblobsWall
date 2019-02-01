@@ -15,7 +15,7 @@ import os
 
 import boomerang as bm
 from config_local import DATA_DIR
-from utils import plot_time_dependent_msd
+from general_application_utils import plot_time_dependent_msd
 
 
 def calculate_boomerang_parallel_mobility_coh(n_samples, sample_file):

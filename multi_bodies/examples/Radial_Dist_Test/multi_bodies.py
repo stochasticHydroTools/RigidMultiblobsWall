@@ -33,7 +33,7 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
-    import utils
+    import general_application_utils as utils
     try:
       import calculateConcentration as cc
       found_HydroGrid = True

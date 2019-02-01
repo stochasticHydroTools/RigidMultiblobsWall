@@ -9,7 +9,7 @@ import vtk
 import boomerang as bm
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
-from utils import read_trajectory_from_txt
+from general_application_utils import read_trajectory_from_txt
 
 
 N_SPHERES = len(bm.M)

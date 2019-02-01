@@ -20,7 +20,7 @@ except ImportError:
 sys.path.append('../')
 from quaternion_integrator.quaternion import Quaternion
 import mobility as mob
-from utils import timer
+from general_application_utils import timer
 
 
 

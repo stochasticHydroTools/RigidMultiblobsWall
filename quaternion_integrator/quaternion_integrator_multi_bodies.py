@@ -10,9 +10,9 @@ import copy
 
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
-# from multi_bodies import multi_bodies_utilities as mbu
 from plot import plot_velocity_field as pvf
-import utils
+import general_application_utils as utils
+
 try:
   from quaternion import Quaternion
 except ImportError:

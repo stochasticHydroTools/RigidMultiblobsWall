@@ -5,7 +5,7 @@ import numpy as np
 
 import boomerang as bmr
 from quaternion_integrator.quaternion import Quaternion
-from utils import transfer_mobility
+from general_application_utils import transfer_mobility
 
 class TestBoomerang(unittest.TestCase):
   

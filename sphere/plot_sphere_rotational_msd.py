@@ -11,8 +11,8 @@ import cPickle
 import sys
 sys.path.append('..')
 
-from utils import plot_time_dependent_msd
-from utils import MSDStatistics
+from general_application_utils import plot_time_dependent_msd
+from general_application_utils import MSDStatistics
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ import imp
 import os.path
 from functools import partial
 
-import utils
+import general_application_utils as utils
 from quaternion_integrator.quaternion import Quaternion
 
 # Try to import the forces boost implementation

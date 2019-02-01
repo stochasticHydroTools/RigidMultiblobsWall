@@ -10,7 +10,7 @@ from body import body
 from quaternion_integrator.quaternion import Quaternion
 from read_input import read_input
 from read_input import read_vertex_file, read_clones_file
-import utils
+import general_application_utils as utils
 
 class InvalidProbability(Exception):
   def __init__(self, value):
