@@ -35,7 +35,6 @@ while found_functions is False:
     from read_input import read_slip_file
     from read_input import read_velocity_file
     import general_application_utils as utils
-    # import utils
     try:
       import libCallHydroGrid as cc
       found_HydroGrid = True
