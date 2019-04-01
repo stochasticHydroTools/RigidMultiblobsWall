@@ -4,12 +4,12 @@ configuration of a multibody supensions and it can save some data like
 the velocities or forces on the bodies, the mobility of a body or
 the mobility of the blobs.
 '''
+from __future__ import division, print_function
 import argparse
 import numpy as np
 import scipy.linalg as sla
 import scipy.sparse.linalg as spla
 import subprocess
-import cPickle
 from functools import partial
 import sys
 import time
@@ -28,13 +28,14 @@ while found_functions is False:
     from read_input import read_input
     from read_input import read_vertex_file
     from read_input import read_clones_file
+    import general_application_utils as utils
     found_functions = True
   except ImportError:
     path_to_append += '../'
-    print 'searching functions in path ', path_to_append
+    print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
-      print '\nProjected functions not found. Edit path in multi_bodies_utilities.py'
+      print('\nProjected functions not found. Edit path in multi_bodies_utilities.py')
       sys.exit()
 
 # Try to import the visit_writer (boost implementation)
@@ -42,7 +43,6 @@ try:
   import visit.visit_writer as visit_writer
 except ImportError:
   pass
-
 
 # Callback generator
 class gmres_counter(object):
@@ -56,8 +56,8 @@ class gmres_counter(object):
     self.niter += 1
     if self.print_residual is True:
       if self.niter == 1:
-        print 'gmres =  0 1'
-      print 'gmres = ', self.niter, rk
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 
 
 def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, *args, **kwargs):
@@ -68,7 +68,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid = np.reshape(grid, (3,3)).T
   grid_length = grid[1] - grid[0]
   grid_points = np.array(grid[2], dtype=np.int32)
-  num_points = reduce(lambda x,y: x*y, grid_points)
+  num_points = grid_points[0] * grid_points[1] * grid_points[2]
 
   # Set grid coordinates
   dx_grid = grid_length / grid_points
@@ -83,8 +83,8 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,2] = np.reshape(zz, zz.size)
 
   # Set radius of blobs (= a) and grid nodes (= 0)
-  radius_source = np.ones(r_vectors_blobs.size / 3) * blob_radius 
-  radius_target = np.ones(grid_coor.size / 3) * tracer_radius
+  radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
+  radius_target = np.ones(grid_coor.size // 3) * tracer_radius
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
@@ -105,7 +105,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       radius_target, 
                                                                       eta, 
                                                                       *args, 
-                                                                      **kwargs) 
+                                                                      **kwargs)
   else:
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 
@@ -118,7 +118,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
-  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1]) 
+  dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1], dtype=np.int32) 
   nvars = 1
   vardims = np.array([3])
   centering = np.array([0])
@@ -167,8 +167,9 @@ if __name__ ==  '__main__':
   # Create rigid bodies
   bodies = []
   body_types = []
+  body_names = []
   for ID, structure in enumerate(read.structures):
-    print 'Creating structures = ', structure[1]
+    print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     # Read slip file if it exists
@@ -176,6 +177,7 @@ if __name__ ==  '__main__':
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
     body_types.append(num_bodies_struct)
+    body_names.append(read.structures_ID[ID])
     # Creat each body of tyoe structure
     for i in range(num_bodies_struct):
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, read.blob_radius)
@@ -198,6 +200,7 @@ if __name__ ==  '__main__':
   # Write bodies information
   with open(read.output_name + '.bodies_info', 'w') as f:
     f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
+    f.write('body_names         ' + str(body_names) + '\n')
     f.write('body_types         ' + str(body_types) + '\n')
     f.write('num_bodies         ' + str(num_bodies) + '\n')
     f.write('num_blobs          ' + str(Nblobs) + '\n')
@@ -209,24 +212,21 @@ if __name__ ==  '__main__':
     slip = np.zeros((Nblobs, 3))
 
   # Read forces file
-  force_torque = np.zeros((num_bodies, 6))
   if read.force_file is not None:
-    with open(read.force_file, 'r') as f:
-      for k, line in enumerate(f):
-        force_torque[k] = np.array(map(float, line.split()))
-  force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+    force_torque = np.loadtxt(read.force_file)
+    force_torque = np.reshape(force_torque, (2*num_bodies, 3))
+  else:
+    force_torque = np.zeros((2*num_bodies, 3))
     
   # Read velocity file
-  velocity = np.zeros((num_bodies, 6))
   if read.velocity_file is not None:
-    with open(read.velocity_file, 'r') as f:
-      for k, line in enumerate(f):
-        velocity[k] = np.array(map(float, line.split()))
+    velocity = np.loadtxt(read.velocity_file)
     velocity = np.reshape(velocity, (2*num_bodies, 3))
-
+  else:
+    velocity = np.zeros((2*num_bodies, 3))
+    
 
   # If scheme == mobility solve mobility problem
-  start_time = time.time()  
   if read.scheme == 'mobility':
     start_time = time.time()  
     # Get blobs coordinates
@@ -245,7 +245,7 @@ if __name__ ==  '__main__':
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
-    RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
+    RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))       
     
     # Set linear operators 
     linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius)
@@ -293,15 +293,14 @@ if __name__ ==  '__main__':
         N = b.calc_mobility_body_scalar(read.eta, read.blob_radius, M_inv = M_inv)
         mobility_bodies[k] = N
 
-
     # 4. Pack preconditioner
     PC_partial = partial(multi_bodies.block_diagonal_preconditioner, bodies=bodies, mobility_bodies=mobility_bodies, \
-                         mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs, method=PC_method)
-    PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')               
-      
+                           mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs, PC_method=PC_method)
+    PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
+
     # Solve preconditioned linear system 
     counter = gmres_counter(print_residual = args.print_residual)
-    (sol_precond, info_precond) = spla.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
+    (sol_precond, info_precond) = utils.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
     
     # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
@@ -310,11 +309,11 @@ if __name__ ==  '__main__':
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
-    print 'Time to solve mobility problem =', time.time() - start_time 
+    print('Time to solve mobility problem =', time.time() - start_time )
 
     # Plot velocity field
-    if read.plot_velocity_field.size > 1:
-      print 'plot_velocity_field'
+    if read.plot_velocity_field.size > 1: 
+      print('plot_velocity_field')
       np.savetxt(read.output_name + '.lambda.dat', lambda_blobs)
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
@@ -344,11 +343,11 @@ if __name__ ==  '__main__':
     # Save force
     name = read.output_name + '.force.dat'
     np.savetxt(name, force, delimiter='  ')
-    print 'Time to solve resistance problem =', time.time() - start_time  
+    print('Time to solve resistance problem =', time.time() - start_time  )
 
     # Plot velocity field
     if read.plot_velocity_field.size > 1: 
-      print 'plot_velocity_field'
+      print('plot_velocity_field')
       lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
@@ -363,10 +362,10 @@ if __name__ ==  '__main__':
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
-    print 'Time to compute body mobility =', time.time() - start_time
+    print('Time to compute body mobility =', time.time() - start_time)
     
   elif (read.scheme == 'plot_velocity_field' and False):
-    print 'plot_velocity_field'
+    print('plot_velocity_field')
     # Compute slip 
 
     # Compute forces
@@ -374,6 +373,7 @@ if __name__ ==  '__main__':
     # Solve mobility problem
 
     # Compute velocity field
+
 
 
   # Save wallclock time 
@@ -396,10 +396,9 @@ if __name__ ==  '__main__':
                                                orientation[1], 
                                                orientation[2], 
                                                orientation[3]))
-      body_offset += body_types[i]
+    body_offset += body_types[i]
 
-
-  print '\n\n\n# End'
+  print('\n\n\n# End')
 
 
 

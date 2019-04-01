@@ -487,7 +487,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs, *args, **kwargs):
   '''
   Block diagonal preconditioner for rigid bodies.
   It solves exactly the mobility problem for each body
