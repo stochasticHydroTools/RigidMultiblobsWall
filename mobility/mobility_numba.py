@@ -239,8 +239,8 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
             Mzy = Myz
 
             # Wall correction
-            rz = (r_vectors[i,2] + r_vectors[j,2]) / a
-            hj = r_vectors[j,2] / a
+            rz = (rzi + rz_vec[j]) * inva
+            hj = rz_vec[j] * inva
 
             if i == j_image:
               invZi = 1.0 / hj
@@ -258,7 +258,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               ez = rz * invR
               invR3 = invR * invR * invR
               invR5 = invR3 * invR * invR
-    
+                  
               fact1 = -(3.0*(1.0+2.0*h_hat*(1.0-h_hat)*ez*ez) * invR + 2.0*(1.0-3.0*ez*ez) * invR3 - 2.0*(1.0-5.0*ez*ez) * invR5)  / 3.0
               fact2 = -(3.0*(1.0-6.0*h_hat*(1.0-h_hat)*ez*ez) * invR - 6.0*(1.0-5.0*ez*ez) * invR3 + 10.0*(1.0-7.0*ez*ez) * invR5) / 3.0
               fact3 =  ez * (3.0*h_hat*(1.0-6.0*(1.0-h_hat)*ez*ez) * invR - 6.0*(1.0-5.0*ez*ez) * invR3 + 10.0*(2.0-7.0*ez*ez) * invR5) * 2.0 / 3.0
