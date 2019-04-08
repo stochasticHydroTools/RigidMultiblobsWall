@@ -173,16 +173,9 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
           for j in range(N):
 	  
             # Compute vector between particles i and j
-            # rx = r_vectors[i,0] - r_vectors[j,0]
-            # ry = r_vectors[i,1] - r_vectors[j,1]
-            # rz = r_vectors[i,2] - r_vectors[j,2]
-            #rx = rx_vec[i] - rx_vec[j]
-            #ry = ry_vec[i] - ry_vec[j]
-            #rz = rz_vec[i] - rz_vec[j]
             rx = rxi - rx_vec[j]
             ry = ryi - ry_vec[j]
             rz = rzi - rz_vec[j]
-
 
             # Project a vector r to the extended unit cell
             # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
@@ -283,19 +276,13 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               Mzz += fact1 + fact2 * ez*ez + fact3 * ez + fact4 * ez + fact5
 	  
             # 2. Compute product M_ij * F_j           
-            #u[i,0] += (Mxx * force[j,0] + Mxy * force[j,1] + Mxz * force[j,2]) * norm_fact_f
-            #u[i,1] += (Myx * force[j,0] + Myy * force[j,1] + Myz * force[j,2]) * norm_fact_f
-            #u[i,2] += (Mzx * force[j,0] + Mzy * force[j,1] + Mzz * force[j,2]) * norm_fact_f
-            #u[i,0] += (Mxx * fx_vec[j] + Mxy * fy_vec[j] + Mxz * fz_vec[j]) * norm_fact_f
-            #u[i,1] += (Myx * fx_vec[j] + Myy * fy_vec[j] + Myz * fz_vec[j]) * norm_fact_f
-            #u[i,2] += (Mzx * fx_vec[j] + Mzy * fy_vec[j] + Mzz * fz_vec[j]) * norm_fact_f
             ux_vec[i] += (Mxx * fx_vec[j] + Mxy * fy_vec[j] + Mxz * fz_vec[j]) * norm_fact_f
             uy_vec[i] += (Myx * fx_vec[j] + Myy * fy_vec[j] + Myz * fz_vec[j]) * norm_fact_f
             uz_vec[i] += (Mzx * fx_vec[j] + Mzy * fy_vec[j] + Mzz * fz_vec[j]) * norm_fact_f
 
-  u[:,0] = ux_vec
-  u[:,1] = uy_vec
-  u[:,2] = uz_vec
+    u[i,0] = ux_vec[i]
+    u[i,1] = uy_vec[i]
+    u[i,2] = uz_vec[i]
 
   return u.flatten()
 
