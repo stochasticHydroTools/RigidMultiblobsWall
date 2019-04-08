@@ -120,7 +120,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -141,39 +141,55 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
   periodic_x = 0
   periodic_y = 0
-  periodic_z = 0
-  if L[0] > 0:
+  periodic_z = 0 
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
+  if Lx > 0:
     periodic_x = 1
-  if L[1] > 0:
+  if Ly > 0:
     periodic_y = 1
-  if L[2] > 0:
+  if Lz > 0:
     periodic_z = 1
-
+    
+  rx_vec = np.copy(r_vectors[:,0])
+  ry_vec = np.copy(r_vectors[:,1])
+  rz_vec = np.copy(r_vectors[:,2])
+  fx_vec = np.copy(force[:,0])
+  fy_vec = np.copy(force[:,1])
+  fz_vec = np.copy(force[:,2])
+  ux_vec = np.zeros(N)
+  uy_vec = np.zeros(N)
+  uz_vec = np.zeros(N)
+    
   # Loop over image boxes and then over particles
   for i in prange(N):
+    rxi = rx_vec[i]
+    ryi = ry_vec[i]
+    rzi = rz_vec[i]
     for boxX in range(-periodic_x, periodic_x+1):
       for boxY in range(-periodic_y, periodic_y+1):
         for boxZ in range(-periodic_z, periodic_z+1):
           for j in range(N):
 	  
             # Compute vector between particles i and j
-            rx = r_vectors[i,0] - r_vectors[j,0]
-            ry = r_vectors[i,1] - r_vectors[j,1]
-            rz = r_vectors[i,2] - r_vectors[j,2]
+            rx = rxi - rx_vec[j]
+            ry = ryi - ry_vec[j]
+            rz = rzi - rz_vec[j]
 
             # Project a vector r to the extended unit cell
             # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
             # any dimension of L is equal or smaller than zero the 
             # box is assumed to be infinite in that direction.
-            if L[0] > 0:
-              rx = rx - int(rx / L[0] + 0.5 * (int(rx>0) - int(rx<0))) * L[0]
-              rx = rx + boxX * L[0]
-            if L[1] > 0:
-              ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-              ry = ry + boxY * L[1]              
-            if L[2] > 0:
-              rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
-              rz = rz + boxZ * L[2]            
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
                
             # 1. Compute mobility for pair i-j, if i==j use self-interation
             j_image = j
@@ -223,8 +239,8 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
             Mzy = Myz
 
             # Wall correction
-            rz = (r_vectors[i,2] + r_vectors[j,2]) / a
-            hj = r_vectors[j,2] / a
+            rz = (rzi + rz_vec[j]) * inva
+            hj = rz_vec[j] * inva
 
             if i == j_image:
               invZi = 1.0 / hj
@@ -242,7 +258,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               ez = rz * invR
               invR3 = invR * invR * invR
               invR5 = invR3 * invR * invR
-    
+                  
               fact1 = -(3.0*(1.0+2.0*h_hat*(1.0-h_hat)*ez*ez) * invR + 2.0*(1.0-3.0*ez*ez) * invR3 - 2.0*(1.0-5.0*ez*ez) * invR5)  / 3.0
               fact2 = -(3.0*(1.0-6.0*h_hat*(1.0-h_hat)*ez*ez) * invR - 6.0*(1.0-5.0*ez*ez) * invR3 + 10.0*(1.0-7.0*ez*ez) * invR5) / 3.0
               fact3 =  ez * (3.0*h_hat*(1.0-6.0*(1.0-h_hat)*ez*ez) * invR - 6.0*(1.0-5.0*ez*ez) * invR3 + 10.0*(2.0-7.0*ez*ez) * invR5) * 2.0 / 3.0
@@ -260,9 +276,13 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               Mzz += fact1 + fact2 * ez*ez + fact3 * ez + fact4 * ez + fact5
 	  
             # 2. Compute product M_ij * F_j           
-            u[i,0] += (Mxx * force[j,0] + Mxy * force[j,1] + Mxz * force[j,2]) * norm_fact_f
-            u[i,1] += (Myx * force[j,0] + Myy * force[j,1] + Myz * force[j,2]) * norm_fact_f
-            u[i,2] += (Mzx * force[j,0] + Mzy * force[j,1] + Mzz * force[j,2]) * norm_fact_f
+            ux_vec[i] += (Mxx * fx_vec[j] + Mxy * fy_vec[j] + Mxz * fz_vec[j]) * norm_fact_f
+            uy_vec[i] += (Myx * fx_vec[j] + Myy * fy_vec[j] + Myz * fz_vec[j]) * norm_fact_f
+            uz_vec[i] += (Mzx * fx_vec[j] + Mzy * fy_vec[j] + Mzz * fz_vec[j]) * norm_fact_f
+
+    u[i,0] = ux_vec[i]
+    u[i,1] = uy_vec[i]
+    u[i,2] = uz_vec[i]
 
   return u.flatten()
 
