@@ -241,7 +241,8 @@ if __name__ ==  '__main__':
                                                                                    debye_length_wall = read.debye_length_wall, 
                                                                                    repulsion_strength = read.repulsion_strength, 
                                                                                    debye_length = read.debye_length, 
-                                                                                   periodic_length = read.periodic_length) 
+                                                                                   periodic_length = read.periodic_length,
+                                                                                   mass_options = read.mass_options) 
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
