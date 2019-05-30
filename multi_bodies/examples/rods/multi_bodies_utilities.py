@@ -106,6 +106,12 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       eta, 
                                                                       *args, 
                                                                       **kwargs)
+  elif False:
+    grid_velocity = mob.single_wall_pressure_Stokeslet_numba(r_vectors_blobs, 
+                                                             grid_coor, 
+                                                             lambda_blobs, 
+                                                             *args, 
+                                                             **kwargs) 
   else:
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 
@@ -120,10 +126,13 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
   dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1], dtype=np.int32) 
   nvars = 1
-  vardims = np.array([3])
   centering = np.array([0])
+  vardims = np.array([3])
   varnames = ['velocity\0']
   name = output + '.velocity_field.vtk'
+  #vardims = np.array([1])
+  #varnames = ['pressure\0']
+  #name = output + '.pressure_field.vtk'
   grid_x = grid_x - dx_grid[0] * 0.5
   grid_y = grid_y - dx_grid[1] * 0.5
   grid_z = grid_z - dx_grid[2] * 0.5
