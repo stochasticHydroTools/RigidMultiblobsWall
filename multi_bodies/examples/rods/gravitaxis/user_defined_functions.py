@@ -104,7 +104,6 @@ def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
 
   # Compute force
   F = -g * np.array([np.sin(alpha), 0, np.cos(alpha)])
-  print('F = ', F)
   force_torque[0::2,:] = F
 
   # Rotate r_gc_to_com and compute torque
