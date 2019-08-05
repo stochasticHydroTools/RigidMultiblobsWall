@@ -43,14 +43,14 @@ def blob_external_force_new(r_vectors, *args, **kwargs):
   f = np.zeros(3)
 
   # Get parameters from arguments
-  blob_mass = kwargs.get('blob_mass')
+  # blob_mass = kwargs.get('blob_mass')
   blob_radius = kwargs.get('blob_radius')
-  g = kwargs.get('g')
+  # g = kwargs.get('g')
   repulsion_strength_wall = kwargs.get('repulsion_strength_wall') 
   debye_length_wall = kwargs.get('debye_length_wall')
-  alpha = kwargs.get('alpha')
+  # alpha = kwargs.get('alpha')
   # Add gravity
-  f += -g * blob_mass * np.array([np.sin(alpha), 0., np.cos(alpha)])
+  # f += -g * blob_mass * np.array([np.sin(alpha), 0., np.cos(alpha)])
 
   # Add wall interaction
   h = r_vectors[2]
@@ -81,7 +81,39 @@ def calc_one_blob_forces_new(r_vectors, *args, **kwargs):
     force_blobs[blob] += multi_bodies_functions.blob_external_force(r_vectors[blob], alpha=alpha, *args, **kwargs)   
 
   return force_blobs
-multi_bodies_functions.calc_one_blob_forces = calc_one_blob_forces_new
+# multi_bodies_functions.calc_one_blob_forces = calc_one_blob_forces_new
+
+
+def bodies_external_force_torque_new(bodies, r_vectors, *args, **kwargs):
+  '''
+  The force is F = m * g * (sin(alpha), 0, cos(alpha))
+  m = 1.0
+  g = from input file, adjusted to have the correct m*g
+
+  The torque is T = r' \cross F
+  with r' = rotation_matrix * r_from_geometric_center_to_center_of_mass
+
+  r_from_geometric_center_to_center_of_mass = from input file, for homogeneus rods is (0,0,0)
+  '''
+  force_torque = np.zeros((2*len(bodies), 3))
+
+  # Get parameters
+  g = kwargs.get('g')
+  r_gc_to_com = kwargs.get('r_gc_to_com')
+  alpha = kwargs.get('alpha')
+
+  # Compute force
+  F = -g * np.array([np.sin(alpha), 0, np.cos(alpha)])
+  print('F = ', F)
+  force_torque[0::2,:] = F
+
+  # Rotate r_gc_to_com and compute torque
+  for k, b in enumerate(bodies):
+    rotation_matrix = b.orientation.rotation_matrix()
+    r = np.dot(rotation_matrix, r_gc_to_com)
+    force_torque[2*k+1,:] = np.cross(r, F)
+  return force_torque
+multi_bodies_functions.bodies_external_force_torque = bodies_external_force_torque_new
 
 
 def set_slip_by_ID_new(body, slip, *args, **kwargs):

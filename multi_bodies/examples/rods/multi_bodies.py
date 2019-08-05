@@ -696,7 +696,9 @@ if __name__ == '__main__':
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
                                                periodic_length = read.periodic_length,
-                                               mass_options = read.mass_options) 
+                                               mass_options = read.mass_options,
+                                               r_gc_to_com = read.r_gc_to_com,
+                                               alpha = read.alpha) 
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
