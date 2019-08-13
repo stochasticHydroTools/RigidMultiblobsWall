@@ -20,4 +20,4 @@ See options for the simulations in the input file
 `inputfile_rollers.dat`.
 
 To visulaize, run the program `./run_rollers/plot_config.m' in MATLAB after data has been generated
-in the directory `run_rollers'.
+in the directory `./run_rollers'.
