@@ -21,3 +21,5 @@ See options for the simulations in the input file
 
 To visulaize, run the program `./run_rollers/plot_config.m` in MATLAB after data has been generated
 in the directory `./run_rollers`.
+
+Run the example to at least 700-800 steps to see the formation of a critter
