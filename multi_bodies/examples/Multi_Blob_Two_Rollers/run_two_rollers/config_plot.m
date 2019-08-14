@@ -21,7 +21,7 @@ A(1:(n_bods+1):end,:) = [];
 N = length(A)/n_bods;
 n_save = 2;
 dt = n_save*0.01;
-skip = 10;
+skip = 1;
 
 
 k = 0;
