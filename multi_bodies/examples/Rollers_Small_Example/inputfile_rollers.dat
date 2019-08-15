@@ -19,7 +19,7 @@ debye_length	   			                 0.0656
 # Set time step, number of steps and save frequency
 dt		 	   	     	                     0.016
 n_steps					                       10000
-n_save  				                       10
+n_save  				                       1
 initial_step				                   0
 solver_tolerance			                 1e-3
 
