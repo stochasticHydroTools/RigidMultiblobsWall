@@ -13,8 +13,10 @@ A(1:(n_bods+1):end,:) = [];
 
 
 N = length(A)/n_bods;
-n_save = 10;
+%%% the number of saved timesteps from the inputfile
+n_save = 1;
 dt = n_save*0.016;
+%%% number of steps to skip in visualization
 skip = 10;
 
 
@@ -69,5 +71,4 @@ for i = 1:skip:(length(A)/n_bods)
     drawnow
     
     hold off
-    %print('-dpng',['chain_pngs/helix_40_no_twist_' num2str(k) '.png'],'-r100')
 end
