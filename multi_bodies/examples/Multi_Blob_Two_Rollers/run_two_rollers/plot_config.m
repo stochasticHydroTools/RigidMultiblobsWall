@@ -9,10 +9,10 @@ set(0,'defaultAxesFontSize',35)
 
 %%% set to 1 to plot the multiblob model (slow)
 %%% set to 0 to just plot spheres with orientation markers (fast)
-plot_blobs = 1;
+plot_blobs = 0;
 
 %%% weather to print results
-print_pngs = 0;
+print_pngs = 1;
 
 if plot_blobs==1
     %%% change this to the nuber of blobs used in the simulation
@@ -40,9 +40,6 @@ else
 end
 
 
-
-
-
 [sx, sy, sz] = sphere(20);
 figure(1)
 
@@ -57,7 +54,7 @@ N = length(A)/n_bods;
 n_save = 1;
 dt = n_save*0.01;
 %%% number of timesteps to skip in visualization
-skip = 1;
+skip = 10;
 
 
 k = 0;

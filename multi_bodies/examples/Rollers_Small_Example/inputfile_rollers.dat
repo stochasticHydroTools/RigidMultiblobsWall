@@ -18,8 +18,8 @@ debye_length	   			                 0.0656
 
 # Set time step, number of steps and save frequency
 dt		 	   	     	                     0.016
-n_steps					                       10000
-n_save  				                       1
+n_steps					                       1000
+n_save  				                       5
 initial_step				                   0
 solver_tolerance			                 1e-3
 
@@ -32,7 +32,10 @@ kT					                           0.0041419464
 
 # Set external torque / angular velocity
 omega_one_roller			                 0.0	 62.8	      0.0
+# To have periodic BCs in the y direction use:
 periodic_length						 0.0	86.7232	0.0
+# To have aperiodic BCs in the y direction use:
+periodic_length						 0.0	0.0	0.0
 
 # Select free or constrained kinematics
 free_kinematics				                 True

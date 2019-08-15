@@ -14,10 +14,12 @@ A(1:(n_bods+1):end,:) = [];
 
 N = length(A)/n_bods;
 %%% the number of saved timesteps from the inputfile
-n_save = 1;
+n_save = 5;
 dt = n_save*0.016;
 %%% number of steps to skip in visualization
-skip = 10;
+skip = 1;
+%%% weather to print results
+print_pngs = 1;
 
 
 k = 0;
@@ -71,4 +73,9 @@ for i = 1:skip:(length(A)/n_bods)
     drawnow
     
     hold off
+
+    if print_pngs == 1
+        print('-dpng',['../roller_pngs/rollers_' num2str(k) '.png'],'-r100')
+    end
+
 end
