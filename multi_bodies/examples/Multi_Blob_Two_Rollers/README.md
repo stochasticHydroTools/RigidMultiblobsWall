@@ -19,3 +19,5 @@ To run a deterministic simulation using 12 blobs per roller, simply execute
 `python multi_bodies.py --input-file inputfile_rollers.dat`
 
 The result of a simulation is sved in the directoy `./run_two_rollers` and can be visualized using the MATLAB file `config_plot.m`
+
+To save `.png` images of the movie, make a directory called `roller_pngs` in the `Multi_Blob_Two_Rollers` directoy and set `print_pngs = 1;` at line 15 of `config_plot.m`
