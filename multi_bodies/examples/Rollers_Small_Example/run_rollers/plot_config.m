@@ -4,7 +4,7 @@ clf
 
 a = 0.656;
 [sx, sy, sz] = sphere(20);
-figure(1)
+fig1=figure(1)
 
 
 A = dlmread('./data.16_lines.config');
@@ -26,6 +26,8 @@ k = 0;
 Lp=86.7232
 [X, Y] = meshgrid([0:0.5:Lp],[0:0.5:Lp]);
 
+%set(fig1,'units','normalized','outerposition',[0 0 0.5 0.5]) % Half a screen
+set(fig1,'units','normalized','outerposition',[0 0 1 1]) % Full screen
 
 for i = 1:skip:(length(A)/n_bods)
     clf

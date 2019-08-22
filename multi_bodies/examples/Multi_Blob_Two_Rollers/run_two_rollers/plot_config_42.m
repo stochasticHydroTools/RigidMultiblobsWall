@@ -12,11 +12,11 @@ set(0,'defaultAxesFontSize',35)
 plot_blobs = 1;
 
 %%% weather to print results
-print_pngs = 0;
+print_pngs = 1;
 
 if plot_blobs==1
     %%% change this to the nuber of blobs used in the simulation
-    blobs_plot = 12
+    blobs_plot = 42 %12
     switch blobs_plot
         case 12
             Body = dlmread('../../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex');

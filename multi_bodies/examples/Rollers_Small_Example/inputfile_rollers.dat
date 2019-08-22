@@ -33,8 +33,8 @@ kT					                           0.0041419464
 # Set external torque / angular velocity
 omega_one_roller			                 0.0	 62.8	      0.0
 # To have periodic BCs in the y direction use:
-periodic_length						 0.0	86.7232	0.0
-# To have aperiodic BCs in the y direction use:
+#periodic_length						 0.0	86.7232	0.0
+# To have aperiodic BCs in the y direction (3 times faster!) use:
 periodic_length						 0.0	0.0	0.0
 
 # Select free or constrained kinematics

@@ -2,11 +2,12 @@
 # Brownian dynamics of confined suspensions of active microrollers
 # J. Chem. Phys. 2017.
 #
-# Units for length, time and mass are micrometers, seconds and milligrams
+# Units for length, time and mass are micrometers, seconds and
+# milligrams
 
 # Select integrator
-#scheme					                       stochastic_Slip_Trapz
-scheme					                       deterministic_adams_bashforth
+scheme					                       stochastic_Slip_Trapz
+#scheme					                       deterministic_adams_bashforth
 
 # Define implementation to compute the blobs mobility 
 mobility_vector_prod_implementation    numba
@@ -37,7 +38,7 @@ g					                             0.0024892
 # 642 blobs per sphere: 0.0675276753
 # 2562 blobs per sphere: 0.03420497892
 
-blob_radius				                     0.41642068
+blob_radius				                     0.2435531
 
 
 
@@ -61,6 +62,9 @@ save_clones				                     one_file
 
 # Read structures
 # 12 blobs per sphere
-structure	../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex two_rollers.clones
+#structure	../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex two_rollers.clones
 # 42 blobs per sphere
-# structure	../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex two_rollers.clones
+structure	../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex two_rollers.clones
+
+
+
