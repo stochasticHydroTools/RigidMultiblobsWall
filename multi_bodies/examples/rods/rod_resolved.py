@@ -5,20 +5,24 @@ import sys
 if __name__ == '__main__':
     
     # Set parameters
-    escale_factor = 1.0
-    Lg = 2.0
+    # escale_factor = 0.900615163
+    escale_factor = 0.977702385
+    Lg = 2.5
     Rg = 0.15
-    Nx = 12
-    Ntheta = 5
-    caps_layers = 1
+    Nx = 72
+    Ntheta = 24
+    caps_layers = 4
+    alpha = 2.5 / 0.3
     a = Rg * np.sin(np.pi / Ntheta)
-    pattern = 'square' # square or hexagonal pattern
+    pattern = 'hexagonal' # square or hexagonal pattern
 
     # Scale Lg, Rg and a
     Rg = Rg * escale_factor
     a  = a * escale_factor
     if pattern == 'hexagonal':
-        Lg = escale_factor * (alpha * (2 * Rg + a) - a)
+        # Lg = escale_factor * (alpha * (2 * Rg + a) - a)
+        # Lg = (alpha * (2*Rg + a) - a)
+        Lg = escale_factor * Lg
     elif pattern == 'square':
         Lg = Lg * escale_factor
         
@@ -42,8 +46,8 @@ if __name__ == '__main__':
 
 
     # Print rod sides
-    print(Nx * Ntheta + Ncaps)
-    # print('# a = ', a)
+    r_all = np.zeros((Nx * Ntheta + Ncaps, 3))
+    count = 0
     for ix in range(Nx):
         for itheta in range(Ntheta):
             rx = ix * dx - Lg * 0.5
@@ -56,8 +60,9 @@ if __name__ == '__main__':
             rz = Rg * np.sin(theta)
 
             r = np.array([rx, ry, rz])
-            np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
-            # print('O ', rx, ry, rz)
+            # np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            r_all[count] = r
+            count += 1
 
 
     # Print rod caps 
@@ -74,8 +79,9 @@ if __name__ == '__main__':
             rz = dcaps * ilayer * np.sin(theta)
             
             r = np.array([rx, ry, rz])
-            np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
-            # print('O ', rx, ry, rz)
+            # np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            r_all[count] = r
+            count += 1
             
         # Other cap
         rx = Lg * 0.5
@@ -85,6 +91,26 @@ if __name__ == '__main__':
             rz = dcaps * ilayer * np.sin(theta)
             
             r = np.array([rx, ry, rz])
-            np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
-            # print('O ', rx, ry, rz)
+            # np.savetxt(sys.stdout, r[None, :], delimiter = '  ')
+            r_all[count] = r
+            count += 1
+
+
+
             
+    # Compute shortest distance between blobs
+    x = r_all[:,0]
+    y = r_all[:,1]
+    z = r_all[:,2]
+    dx = x - x[:,None]
+    dy = y - y[:,None]
+    dz = z - z[:,None]
+    dr = np.sqrt(dx**2 + dy**2 + dz**2)
+    np.fill_diagonal(dr, 1e+99)
+    dr = dr.flatten()
+    dr_min = np.min(dr)
+    print('# Minimum distance between blobs = ', dr_min)
+
+    # Print coordinates
+    print(Nx * Ntheta + Ncaps)
+    np.savetxt(sys.stdout, r_all, delimiter = '  ')
