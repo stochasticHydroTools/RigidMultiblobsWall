@@ -1,0 +1,58 @@
+
+# Length, time and mass are given in units of microns, seconds and miligrams.
+
+# Select scheme to integrate Brownian equations
+scheme                                   stochastic_Slip_Trapz
+
+# Select implementation to compute M and M*f
+# We recommend to use the C++ implementation which is faster,
+# see documentation
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           pycuda
+
+# Set time step, number of steps and save frequency
+dt                                       0.00025
+n_steps                                  300000
+n_save                                   40
+initial_step                             -40
+
+# Solver params
+solver_tolerance                         1.0e-6
+update_PC                                1
+
+# Set fluid viscosity (eta), gravity*blob_mass (g) and blob radius
+eta                                      8.9e-04 
+g                                        2.688426792e-04
+blob_radius                              0.06541869105
+
+# Stochastic parameters
+# 300 Kelvin * k_B = 0.0041419464 in this units
+kT                                       0.00414194556
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.006
+debye_length_wall                        0.015
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+repulsion_strength                       0.006
+debye_length                             0.015
+
+# PBC
+periodic_length                          16 16 0
+
+# Slip options
+slip_options                             0 48 -30.0 0.0
+
+# Set output name
+output_name                              data/run1
+save_clones                              one_file
+
+
+structure Structures/rod_Lg_1.845_Rg_0.1308_Nx_16_Ntheta_6.vertex Structures/rod_resolved.clones
+structure Structures/pillar_R_4_h_2_Ntheta_192_Nz_17_caps_9.vertex Structures/pillar.clones Structures/slip_zero_N3525.dat Structures/velocity_zero.dat
+
+
+
