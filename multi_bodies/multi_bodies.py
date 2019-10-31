@@ -227,7 +227,6 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
   return res
 
-
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('M_factorization_blobs', [])
@@ -350,6 +349,308 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   # Return preconditioner functions
   return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
 
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('K_bodies', [])
+@utils.static_var('M_half_blobs', [])
+@utils.static_var('mobility_inv_blobs', [])
+def build_block_diagonal_preconditioners_det_stoch_uncorrelated(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the deterministic and stochastic block diagonal preconditioners for rigid bodies.
+  It solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+
+  If the mobility of a body at the blob
+  level is M=L^T * L with L the Cholesky factor  we form the stochastic preconditioners
+  
+  P = inv(L)
+  M_half = L
+
+  and the deterministic preconditioner
+  N = (K.T * M^{-1} * K)^{-1}
+  
+  and return the functions to compute matrix vector products
+  y = M_half * x
+  y = N*F - N*K.T*M^{-1}*slip
+  '''
+  mobility_bodies = []
+  K_bodies = []
+  M_half_blobs = []
+  mobility_inv_blobs = []
+
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+    # Loop over bodies
+    for b in bodies:
+      # 1. Compute blobs mobility 
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
+      M_half = np.linalg.cholesky(M)
+      M_half_blobs.append(M_half)
+      # 4. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 5. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 6. Compute body mobility
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioners_det_stoch.K_bodies = K_bodies
+    build_block_diagonal_preconditioners_det_stoch.M_half_blobs = M_half_blobs
+    build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
+  else:
+    # Use old values
+    mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
+    K_bodies = build_block_diagonal_preconditioners_det_stoch.K_bodies
+    M_half_blobs = build_block_diagonal_preconditioners_det_stoch.M_half_blobs 
+    mobility_inv_blobs = build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs 
+    
+
+  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None, *args, **kwargs):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+      # 3. Solve M*Lambda = (slip + K*Y)
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+      # 4. Set result
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  mobility_inv_blobs = mobility_inv_blobs,
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+
+  
+  # Define inverse preconditioner M_half
+  def M_half_mult(w, bodies = None, M_half = None):
+    offset = 0
+    result = np.empty_like(w)
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(M_half[k], w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return result
+  M_half_mult_partial = partial(M_half_mult, bodies = bodies, M_half = M_half_blobs)
+
+  # Return preconditioner functions
+  return block_diagonal_preconditioner_partial, M_half_mult_partial
+
+
+
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('mobility_bodies_identity', [])
+@utils.static_var('K_bodies', [])
+@utils.static_var('M_factorization_blobs', [])
+@utils.static_var('M_factorization_blobs_inv', [])
+@utils.static_var('mobility_inv_blobs', [])
+def build_block_diagonal_preconditioners_det_identity_stoch(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the deterministic and stochastic block diagonal preconditioners for rigid bodies.
+  It solves exactly the unconstrained mobility problem for each body
+  independently with M=I, i.e., no interation between bodies is taken
+  into account.
+
+  If the mobility of a body at the blob
+  level is M=L^T * L with L the Cholesky factor  we form the stochastic preconditioners
+  
+  P = inv(L)
+  P_inv = L
+
+  and the deterministic preconditioner
+  N = (K.T * K)^{-1}
+  
+  and return the functions to compute matrix vector products
+  y = (P.T * M * P) * x
+  y = P_inv * x
+  y = N*F - N*K.T*slip
+  '''
+  mobility_bodies = []
+  mobility_bodies_identity = []
+  K_bodies = []
+  M_factorization_blobs = []
+  M_factorization_blobs_inv = []
+  mobility_inv_blobs = []
+
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies) == 0:
+    # Loop over bodies
+    for b in bodies:
+      # 1. Compute blobs mobility 
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)  
+      M_factorization_blobs.append(L.T)
+      # 3. Compute inverse of L
+      M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
+      # 4. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 5. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 6. Compute body mobility
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+      # 7. Compute body mobility with M=I
+      mobility_bodies_identity.append(np.linalg.pinv(np.dot(K.T, K)))
+
+    # Save variables to use in next steps if PC is not updated
+    build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies_identity = mobility_bodies_identity
+    build_block_diagonal_preconditioners_det_identity_stoch.K_bodies = K_bodies
+    build_block_diagonal_preconditioners_det_identity_stoch.M_factorization_blobs = M_factorization_blobs
+    build_block_diagonal_preconditioners_det_identity_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
+    build_block_diagonal_preconditioners_det_identity_stoch.mobility_inv_blobs = mobility_inv_blobs
+  else:
+    # Use old values
+    mobility_bodies = build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies 
+    mobility_bodies_identity = build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies_identity 
+    K_bodies = build_block_diagonal_preconditioners_det_identity_stoch.K_bodies
+    M_factorization_blobs = build_block_diagonal_preconditioners_det_identity_stoch.M_factorization_blobs 
+    M_factorization_blobs_inv = build_block_diagonal_preconditioners_det_identity_stoch.M_factorization_blobs_inv 
+    mobility_inv_blobs = build_block_diagonal_preconditioners_det_identity_stoch.mobility_inv_blobs 
+    
+
+  def block_diagonal_preconditioner_identity(vector, bodies = None, mobility_bodies_identity = None,  K_bodies = None, Nblobs = None, *args, **kwargs):
+    '''
+    Solve the unconstrained mobility problem with M=I
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve I*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = slip
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies_identity[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+      # 3. Set result (here we don care about lamda since we won't use it as a preconditioner) 
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_identity_partial = partial(block_diagonal_preconditioner_identity, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies_identity = mobility_bodies_identity, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+
+  # Define preconditioned mobility matrix product
+  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None, *args, **kwargs):
+    result = np.empty_like(w)
+    # Apply P
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], w[3*offset : 3*(offset + b.Nblobs)]) 
+      offset += b.Nblobs
+    # Multiply by M
+    result_2 = mobility_vector_prod(r_vectors, result, eta, a, *args, **kwargs)
+    # Apply P.T
+    offset = 0
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k].T, result_2[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return result
+  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = M_factorization_blobs_inv, r_vectors = r_vectors, eta = eta, a = a, *args, **kwargs)
+  
+  # Define inverse preconditioner P_inv
+  def P_inv_mult(w, bodies = None, P_inv = None):
+    offset = 0
+    for k, b in enumerate(bodies):
+      w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return w
+  P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = M_factorization_blobs)
+
+  # Return preconditioner functions
+  return block_diagonal_preconditioner_identity_partial, mobility_pc_partial, P_inv_mult_partial
+
+def build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the deterministic and stochastic block diagonal preconditioners for rigid bodies.
+  It solves exactly the unconstrained mobility problem for each body
+  independently with M=I, i.e., no interation between bodies is taken
+  into account.
+
+  If the mobility of a body at the blob
+  level is M=L^T * L with L the Cholesky factor  we form the stochastic preconditioners
+  
+  M_half = M^(1/2)
+
+  and the deterministic preconditioner
+  N = (K.T * K)^{-1}
+  
+  and return the functions to compute matrix vector products
+  y = M_half * x
+  y = N*F - N*K.T*slip
+  '''
+  mobility_bodies_identity = []
+  K_bodies = []
+  M_half_blobs = []
+
+  # Loop over bodies
+  for b in bodies:
+      # 1. Compute blobs mobility 
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M^(1/2)
+      M_half = np.linalg.cholesky(M)
+      M_half_blobs.append(M_half)
+      # 5. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 7. Compute body mobility with M=I
+      mobility_bodies_identity.append(np.linalg.pinv(np.dot(K.T, K)))
+
+
+  def block_diagonal_preconditioner_identity(vector, bodies = None, mobility_bodies_identity = None,  K_bodies = None, Nblobs = None, *args, **kwargs):
+    '''
+    Solve the unconstrained mobility problem with M=I
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve I*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = slip
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies_identity[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+      # 3. Set result (here we don care about lamda since we won't use it as a preconditioner) 
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_identity_partial = partial(block_diagonal_preconditioner_identity, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies_identity = mobility_bodies_identity, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+
+  
+  # Define inverse preconditioner M_half
+  def M_half_mult(w, bodies = None, M_half = None):
+    offset = 0
+    result = np.empty_like(w)
+    for k, b in enumerate(bodies):
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(M_half[k], w[3*offset : 3*(offset + b.Nblobs)])
+      offset += b.Nblobs
+    return result
+  M_half_mult_partial = partial(M_half_mult, bodies = bodies, M_half = M_half_blobs)
+
+  # Return preconditioner functions
+  return block_diagonal_preconditioner_identity_partial,  M_half_mult_partial
+
+
 
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
@@ -421,6 +722,56 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
                                                   Nblobs = Nblobs)
   return block_diagonal_preconditioner_partial
 
+@utils.static_var('mobility_bodies_identity', [])
+@utils.static_var('K_bodies', [])
+def build_block_diagonal_preconditioner_identity(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  Build the block diagonal preconditioner for rigid bodies with M=I
+  '''
+  mobility_bodies_identity = []
+  K_bodies = []
+
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+    # Loop over bodies
+    for b in bodies:
+      # 1. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 2. Compute body mobility with M=I
+      mobility_bodies_identity.append(np.linalg.pinv(np.dot(K.T, K)))
+
+    build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies_identity = mobility_bodies_identity
+    build_block_diagonal_preconditioners_det_identity_stoch.K_bodies = K_bodies
+  else:
+    # Use old values
+    mobility_bodies_identity = build_block_diagonal_preconditioners_det_identity_stoch.mobility_bodies_identity 
+    K_bodies = build_block_diagonal_preconditioners_det_identity_stoch.K_bodies
+    
+
+  def block_diagonal_preconditioner_identity(vector, bodies = None, mobility_bodies_identity = None,  K_bodies = None, Nblobs = None, *args, **kwargs):
+    '''
+    Solve the unconstrained mobility problem with M=I
+    '''
+    result = np.empty(vector.shape)
+    offset = 0
+    for k, b in enumerate(bodies):
+      # 1. Solve I*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = slip
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies_identity[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+      # 3. Set result (here we don care about lamda since we won use it as a preconditioner) 
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      offset += b.Nblobs
+    return result
+  block_diagonal_preconditioner_identity_partial = partial(block_diagonal_preconditioner_identity, 
+                                                  bodies = bodies, 
+                                                  mobility_bodies_identity = mobility_bodies_identity, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+
+  return block_diagonal_preconditioner_identity_partial
 
 def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
   '''
@@ -610,8 +961,8 @@ if __name__ == '__main__':
                                                periodic_length = read.periodic_length)
     integrator.omega_one_roller = read.omega_one_roller
     integrator.free_kinematics = read.free_kinematics
-    integrator.hydro_interactions = read.hydro_interactions
 
+  integrator.hydro_interactions = read.hydro_interactions
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
@@ -628,6 +979,10 @@ if __name__ == '__main__':
   integrator.preconditioner = block_diagonal_preconditioner
   integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
+  integrator.build_block_diagonal_preconditioners_det_stoch_uncorrelated = build_block_diagonal_preconditioners_det_stoch_uncorrelated
+  integrator.build_block_diagonal_preconditioners_det_identity_stoch = build_block_diagonal_preconditioners_det_identity_stoch
+  integrator.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated = build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated 
+  integrator.build_block_diagonal_preconditioner_identity = build_block_diagonal_preconditioner_identity
   integrator.eta = eta
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)

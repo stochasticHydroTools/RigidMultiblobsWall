@@ -52,6 +52,7 @@ class QuaternionIntegratorRollers(object):
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
     self.domain = domain
+    self.hydro_interactions = None
     if domain == 'single_wall':
       if mobility_vector_prod_implementation.find('pycuda') > -1:
         self.mobility_trans_times_force = mob.single_wall_mobility_trans_times_force_pycuda
@@ -257,7 +258,7 @@ class QuaternionIntegratorRollers(object):
         stoch_velocity = self.compute_stochastic_linear_velocity(dt)
       else:
         det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
-        stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated (dt)
+        stoch_velocity = self.compute_stochastic_linear_velocity_uncorrelated(dt)
 
       # Add velocities
       if self.first_step is False:
@@ -292,7 +293,197 @@ class QuaternionIntegratorRollers(object):
       self.invalid_configuration_count += 1
       print('Invalid configuration')
     return
-    
+
+  def stochastic_EM(self, dt, *args, **kwargs):
+    ''' 
+    Take a time step of length dt using a stochastic 
+    Generalized DC method.
+
+    The computational cost of this scheme is 1 constrained rigid solve
+    + 2 lanczos call + 7 unconstrained solves.
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+
+      # Generate random vector
+      Nblobs = len(self.bodies)
+      W = np.random.randn(3 * Nblobs)
+
+      if self.hydro_interactions==1:
+         # Compute deterministic velocity
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        # Compute stochastic velocity
+        stoch_velocity = self.compute_stochastic_linear_velocity_without_drift(dt)
+      else:
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        stoch_velocity = self.compute_stochastic_linear_velocity_without_drift_uncorrelated(W,dt)
+
+      velocities = det_velocity + stoch_velocity
+
+      # Update location
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities[3*k:3*k+3] * dt 
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check if configuration is valid and update postions if so      
+      valid_configuration = True
+      if self.domain == 'single_wall':
+        for k, b in enumerate(self.bodies):
+          if b.location_new[2] < 0.0:      
+            print(b.location_new[2])
+            valid_configuration = False
+            break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = det_velocity
+        for b in self.bodies:
+          b.location = b.location_new          
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1      
+        return
+
+      self.invalid_configuration_count += 1
+      print('Invalid configuration end')
+
+    return    
+
+  def stochastic_GDC(self, dt, *args, **kwargs):
+    ''' 
+    Take a time step of length dt using a stochastic 
+    Generalized DC method.
+
+    The computational cost of this scheme is 1 constrained rigid solve
+    + 2 lanczos call + 7 unconstrained solves.
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+      Nblobs = len(self.bodies)
+      # Generate random vector
+      W = np.random.randn(3 * Nblobs)
+
+      if self.hydro_interactions==1: 
+        # Compute brownian velocities only (not div(M)) 
+        stoch_velocity_n = self.compute_stochastic_linear_velocity_without_drift(dt)
+        # Finite Difference on the unconstrained velocities to compute div(U)
+        div_vel_unconst = 0.0
+      else:
+        stoch_velocity_n = self.compute_stochastic_linear_velocity_without_drift_uncorrelated(W,dt)
+        # Finite Difference on the unconstrained velocities to compute div(U)
+        div_vel_unconst = np.zeros(len(self.bodies))
+
+      # Compute div(Ubrownian)
+      for i in range(2,3):
+       delta_trans = np.zeros(3)
+       delta_trans[i] = self.rf_delta*self.a
+       for k, b in enumerate(self.bodies):
+         b.location = b.location_old + delta_trans
+       # Compute brownian velocities only (not div(M)) 
+       if self.hydro_interactions==1: 
+         stoch_velocity_FD = self.compute_stochastic_linear_velocity_without_drift(dt)
+         for k in range(len(self.bodies)):
+           vel_trans_n = stoch_velocity_n[3*k:3*k+3]
+           vel_trans_FD = stoch_velocity_FD[3*k:3*k+3]
+           div_vel_unconst += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*self.a)      
+       else:
+         stoch_velocity_FD = self.compute_stochastic_linear_velocity_without_drift_uncorrelated(W,dt)
+         for k in range(len(self.bodies)):
+           vel_trans_n = stoch_velocity_n[3*k:3*k+3]
+           vel_trans_FD = stoch_velocity_FD[3*k:3*k+3]
+           div_vel_unconst[k] += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*self.a)
+
+      # Compute correction factor for time update
+      correction_factor = 1.0 + dt/2.0*div_vel_unconst
+
+      # Set locations back to their initial value
+      for k, b in enumerate(self.bodies):
+          np.copyto(b.location, b.location_old)      
+
+      # Update location orientation to mid point
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + stoch_velocity_n[k*3 : k*3+3] * dt/2.0
+   
+      # Check if configuration is valid if not repeat step
+      if self.domain == 'single_wall':    
+        valid_configuration = True
+        for k, b in enumerate(self.bodies):
+          if b.location[2] < 0.0:      
+            print(b.location[2])
+            valid_configuration = False
+            self.invalid_configuration_count += 1
+            print('Invalid configuration mid')
+            break
+        if valid_configuration is False:
+          # Restore configuration
+          for k, b in enumerate(self.bodies):
+            b.location = b.location_old
+          continue
+
+      if self.hydro_interactions==1:
+         # Compute deterministic velocity
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque()
+        # Compute stochastic velocity
+        stoch_velocity = self.compute_stochastic_linear_velocity_without_drift(dt)
+      else:
+        det_velocity, det_torque = self.compute_deterministic_velocity_and_torque_uncorrelated()
+        stoch_velocity = self.compute_stochastic_linear_velocity_without_drift_uncorrelated(W,dt)
+
+      velocities_mid = det_velocity + stoch_velocity
+
+      if self.hydro_interactions==1:
+        # Update location
+        for k, b in enumerate(self.bodies):
+          b.location_new = b.location_old + velocities_mid[3*k:3*k+3] * dt * correction_factor
+      else:
+        # Update location
+        for k, b in enumerate(self.bodies):
+          b.location_new = b.location_old + velocities_mid[3*k:3*k+3] * dt * correction_factor[k]
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check if configuration is valid and update postions if so      
+      valid_configuration = True
+      if self.domain == 'single_wall':
+        for k, b in enumerate(self.bodies):
+          if b.location_new[2] < 0.0:      
+            print(b.location_new[2])
+            valid_configuration = False
+            break
+      if valid_configuration is True:
+        self.first_step = False
+        self.velocities_previous_step = det_velocity
+        for b in self.bodies:
+          b.location = b.location_new          
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1      
+        return
+
+      self.invalid_configuration_count += 1
+      print('Invalid configuration end')
+
+    return    
 
   def stochastic_mid_point(self, dt):
     '''
@@ -986,6 +1177,54 @@ class QuaternionIntegratorRollers(object):
 
     # Return velocity
     return velocities_noise 
+
+  
+  def compute_stochastic_linear_velocity_without_drift_uncorrelated(self, z, dt):
+    '''
+    Compute stochastic linear velocity for uncorrelated particles
+    
+    v_stoch = sqrt(2*kT) * M_tt^{1/2}*z 
+
+    This function returns the stochastic velocity v_stoch.
+    '''
+    # Create auxiliar variables
+    Nblobs = len(self.bodies)
+
+    # Get blobs coordinates
+    r_vectors_blobs = np.empty((Nblobs, 3))
+    for k, b in enumerate(self.bodies):
+      r_vectors_blobs[k] = b.location
+
+    
+    # Define prefactor for self mobility: 1/(6*pi*eta*a)
+    factor_mob_tt = 1/(6*m.pi*self.eta*self.a)
+    
+    # Define prefactor for Brownian displacement: sqrt(2kT/dt)
+    factor_disp = np.sqrt(2*self.kT / dt)
+    
+    # Define velocity vector
+    v_stoch = np.empty(3*Nblobs)
+    
+    for k in range(Nblobs):
+      # max(h/a,1) : artifact to ensure that mobility goes to zero
+      h_over_a = r_vectors_blobs[k][2]/self.a
+      h_adim_eff = max(h_over_a, 1.0)    
+      # Damping factor : damping = 1.0 if z_i >= blob_radius, damping = z_i / blob_radius if 0< z_i < blob_radius, damping = 0 if z_i < 0
+      damping = 1.0
+      if h_over_a < 0.0:
+        damping = 0.0 
+      elif h_over_a <= 1.0:
+        damping = h_over_a
+      # mu_perp from Swan Brady
+      mu_tt_perp = factor_mob_tt*( 1 - 9/(8*h_adim_eff) + 1/(2*h_adim_eff**3) - 1/(8*h_adim_eff**5) ) * damping
+      # mu_para from Swan Brady
+      mu_tt_para = factor_mob_tt*( 1 - 9/(16*h_adim_eff) + 2/(16*h_adim_eff**3) - 1/(16*h_adim_eff**5) ) * damping
+
+      # Compute stochastic velocity v_stoch = sqrt(2*kT/dt) * M_tt^{1/2}*W
+      v_stoch[3*k:3*k+2] = factor_disp*np.sqrt(mu_tt_para)*z[3*k:3*k+2]
+      v_stoch[3*k+2] = factor_disp*np.sqrt(mu_tt_perp)*z[3*k+2]  
+    
+    return v_stoch 
 
 
   def compute_linear_thermal_drift(self):

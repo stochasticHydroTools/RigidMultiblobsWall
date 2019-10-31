@@ -8,8 +8,9 @@ import imp
 
 # Try to import the mobility boost implementation
 try:
-  import mobility_ext as me
+  from mobility import mobility_ext as me
 except ImportError:
+  print('mobility_ext import error')
   pass
 # If pycuda is installed import mobility_pycuda
 try:
@@ -17,6 +18,7 @@ try:
   found_pycuda = True
 except ImportError:
   found_pycuda = False
+  print('pycuda not found')
 if found_pycuda:
   try:
     import pycuda.autoinit
@@ -25,9 +27,9 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     try:
-      import mobility_pycuda
-    except ImportError:
       from mobility import mobility_pycuda
+    except ImportError:
+      print('mobility_pycuda import error')
 # If numba is installed import mobility_numba
 try: 
   imp.find_module('numba')
@@ -36,9 +38,9 @@ except ImportError:
   found_numba = False
 if found_numba:
   try:
-    import mobility_numba
-  except ImportError:
     from mobility import mobility_numba
+  except ImportError:
+    print('mobility_numba import error')
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm

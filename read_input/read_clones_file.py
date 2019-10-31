@@ -43,6 +43,8 @@ def read_clones_file(name_file):
           locations.append(location)
           orientations.append(q)
         i += 1
+        if i == number_of_bodies+1:
+          break
 
     # Creat and return numpy arrays
     locations = np.array(locations)
