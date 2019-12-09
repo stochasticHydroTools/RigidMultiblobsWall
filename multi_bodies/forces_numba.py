@@ -36,26 +36,22 @@ def blob_blob_force_numba(r_vectors, L, eps, b, a):
     for j in range(N):
       if i == j:
         continue
-      rx = r_vectors[j,0] - r_vectors[i,0]
-      ry = r_vectors[j,1] - r_vectors[i,1]
-      rz = r_vectors[j,2] - r_vectors[i,2]
 
-      if L[0] > 0:
-        rx = rx - int(rx / L[0] + 0.5 * (int(rx>0) - int(rx<0))) * L[0]
-      if L[1] > 0:
-        ry = ry - int(ry / L[1] + 0.5 * (int(ry>0) - int(ry<0))) * L[1]
-      if L[2] > 0:
-        rz = rz - int(rz / L[2] + 0.5 * (int(rz>0) - int(rz<0))) * L[2]
+      dr = np.zeros(3)
+      for k in range(3):
+        dr[k] = r_vectors[j,k] - r_vectors[i,k]
+        if L[k] > 0:
+          dr[k] -= int(dr[k] / L[k] + 0.5 * (int(dr[k]>0) - int(dr[k]<0))) * L[k]
 
       # Compute force
-      r_norm = np.sqrt(rx**2 + ry**2 + rz**2)
+      r_norm = np.sqrt(dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2])
       if r_norm > 2*a:
         f0 = -((eps / b) * np.exp(-(r_norm - 2.0*a) / b) / r_norm)
       else:
-        f0 = -((eps / b) / np.maximum(r_norm, 1e-25)) 
-      force[i, 0] += f0 * rx
-      force[i, 1] += f0 * ry
-      force[i, 2] += f0 * rz
+        f0 = -((eps / b) / np.maximum(r_norm, 1e-25))
+
+      for k in range(3):
+        force[i,k] += f0*dr[k]
 
   return force
 
