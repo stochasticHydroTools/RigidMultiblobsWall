@@ -5,6 +5,7 @@ import scipy.sparse
 # Try to import numba
 try:
   from numba import njit, prange
+  import numba as nb
 except ImportError:
   print('numba not found')
 
@@ -120,7 +121,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(nb.float64[:](nb.float64[:,::1], nb.float64[::1], nb.float64, nb.float64, nb.float64[:]), parallel=True,fastmath=True)
 def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -154,7 +155,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   if not force[:].any():
     return u
 
- # Loop over image boxes and then over particles
+  # Loop over image boxes and then over particles
   for i in prange(N):
     ulocal = np.zeros(N*3)
     for boxX in range(-periodic_x, periodic_x+1):
@@ -273,10 +274,11 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               ulocal[j*3+0] += (Mxx * force[i,0] + Myx * force[i,1] + Mzx * force[i,2]) * norm_fact_f
               ulocal[j*3+1] += (Mxy * force[i,0] + Myy * force[i,1] + Mzy * force[i,2]) * norm_fact_f
               ulocal[j*3+2] += (Mxz * force[i,0] + Myz * force[i,1] + Mzz * force[i,2]) * norm_fact_f
+            # if (i + j == 1):
+            #   print(Mxx, force[i,0], force[i,1], force[i,2])
     u += ulocal
 
   return u
-
 
 @njit(parallel=True)
 def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
