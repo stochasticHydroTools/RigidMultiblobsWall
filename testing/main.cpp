@@ -12,6 +12,9 @@ typedef Eigen::ArrayXd dvec;
 typedef Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
     dvecvec;
 
+#pragma omp declare reduction (+: dvec: omp_out=omp_out+omp_in)\
+     initializer(omp_priv=dvec::Zero(omp_orig.size()))
+
 dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
                                             const dvecvec &force, double eta,
                                             double a, const dvec &L) {
@@ -22,8 +25,8 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
     const double norm_fact_f = 1.0 / (8.0 * M_PI * eta * a);
 
     // Loop over image boxes and then over particles
+#pragma omp parallel for reduction(+ : u) schedule(runtime)
     for (int i = 0; i < N; ++i) {
-        //     ulocal = np.zeros(N*3)
         //     for boxX in range(-periodic_x, periodic_x+1):
         //       for boxY in range(-periodic_y, periodic_y+1):
         //         for boxZ in range(-periodic_z, periodic_z+1):
@@ -31,19 +34,9 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
             double Mxx, Mxy, Mxz;
             double Myx, Myy, Myz;
             double Mzx, Mzy, Mzz;
-            // Compute vector between particles i and j
 
-            // dvec dr = {
-            //     r_vectors(i, 0) - r_vectors(j, 0),
-            //     r_vectors(i, 1) - r_vectors(j, 1),
-            //     r_vectors(i, 2) - r_vectors(j, 2)
-            // };
-
-            // dr *= inva;
-            Eigen::Vector3d dr =
-                inva * Eigen::Vector3d(r_vectors(i, 0) - r_vectors(j, 0),
-                                       r_vectors(i, 1) - r_vectors(j, 1),
-                                       r_vectors(i, 2) - r_vectors(j, 2));
+            // Compute scaled vector between particles i and j
+            Eigen::Vector3d dr = inva * (r_vectors.row(i) - r_vectors.row(j));
 
             int j_image = j;
             if (i == j_image) {
@@ -88,7 +81,7 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
             Mzx = Mxz;
             Mzy = Myz;
 
-            //             # Wall correction
+            // Wall correction
             dr[2] = (r_vectors(i, 2) + r_vectors(j, 2)) / a;
             double hj = r_vectors(j, 2) / a;
 
@@ -187,14 +180,8 @@ load_data(std::string filename) {
     std::vector<double> buffer(N * 3);
     fread(buffer.data(), sizeof(double), N * 3, fin);
     dvecvec rvec = Eigen::Map<dvecvec>(buffer.data(), N, 3);
-    // for (int i = 0; i < N; ++i)
-    //     for (int j = 0; j < 3; ++j)
-    //         rvec(i, j) = buffer[i * 3 + j];
     fread(buffer.data(), sizeof(double), N * 3, fin);
     dvecvec force = Eigen::Map<dvecvec>(buffer.data(), N, 3);
-    // for (int i = 0; i < N; ++i)
-    //     for (int j = 0; j < 3; ++j)
-    //         force(i, j) = buffer[i * 3 + j];
     fread(&eta, sizeof(double), 1, fin);
     fread(&a, sizeof(double), 1, fin);
     fread(buffer.data(), sizeof(double), 3, fin);
