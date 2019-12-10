@@ -19,17 +19,15 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
                                             const dvecvec &force, double eta,
                                             double a, const dvec &L) {
     const int N = r_vectors.rows();
-    dvec u = dvec(N * 3).setZero();
     const double fourOverThree = 4.0 / 3.0;
     const double inva = 1.0 / a;
     const double norm_fact_f = 1.0 / (8.0 * M_PI * eta * a);
 
+    dvec u = dvec(N * 3).setZero();
+
     // Loop over image boxes and then over particles
 #pragma omp parallel for reduction(+ : u) schedule(runtime)
     for (int i = 0; i < N; ++i) {
-        //     for boxX in range(-periodic_x, periodic_x+1):
-        //       for boxY in range(-periodic_y, periodic_y+1):
-        //         for boxZ in range(-periodic_z, periodic_z+1):
         for (int j = i; j < N; ++j) {
             double Mxx, Mxy, Mxz;
             double Myx, Myy, Myz;
@@ -38,8 +36,7 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
             // Compute scaled vector between particles i and j
             Eigen::Vector3d dr = inva * (r_vectors.row(i) - r_vectors.row(j));
 
-            int j_image = j;
-            if (i == j_image) {
+            if (i == j) {
                 Mxx = fourOverThree;
                 Mxy = 0;
                 Mxz = 0;
@@ -48,8 +45,8 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
                 Mzz = Mxx;
             } else {
                 // Normalize distance with hydrodynamic radius
-                const double r2 = dr.squaredNorm();
-                const double r = sqrt(r2);
+                const double r = dr.norm();
+                const double r2 = r * r;
 
                 // TODO: We should not divide by zero
                 const double invr = 1.0 / r;
@@ -85,7 +82,7 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
             dr[2] = (r_vectors(i, 2) + r_vectors(j, 2)) / a;
             double hj = r_vectors(j, 2) / a;
 
-            if (i == j_image) {
+            if (i == j) {
                 const double invZi = 1.0 / hj;
                 const double invZi3 = invZi * invZi * invZi;
                 const double invZi5 = invZi3 * invZi * invZi;
@@ -99,33 +96,29 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
                 const double ex = dr[0] * invR;
                 const double ey = dr[1] * invR;
                 const double ez = dr[2] * invR;
+                const double ez2 = ez * ez;
                 const double invR3 = invR * invR * invR;
                 const double invR5 = invR3 * invR * invR;
 
-                const double fact1 =
-                    -(3.0 * (1.0 + 2.0 * h_hat * (1.0 - h_hat) * ez * ez) *
-                          invR +
-                      2.0 * (1.0 - 3.0 * ez * ez) * invR3 -
-                      2.0 * (1.0 - 5.0 * ez * ez) * invR5) /
-                    3.0;
-                const double fact2 =
-                    -(3.0 * (1.0 - 6.0 * h_hat * (1.0 - h_hat) * ez * ez) *
-                          invR -
-                      6.0 * (1.0 - 5.0 * ez * ez) * invR3 +
-                      10.0 * (1.0 - 7.0 * ez * ez) * invR5) /
-                    3.0;
-                const double fact3 =
-                    ez *
-                    (3.0 * h_hat * (1.0 - 6.0 * (1.0 - h_hat) * ez * ez) *
-                         invR -
-                     6.0 * (1.0 - 5.0 * ez * ez) * invR3 +
-                     10.0 * (2.0 - 7.0 * ez * ez) * invR5) *
-                    2.0 / 3.0;
+                const double t1 = (1.0 - h_hat) * ez2;
+                const double fact1 = -(3.0 * (1.0 + 2.0 * h_hat * t1) * invR +
+                                       2.0 * (1.0 - 3.0 * ez2) * invR3 -
+                                       2.0 * (1.0 - 5.0 * ez2) * invR5) /
+                                     3.0;
+                const double fact2 = -(3.0 * (1.0 - 6.0 * h_hat * t1) * invR -
+                                       6.0 * (1.0 - 5.0 * ez2) * invR3 +
+                                       10.0 * (1.0 - 7.0 * ez2) * invR5) /
+                                     3.0;
+                const double fact3 = ez *
+                                     (3.0 * h_hat * (1.0 - 6.0 * t1) * invR -
+                                      6.0 * (1.0 - 5.0 * ez2) * invR3 +
+                                      10.0 * (2.0 - 7.0 * ez2) * invR5) *
+                                     2.0 / 3.0;
                 const double fact4 =
                     ez * (3.0 * h_hat * invR - 10.0 * invR5) * 2.0 / 3.0;
                 const double fact5 =
-                    -(3.0 * h_hat * h_hat * ez * ez * invR +
-                      3.0 * ez * ez * invR3 + (2.0 - 15.0 * ez * ez) * invR5) *
+                    -(3.0 * h_hat * h_hat * ez2 * invR + 3.0 * ez2 * invR3 +
+                      (2.0 - 15.0 * ez2) * invR5) *
                     4.0 / 3.0;
 
                 Mxx += fact1 + fact2 * ex * ex;
@@ -136,8 +129,7 @@ dvec single_wall_mobility_trans_times_force(const dvecvec &r_vectors,
                 Myz += fact2 * ey * ez + fact3 * ey;
                 Mzx += fact2 * ez * ex + fact4 * ex;
                 Mzy += fact2 * ez * ey + fact4 * ey;
-                Mzz +=
-                    fact1 + fact2 * ez * ez + fact3 * ez + fact4 * ez + fact5;
+                Mzz += fact1 + fact2 * ez2 + fact3 * ez + fact4 * ez + fact5;
             }
 
             u[i * 3 + 0] +=
@@ -186,6 +178,8 @@ load_data(std::string filename) {
     fread(&a, sizeof(double), 1, fin);
     fread(buffer.data(), sizeof(double), 3, fin);
     dvec L = Eigen::Map<dvec>(buffer.data(), 3);
+
+    fclose(fin);
 
     return {rvec, force, eta, a, L};
 }
