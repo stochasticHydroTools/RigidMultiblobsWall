@@ -44,7 +44,10 @@ except ImportError:
   found_numba = False
 if found_numba:
   import forces_numba
-
+try:
+  import forces_cpp
+except ImportError:
+  pass
 
 # Override forces_pycuda with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
@@ -220,12 +223,29 @@ def set_blob_blob_forces(implementation):
   elif implementation == 'python':
     return calc_blob_blob_forces_python
   elif implementation == 'C++':
-    return calc_blob_blob_forces_boost 
+    return calc_blob_blob_forces_boost
+  elif implementation == 'C++-alt':
+    return calc_blob_blob_forces_cpp
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
   elif implementation == 'numba':
     return forces_numba.calc_blob_blob_forces_numba
 
+
+def calc_blob_blob_forces_cpp(r_vectors, *args, **kwargs):
+  '''
+  This function computes the blob-blob forces and returns
+  an array with shape (Nblobs, 3).
+  '''
+
+  # Get parameters from arguments
+  L = kwargs.get('periodic_length')
+  eps = kwargs.get('repulsion_strength')
+  b = kwargs.get('debye_length')
+  a = kwargs.get('blob_radius')
+
+  forces = forces_cpp.blob_blob_force(r_vectors, L, eps, b, a)
+  return np.reshape(forces, (forces.size // 3, 3))
 
 
 def blob_blob_force(r, *args, **kwargs):
