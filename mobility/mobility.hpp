@@ -12,6 +12,9 @@ typedef Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 #pragma omp declare reduction (+: dvec: omp_out=omp_out+omp_in)\
      initializer(omp_priv=dvec::Zero(omp_orig.size()))
 
+dvecvec rotne_prager_tensor(Eigen::Ref<dvecvec> r_vectors_in, double eta,
+                            double a);
+
 dvec single_wall_mobility_trans_times_force(Eigen::Ref<dvecvec> r_vectors,
                                             Eigen::Ref<dvecvec> force, double eta,
                                             double a, Eigen::Ref<dvec> L);

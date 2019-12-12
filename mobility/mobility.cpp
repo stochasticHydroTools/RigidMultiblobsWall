@@ -2,11 +2,88 @@
 #include <cstdio>
 #include <iostream>
 #ifdef PYTHON
-#include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
 #endif
 
-#include "mobility.hpp"
+#include <mobility/mobility.hpp>
+
+dvecvec rotne_prager_tensor(Eigen::Ref<dvecvec> r_vectors_in, double eta,
+                            double a) {
+    // Extract variables
+    Eigen::Map<dvecvec> r_vectors(r_vectors_in.data(), r_vectors_in.size() / 3,
+                                  3);
+
+    dvec x = r_vectors.col(0);
+    dvec y = r_vectors.col(1);
+    dvec z = r_vectors.col(2);
+
+    // Compute distances between blobs
+    dvecvec dx(x.size(), x.size());
+    dvecvec dy(y.size(), y.size());
+    dvecvec dz(z.size(), z.size());
+    for (int i = 0; i < x.size(); ++i) {
+        for (int j = 0; j < x.size(); ++j) {
+            dx(i, j) = x[j] - x[i];
+            dy(i, j) = y[j] - y[i];
+            dz(i, j) = z[j] - z[i];
+        }
+    }
+    dvecvec dr = (dx.pow(2) + dy.pow(2) + dz.pow(2)).sqrt();
+
+    // Compute scalar functions f(r) and g(r)
+    double factor = 1.0 / (6.0 * M_PI * eta);
+    dvecvec fr = dvecvec(x.size(), x.size()).setZero();
+    dvecvec gr = dvecvec(x.size(), x.size()).setZero();
+
+    for (int i = 0; i < x.size(); ++i) {
+        for (int j = 0; j < x.size(); ++j) {
+            if (dr(i, j) > 2.0 * a) {
+                double drij3 = dr(i, j) * dr(i, j) * dr(i, j);
+                double drij5 = dr(i, j) * dr(i, j) * drij3;
+                fr(i, j) = factor * (0.75 / dr(i, j) + a * a / (2.0 * drij3));
+                gr(i, j) = factor * (0.75 / drij3 - 1.5 * a * a / drij5);
+            } else if (dr(i, j) == 0.0) {
+                fr(i, j) = factor / a;
+            } else {
+                fr(i, j) = factor * (1.0 / a - 0.28125 * dr(i, j) / (a * a));
+                gr(i, j) = factor * (3.0 / (32.0 * a * a * dr(i, j)));
+            }
+        }
+    }
+
+    // Build mobility matrix of size 3N \times 3N
+    dvecvec M = dvecvec(r_vectors.size(), r_vectors.size());
+
+    dvecvec t1 = fr + gr * dx * dx;
+    dvecvec t2 = gr * dx * dy;
+    dvecvec t3 = gr * dx * dz;
+
+    dvecvec t4 = gr * dy * dx;
+    dvecvec t5 = fr + gr * dy * dy;
+    dvecvec t6 = gr * dy * dz;
+
+    dvecvec t7 = gr * dz * dx;
+    dvecvec t8 = gr * dz * dy;
+    dvecvec t9 = fr + gr * dz * dz;
+    for (int i = 0; i < x.size(); ++i) {
+        for (int j = 0; j < x.size(); ++j) {
+            M(i * 3, j * 3) = t1(i, j);
+            M(i * 3, j * 3 + 1) = t2(i, j);
+            M(i * 3, j * 3 + 2) = t3(i, j);
+
+            M(i * 3 + 1, j * 3) = t4(i, j);
+            M(i * 3 + 1, j * 3 + 1) = t5(i, j);
+            M(i * 3 + 1, j * 3 + 2) = t6(i, j);
+
+            M(i * 3 + 2, j * 3) = t7(i, j);
+            M(i * 3 + 2, j * 3 + 1) = t8(i, j);
+            M(i * 3 + 2, j * 3 + 2) = t9(i, j);
+        }
+    }
+
+    return M;
+}
 
 dvec single_wall_mobility_trans_times_force(Eigen::Ref<dvecvec> r_vectors_in,
                                             Eigen::Ref<dvecvec> force_in,
@@ -157,5 +234,6 @@ PYBIND11_MODULE(mobility_cpp, m) {
     m.doc() = "pybind11 example plugin"; // optional module docstring
     m.def("single_wall_mobility_trans_times_force",
           &single_wall_mobility_trans_times_force, "Calculate M*f");
+    m.def("rotne_prager_tensor", &rotne_prager_tensor, "Rotne-Prager tensor.");
 }
 #endif
