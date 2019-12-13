@@ -67,7 +67,7 @@ class Body(object):
 
     # Compute blobs coordinates
     rotation_matrix = orientation.rotation_matrix()
-    r_vectors = np.array([np.dot(rotation_matrix, vec) for vec in self.reference_configuration])
+    r_vectors = np.dot(self.reference_configuration, rotation_matrix.T)
     r_vectors += location
     return r_vectors   
 
