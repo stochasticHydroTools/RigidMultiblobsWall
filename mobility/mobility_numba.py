@@ -121,7 +121,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(nb.float64[:](nb.float64[:,::1], nb.float64[::1], nb.float64, nb.float64, nb.float64[:]), parallel=True,fastmath=True)
+@njit(parallel=True, fastmath=True)
 def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 

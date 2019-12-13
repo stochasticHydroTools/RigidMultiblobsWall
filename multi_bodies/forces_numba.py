@@ -9,8 +9,7 @@ except ImportError:
   print('numba not found')
 
 
-@njit(nb.float64[:,::1](nb.float64[:,::1], nb.float64[::1], nb.float64, nb.float64, nb.float64),
-      parallel=True, fastmath=True)
+@njit(parallel=True, fastmath=True)
 def blob_blob_force_numba(r_vectors, L, eps, b, a):
   '''
   This function compute the force between two blobs
