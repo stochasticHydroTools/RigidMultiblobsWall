@@ -59,8 +59,8 @@ def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   definite mobilites for blobs close to the wall.
   '''
   r_effective = np.copy(r_vectors)
-  for r in r_effective:
-    r[2] = r[2] if r[2] > blob_radius else blob_radius
+  r_effective[r_vectors[:,2] <= blob_radius, 2] = blob_radius
+
   return r_effective
 
 
