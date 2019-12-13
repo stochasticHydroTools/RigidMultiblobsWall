@@ -293,10 +293,7 @@ def single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a, *args, 
   # Get effective height
   r_vectors_effective = shift_heights(r_vectors, a)
   # Compute damping matrix B
-  if 'mobility_cpp' in sys.modules:
-    B, overlap = mobility_cpp.damping_matrix_B(r_vectors, a)
-  else:
-    B, overlap = damping_matrix_B(r_vectors, a)
+  B, overlap = mobility_cpp.damping_matrix_B(r_vectors, a)
 
   # Compute B * force
   if overlap is True:
