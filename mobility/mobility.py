@@ -1063,6 +1063,8 @@ def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   M[2::3, 2::3] = fr + gr * dz * dz
   return M
 
+def single_wall_fluid_mobility_cpp(r_vectors, eta, a):
+  return mobility_cpp.single_wall_fluid_mobility(r_vectors, eta, a)
 
 def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' 
@@ -1079,7 +1081,11 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   B_damp, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   num_particles = len(r_vectors_effective)
   # We add the corrections from the appendix of the paper to the unbounded mobility.
-  fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
+  if 'mobility_cpp' in sys.modules:
+    fluid_mobility = mobility_cpp.rotne_prager_tensor(r_vectors_effective, eta, a)
+  else:
+    fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
+
 
   # Extract variables
   r_vectors_effective = r_vectors_effective.reshape((r_vectors_effective.size // 3, 3))

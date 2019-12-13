@@ -8,6 +8,190 @@
 
 #include <mobility/mobility.hpp>
 
+dvecvec shift_heights(Eigen::Ref<dvecvec> r_vectors, double blob_radius) {
+    dvecvec r_shifted = r_vectors;
+    for (int i = 0; i < r_vectors.rows(); ++i) {
+        if (r_shifted(i, 2) < blob_radius)
+            r_shifted(i, 2) = blob_radius;
+    }
+    return r_shifted;
+}
+
+std::tuple<dvecvec, bool> damping_matrix_B(Eigen::Ref<dvecvec> r_vectors,
+                                           double blob_radius) {
+    // Return sparse diagonal matrix with components
+    // B_ii = 1.0               if z_i >= blob_radius
+    // B_ii = z_i / blob_radius if z_i < blob_radius
+
+    // It is used to compute positive definite mobilities
+    // close to the wall.
+
+    dvec B(r_vectors.size());
+    B.fill(1);
+
+    bool overlap = false;
+    for (int k = 0; k < r_vectors.rows(); ++k) {
+        if (r_vectors(k, 2) < blob_radius) {
+            B[k * 3] = r_vectors(k, 2) / blob_radius;
+            B[k * 3 + 1] = r_vectors(k, 2) / blob_radius;
+            B[k * 3 + 2] = r_vectors(k, 2) / blob_radius;
+            overlap = true;
+        }
+    }
+
+    // FIXME: should be sparse matrix
+    return std::make_tuple(B, overlap);
+    // return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)),
+    // overlap);
+}
+
+dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
+                                   double a) {
+    // Mobility for particles near a wall.  This uses the expression from
+    // the Swan and Brady paper for a finite size particle, as opposed to the
+    // Blake paper point particle result.
+
+    // For blobs overlaping the wall we use
+    // Compute M = B^T * M_tilde(z_effective) * B.
+    // Get effective height;
+
+    Eigen::Map<dvecvec> r_vectors(r_vectors_in.data(), r_vectors_in.size() / 3,
+                                  3);
+
+    dvecvec r_vectors_effective = shift_heights(r_vectors, a);
+    // Compute damping matrix B;
+    auto [B_damp, overlap] = damping_matrix_B(r_vectors, a);
+    // We add the corrections from the appendix of the paper to the unbounded
+    // mobility.
+    dvecvec fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a);
+
+    // Extract variables;
+    int N = r_vectors.size() / 3;
+    dvec x = r_vectors_effective.col(0);
+    dvec y = r_vectors_effective.col(1);
+    dvec z = r_vectors_effective.col(2);
+
+    // Compute distances between blobs;
+    dvecvec dx(N, N);
+    dvecvec dy(N, N);
+    dvecvec dz(N, N);
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            dx(i, j) = (x[i] - x[j]) / a;
+            dy(i, j) = (y[i] - y[j]) / a;
+            dz(i, j) = (z[i] + z[j]) / a;
+        }
+    }
+    dvecvec dr = (dx.pow(2) + dy.pow(2) + dz.pow(2)).sqrt();
+
+    dvecvec h_hat = z.replicate(1, N) / (a * dz);
+    dvec h = z / a;
+    dvecvec ex = dx / dr;
+    dvecvec ey = dy / dr;
+    dvecvec ez = dz / dr;
+
+    // Compute scalar functions, the mobility is;
+    // M = A*delta_ij + B*e_i*e_j + C*e_i*delta_3j + D*delta_i3*e_j +
+    // E*delta_i3*delta_3j ;
+    double factor = 1.0 / (6.0 * M_PI * eta * a);
+
+    // Allocate memory;
+    dvecvec M = dvecvec(N * 3, N * 3).setZero();
+    dvecvec A = dvecvec(N, N).setZero();
+    dvecvec B = dvecvec(N, N).setZero();
+    dvecvec C = dvecvec(N, N).setZero();
+    dvecvec D = dvecvec(N, N).setZero();
+    dvecvec E = dvecvec(N, N).setZero();
+
+    // Self-mobility terms;
+    dvec A_vec = -0.0625 * (9.0 / h - 2.0 / h.pow(3) + 1.0 / h.pow(5));
+    dvec E_vec = -A_vec - 0.125 * (9.0 / h - 4.0 / h.pow(3) + 1.0 / h.pow(5));
+
+    for (int i = 0; i < N; ++i) {
+        M(i * 3, i * 3) += A_vec(i);
+        M(i * 3 + 1, i * 3 + 1) += A_vec(i);
+        M(i * 3 + 2, i * 3 + 2) += E_vec(i) + A_vec(i);
+    }
+
+    // Particle-particle terms;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            if (dr(i, j) > 1E-12 * a && i != j) {
+                double drij3 = dr(i, j) * dr(i, j) * dr(i, j);
+                double drij5 = dr(i, j) * dr(i, j) * drij3;
+                double ez2 = ez(i, j) * ez(i, j);
+                A(i, j) =
+                    -0.25 *
+                    (3.0 * (1.0 + 2 * h_hat(i, j) * (1.0 - h_hat(i, j)) * ez2) /
+                         dr(i, j) +
+                     2.0 * (1 - 3.0 * ez2) / drij3 -
+                     2.0 * (1 - 5.0 * ez2) / drij5);
+
+                B(i, j) =
+                    -0.25 *
+                    (3.0 *
+                         (1.0 - 6.0 * h_hat(i, j) * (1.0 - h_hat(i, j)) * ez2) /
+                         dr(i, j) -
+                     6.0 * (1.0 - 5.0 * ez2) / drij3 +
+                     10.0 * (1.0 - 7.0 * ez2) / drij5);
+
+                C(i, j) =
+                    0.5 * ez(i, j) *
+                    (3.0 * h_hat(i, j) *
+                         (1.0 - 6.0 * (1.0 - h_hat(i, j)) * ez2) / dr(i, j) -
+                     6.0 * (1.0 - 5.0 * ez2) / drij3 +
+                     10.0 * (2.0 - 7.0 * ez2) / drij5);
+
+                D(i, j) = 0.5 * ez(i, j) *
+                          (3.0 * h_hat(i, j) / dr(i, j) - 10.0 / drij5);
+
+                E(i, j) = -(3.0 * h_hat(i, j) * h_hat(i, j) * ez2 / dr(i, j) +
+                            3.0 * ez2 / drij3 + (2.0 - 15.0 * ez2) / drij5);
+            }
+        }
+    }
+
+    // Build mobility matrix of size 3N \times 3N;
+    dvecvec t1 = A + B * ex * ex;
+    dvecvec t2 = B * ex * ey;
+    dvecvec t3 = B * ex * ez + C.transpose() * ex;
+
+    dvecvec t4 = B * ey * ex;
+    dvecvec t5 = A + B * ey * ey;
+    dvecvec t6 = B * ey * ez + C.transpose() * ey;
+
+    dvecvec t7 = B * ez * ex + D.transpose() * ex;
+    dvecvec t8 = B * ez * ey + D.transpose() * ey;
+    dvecvec t9 = A + B * ez * ez + C.transpose() * ez + D.transpose() * ez +
+                 E.transpose();
+
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            M(i * 3 + 0, j * 3 + 0) += t1(i, j);
+            M(i * 3 + 0, j * 3 + 1) += t2(i, j);
+            M(i * 3 + 0, j * 3 + 2) += t3(i, j);
+
+            M(i * 3 + 1, j * 3 + 0) += t4(i, j);
+            M(i * 3 + 1, j * 3 + 1) += t5(i, j);
+            M(i * 3 + 1, j * 3 + 2) += t6(i, j);
+
+            M(i * 3 + 2, j * 3 + 0) += t7(i, j);
+            M(i * 3 + 2, j * 3 + 1) += t8(i, j);
+            M(i * 3 + 2, j * 3 + 2) += t9(i, j);
+        }
+    }
+
+    M *= factor;
+    M += fluid_mobility;
+
+    // FIXME: Use damping results
+    // Compute M = B^T * M_tilde * B;
+    // if (overlap)
+    //     return B_damp.dot((B_damp.dot(M.T)).T);
+    // else
+    return M;
+}
+
 dvecvec rotne_prager_tensor(Eigen::Ref<dvecvec> r_vectors_in, double eta,
                             double a) {
     // Extract variables
@@ -234,6 +418,7 @@ PYBIND11_MODULE(mobility_cpp, m) {
     m.doc() = "pybind11 example plugin"; // optional module docstring
     m.def("single_wall_mobility_trans_times_force",
           &single_wall_mobility_trans_times_force, "Calculate M*f");
+    m.def("single_wall_fluid_mobility", &single_wall_fluid_mobility, "");
     m.def("rotne_prager_tensor", &rotne_prager_tensor, "Rotne-Prager tensor.");
 }
 #endif
