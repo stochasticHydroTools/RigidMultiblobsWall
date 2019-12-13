@@ -419,6 +419,7 @@ PYBIND11_MODULE(mobility_cpp, m) {
     m.def("single_wall_mobility_trans_times_force",
           &single_wall_mobility_trans_times_force, "Calculate M*f");
     m.def("single_wall_fluid_mobility", &single_wall_fluid_mobility, "");
+    m.def("damping_matrix_B", &damping_matrix_B, "");
     m.def("rotne_prager_tensor", &rotne_prager_tensor, "Rotne-Prager tensor.");
 }
 #endif
