@@ -289,6 +289,8 @@ dvec single_wall_mobility_trans_times_force(Eigen::Ref<dvecvec> r_vectors_in,
     const double norm_fact_f = 1.0 / (8.0 * M_PI * eta * a);
 
     dvec u = dvec(N * 3).setZero();
+    if (force.isZero(0))
+        return u;
 
     // Loop over image boxes and then over particles
     // TODO: Add PBC!
