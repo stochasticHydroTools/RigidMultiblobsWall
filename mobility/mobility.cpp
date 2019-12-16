@@ -6,6 +6,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+#include <Eigen/SparseCore>
+
 #include <mobility/mobility.hpp>
 
 dvecvec shift_heights(Eigen::Ref<dvecvec> r_vectors, double blob_radius) {
@@ -17,8 +19,8 @@ dvecvec shift_heights(Eigen::Ref<dvecvec> r_vectors, double blob_radius) {
     return r_shifted;
 }
 
-std::tuple<dvecvec, bool> damping_matrix_B(Eigen::Ref<dvecvec> r_vectors,
-                                           double blob_radius) {
+std::tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, bool>
+damping_matrix_B(Eigen::Ref<dvecvec> r_vectors, double blob_radius) {
     // Return sparse diagonal matrix with components
     // B_ii = 1.0               if z_i >= blob_radius
     // B_ii = z_i / blob_radius if z_i < blob_radius
@@ -26,23 +28,24 @@ std::tuple<dvecvec, bool> damping_matrix_B(Eigen::Ref<dvecvec> r_vectors,
     // It is used to compute positive definite mobilities
     // close to the wall.
 
-    dvec B(r_vectors.size());
-    B.fill(1);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> B(r_vectors.size(),
+                                                   r_vectors.size());
+    B.reserve(Eigen::VectorXi::Constant(r_vectors.size(), 1));
 
     bool overlap = false;
     for (int k = 0; k < r_vectors.rows(); ++k) {
+        double insval = 1.0;
         if (r_vectors(k, 2) < blob_radius) {
-            B[k * 3] = r_vectors(k, 2) / blob_radius;
-            B[k * 3 + 1] = r_vectors(k, 2) / blob_radius;
-            B[k * 3 + 2] = r_vectors(k, 2) / blob_radius;
+            insval = r_vectors(k, 2) / blob_radius;
             overlap = true;
         }
+        B.insert(k * 3, k * 3) = insval;
+        B.insert(k * 3 + 1, k * 3 + 1) = insval;
+        B.insert(k * 3 + 2, k * 3 + 2) = insval;
     }
 
     // FIXME: should be sparse matrix
     return std::make_tuple(B, overlap);
-    // return (scipy.sparse.dia_matrix((B, 0), shape=(B.size, B.size)),
-    // overlap);
 }
 
 dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
@@ -186,10 +189,12 @@ dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
 
     // FIXME: Use damping results
     // Compute M = B^T * M_tilde * B;
-    // if (overlap)
-    //     return B_damp.dot((B_damp.dot(M.T)).T);
-    // else
-    return M;
+    if (overlap) {
+        return (B_damp * ((B_damp * M.transpose().matrix()).transpose()))
+            .array();
+    } else {
+        return M;
+    }
 }
 
 dvecvec rotne_prager_tensor(Eigen::Ref<dvecvec> r_vectors_in, double eta,
