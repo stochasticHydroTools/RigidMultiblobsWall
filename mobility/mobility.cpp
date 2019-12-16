@@ -100,11 +100,11 @@ dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
 
     // Allocate memory;
     dvecvec M = dvecvec(N * 3, N * 3).setZero();
-    dvecvec A = dvecvec(N, N).setZero();
-    dvecvec B = dvecvec(N, N).setZero();
-    dvecvec C = dvecvec(N, N).setZero();
-    dvecvec D = dvecvec(N, N).setZero();
-    dvecvec E = dvecvec(N, N).setZero();
+    dvecvec A = dvecvec(N, N);
+    dvecvec B = dvecvec(N, N);
+    dvecvec C = dvecvec(N, N);
+    dvecvec D = dvecvec(N, N);
+    dvecvec E = dvecvec(N, N);
 
     // Self-mobility terms;
     dvec A_vec = -0.0625 * (9.0 / h - 2.0 / h.pow(3) + 1.0 / h.pow(5));
@@ -150,6 +150,8 @@ dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
 
                 E(i, j) = -(3.0 * h_hat(i, j) * h_hat(i, j) * ez2 / dr(i, j) +
                             3.0 * ez2 / drij3 + (2.0 - 15.0 * ez2) / drij5);
+            } else {
+                A(i, j) = B(i, j) = C(i, j) = D(i, j) = E(i, j) = 0.0;
             }
         }
     }
@@ -205,71 +207,45 @@ dvecvec rotne_prager_tensor(Eigen::Ref<dvecvec> r_vectors_in, double eta,
     Eigen::Map<dvecvec> r_vectors(r_vectors_in.data(), r_vectors_in.size() / 3,
                                   3);
 
-    dvec x = r_vectors.col(0);
-    dvec y = r_vectors.col(1);
-    dvec z = r_vectors.col(2);
-
-    // Compute distances between blobs
-    dvecvec dx(x.size(), x.size());
-    dvecvec dy(y.size(), y.size());
-    dvecvec dz(z.size(), z.size());
-    for (int i = 0; i < x.size(); ++i) {
-        for (int j = 0; j < x.size(); ++j) {
-            dx(i, j) = x[j] - x[i];
-            dy(i, j) = y[j] - y[i];
-            dz(i, j) = z[j] - z[i];
-        }
-    }
-    dvecvec dr = (dx.pow(2) + dy.pow(2) + dz.pow(2)).sqrt();
-
     // Compute scalar functions f(r) and g(r)
     double factor = 1.0 / (6.0 * M_PI * eta);
-    dvecvec fr = dvecvec(x.size(), x.size()).setZero();
-    dvecvec gr = dvecvec(x.size(), x.size()).setZero();
-
-    for (int i = 0; i < x.size(); ++i) {
-        for (int j = 0; j < x.size(); ++j) {
-            if (dr(i, j) > 2.0 * a) {
-                double drij3 = dr(i, j) * dr(i, j) * dr(i, j);
-                double drij5 = dr(i, j) * dr(i, j) * drij3;
-                fr(i, j) = factor * (0.75 / dr(i, j) + a * a / (2.0 * drij3));
-                gr(i, j) = factor * (0.75 / drij3 - 1.5 * a * a / drij5);
-            } else if (dr(i, j) == 0.0) {
-                fr(i, j) = factor / a;
-            } else {
-                fr(i, j) = factor * (1.0 / a - 0.28125 * dr(i, j) / (a * a));
-                gr(i, j) = factor * (3.0 / (32.0 * a * a * dr(i, j)));
-            }
-        }
-    }
 
     // Build mobility matrix of size 3N \times 3N
     dvecvec M = dvecvec(r_vectors.size(), r_vectors.size());
 
-    dvecvec t1 = fr + gr * dx * dx;
-    dvecvec t2 = gr * dx * dy;
-    dvecvec t3 = gr * dx * dz;
+    for (int i = 0; i < r_vectors.rows(); ++i) {
+        for (int j = 0; j < r_vectors.rows(); ++j) {
+            double fr, gr, dx, dy, dz, dr;
 
-    dvecvec t4 = gr * dy * dx;
-    dvecvec t5 = fr + gr * dy * dy;
-    dvecvec t6 = gr * dy * dz;
+            dx = r_vectors(j, 0) - r_vectors(i, 0);
+            dy = r_vectors(j, 1) - r_vectors(i, 1);
+            dz = r_vectors(j, 2) - r_vectors(i, 2);
+            dr = sqrt(dx * dx + dy * dy + dz * dz);
 
-    dvecvec t7 = gr * dz * dx;
-    dvecvec t8 = gr * dz * dy;
-    dvecvec t9 = fr + gr * dz * dz;
-    for (int i = 0; i < x.size(); ++i) {
-        for (int j = 0; j < x.size(); ++j) {
-            M(i * 3, j * 3) = t1(i, j);
-            M(i * 3, j * 3 + 1) = t2(i, j);
-            M(i * 3, j * 3 + 2) = t3(i, j);
+            if (dr > 2.0 * a) {
+                double drij3 = dr * dr * dr;
+                double drij5 = dr * dr * drij3;
+                fr = factor * (0.75 / dr + a * a / (2.0 * drij3));
+                gr = factor * (0.75 / drij3 - 1.5 * a * a / drij5);
+            } else if (dr == 0.0) {
+                fr = factor / a;
+                gr = 0.0;
+            } else {
+                fr = factor * (1.0 / a - 0.28125 * dr / (a * a));
+                gr = factor * (3.0 / (32.0 * a * a * dr));
+            }
 
-            M(i * 3 + 1, j * 3) = t4(i, j);
-            M(i * 3 + 1, j * 3 + 1) = t5(i, j);
-            M(i * 3 + 1, j * 3 + 2) = t6(i, j);
+            M(i * 3, j * 3) = fr + gr * dx * dx;
+            M(i * 3, j * 3 + 1) = gr * dx * dy;
+            M(i * 3, j * 3 + 2) = gr * dx * dz;
 
-            M(i * 3 + 2, j * 3) = t7(i, j);
-            M(i * 3 + 2, j * 3 + 1) = t8(i, j);
-            M(i * 3 + 2, j * 3 + 2) = t9(i, j);
+            M(i * 3 + 1, j * 3) = gr * dy * dx;
+            M(i * 3 + 1, j * 3 + 1) = fr + gr * dy * dy;
+            M(i * 3 + 1, j * 3 + 2) = gr * dy * dz;
+
+            M(i * 3 + 2, j * 3) = gr * dz * dx;
+            M(i * 3 + 2, j * 3 + 1) = gr * dz * dy;
+            M(i * 3 + 2, j * 3 + 2) = fr + gr * dz * dz;
         }
     }
 
@@ -292,8 +268,8 @@ dvec single_wall_mobility_trans_times_force(Eigen::Ref<dvecvec> r_vectors_in,
     if (force.isZero(0))
         return u;
 
-    // Loop over image boxes and then over particles
-    // TODO: Add PBC!
+        // Loop over image boxes and then over particles
+        // TODO: Add PBC!
 #pragma omp parallel for reduction(+ : u) schedule(dynamic)
     for (int i = 0; i < N; ++i) {
         { // self interaction
