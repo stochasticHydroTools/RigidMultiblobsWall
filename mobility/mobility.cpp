@@ -187,9 +187,11 @@ dvecvec single_wall_fluid_mobility(Eigen::Ref<dvecvec> r_vectors_in, double eta,
     M *= factor;
     M += fluid_mobility;
 
-    // FIXME: Use damping results
     // Compute M = B^T * M_tilde * B;
     if (overlap) {
+        // FIXME: Make sure damping implemented correctly
+        // There are more efficient ways to do this, but it's not so costly and
+        // should be relatively rare anyway.
         return (B_damp * ((B_damp * M.transpose().matrix()).transpose()))
             .array();
     } else {
