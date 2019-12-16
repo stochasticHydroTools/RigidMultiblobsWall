@@ -79,9 +79,17 @@ class Body(object):
     R has shape (3*Nblobs, 3).
     '''
     r_vectors = self.get_r_vectors(location, orientation) - (self.location if location is None else location)    
-    rot_matrix = np.array([[[0.0,    vec[2], -vec[1]],
-                           [-vec[2], 0.0,    vec[0]],
-                           [vec[1], -vec[0], 0.0]] for vec in r_vectors])
+    # rot_matrix = np.array([[[0.0,    vec[2], -vec[1]],
+    #                        [-vec[2], 0.0,    vec[0]],
+    #                        [vec[1], -vec[0], 0.0]] for vec in r_vectors])
+    rot_matrix = np.zeros((r_vectors.shape[0], 3, 3))
+    rot_matrix[:,0,1] = r_vectors[:,2]
+    rot_matrix[:,0,2] = -r_vectors[:,1]
+    rot_matrix[:,1,0] = -r_vectors[:,2]
+    rot_matrix[:,1,2] = r_vectors[:,0]
+    rot_matrix[:,2,0] = r_vectors[:,1]
+    rot_matrix[:,2,1] = -r_vectors[:,0]
+
     return np.reshape(rot_matrix, (3*self.Nblobs, 3))
 
 
