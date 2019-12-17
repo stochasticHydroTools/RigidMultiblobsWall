@@ -96,6 +96,8 @@ def set_mobility_blobs(implementation):
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
     return  mb.boosted_single_wall_fluid_mobility
+  elif implementation == 'C++-alt':
+    return mb.single_wall_fluid_mobility_cpp
 
 
 def set_mobility_vector_prod(implementation):
@@ -125,6 +127,8 @@ def set_mobility_vector_prod(implementation):
     return mb.single_wall_fluid_mobility_product
   elif implementation == 'C++':
     return mb.boosted_mobility_vector_product
+  elif implementation == 'C++-alt':
+    return mb.single_wall_mobility_trans_times_force_cpp
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba':
