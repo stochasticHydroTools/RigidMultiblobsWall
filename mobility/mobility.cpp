@@ -431,9 +431,8 @@ dvec single_wall_mobility_trans_times_force(Eigen::Ref<dvecvec> r_vectors_in,
 
 #ifdef PYTHON
 PYBIND11_MODULE(mobility_cpp, m) {
-    m.doc() = "pybind11 example plugin"; // optional module docstring
     m.def("single_wall_mobility_trans_times_force",
-          &single_wall_mobility_trans_times_force, "Calculate M*f");
+          &single_wall_mobility_trans_times_force, "Calculate M*f for single wall.");
     m.def("single_wall_fluid_mobility", &single_wall_fluid_mobility, "");
     m.def("damping_matrix_B", &damping_matrix_B, "");
     m.def("rotne_prager_tensor", &rotne_prager_tensor, "Rotne-Prager tensor.");
