@@ -47,7 +47,10 @@ except ImportError:
 try:
   import mobility_cpp
 except ImportError:
-  from mobility import mobility_cpp
+  try:
+    from mobility import mobility_cpp
+  except ImportError:
+    pass
 
 def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   '''
