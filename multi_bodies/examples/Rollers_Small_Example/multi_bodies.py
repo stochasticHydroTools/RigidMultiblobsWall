@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
+from shutil import copyfile
 from functools import partial
 import sys
 import time
@@ -33,9 +34,9 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
-    import general_application_utils as utils
+    import utils
     try:
-      import calculateConcentration as cc
+      import libCallHydroGrid as cc
       found_HydroGrid = True
     except ImportError:
       found_HydroGrid = False
@@ -517,8 +518,7 @@ if __name__ == '__main__':
 
   # Read input file
   read = read_input.ReadInput(input_file)
-  
- 
+   
   # Set some variables for the simulation
   n_steps = read.n_steps 
   n_save = read.n_save
@@ -536,7 +536,8 @@ if __name__ == '__main__':
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
-  subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  #subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  copyfile(input_file, output_name + '.inputfile')
 
   # Set random generator state
   if read.random_state is not None:
@@ -600,7 +601,6 @@ if __name__ == '__main__':
                                              mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
                                               g = g,
-                                              tilt_angle = read.theta,
                                               repulsion_strength_wall = read.repulsion_strength_wall, 
                                               debye_length_wall = read.debye_length_wall)
     integrator.calc_blob_blob_forces = partial(multi_bodies_functions.calc_blob_blob_forces,
@@ -614,14 +614,11 @@ if __name__ == '__main__':
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
 
-  if read.rf_delta is not None:
-    integrator.rf_delta = float(read.rf_delta)
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
-                                               g = g,
-                                               tilt_angle = read.theta,
+                                               g = g, 
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
@@ -646,9 +643,10 @@ if __name__ == '__main__':
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
+  integrator.rf_delta = read.rf_delta
 
   # Initialize HydroGrid library:
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -727,7 +725,7 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Update HydroGrid
-    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
+    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
@@ -742,7 +740,7 @@ if __name__ == '__main__':
                                  get_blobs_r_vectors(bodies, Nblobs))
     
     # Save HydroGrid data
-    if read.save_HydroGrid > 0 and found_HydroGrid:
+    if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
       if (step % read.save_HydroGrid) == 0:
         cc.calculate_concentration(output_name, 
                                    read.periodic_length[0], 
@@ -815,7 +813,7 @@ if __name__ == '__main__':
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
   # Update HydroGrid data
-  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    
+  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -830,13 +828,13 @@ if __name__ == '__main__':
                                get_blobs_r_vectors(bodies, Nblobs))
 
   # Save HydroGrid data
-  if read.save_HydroGrid > 0 and found_HydroGrid:
+  if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
     if ((step+1) % read.save_HydroGrid) == 0:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
-                                 read.green_particles[0], 
-                                 read.green_particles[1],  
+                                 int(read.green_particles[0]),
+                                 int(read.green_particles[1]), 
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
@@ -847,12 +845,12 @@ if __name__ == '__main__':
 
 
   # Free HydroGrid
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
-                               read.green_particles[0], 
-                               read.green_particles[1],  
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 

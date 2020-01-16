@@ -5,6 +5,7 @@ import scipy.sparse
 # Try to import numba
 try:
   from numba import njit, prange
+  import numba as nb
 except ImportError:
   print('numba not found')
 
@@ -300,7 +301,7 @@ def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   force = force.reshape(N, 3)
-  u = np.zeros((N, 3))
+  u = np.zeros(N*3)
   fourOverThree = 4.0 / 3.0
   inva = 1.0 / a
   norm_fact_f = 1.0 / (8.0 * np.pi * eta * a)
@@ -317,13 +318,17 @@ def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   if L[2] > 0:
     periodic_z = 1
 
+  # if input force is zero, just return zeros
+  if not force[:].any():
+    return u
+
   # Loop over image boxes and then over particles
   for i in prange(N):
+    ulocal = np.zeros(N*3)
     for boxX in range(-periodic_x, periodic_x+1):
       for boxY in range(-periodic_y, periodic_y+1):
         for boxZ in range(-periodic_z, periodic_z+1):
-          for j in range(N):
-	  
+          for j in range(i, N):
             # Compute vector between particles i and j
             rx = r_vectors[i,0] - r_vectors[j,0]
             ry = r_vectors[i,1] - r_vectors[j,1]
@@ -427,13 +432,19 @@ def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
               Mzy += 0.0
               Mzz += 0.0
 	  
-            # 2. Compute product M_ij * F_j           
-            u[i,0] += (Mxx * force[j,0] + Mxy * force[j,1]) * norm_fact_f
-            u[i,1] += (Myx * force[j,0] + Myy * force[j,1]) * norm_fact_f
-            u[i,2] += 0.0
+            # 2. Compute product M_ij * F_j
+            ulocal[i*3+0] += (Mxx * force[j,0] + Mxy * force[j,1] + Mxz * force[j,2]) * norm_fact_f
+            ulocal[i*3+1] += (Myx * force[j,0] + Myy * force[j,1] + Myz * force[j,2]) * norm_fact_f
+            ulocal[i*3+2] += (Mzx * force[j,0] + Mzy * force[j,1] + Mzz * force[j,2]) * norm_fact_f
 
-  return u.flatten()
+            if i != j:
+              ulocal[j*3+0] += (Mxx * force[i,0] + Myx * force[i,1] + Mzx * force[i,2]) * norm_fact_f
+              ulocal[j*3+1] += (Mxy * force[i,0] + Myy * force[i,1] + Mzy * force[i,2]) * norm_fact_f
+              ulocal[j*3+2] += (Mxz * force[i,0] + Myz * force[i,1] + Mzz * force[i,2]) * norm_fact_f
 
+    u += ulocal
+
+  return u
 
 
 @njit(parallel=True)
