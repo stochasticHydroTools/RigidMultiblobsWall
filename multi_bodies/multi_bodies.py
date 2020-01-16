@@ -664,14 +664,6 @@ if __name__ == '__main__':
                                0, 
                                get_blobs_r_vectors(bodies, Nblobs))
 
-  # Open config files
-  if read.save_clones == 'one_file':
-    buffering = max(1, min(body_types) * n_steps // n_save // 200)
-    f_ID = []
-    for i, ID in enumerate(structures_ID):
-      name = output_name + '.' + ID + '.config'
-      f = open(name, 'w', buffering=buffering)
-      f_ID.append(f)
 
   # Loop over time steps
   start_time = time.time()
@@ -809,11 +801,6 @@ if __name__ == '__main__':
     else:
       print('Error, save_clones =', read.save_clones, 'is not implemented.')
       print('Use \"one_file_per_step\" or \"one_file\". \n')
-
-
-    # Close config files
-    for f in f_ID:
-      f.close()
 
     # Save mobilities
     if read.save_blobs_mobility == 'True' or read.save_body_mobility == 'True':
