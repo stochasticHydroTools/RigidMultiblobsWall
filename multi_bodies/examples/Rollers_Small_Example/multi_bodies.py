@@ -34,8 +34,7 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
-    from read_input import read_velocity_file
-    import general_application_utils as utils
+    import utils
     try:
       import libCallHydroGrid as cc
       found_HydroGrid = True
@@ -97,11 +96,6 @@ def set_mobility_blobs(implementation):
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
     return  mb.boosted_single_wall_fluid_mobility
-  # Implementation free surface
-  elif implementation == 'C++_free_surface':
-    return  mb.boosted_free_surface_mobility
-  elif implementation == 'C++-alt':
-    return mb.single_wall_fluid_mobility_cpp
 
 
 def set_mobility_vector_prod(implementation):
@@ -131,15 +125,10 @@ def set_mobility_vector_prod(implementation):
     return mb.single_wall_fluid_mobility_product
   elif implementation == 'C++':
     return mb.boosted_mobility_vector_product
-  elif implementation == 'C++-alt':
-    return mb.single_wall_mobility_trans_times_force_cpp
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba':
     return mb.single_wall_mobility_trans_times_force_numba
-  # Implementations free surface
-  elif implementation == 'pycuda_free_surface':
-    return mb.free_surface_mobility_trans_times_force_pycuda
 
 
 def calc_K_matrix(bodies, Nblobs):
@@ -217,13 +206,9 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
 def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *args, **kwargs):
   '''
   Return the action of the linear operator of the rigid body on vector v.
-  The linear operator for free kinematics is
-  |  M   -K||lambda| = | slip + noise_1|
-  | -K^T  0||  U   |   | -F   + noise_2|
-  
-  and for prescribed kinamtics
-  |  M    0||lambda| = | slip + KU + noise_1|
-  | -K^T  1||  F   |   |         0          |
+  The linear operator is
+  |  M   -K|
+  | -K^T  0|
   ''' 
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
@@ -241,18 +226,9 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = -np.reshape(K_T_times_lambda, (Ncomp_bodies))
-
-  # Modify to account for prescribed kinematics
-  offset = 0
-  for k, b in enumerate(bodies):
-    if b.prescribed_kinematics is True:
-      res[3*offset : 3*(offset+b.Nblobs)] += (K_times_U[offset : (offset+b.Nblobs)]).flatten()
-      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
-    offset += b.Nblobs
   return res
 
 
-@utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('M_factorization_blobs', [])
@@ -279,7 +255,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   y = P_inv * x
   y = N*F - N*K.T*M^{-1}*slip
   '''
-  initialized = build_block_diagonal_preconditioners_det_stoch.initialized
   mobility_bodies = []
   K_bodies = []
   M_factorization_blobs = []
@@ -288,29 +263,22 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
 
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
     # Loop over bodies
-    for k, b in enumerate(bodies):
-      if b.prescribed_kinematics and len(initialized) > 0:
-        mobility_bodies.append(build_block_diagonal_preconditioners_det_stoch.mobility_bodies[k])
-        K_bodies.append(build_block_diagonal_preconditioners_det_stoch.K_bodies[k])
-        M_factorization_blobs.append(build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs[k])
-        M_factorization_blobs_inv.append(build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv[k])
-        mobility_inv_blobs.append(build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs[k])
-      else:
-        # 1. Compute blobs mobility 
-        M = b.calc_mobility_blobs(eta, a)
-        # 2. Compute Cholesy factorization, M = L^T * L
-        L, lower = scipy.linalg.cho_factor(M)
-        L = np.triu(L)   
-        M_factorization_blobs.append(L.T)
-        # 3. Compute inverse of L
-        M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
-        # 4. Compute inverse mobility blobs
-        mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-        # 5. Compute geometric matrix K
-        K = b.calc_K_matrix()
-        K_bodies.append(K)
-        # 6. Compute body mobility
-        mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+    for b in bodies:
+      # 1. Compute blobs mobility 
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
+      M_factorization_blobs.append(L.T)
+      # 3. Compute inverse of L
+      M_factorization_blobs_inv.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
+      # 4. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 5. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 6. Compute body mobility
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioners_det_stoch.mobility_bodies = mobility_bodies
@@ -318,9 +286,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
     build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs = M_factorization_blobs
     build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs_inv = M_factorization_blobs_inv
     build_block_diagonal_preconditioners_det_stoch.mobility_inv_blobs = mobility_inv_blobs
-
-    # The function is initialized
-    build_block_diagonal_preconditioners_det_stoch.initialized.append(1)
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioners_det_stoch.mobility_bodies 
@@ -337,28 +302,16 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
-      if b.prescribed_kinematics is False:
-        # 1. Solve M*Lambda_tilde = slip
-        slip = vector[3*offset : 3*(offset + b.Nblobs)]
-        Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-        # 2. Compute rigid body velocity
-        F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-        Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
-        # 3. Solve M*Lambda = (slip + K*Y)
-        result[3*offset : 3*(offset + b.Nblobs)] = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
-        # 4. Set result
-        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
-      if b.prescribed_kinematics is True:
-        # 1. Solve M*Lambda = (slip + K*Y)
-        slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
-        Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
-
-        # 2. Set force
-        F = np.dot(K_bodies[k].T, Lambda)
-
-        # 3. Set result
-        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+      # 3. Solve M*Lambda = (slip + K*Y)
+      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+      # 4. Set result
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
       offset += b.Nblobs
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
@@ -399,7 +352,6 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   return block_diagonal_preconditioner_partial, mobility_pc_partial, P_inv_mult_partial
 
 
-@utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('mobility_inv_blobs', [])
@@ -410,38 +362,29 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   independently, i.e., no interation between bodies is taken
   into account.
   '''
-  initialized = build_block_diagonal_preconditioner.initialized
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
-    for k, b in enumerate(bodies):
-      if b.prescribed_kinematics and len(initialized) > 0:
-        mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
-        mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
-        K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
-      else:
-        # 1. Compute blobs mobility and invert it
-        M = b.calc_mobility_blobs(eta, a)
-        # 2. Compute Cholesy factorization, M = L^T * L
-        L, lower = scipy.linalg.cho_factor(M)
-        L = np.triu(L)   
-        # 3. Compute inverse mobility blobs
-        mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-        # 4. Compute geometric matrix K
-        K = b.calc_K_matrix()
-        K_bodies.append(K)
-        # 5. Compute body mobility
-        mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+    for b in bodies:
+      # 1. Compute blobs mobility and invert it
+      M = b.calc_mobility_blobs(eta, a)
+      # 2. Compute Cholesy factorization, M = L^T * L
+      L, lower = scipy.linalg.cho_factor(M)
+      L = np.triu(L)   
+      # 3. Compute inverse mobility blobs
+      mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+      # 4. Compute geometric matrix K
+      K = b.calc_K_matrix()
+      K_bodies.append(K)
+      # 5. Compute body mobility
+      mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
 
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
     build_block_diagonal_preconditioner.K_bodies = K_bodies
     build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
-
-    # The function is initialized
-    build_block_diagonal_preconditioner.initialized.append(1)
   else:
     # Use old values
     mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
@@ -455,32 +398,20 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
     result = np.empty(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
-      if b.prescribed_kinematics is False:
-        # 1. Solve M*Lambda_tilde = slip
-        slip = vector[3*offset : 3*(offset + b.Nblobs)]
-        Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-        
-        # 2. Compute rigid body velocity
-        F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-        Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
-        
-        # 3. Solve M*Lambda = (slip + K*Y)
-        Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
-        
-        # 4. Set result
-        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
-      if b.prescribed_kinematics is True:
-        # 1. Solve M*Lambda = (slip + K*Y)
-        slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
-        Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
 
-        # 2. Set force
-        F = np.dot(K_bodies[k].T, Lambda)
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
 
-        # 3. Set result
-        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
+      # 3. Solve M*Lambda = (slip + K*Y)
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+
+      # 4. Set result
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
       offset += b.Nblobs
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
@@ -605,8 +536,8 @@ if __name__ == '__main__':
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
-  # subprocess.call(["cp", input_file, output_name + '.inputfile'])
-  copyfile(input_file,output_name + '.inputfile')
+  #subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  copyfile(input_file, output_name + '.inputfile')
 
   # Set random generator state
   if read.random_state is not None:
@@ -632,9 +563,6 @@ if __name__ == '__main__':
     slip = None
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
-    prescribed_velocity = None
-    if(len(structure) > 3):
-      prescribed_velocity = read_velocity_file.read_slip_file(structure[3])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
@@ -643,16 +571,11 @@ if __name__ == '__main__':
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = structures_ID[ID]
       # Calculate body length for the RFD
-      if b.Nblobs > 2000:
-        b.body_length = 10.0
-      elif i == 0:
+      if i == 0:
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
-      multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
-      if prescribed_velocity is not None:
-        b.prescribed_kinematics = True
-        multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])
+      multi_bodies_functions.set_slip_by_ID(b, slip)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)
@@ -694,7 +617,6 @@ if __name__ == '__main__':
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
-  integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
                                                g = g, 
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
@@ -737,7 +659,6 @@ if __name__ == '__main__':
                                Nblobs, 
                                0, 
                                get_blobs_r_vectors(bodies, Nblobs))
-
 
   # Loop over time steps
   start_time = time.time()

@@ -44,6 +44,13 @@ try:
   import mobility_fmm as fmm
 except ImportError:
   pass
+try:
+  import mobility_cpp
+except ImportError:
+  try:
+    from mobility import mobility_cpp
+  except ImportError:
+    pass
 
 def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   '''
@@ -55,8 +62,8 @@ def shift_heights(r_vectors, blob_radius, *args, **kwargs):
   definite mobilites for blobs close to the wall.
   '''
   r_effective = np.copy(r_vectors)
-  for r in r_effective:
-    r[2] = r[2] if r[2] > blob_radius else blob_radius
+  r_effective[r_vectors[:,2] <= blob_radius, 2] = blob_radius
+
   return r_effective
 
 
@@ -264,6 +271,42 @@ def boosted_no_wall_mobility_vector_product(r_vectors, vector, eta, a, *args, **
   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size // 3, 3))
   me.no_wall_mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
   return vector_res
+
+
+
+def single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a, *args, **kwargs):
+  '''
+  Returns the product of the mobility at the blob level by the force
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the
+  Blake paper point particle result.
+
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes.
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function uses mobility_cpp, a separate extention from mobility_ext that must be built.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  # Get effective height
+  r_vectors_effective = shift_heights(r_vectors, a)
+  # Compute damping matrix B
+  B, overlap = mobility_cpp.damping_matrix_B(r_vectors, a)
+
+  # Compute B * force
+  if overlap is True:
+    force = B.dot(force.flatten())
+  # Compute M_tilde * B * force
+  velocities = mobility_cpp.single_wall_mobility_trans_times_force(r_vectors_effective, force, eta, a, L)
+  # Compute B.T * M * B * vector
+  if overlap is True:
+    velocities = B.dot(velocities)
+  return velocities
 
 
 def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
@@ -1066,6 +1109,8 @@ def rotne_prager_tensor(r_vectors, eta, a, *args, **kwargs):
   M[2::3, 2::3] = fr + gr * dz * dz
   return M
 
+def single_wall_fluid_mobility_cpp(r_vectors, eta, a):
+  return mobility_cpp.single_wall_fluid_mobility(r_vectors, eta, a)
 
 def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   ''' 
@@ -1082,7 +1127,11 @@ def single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
   B_damp, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
   num_particles = len(r_vectors_effective)
   # We add the corrections from the appendix of the paper to the unbounded mobility.
-  fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
+  if 'mobility_cpp' in sys.modules:
+    fluid_mobility = mobility_cpp.rotne_prager_tensor(r_vectors_effective, eta, a)
+  else:
+    fluid_mobility = rotne_prager_tensor(r_vectors_effective, eta, a)
+
 
   # Extract variables
   r_vectors_effective = r_vectors_effective.reshape((r_vectors_effective.size // 3, 3))

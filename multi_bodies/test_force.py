@@ -27,13 +27,18 @@ except ImportError:
   except ImportError:
     found_boost = False
 
+try:
+  import forces_cpp
+  found_cpp = True
+except ImportError:
+  pass
 
 
 if __name__ == '__main__':
   print('# Start')
 
-  N = 100
-  a = 1.1
+  N = 1000
+  a = 0.13
   b = 7
   eps = 3.92
   L = np.array([0.0, 0.0, 0.0])
@@ -59,6 +64,12 @@ if __name__ == '__main__':
     force_boost = mbf.calc_blob_blob_forces_boost(r_vectors, blob_radius=a, debye_length=b, repulsion_strength=eps, periodic_length=L)
     timer('boost')
 
+  if found_cpp:
+    timer('cpp')
+    force_cpp = mbf.calc_blob_blob_forces_cpp(r_vectors, blob_radius=a, debye_length=b, repulsion_strength=eps, periodic_length=L)
+    timer('cpp')
+
+
 
   if N < 3:
     print('pycuda = ', force_pycuda)
@@ -71,6 +82,8 @@ if __name__ == '__main__':
     print('|f_numba - f_pycuda| / |f_pycuda| = ', np.linalg.norm(force_numba - force_pycuda) / np.linalg.norm(force_pycuda))
   if found_boost:
     print('|f_boost - f_python| / |f_python| = ', np.linalg.norm(force_boost - force_python) / np.linalg.norm(force_python))
+  if found_cpp:
+    print('|f_cpp - f_python| / |f_python| = ', np.linalg.norm(force_cpp - force_python) / np.linalg.norm(force_python))
 
 
 

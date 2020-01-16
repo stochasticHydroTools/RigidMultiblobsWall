@@ -13,6 +13,15 @@ try:
     found_boost = True
 except ImportError:
     found_boost = False
+try:
+  import mobility_cpp
+  found_cpp = True
+except ImportError:
+  try:
+    from mobility import mobility_cpp
+    found_cpp = True
+  except ImportError:
+    pass
 
 
 
@@ -31,13 +40,10 @@ if __name__ == '__main__':
     print('# Start')
     
     # Create blobs
-    # np.random.seed(4)
+    N = 250
     eta = 7.0
-    a = 1.1
-    location = [0., 0., 1]
-    theta = np.random.normal(0., 1., 4)
-    orientation = Quaternion([1., 0., 0., 0.])
-    r_vectors = 5 * a * np.random.rand(200, 3) + np.array([0., 0., 0.])  
+    a = 0.13
+    r_vectors = 5 * a * np.random.rand(N, 3) 
     L = np.array([0., 0., 0.])
 
     # Generate random forces
@@ -65,7 +71,7 @@ if __name__ == '__main__':
         u_no_wall_pycuda = mob.no_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a)
         timer('zz_no_wall_pycuda')
         u_no_wall_pycuda = mob.no_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a)
-        timer('zz_no_wall_pycuda')
+        timer('zz_no_wall_pycuda') 
 
 
     # ================================================================
@@ -104,6 +110,10 @@ if __name__ == '__main__':
         u_gpu = mob.single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, periodic_length = L)
         timer('pycuda')
  
+    if found_cpp:
+        timer('cpp')
+        u_cpp = mob.single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a, periodic_length = L)
+        timer('cpp')
 
     if False:
         np.set_printoptions(precision=6)
@@ -132,9 +142,13 @@ if __name__ == '__main__':
     if found_pycuda:
         print('|u_gpu - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_gpu - u_loops) / np.linalg.norm(u_loops))
 
+    if found_cpp:
+        print('|u_cpp - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_cpp - u_loops) / np.linalg.norm(u_loops))
+
     if L[0] > 0. or L[1] > 0.:
         print('===================================================')
-        print('|u_numba - u_gpu| / |u_gpu|                                    = ', np.linalg.norm(u_numba - u_gpu) / np.linalg.norm(u_gpu))
+        if found_pycuda:
+            print('|u_numba - u_gpu| / |u_gpu|                                    = ', np.linalg.norm(u_numba - u_gpu) / np.linalg.norm(u_gpu))
         if found_boost:
             print('|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost))
             print('|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost))

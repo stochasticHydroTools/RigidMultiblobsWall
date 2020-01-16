@@ -44,7 +44,10 @@ except ImportError:
   found_numba = False
 if found_numba:
   import forces_numba
-
+try:
+  import forces_cpp
+except ImportError:
+  pass
 
 # Override forces_pycuda with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
@@ -178,6 +181,44 @@ def bodies_external_force_torque(bodies, r_vectors, *args, **kwargs):
   return np.zeros((2*len(bodies), 3))
   
 
+def blob_external_forces(r_vectors, *args, **kwargs):
+  '''
+  This function compute the external force acting on a
+  single blob. It returns an array with shape (3).
+
+  In this example we add gravity and a repulsion with the wall;
+  the interaction with the wall is derived from the potential
+
+  U(z) = U0 + U0 * (a-z)/b   if z<a
+  U(z) = U0 * exp(-(z-a)/b)  iz z>=a
+
+  with
+  e = repulsion_strength_wall
+  a = blob_radius
+  h = distance to the wall
+  b = debye_length_wall
+  '''
+  N = r_vectors.size // 3
+  f = np.zeros((N, 3))
+
+  # Get parameters from arguments
+  blob_mass = kwargs.get('blob_mass')
+  blob_radius = kwargs.get('blob_radius')
+  g = kwargs.get('g')
+  repulsion_strength_wall = kwargs.get('repulsion_strength_wall')
+  debye_length_wall = kwargs.get('debye_length_wall')
+  # Add gravity
+  f[:,2] = -g * blob_mass
+
+  # Add wall interaction
+  h = r_vectors[:,2]
+  lr_mask = h > blob_radius
+  sr_mask = h <= blob_radius
+  f[lr_mask,2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h[lr_mask]-blob_radius)/debye_length_wall)
+  f[sr_mask,2] += (repulsion_strength_wall / debye_length_wall)
+
+  return f
+
 def blob_external_force(r_vectors, *args, **kwargs):
   '''
   This function compute the external force acting on a
@@ -224,9 +265,7 @@ def calc_one_blob_forces(r_vectors, *args, **kwargs):
   r_vectors = np.reshape(r_vectors, (Nblobs, 3))
   
   # Loop over blobs
-  for blob in range(Nblobs):
-    force_blobs[blob] += blob_external_force(r_vectors[blob], *args, **kwargs)   
-
+  force_blobs = blob_external_forces(r_vectors, *args, **kwargs)
   return force_blobs
 
 
@@ -246,12 +285,29 @@ def set_blob_blob_forces(implementation):
   elif implementation == 'python':
     return calc_blob_blob_forces_python
   elif implementation == 'C++':
-    return calc_blob_blob_forces_boost 
+    return calc_blob_blob_forces_boost
+  elif implementation == 'C++-alt':
+    return calc_blob_blob_forces_cpp
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
   elif implementation == 'numba':
     return forces_numba.calc_blob_blob_forces_numba
 
+
+def calc_blob_blob_forces_cpp(r_vectors, *args, **kwargs):
+  '''
+  This function computes the blob-blob forces and returns
+  an array with shape (Nblobs, 3).
+  '''
+
+  # Get parameters from arguments
+  L = kwargs.get('periodic_length')
+  eps = kwargs.get('repulsion_strength')
+  b = kwargs.get('debye_length')
+  a = kwargs.get('blob_radius')
+
+  forces = forces_cpp.blob_blob_force(r_vectors, L, eps, b, a)
+  return np.reshape(forces, (forces.size // 3, 3))
 
 
 def blob_blob_force(r, *args, **kwargs):

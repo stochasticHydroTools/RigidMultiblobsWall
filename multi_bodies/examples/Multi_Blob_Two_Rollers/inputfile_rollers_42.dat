@@ -1,0 +1,70 @@
+# Input file to simulate microllers above a wall as in
+# Brownian dynamics of confined suspensions of active microrollers
+# J. Chem. Phys. 2017.
+#
+# Units for length, time and mass are micrometers, seconds and
+# milligrams
+
+# Select integrator
+scheme					                       stochastic_Slip_Trapz
+#scheme					                       deterministic_adams_bashforth
+
+# Define implementation to compute the blobs mobility 
+mobility_vector_prod_implementation    numba
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+blob_blob_force_implementation	       python
+body_body_force_torque_implementation  python
+repulsion_strength	   		             0.0165677856
+debye_length	   			                 0.1
+
+# Set time step, number of steps and save frequency
+dt		 	   	     	                     0.01
+n_steps					                       1000
+n_save  				                       1
+initial_step				                   0
+solver_tolerance			                 1e-3
+
+# Set viscosity, gravity and blob radius
+# In units of micrometers, seconds and milligrams
+eta					                           1.0e-3
+g					                             0.0024892
+
+#change blob_radius if you want to use more 
+#blobs per sphere
+# 12 blobs per sphere: 0.41642068
+# 42 blobs per sphere: 0.2435531
+# 162 blobs per sphere: 0.1310088
+# 642 blobs per sphere: 0.0675276753
+# 2562 blobs per sphere: 0.03420497892
+
+blob_radius				                     0.2435531
+
+
+
+kT					                           0.0041419464
+
+# Set external torque / angular velocity
+omega_one_roller			                 0.0	 62.8	      0.0
+periodic_length						 0.0	0.0   0.0
+
+
+# Set interaction with the wall
+repulsion_strength_wall			           0.0165677856
+debye_length_wall	   		               0.1
+
+# Seed random number generator
+# seed					 1
+
+# Set output name
+output_name				                     ./run_two_rollers/data
+save_clones				                     one_file
+
+# Read structures
+# 12 blobs per sphere
+#structure	../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex two_rollers.clones
+# 42 blobs per sphere
+structure	../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex two_rollers.clones
+
+
+

@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
+from shutil import copyfile
 from functools import partial
 import sys
 import time
@@ -33,9 +34,9 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
-    import general_application_utils as utils
+    import utils
     try:
-      import calculateConcentration as cc
+      import libCallHydroGrid as cc
       found_HydroGrid = True
     except ImportError:
       found_HydroGrid = False
@@ -517,8 +518,7 @@ if __name__ == '__main__':
 
   # Read input file
   read = read_input.ReadInput(input_file)
-  
- 
+   
   # Set some variables for the simulation
   n_steps = read.n_steps 
   n_save = read.n_save
@@ -536,8 +536,8 @@ if __name__ == '__main__':
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
-  subprocess.call(["cp", input_file, output_name + '.inputfile'])
-
+  #subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  copyfile(input_file, output_name + '.inputfile')
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
@@ -600,7 +600,6 @@ if __name__ == '__main__':
                                              mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
                                               g = g,
-                                              tilt_angle = read.theta,
                                               repulsion_strength_wall = read.repulsion_strength_wall, 
                                               debye_length_wall = read.debye_length_wall)
     integrator.calc_blob_blob_forces = partial(multi_bodies_functions.calc_blob_blob_forces,
@@ -614,14 +613,20 @@ if __name__ == '__main__':
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
 
-  if read.rf_delta is not None:
-    integrator.rf_delta = float(read.rf_delta)
   integrator.calc_slip = calc_slip 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
+  
+  ########### Here I define a particle radius 
+  ########### Not read in from inputfile
+  particle_radius = 1.0
+  ###########################################
+  
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
-                                               g = g,
-                                               tilt_angle = read.theta,
+                                               g = g, 
+                                               eta = eta,
+                                               particle_radius = particle_radius,
+                                               omega_one_roller = read.omega_one_roller,
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
@@ -646,9 +651,10 @@ if __name__ == '__main__':
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
+  integrator.rf_delta = read.rf_delta
 
   # Initialize HydroGrid library:
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -663,7 +669,13 @@ if __name__ == '__main__':
                                get_blobs_r_vectors(bodies, Nblobs))
 
   # Loop over time steps
-  start_time = time.time()  
+  start_time = time.time()
+  if read.save_clones == 'one_file':
+    output_files = []
+    for i, ID in enumerate(structures_ID):
+      name = output_name + '.' + ID + '.config'
+      output_files.append(open(name, 'w'))
+
   for step in range(read.initial_step, n_steps):
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
@@ -687,24 +699,18 @@ if __name__ == '__main__':
                                                      orientation[3]))
             body_offset += body_types[i]
       elif read.save_clones == 'one_file':
-        for i, ID in enumerate(structures_ID):
-          name = output_name + '.N_' + str(Nblobs) + '_tilt_' + str(read.theta) + '.config'
-          if step == 0:
-            status = 'w'
-          else:
-            status = 'a'
-          with open(name, status) as f_ID:
-            f_ID.write(str(body_types[i]) + '\n')
-            for j in range(body_types[i]):
-              orientation = bodies[body_offset + j].orientation.entries
-              f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                     bodies[body_offset + j].location[1], 
-                                                     bodies[body_offset + j].location[2], 
-                                                     orientation[0], 
-                                                     orientation[1], 
-                                                     orientation[2], 
-                                                     orientation[3]))
-            body_offset += body_types[i]
+        for i, f_ID in enumerate(output_files):
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0],
+                                                   bodies[body_offset + j].location[1],
+                                                   bodies[body_offset + j].location[2],
+                                                   orientation[0],
+                                                   orientation[1],
+                                                   orientation[2],
+                                                   orientation[3]))
+          body_offset += body_types[i]
       else:
         print('Error, save_clones =', read.save_clones, 'is not implemented.')
         print('Use \"one_file_per_step\" or \"one_file\". \n')
@@ -726,7 +732,7 @@ if __name__ == '__main__':
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
     # Update HydroGrid
-    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid:
+    if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
@@ -741,7 +747,7 @@ if __name__ == '__main__':
                                  get_blobs_r_vectors(bodies, Nblobs))
     
     # Save HydroGrid data
-    if read.save_HydroGrid > 0 and found_HydroGrid:
+    if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
       if (step % read.save_HydroGrid) == 0:
         cc.calculate_concentration(output_name, 
                                    read.periodic_length[0], 
@@ -781,24 +787,18 @@ if __name__ == '__main__':
           body_offset += body_types[i]
       
     elif read.save_clones == 'one_file':
-      for i, ID in enumerate(structures_ID):
-        name = output_name + '.' + ID + '.config'
-        if step+1 == 0:
-          status = 'w'
-        else:
-          status = 'a'
-        with open(name, status) as f_ID:
-          f_ID.write(str(body_types[i]) + '\n')
-          for j in range(body_types[i]):
-            orientation = bodies[body_offset + j].orientation.entries
-            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                   bodies[body_offset + j].location[1], 
-                                                   bodies[body_offset + j].location[2], 
-                                                   orientation[0], 
-                                                   orientation[1], 
-                                                   orientation[2], 
-                                                   orientation[3]))
-          body_offset += body_types[i]
+      for i, f_ID in enumerate(output_files):
+        f_ID.write(str(body_types[i]) + '\n')
+        for j in range(body_types[i]):
+          orientation = bodies[body_offset + j].orientation.entries
+          f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0],
+                                                 bodies[body_offset + j].location[1],
+                                                 bodies[body_offset + j].location[2],
+                                                 orientation[0],
+                                                 orientation[1],
+                                                 orientation[2],
+                                                 orientation[3]))
+        body_offset += body_types[i]
     else:
       print('Error, save_clones =', read.save_clones, 'is not implemented.')
       print('Use \"one_file_per_step\" or \"one_file\". \n')
@@ -819,7 +819,7 @@ if __name__ == '__main__':
         np.savetxt(name, mobility_bodies, delimiter='  ')
         
   # Update HydroGrid data
-  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid:    
+  if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
@@ -834,13 +834,13 @@ if __name__ == '__main__':
                                get_blobs_r_vectors(bodies, Nblobs))
 
   # Save HydroGrid data
-  if read.save_HydroGrid > 0 and found_HydroGrid:
+  if read.save_HydroGrid > 0 and found_HydroGrid and read.call_HydroGrid:
     if ((step+1) % read.save_HydroGrid) == 0:
       cc.calculate_concentration(output_name, 
                                  read.periodic_length[0], 
                                  read.periodic_length[1], 
-                                 read.green_particles[0], 
-                                 read.green_particles[1],  
+                                 int(read.green_particles[0]),
+                                 int(read.green_particles[1]), 
                                  int(read.cells[0]), 
                                  int(read.cells[1]), 
                                  step+1, 
@@ -851,12 +851,12 @@ if __name__ == '__main__':
 
 
   # Free HydroGrid
-  if found_HydroGrid:
+  if found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 
                                read.periodic_length[0], 
                                read.periodic_length[1], 
-                               read.green_particles[0], 
-                               read.green_particles[1],  
+                               int(read.green_particles[0]), 
+                               int(read.green_particles[1]),  
                                int(read.cells[0]), 
                                int(read.cells[1]), 
                                step+1, 

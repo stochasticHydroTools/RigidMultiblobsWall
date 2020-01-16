@@ -35,7 +35,6 @@ if __name__ == '__main__':
   # Read input file
   read = read_input.ReadInput(input_file)
   a = read.blob_radius
-  structure_names = read.structure_names
   n_steps = read.n_steps
   n_save = read.n_save
 
