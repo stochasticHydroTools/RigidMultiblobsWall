@@ -292,6 +292,8 @@ def set_blob_blob_forces(implementation):
     return forces_pycuda.calc_blob_blob_forces_pycuda
   elif implementation == 'numba':
     return forces_numba.calc_blob_blob_forces_numba
+  elif implementation == 'tree_numba':
+    return forces_numba.calc_blob_blob_forces_tree_numba
 
 
 def calc_blob_blob_forces_cpp(r_vectors, *args, **kwargs):

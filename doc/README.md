@@ -207,14 +207,14 @@ a suspension of rigid bodies subject to external forces and torques (see below).
 with given velocities (see below). `body_mobility` computes the
 mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python` and `python_no_wall`. It selects
+* `mobility_blobs_implementation`: Options: `python`, `python_no_wall` and `C++-alt`. It selects
 which implementation is used to compute the blob mobility
 matrix **M** that is used to construct the block-diagonal preconditioner described in [2,4].
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `mobility_vector_prod_implementation`: Options: `python`, `numba`,
-`pycuda`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
+`pycuda`, `C++-alt`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
 **Mf**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
@@ -416,10 +416,10 @@ This option select the implementation to compute the matrix vector product
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `blob_blob_force_implementation`: Options: `None, python, C++, numba and pycuda`.
+* `blob_blob_force_implementation`: Options: `None, python, C++, C++-alt, numba, tree_numba and pycuda`.
 Select the implementation to compute the blob-blob interactions between all
 pairs of blobs. If None is selected the code does not compute blob-blob interactions.
-The cost of this function scales like (number_of_blobs)**2, just like the product **Mf**.
+The cost of this function scales like (number_of_blobs)**2, just like the product **Mf** except for the option tree_numba that scales as (number_of_blobs) (interaction between blobs further than `2*blob_radius+30*debye_length` are neglected).
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
 Select the implementation to compute the body-body interactions between all
