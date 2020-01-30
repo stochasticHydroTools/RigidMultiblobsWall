@@ -662,9 +662,10 @@ if __name__ == '__main__':
   start_time = time.time()
   if read.save_clones == 'one_file':
     output_files = []
+    buffering = max(1, min(body_types) * n_steps // n_save // 200)
     for i, ID in enumerate(structures_ID):
       name = output_name + '.' + ID + '.config'
-      output_files.append(open(name, 'w'))
+      output_files.append(open(name, 'w', buffering=buffering))
 
   for step in range(read.initial_step, n_steps):
     # Save data if...
