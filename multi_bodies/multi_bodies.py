@@ -79,9 +79,9 @@ def set_mobility_blobs(implementation):
   '''
   Set the function to compute the dense mobility
   at the blob level to the right implementation.
-  The implementation in C++ is much faster than 
-  the one python; to use it the user should compile 
-  the file mobility/mobility_ext.cc.
+  The implementation in C++ is somewhat faster than 
+  the python one; to use it the user should compile 
+  the file mobility/mobility.cpp
 
   These functions return an array with shape 
   (3*Nblobs, 3*Nblobs).
@@ -89,14 +89,12 @@ def set_mobility_blobs(implementation):
   # Implementations without wall
   if implementation == 'python_no_wall':
     return mb.rotne_prager_tensor
-  elif implementation == 'C++_no_wall':
-    return mb.boosted_infinite_fluid_mobility
+  if implementation == 'C++_no_wall':
+    return mb.rotne_prager_tensor_cpp
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
-    return  mb.boosted_single_wall_fluid_mobility
-  elif implementation == 'C++-alt':
     return mb.single_wall_fluid_mobility_cpp
 
 
@@ -106,18 +104,15 @@ def set_mobility_vector_prod(implementation):
   product (M*F) with the mobility defined at the blob 
   level to the right implementation.
   
-  The implementation in pycuda is much faster than the
-  one in C++, which is much faster than the one python; 
-  To use the pycuda implementation is necessary to have 
-  installed pycuda and a GPU with CUDA capabilities. To
-  use the C++ implementation the user has to compile 
-  the file mobility/mobility_ext.cc.  
+  The implementations in numba, pycuda and C++ are much faster than the
+  python implementation. 
+  Depending on the computer the fastest implementation will be the C++ or the pycuda codes.
+  To use the pycuda implementation is necessary to have installed pycuda and a GPU with CUDA capabilities. 
+  To use the C++ implementation the user has to compile the file mobility/mobility.cpp.  
   ''' 
   # Implementations without wall
   if implementation == 'python_no_wall':
     return mb.no_wall_fluid_mobility_product
-  elif implementation == 'C++_no_wall':
-    return mb.boosted_no_wall_mobility_vector_product
   elif implementation == 'pycuda_no_wall':
     return mb.no_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba_no_wall':
@@ -126,8 +121,6 @@ def set_mobility_vector_prod(implementation):
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
   elif implementation == 'C++':
-    return mb.boosted_mobility_vector_product
-  elif implementation == 'C++-alt':
     return mb.single_wall_mobility_trans_times_force_cpp
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda

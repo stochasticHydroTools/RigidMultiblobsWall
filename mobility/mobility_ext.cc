@@ -1,3 +1,6 @@
+// OLD CODE; DO NOT USE!!!
+// USE INSTEAD THE CODE ON mobility.cpp
+// 
 // Functions for fluid mobilities written
 // in C++ for improved speed.
 
@@ -947,4 +950,150 @@ BOOST_PYTHON_MODULE(mobility_ext)
   def("mobility_vector_product_one_particle", MobilityVectorProductOneParticle);
   def("mobility_vector_product_source_target_one_wall", MobilityVectorProductSourceTargetOneWall);
 }
+
+// PYTHON INTERFACES TO THE ABOVE FUNCTIONS
+
+// def boosted_single_wall_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
+//   '''
+//   Same as single wall fluid mobility, but boosted into C++ for
+//   a speedup. Must compile mobility_ext.cc before this will work
+//   (use Makefile).
+
+//   For blobs overlaping the wall we use
+//   Compute M = B^T * M_tilde(z_effective) * B.
+//   '''
+//   # Set effective height
+//   r_vectors_effective = shift_heights(r_vectors, a)
+
+//   # Compute damping matrix B
+//   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+
+//   num_particles = r_vectors.size // 3
+//   fluid_mobility = np.zeros( (num_particles*3, num_particles*3) )
+//   me.RPY_single_wall_fluid_mobility(np.reshape(r_vectors_effective, (num_particles, 3)), eta, a, num_particles, fluid_mobility)
+
+//   # Compute M = B^T * M_tilde * B
+//   if overlap is True:
+//     return B.dot( (B.dot(fluid_mobility.T)).T )
+//   else:
+//     return fluid_mobility
+
+// def boosted_infinite_fluid_mobility(r_vectors, eta, a, *args, **kwargs):
+//   '''
+//   Same as rotne_prager_tensor, but boosted into C++ for
+//   a speedup. Must compile mobility_ext.cc before this will work
+//   (use Makefile).
+//   '''
+//   num_particles = len(r_vectors)
+//   # fluid_mobility = np.array([np.zeros(3*num_particles) for _ in range(3*num_particles)])
+//   fluid_mobility = np.zeros((num_particles*3, num_particles*3))
+//   me.RPY_infinite_fluid_mobility(r_vectors, eta, a, num_particles, fluid_mobility)
+//   return fluid_mobility
+
+
+// def boosted_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
+//   '''
+//   Compute a mobility * vector product boosted in C++ for a
+//   speedup. It includes wall corrections.
+//   Must compile mobility_ext.cc before this will work
+//   (use Makefile).
+
+//   For blobs overlaping the wall we use
+//   Compute M = B^T * M_tilde(z_effective) * B.
+//   '''
+//   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS
+//   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
+//   ## WITH BOOST
+//   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+//   # Get effective height
+//   r_vectors_effective = shift_heights(r_vectors, a)
+//   # Compute damping matrix B
+//   B, overlap = damping_matrix_B(r_vectors, a, *args, **kwargs)
+//   # Compute B * vector
+//   if overlap is True:
+//     vector = B.dot(vector)
+//   # Compute M_tilde * B * vector
+//   num_particles = r_vectors.size // 3
+//   vector_res = np.zeros(r_vectors.size)
+//   r_vec_for_mob = np.reshape(r_vectors_effective, (r_vectors_effective.size // 3, 3))
+//   me.mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
+//   # Compute B.T * M * B * vector
+//   if overlap is True:
+//     vector_res = B.dot(vector_res)
+//   return vector_res
+
+
+// def boosted_no_wall_mobility_vector_product(r_vectors, vector, eta, a, *args, **kwargs):
+//   '''
+//   Compute a mobility * vector product boosted in C++ for a
+//   speedup. It uses the RPY tensor.
+//   Must compile mobility_ext.cc before this will work
+//   (use Makefile).
+//   '''
+//   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+//   num_particles = r_vectors.size // 3
+//   vector_res = np.zeros(r_vectors.size)
+//   r_vec_for_mob = np.reshape(r_vectors, (r_vectors.size // 3, 3))
+//   me.no_wall_mobility_vector_product(r_vec_for_mob, eta, a, num_particles, L, vector, vector_res)
+//   return vector_res
+
+
+// def boosted_mobility_vector_product_one_particle(r_vectors, eta, a, vector, index_particle, *args, **kwargs):
+//   '''
+//   Compute a mobility * vector product for only one particle. Return the
+//   velocity of of the desired particle. It includes wall corrections.
+//   Boosted in C++ for a speedup. Must compile mobility_ext.cc before this
+//   will work (use Makefile).
+//   '''
+//   num_particles = len(r_vectors)
+//   ## THE USE OF VECTOR_RES AS THE RESULT OF THE MATRIX VECTOR PRODUCT IS
+//   ## TEMPORARY: I NEED TO FIGURE OUT HOW TO CONVERT A DOUBLE TO A NUMPY ARRAY
+//   ## WITH BOOST
+//   vector_res = np.zeros(3)
+//   me.mobility_vector_product_one_particle(r_vectors, eta, a, \
+// 					  num_particles, vector, \
+// 					  vector_res, index_particle)
+//   return vector_res
+
+
+// def boosted_mobility_vector_product_source_target(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+//   '''
+//   Compute a mobility * vector product boosted in C++ for a
+//   speedup. It includes wall corrections.
+//   Must compile mobility_ext.cc before this will work
+//   (use Makefile).
+
+//   For blobs overlaping the wall we use
+//   Compute M = B^T * M_tilde(z_effective) * B.
+//   '''
+//   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+//   # Compute effective heights
+//   x = shift_heights_different_radius(target, radius_target)
+//   y = shift_heights_different_radius(source, radius_source)
+
+//   # Compute dumping matrices
+//   B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+//   B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+//   # Compute B * vector
+//   if overlap_source is True:
+//     force = B_source.dot(force.flatten())
+
+//   # Compute M_tilde * B * vector
+//   num_sources = source.size // 3
+//   num_targets = target.size // 3
+//   vector_res = np.zeros(target.size)
+//   x_for_mob = np.reshape(x, (x.size // 3, 3))
+//   y_for_mob = np.reshape(y, (y.size // 3, 3))
+//   force = np.reshape(force, force.size)
+
+//   me.mobility_vector_product_source_target_one_wall(y_for_mob, x_for_mob, force, radius_source, radius_target, vector_res, L, eta, num_sources, num_targets)
+
+//   # Compute B.T * M * B * vector
+//   if overlap_target is True:
+//     vector_res = B_target.dot(vector_res)
+//   return vector_res
+
+
 

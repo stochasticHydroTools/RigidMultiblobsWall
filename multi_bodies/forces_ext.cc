@@ -1,3 +1,6 @@
+// OLD CODE: DO NOT USE!
+// Use instead the code in forces.cpp
+
 // Functions for fluid mobilities written
 // in C++ for improved speed.
 
@@ -107,3 +110,25 @@ BOOST_PYTHON_MODULE(forces_ext)
 
   def("calc_blob_blob_forces", calcBlobBlobForces);
 }
+
+
+// Python interface to the above function
+
+// def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
+//   '''
+//   Call a boost function to compute the blob-blob forces.
+//   '''
+//   # Get parameters from arguments
+//   L = kwargs.get('periodic_length')
+//   eps = kwargs.get('repulsion_strength')
+//   b = kwargs.get('debye_length')  
+//   blob_radius = kwargs.get('blob_radius')  
+
+//   number_of_blobs = r_vectors.size // 3
+//   r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
+//   forces = np.empty(r_vectors.size)
+//   if L is None:
+//     L = -1.0*np.ones(3)
+
+//   forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L)
+//   return np.reshape(forces, (number_of_blobs, 3))

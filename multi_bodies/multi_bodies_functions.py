@@ -14,11 +14,6 @@ from functools import partial
 import general_application_utils as utils
 from quaternion_integrator.quaternion import Quaternion
 
-# Try to import the forces boost implementation
-try:
-  import forces_ext
-except ImportError:
-  pass
 # If pycuda is installed import forces_pycuda
 try: 
   imp.find_module('pycuda')
@@ -247,20 +242,17 @@ def set_blob_blob_forces(implementation):
   '''
   Set the function to compute the blob-blob forces
   to the right function.
-  The implementation in pycuda is much faster than the
-  one in C++, which is much faster than the one python; 
-  To use the pycuda implementation is necessary to have 
-  installed pycuda and a GPU with CUDA capabilities. To
-  use the C++ implementation the user has to compile 
-  the file blob_blob_forces_ext.cc.   
+  The implementations in numba, pycuda and C++ are much faster than the
+  implimentation in python.
+  To use the pycuda implementation is necessary to have installed pycuda and a GPU 
+  with CUDA capabilities. To use the C++ implementation the user has to compile 
+  the file blob_blob_forces.cpp.
   '''
   if implementation == 'None':
     return default_zero_r_vectors
   elif implementation == 'python':
     return calc_blob_blob_forces_python
   elif implementation == 'C++':
-    return calc_blob_blob_forces_boost
-  elif implementation == 'C++-alt':
     return calc_blob_blob_forces_cpp
   elif implementation == 'pycuda':
     return forces_pycuda.calc_blob_blob_forces_pycuda
@@ -335,26 +327,6 @@ def calc_blob_blob_forces_python(r_vectors, *args, **kwargs):
       force_blobs[j] -= force
 
   return force_blobs
-
-
-def calc_blob_blob_forces_boost(r_vectors, *args, **kwargs):
-  '''
-  Call a boost function to compute the blob-blob forces.
-  '''
-  # Get parameters from arguments
-  L = kwargs.get('periodic_length')
-  eps = kwargs.get('repulsion_strength')
-  b = kwargs.get('debye_length')  
-  blob_radius = kwargs.get('blob_radius')  
-
-  number_of_blobs = r_vectors.size // 3
-  r_vectors = np.reshape(r_vectors, (number_of_blobs, 3))
-  forces = np.empty(r_vectors.size)
-  if L is None:
-    L = -1.0*np.ones(3)
-
-  forces_ext.calc_blob_blob_forces(r_vectors, forces, eps, b, blob_radius, number_of_blobs, L)
-  return np.reshape(forces, (number_of_blobs, 3))
 
 
 def set_body_body_forces_torques(implementation):
