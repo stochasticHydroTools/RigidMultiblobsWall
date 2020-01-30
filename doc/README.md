@@ -41,15 +41,13 @@ blobs and the wall, see Ref. [3].
 ## 1. Prepare the package
 The codes are implemented in python (version 3.x or 2.7) and it is not necessary to compile the package to use it. 
 
-We provide alternative implementations in _C++_ (through the Boost Python
-library or pybind11), _numba_ and _pycuda_ for some of the most computationally
+We provide alternative implementations in _C++_ (through pybind11), _numba_ and _pycuda_ for some of the most computationally
 expensive functions. You can skip to section 2 but come back if you
 want to take fully advantage of this package.
 
 ### 1.1 Prepare the mobility functions
-The codes use functions to compute the blob mobility matrix **M** and the
-matrix vector product **Mf**. For some functions we provide
-_numba_, _C++_ and _pycuda_ implementations which, for large systems, can be orders of magnitude faster.
+The codes use functions to compute the blob mobility matrix **M** and the matrix vector product **Mf**. For some functions we provide
+_numba_, _C++_ and _pycuda_ implementations which, for large systems, can be orders of magnitude faster than the python implementation.
 
 To use the _numba_ implementation all you need is the package _numba_
 installed in your python environment. To use the _pycuda_
@@ -57,36 +55,23 @@ implementation you need _pycuda_ and a GPU compatible with CUDA;
 you don't need to compile any additional file in this package.
 By default we use single precision in the pycuda functions but you can
 use double precision if you prefer. See the top of the file
-`mobility/mobility_pycuda.py` to see how to select double precision.
+`mobility/mobility_pycuda.py` to select double precision.
 
-To use the recommended parallelized _C++_ implementation, set the implementation to _C++-alt_.
-You must also compile the shared object by running `make` in the `mobility/` directory. This
-implementation requires the `pybind11` and `eigen` packages, which can be obtained via `conda
-install eigen pybind11.` On Linux, this should be sufficient. On OS X you must also supply an
-alternative compiler such as `g++-9` (supplied via homebrew). `make CXX=g++-9` should be
-sufficient. To control the number of threads, set the `OMP_NUM_THREADS` environment variable.
+To use the recommended parallelized _C++_ implementation, set the implementation to _C++_.
+You must also compile the shared object by running `make` in the `mobility/` directory. This implementation requires the `pybind11` and `eigen` packages, which can be obtained via `conda install eigen pybind11`. On Linux, this should be sufficient. On OS X you must also supply an alternative compiler such as `g++-9` (supplied via homebrew). `make CXX=g++-9` should be sufficient. To control the number of threads, set the `OMP_NUM_THREADS` environment variable.
 
 ### 1.2 Blob-blob forces
-In dynamical simulations it is possible to include blob-blob interactions to,
-for example, simulate a colloid suspension with a given steric repulsion.
+In dynamical simulations it is possible to include blob-blob interactions to, for example, simulate a colloid suspension with a given steric repulsion.
 We provide versions in _python_, _C++_, _numba_ and _pycuda_.
-We recommend to use the _pycuda_ or the _numba_ implementations.
+We recommend to use the _C++_, _pycuda_ or the _numba_ implementations.
 
 To use the _numba_ implementation all you need is the package _numba_.
 To use the _pycuda_ implementation you need _pycuda_ and a GPU compatible with CUDA;
 you don't need to compile any additional file in this package.
 
-To use the _C++_ version (faster than _python_ but slower than _numba_ or _pycuda_)
-move to the directory `multi_bodies/` and compile `forces_ext.cc` to
-a `.so` file using the Makefile provided (which you will need
-to modify slightly to reflect your Python version, etc.).
-
-A more modern _C++_ version is also available, known as _C++-alt_. This should typically be the
-fastest option. You must also compile the shared object by running `make` in the
-`multi-bodies/` directory. This implementation requires the `pybind11` and `eigen` packages,
-which can be obtained via `conda install eigen pybind11.` On Linux, this should be
-sufficient. On OS X you must also supply an alternative compiler such as `g++-9` (supplied via
-homebrew). `make CXX=g++-9` should be sufficient. To control the number of threads, set the
+To use the _C++_ version move to the directory `multi_bodies/` and compile `forces.cpp` to a `.so` file using the Makefile provided.
+This implementation requires the `pybind11` and `eigen` packages,
+which can be obtained via `conda install eigen pybind11.` On Linux, this should be sufficient. On OS X you must also supply an alternative compiler such as `g++-9` (supplied via homebrew). `make CXX=g++-9` should be sufficient. To control the number of threads, set the
 `OMP_NUM_THREADS` environment variable.
 
 ### 1.3 Visit interface
@@ -207,14 +192,14 @@ a suspension of rigid bodies subject to external forces and torques (see below).
 with given velocities (see below). `body_mobility` computes the
 mobility **matrix** of one rigid body as in the above example.
 
-* `mobility_blobs_implementation`: Options: `python`, `python_no_wall` and `C++-alt`. It selects
+* `mobility_blobs_implementation`: Options: `python`, `python_no_wall` and `C++`. It selects
 which implementation is used to compute the blob mobility
 matrix **M** that is used to construct the block-diagonal preconditioner described in [2,4].
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `mobility_vector_prod_implementation`: Options: `python`, `numba`,
-`pycuda`, `C++-alt`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
+`pycuda`, `C++`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
 It selects the implementation to compute the matrix vector product
 **Mf**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
@@ -416,9 +401,8 @@ This option select the implementation to compute the matrix vector product
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `blob_blob_force_implementation`: Options: `None, python, C++, C++-alt, numba, tree_numba and pycuda`.
-Select the implementation to compute the blob-blob interactions between all
-pairs of blobs. If None is selected the code does not compute blob-blob interactions.
+* `blob_blob_force_implementation`: Options: `None, python, C++, numba, tree_numba and pycuda`.
+Select the implementation to compute the blob-blob interactions between all pairs of blobs. If None is selected the code does not compute blob-blob interactions.
 The cost of this function scales like (number_of_blobs)**2, just like the product **Mf** except for the option tree_numba that scales as (number_of_blobs) (interaction between blobs further than `2*blob_radius+30*debye_length` are neglected).
 
 * `body_body_force_torque_implementation`: Options: `None and python`.
@@ -635,16 +619,15 @@ In the same way, to override the _numba_ implementation
 create your own function `calc_blob_blob_forces_numba` in
 `forces_numba_user_defined.py` as we show also in
 `multi_bodies/examples/boomerang_suspension/`.
-However, to modify the _C++_ implementation you need to edit the function `blobBlobForce` in the
-file `multi_bodies/forces_ext.cc` and recompile the _C++_ code,
+However, to modify the _C++_ implementation you need to edit the function `blob_blob_force` in the
+file `multi_bodies/forces.cpp` and recompile the _C++_ code,
 note that this not override the default implementation but it modifies it.
 
 * blob-wall interaction: to override the _python_ implementation
 create your own function `blob_external_force` in the file
 `user_defined_functions.py` as we show in the example in
 `multi_bodies/examples/boomerang_suspension/`.
-There are not _C++_, _numba_ or _pycuda_ versions of this function since
-it is not an expensive operation.
+There are not _C++_, _numba_ or _pycuda_ versions of this function since it is not an expensive operation.
 
 * body-body interactions: to override the _python_ implementation
 create your own function `body_body_force_torque` as we show in the example in

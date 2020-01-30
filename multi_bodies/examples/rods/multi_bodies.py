@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import scipy.linalg
 import subprocess
+from shutil import copyfile
 from functools import partial
 import sys
 import time
@@ -79,9 +80,9 @@ def set_mobility_blobs(implementation):
   '''
   Set the function to compute the dense mobility
   at the blob level to the right implementation.
-  The implementation in C++ is much faster than 
-  the one python; to use it the user should compile 
-  the file mobility/mobility_ext.cc.
+  The implementation in C++ is somewhat faster than 
+  the python one; to use it the user should compile 
+  the file mobility/mobility.cpp
 
   These functions return an array with shape 
   (3*Nblobs, 3*Nblobs).
@@ -89,18 +90,16 @@ def set_mobility_blobs(implementation):
   # Implementations without wall
   if implementation == 'python_no_wall':
     return mb.rotne_prager_tensor
-  elif implementation == 'C++_no_wall':
-    return mb.boosted_infinite_fluid_mobility
+  if implementation == 'C++_no_wall':
+    return mb.rotne_prager_tensor_cpp
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility
   elif implementation == 'C++':
-    return  mb.boosted_single_wall_fluid_mobility
+    return mb.single_wall_fluid_mobility_cpp
   # Implementation free surface
   elif implementation == 'C++_free_surface':
     return  mb.boosted_free_surface_mobility
-  elif implementation == 'C++-alt':
-    return mb.single_wall_fluid_mobility_cpp
 
 
 def set_mobility_vector_prod(implementation):
@@ -109,18 +108,15 @@ def set_mobility_vector_prod(implementation):
   product (M*F) with the mobility defined at the blob 
   level to the right implementation.
   
-  The implementation in pycuda is much faster than the
-  one in C++, which is much faster than the one python; 
-  To use the pycuda implementation is necessary to have 
-  installed pycuda and a GPU with CUDA capabilities. To
-  use the C++ implementation the user has to compile 
-  the file mobility/mobility_ext.cc.  
+  The implementations in numba, pycuda and C++ are much faster than the
+  python implementation. 
+  Depending on the computer the fastest implementation will be the C++ or the pycuda codes.
+  To use the pycuda implementation is necessary to have installed pycuda and a GPU with CUDA capabilities. 
+  To use the C++ implementation the user has to compile the file mobility/mobility.cpp.  
   ''' 
   # Implementations without wall
   if implementation == 'python_no_wall':
     return mb.no_wall_fluid_mobility_product
-  elif implementation == 'C++_no_wall':
-    return mb.boosted_no_wall_mobility_vector_product
   elif implementation == 'pycuda_no_wall':
     return mb.no_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba_no_wall':
@@ -129,8 +125,6 @@ def set_mobility_vector_prod(implementation):
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
   elif implementation == 'C++':
-    return mb.boosted_mobility_vector_product
-  elif implementation == 'C++-alt':
     return mb.single_wall_mobility_trans_times_force_cpp
   elif implementation == 'pycuda':
     return mb.single_wall_mobility_trans_times_force_pycuda
@@ -491,7 +485,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs, *args, **kwargs):
+def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
   '''
   Block diagonal preconditioner for rigid bodies.
   It solves exactly the mobility problem for each body
@@ -591,7 +585,7 @@ if __name__ == '__main__':
   n_steps = read.n_steps 
   n_save = read.n_save
   n_relaxation = read.n_relaxation
-  dt = read.dt 
+  dt = read.dt
   eta = read.eta 
   g = read.g 
   a = read.blob_radius
@@ -604,7 +598,8 @@ if __name__ == '__main__':
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
-  subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  # subprocess.call(["cp", input_file, output_name + '.inputfile'])
+  copyfile(input_file,output_name + '.inputfile')
 
   # Set random generator state
   if read.random_state is not None:
@@ -672,7 +667,7 @@ if __name__ == '__main__':
   if scheme.find('rollers') == -1:
     integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
   else:
-    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain,
+    integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain, 
                                              mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
     integrator.calc_one_blob_forces = partial(multi_bodies_functions.calc_one_blob_forces,
                                               g = g,
@@ -703,6 +698,7 @@ if __name__ == '__main__':
                                                mass_options = read.mass_options,
                                                r_gc_to_com = read.r_gc_to_com,
                                                alpha = read.alpha) 
+
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
@@ -742,17 +738,16 @@ if __name__ == '__main__':
                                0, 
                                get_blobs_r_vectors(bodies, Nblobs))
 
-  # Open config files
-  if read.save_clones == 'one_file':
-    buffering = max(1, min(body_types) * n_steps // n_save // 200)
-    f_ID = []
-    for i, ID in enumerate(structures_ID):
-      name = output_name + '.' + ID + '.config'
-      f = open(name, 'w', buffering=buffering)
-      f_ID.append(f)
 
   # Loop over time steps
-  start_time = time.time()  
+  start_time = time.time()
+  if read.save_clones == 'one_file':
+    output_files = []
+    buffering = max(1, min(body_types) * n_steps // n_save // 200)
+    for i, ID in enumerate(structures_ID):
+      name = output_name + '.' + ID + '.config'
+      output_files.append(open(name, 'w', buffering=buffering))
+
   for step in range(read.initial_step, n_steps):
     # Save data if...
     if (step % n_save) == 0 and step >= 0:
@@ -776,25 +771,19 @@ if __name__ == '__main__':
                                                      orientation[3]))
             body_offset += body_types[i]
       elif read.save_clones == 'one_file':
-        for i, ID in enumerate(structures_ID):
-          # name = output_name + '.' + ID + '.config'
-          # if step == 0:
-          #   status = 'w'
-          # else:
-          #   status = 'a'
-          # with open(name, status) as f_ID:
-          if True:
-            f_ID[i].write(str(body_types[i]) + '\n')
-            for j in range(body_types[i]):
-              orientation = bodies[body_offset + j].orientation.entries
-              f_ID[i].write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                     bodies[body_offset + j].location[1], 
-                                                     bodies[body_offset + j].location[2], 
-                                                     orientation[0], 
-                                                     orientation[1], 
-                                                     orientation[2], 
-                                                     orientation[3]))
-            body_offset += body_types[i]
+        for i, f_ID in enumerate(output_files):
+          f_ID.write(str(body_types[i]) + '\n')
+          for j in range(body_types[i]):
+            orientation = bodies[body_offset + j].orientation.entries
+            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0],
+                                                   bodies[body_offset + j].location[1],
+                                                   bodies[body_offset + j].location[2],
+                                                   orientation[0],
+                                                   orientation[1],
+                                                   orientation[2],
+                                                   orientation[3]))
+          body_offset += body_types[i]
+
       else:
         print('Error, save_clones =', read.save_clones, 'is not implemented.')
         print('Use \"one_file_per_step\" or \"one_file\". \n')
@@ -814,6 +803,7 @@ if __name__ == '__main__':
           mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
+        
 
       # Save wallclock time 
       if step % max(1, n_steps // 100) == 0:
@@ -824,7 +814,7 @@ if __name__ == '__main__':
                     + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
                     + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
 
-        
+
     # Update HydroGrid
     if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
@@ -857,13 +847,7 @@ if __name__ == '__main__':
                                    get_blobs_r_vectors(bodies, Nblobs))
 
     # Advance time step
-    integrator.advance_time_step(dt, step = step, n_save = read.n_save)
-
-  # Close config files
-  if read.save_clones == 'one_file':
-    for i, ID in enumerate(structures_ID):
-      f_ID[i].close()
-
+    integrator.advance_time_step(dt, step = step)
 
   # Save final data if...
   if ((step+1) % n_save) == 0 and step >= 0:
@@ -887,24 +871,19 @@ if __name__ == '__main__':
           body_offset += body_types[i]
       
     elif read.save_clones == 'one_file':
-      for i, ID in enumerate(structures_ID):
-        name = output_name + '.' + ID + '.config'
-        if step+1 == 0:
-          status = 'w'
-        else:
-          status = 'a'
-        with open(name, status) as f_ID:
-          f_ID.write(str(body_types[i]) + '\n')
-          for j in range(body_types[i]):
-            orientation = bodies[body_offset + j].orientation.entries
-            f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
-                                                   bodies[body_offset + j].location[1], 
-                                                   bodies[body_offset + j].location[2], 
-                                                   orientation[0], 
-                                                   orientation[1], 
-                                                   orientation[2], 
-                                                   orientation[3]))
-          body_offset += body_types[i]
+      for i, f_ID in enumerate(output_files):
+        f_ID.write(str(body_types[i]) + '\n')
+        for j in range(body_types[i]):
+          orientation = bodies[body_offset + j].orientation.entries
+          f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0],
+                                                 bodies[body_offset + j].location[1],
+                                                 bodies[body_offset + j].location[2],
+                                                 orientation[0],
+                                                 orientation[1],
+                                                 orientation[2],
+                                                 orientation[3]))
+        body_offset += body_types[i]
+
     else:
       print('Error, save_clones =', read.save_clones, 'is not implemented.')
       print('Use \"one_file_per_step\" or \"one_file\". \n')
@@ -922,18 +901,8 @@ if __name__ == '__main__':
         resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
         mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
         name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
-        np.savetxt(name, mobility_bodies, delimiter='  ')
+        np.savetxt(name, mobility_bodies, delimiter='  ')      
 
-    # Save wallclock time 
-    with open(output_name + '.time', 'w') as f:
-      f.write(str(time.time() - start_time) + '\n')
-    # Save number of invalid configurations and number of iterations in the
-    # deterministic solvers and the Lanczos algorithm
-    with open(output_name + '.info', 'w') as f:
-      f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
-              + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
-              + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
-        
   # Update HydroGrid data
   if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 

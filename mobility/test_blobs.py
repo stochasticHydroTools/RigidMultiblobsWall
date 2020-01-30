@@ -9,11 +9,6 @@ try:
 except ImportError:
     found_pycuda = False
 try:
-    import mobility_ext 
-    found_boost = True
-except ImportError:
-    found_boost = False
-try:
   import mobility_cpp
   found_cpp = True
 except ImportError:
@@ -24,10 +19,7 @@ except ImportError:
     pass
 
 
-
-
 sys.path.append('../')
-from quaternion_integrator.quaternion import Quaternion
 import mobility as mob
 from general_application_utils import timer
 
@@ -40,7 +32,7 @@ if __name__ == '__main__':
     print('# Start')
     
     # Create blobs
-    N = 250
+    N = 1000
     eta = 7.0
     a = 0.13
     r_vectors = 5 * a * np.random.rand(N, 3) 
@@ -86,18 +78,6 @@ if __name__ == '__main__':
     mobility = mob.single_wall_fluid_mobility(r_vectors, eta, a)
     u = np.dot(mobility, force.flatten())
     timer('python')
-    
-
-    if found_boost:
-        timer('boost_full_matrix')
-        mobility_boost = mob.boosted_single_wall_fluid_mobility(r_vectors, eta, a)
-        u_boost_full = np.dot(mobility_boost, force.flatten())
-        timer('boost_full_matrix')
-
-        timer('boost')
-        force_hstack=np.hstack(force)
-        u_boost =  mob.boosted_mobility_vector_product(r_vectors, force_hstack, eta, a, periodic_length = L) 
-        timer('boost')
 
     u_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a)
     timer('numba')
@@ -112,7 +92,7 @@ if __name__ == '__main__':
  
     if found_cpp:
         timer('cpp')
-        u_cpp = mob.single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a, periodic_length = L)
+        u_cpp = mob.single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a)
         timer('cpp')
 
     if False:
@@ -128,16 +108,13 @@ if __name__ == '__main__':
 
     
 
-    print('===================================================')
+    print('=================== No wall tests ===================')
     print('|u_no_wall_full - u_no_wall_loops_full| / |u_no_wall_loops_full|   = ', np.linalg.norm(u_no_wall_full - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full))
     if found_pycuda:
         print('|u_no_wall_pycuda - u_no_wall_loops_full| / |u_no_wall_loops_full| = ', np.linalg.norm(u_no_wall_pycuda - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full))
     print('|u_no_wall_numba - u_no_wall_loops_full| / |u_no_wall_loops_full|  = ', np.linalg.norm(u_no_wall_numba - u_no_wall_loops_full) / np.linalg.norm(u_no_wall_loops_full))
-    print('===================================================')
+    print('=================== Wall tests ===================')
     print('|u - u_loops| / |u_loops|                                          = ', np.linalg.norm(u - u_loops) / np.linalg.norm(u_loops))
-    if found_boost:
-        print('|u_boost_full - u_loops| / |u_loops|                               = ', np.linalg.norm(u_boost_full - u_loops) / np.linalg.norm(u_loops))
-        print('|u_boost - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_boost - u_loops) / np.linalg.norm(u_loops))
     print('|u_numba - u_loops| / |u_loops|                                    = ', np.linalg.norm(u_numba - u_loops) / np.linalg.norm(u_loops))
     if found_pycuda:
         print('|u_gpu - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_gpu - u_loops) / np.linalg.norm(u_loops))
@@ -146,12 +123,9 @@ if __name__ == '__main__':
         print('|u_cpp - u_loops| / |u_loops|                                      = ', np.linalg.norm(u_cpp - u_loops) / np.linalg.norm(u_loops))
 
     if L[0] > 0. or L[1] > 0.:
-        print('===================================================')
+        print('===================== Pseudo-periodic tests =============================')
         if found_pycuda:
             print('|u_numba - u_gpu| / |u_gpu|                                    = ', np.linalg.norm(u_numba - u_gpu) / np.linalg.norm(u_gpu))
-        if found_boost:
-            print('|u_numba - u_boost| / |u_boost|                                    = ', np.linalg.norm(u_numba - u_boost) / np.linalg.norm(u_boost))
-            print('|u_gpu - u_boost| / |u_boost|                                      = ', np.linalg.norm(u_gpu - u_boost) / np.linalg.norm(u_boost))
 
     timer('', print_all=True, clean_all=True)
 

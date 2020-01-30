@@ -16,17 +16,6 @@ except ImportError:
 if found_pycuda:
   import forces_pycuda   
 
-
-try:
-  import forces_ext 
-  found_boost = True
-except ImportError:
-  try:
-    from multi_bodies import forces_ext
-    found_boost = True
-  except ImportError:
-    found_boost = False
-
 try:
   import forces_cpp
   found_cpp = True
