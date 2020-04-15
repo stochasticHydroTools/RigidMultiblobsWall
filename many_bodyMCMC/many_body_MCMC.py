@@ -112,7 +112,7 @@ if __name__ == '__main__':
     print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    # Read slip file if it exists
+    # Set prescribed kinematics for obstacles
     prescribed_velocity = None
     if(len(structure) > 3):
       prescribed_velocity = True
