@@ -642,7 +642,7 @@ if __name__ == '__main__':
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
-      multi_bodies_functions.set_slip_by_ID(b, slip, slip_options = read.slip_options)
+      multi_bodies_functions.set_slip_by_ID(b, slip)
       if prescribed_velocity is not None:
         b.prescribed_kinematics = True
         multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])

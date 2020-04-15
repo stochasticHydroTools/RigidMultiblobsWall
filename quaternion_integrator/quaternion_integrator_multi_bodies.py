@@ -843,12 +843,11 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
-                                                x0 = self.first_guess,    
-                                                save_first_guess = True,  
-                                                PC_partial = PC_partial)  
-      # Extract velocities and lambdas
+                                                x0 = self.first_guess, 
+                                                save_first_guess = True,
+                                                PC_partial = PC_partial)
+      # Extract velocities
       velocities_1 = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-      lambda_blobs = sol_precond[0:3*self.Nblobs]
 
       # Solve mobility problem
       slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), PC_partial = PC_partial)
@@ -905,31 +904,6 @@ class QuaternionIntegrator(object):
 
       # Check positions, if valid return 
       if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
-        
-        step = kwargs.get('step')
-        n_save = kwargs.get('n_save')
-        if step == 0:
-          # Plot velocity field
-          if self.plot_velocity_field.size > 1: 
-            pvf.plot_velocity_field(self.plot_velocity_field, 
-                                    self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
-                                    np.zeros(self.Nblobs * 3), 
-                                    self.bodies[0].blob_radius, 
-                                    self.eta, 
-                                    self.output_name + '.' + str(0), 
-                                    self.tracer_radius,
-                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
-        if ((step+1) % n_save) == 0 and step >= 0:
-          # Plot velocity field
-          if self.plot_velocity_field.size > 1: 
-            pvf.plot_velocity_field(self.plot_velocity_field, 
-                                    self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
-                                    lambda_blobs, 
-                                    self.bodies[0].blob_radius, 
-                                    self.eta, 
-                                    self.output_name + '.' + str(step+1), 
-                                    self.tracer_radius,
-                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
         return
 
     return

@@ -5,12 +5,8 @@ import numpy as np
 
 def read_slip_file(name_file):
   '''
-  It reads a slip file of a rigid bodies and return
-  the slip as a numpy array with shape (Nblobs, 3).
-
-  This is the slip in the reference configuration of the
-  body, quaternion=(1,0,0,0). The code will rotate the
-  slip with the orientation of the body in each step.
+  It reads a prescribed velocity for a rigid body 
+  and returns the velocity as a numpy array with shape (Nbodies, 6).
   '''
   comment_symbols = ['#']   
   prescribed_velocity = []
