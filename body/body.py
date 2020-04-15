@@ -19,7 +19,7 @@ class Body(object):
     Constructor. Take arguments like ...
     '''
     # Location as np.array.shape = 3
-    self.location = location
+    self.location = np.copy(location)
     self.location_new = np.copy(location)
     self.location_old = np.copy(location)
     # Orientation as Quaternion
@@ -145,9 +145,9 @@ class Body(object):
 
   def calc_prescribed_velocity(self):
     '''
-    Return the slip on the blobs.
+    Return the body prescribed velocity.
     '''
-    return self.function_prescribed_velocity(self)
+    return self.prescribed_velocity
 
 
   def calc_force(self):

@@ -625,9 +625,6 @@ if __name__ == '__main__':
     slip = None
     if(len(structure) > 2):
       slip = read_slip_file.read_slip_file(structure[2])
-    prescribed_velocity = None
-    if(len(structure) > 3):
-      prescribed_velocity = read_velocity_file.read_slip_file(structure[3])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
@@ -643,9 +640,10 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip)
-      if prescribed_velocity is not None:
+      # If structure is an obstacle
+      if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
-        multi_bodies_functions.set_prescribed_velocity_by_ID(b, prescribed_velocity[i])
+        b.prescribed_velocity = np.zeros(6)
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)

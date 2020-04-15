@@ -16,6 +16,7 @@ class ReadInput(object):
     self.input_file = entries
     self.options = {}
     number_of_structures = 0
+    number_of_obstacles = 0
 
     # Read input file
     comment_symbols = ['#']   
@@ -33,6 +34,9 @@ class ReadInput(object):
           if option == 'structure':
             option += str(number_of_structures)
             number_of_structures += 1
+          if option == 'obstacle':
+            option += str(number_of_obstacles)
+            number_of_obstacles += 1
           self.options[option] = value
 
     # Set option to file or default values
@@ -80,14 +84,21 @@ class ReadInput(object):
     self.update_PC = int(self.options.get('update_PC') or 1)
     self.domain = str(self.options.get('domain') or 'single_wall')
     self.call_HydroGrid = str(self.options.get('call_HydroGrid') or 'False') == 'True'
-          
+
     # Create list with [vertex_file, clones_file] for each structure
+    self.num_free_bodies = number_of_structures
     self.structures = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
       structure_files = str.split(str(self.options.get(option)))
       self.structures.append(structure_files)
 
+    # Create list with [vertex_file, clones_file] for each obstacle
+    for i in range(number_of_obstacles):
+      option = 'obstacle' + str(i)
+      structure_files = str.split(str(self.options.get(option)))
+      self.structures.append(structure_files)
+      
     # Create structures ID for each kind 
     self.structures_ID = []
     for struct in self.structures:
