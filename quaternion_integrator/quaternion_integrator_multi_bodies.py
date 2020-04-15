@@ -162,8 +162,7 @@ class QuaternionIntegrator(object):
         # Use Adams-Bashforth
         for k, b in enumerate(self.bodies):
           b.location_new = b.location + (1.5 * velocities[6*k:6*k+3] - 0.5 * self.velocities_previous_step[6*k:6*k+3]) * dt
-          quaternion_dt = Quaternion.from_rotation((1.5 * velocities[6*k+3:6*k+6] \
-                                                      - 0.5 * self.velocities_previous_step[6*k+3:6*k+6]) * dt)
+          quaternion_dt = Quaternion.from_rotation((1.5 * velocities[6*k+3:6*k+6] - 0.5 * self.velocities_previous_step[6*k+3:6*k+6]) * dt)
           b.orientation_new = quaternion_dt * b.orientation
       else:
         # Use forward Euler
@@ -242,7 +241,6 @@ class QuaternionIntegrator(object):
         b.orientation = quaternion_dt * b.orientation_old
         force_rfd[k*6 : k*6+3] /= b.body_length
         
-
       # Add thermal drift contribution with N at x = x - random_displacement
       System_size = self.Nblobs * 3 + len(self.bodies) * 6
       sol_precond = self.solve_mobility_problem(RHS = np.reshape(np.concatenate([np.zeros(3*self.Nblobs), -force_rfd]), (System_size)), PC_partial = PC_partial)
@@ -282,7 +280,6 @@ class QuaternionIntegrator(object):
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
-
 
       # Check positions, if valid return 
       if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
@@ -478,7 +475,6 @@ class QuaternionIntegrator(object):
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
 
-
       # Check positions, if valid return 
       if self.check_positions(new = 'new', old = 'old', update_in_success = True, domain = self.domain) is True:
         return
@@ -596,6 +592,7 @@ class QuaternionIntegrator(object):
         return
 
     return
+
 
   def Fixman(self, dt, *args, **kwargs):
     ''' 
@@ -749,7 +746,6 @@ class QuaternionIntegrator(object):
       
       rand_slip = (1.0 / self.rf_delta)* (DxM - DxK)
       rand_force = (-1.0 / self.rf_delta)* DxKT
-
 
       # Solve mobility problem with drift
       sol_precond_new = self.solve_mobility_problem(noise = rand_slip, 
@@ -909,7 +905,6 @@ class QuaternionIntegrator(object):
     return
 
 
-
   def stochastic_Slip_Mid(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a stochastic 
@@ -984,8 +979,8 @@ class QuaternionIntegrator(object):
       velocities_mid = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
       # Solve mobility problem
-      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), 
-                                                     PC_partial = PC_partial)
+      slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), PC_partial = PC_partial)
+      
       # Extract velocities
       W_RFD = np.reshape(slip_precond_rfd[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
       
@@ -1040,6 +1035,7 @@ class QuaternionIntegrator(object):
         return
 
     return
+
 
   def stochastic_Slip_Mid_DLA(self, dt, *args, **kwargs): 
     ''' 
@@ -1220,11 +1216,9 @@ class QuaternionIntegrator(object):
         sol_precond[:] = 0.0
 
       # If prescribed velocity we know the velocity
-      offset = 0
       for k, b in enumerate(self.bodies):
         if b.prescribed_kinematics is True:
           sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
-        offset += b.Nblobs  
       
       # Return solution
       return sol_precond
@@ -1316,7 +1310,6 @@ class QuaternionIntegrator(object):
 
       # Compute velocities
       return (np.dot(mobility_bodies, FTS), mobility_bodies, mobility_blobs, resistance_blobs, K, r_vectors_blobs)
-
 
 
   def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None, domain = 'single_wall'):

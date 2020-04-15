@@ -4,6 +4,7 @@ Simple class to read the input files to run a simulation.
 from __future__ import division, print_function
 import numpy as np
 import ntpath
+import sys
 
 class ReadInput(object):
   '''
@@ -114,5 +115,18 @@ class ReadInput(object):
       for k, struct in enumerate(self.structures):
         recovery_file = self.output_name + '.'  + self.structures_ID[k] + '.' + str(self.initial_step).zfill(8) + '.clones'
         struct[1] = recovery_file
+
+    # Obstacles are not implemented in some schemes
+    if number_of_obstacles > 0:
+      if (self.scheme == 'deterministic_forward_euler_dense_algebra') or \
+         (self.scheme == 'stochastic_first_order_RFD') or \
+         (self.scheme == 'stochastic_adams_bashforth') or \
+         (self.scheme == 'stochastic_first_order_RFD_dense_algebra') or \
+         (self.scheme == 'stochastic_traction_EM') or \
+         (self.scheme == 'Fixman') or \
+         (self.scheme == 'stochastic_traction_AB') or \
+         (self.scheme == 'stochastic_Slip_Mid_DLA'):
+        print('Obstacles are not implemented for scheme: ', self.scheme)
+        sys.exit()
 
     return

@@ -23,7 +23,7 @@ class Body(object):
     self.location_new = np.copy(location)
     self.location_old = np.copy(location)
     # Orientation as Quaternion
-    self.orientation = orientation
+    self.orientation = copy.copy(orientation)
     self.orientation_new = copy.copy(orientation)
     self.orientation_old = copy.copy(orientation)
     # Number of blobs
