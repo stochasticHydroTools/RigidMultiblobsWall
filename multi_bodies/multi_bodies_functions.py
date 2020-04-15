@@ -99,7 +99,7 @@ def default_zero_bodies(bodies, *args, **kwargs):
   return np.zeros((2*len(bodies), 3))
   
 
-def set_slip_by_ID(body, slip):
+def set_slip_by_ID(body, slip, *args, **kwargs):
   '''
   This function assign a slip function to each body.
   If the body has an associated slip file the function
@@ -117,6 +117,18 @@ def set_slip_by_ID(body, slip):
     body.function_slip = active_body_slip_partial
   else:
     body.function_slip = default_zero_blobs
+  return
+
+
+def set_prescribed_velocity_by_ID(body, prescribed_velocity):
+  '''
+
+  '''
+  if prescribed_velocity is not None:
+    prescribed_velocity_partial = partial(function_prescribed_velocity, prescribed_velocity = prescribed_velocity)
+    body.function_prescribed_velocity = prescribed_velocity_partial
+  else:
+    body.function_prescribed_velocity = default_zero_bodies
   return
 
 
@@ -138,6 +150,20 @@ def active_body_slip(body, slip):
   for i in range(body.Nblobs):
     slip_rotated[i] = np.dot(rotation_matrix, slip[i])
   return slip_rotated
+
+
+def function_prescribed_velocity(body, prescribed_velocity):
+  '''
+
+  '''
+  # Get rotation matrix
+  rotation_matrix = body.orientation.rotation_matrix()
+
+  # Rotate linear and angular velocity
+  v_rotated = np.empty_like(prescribed_velocity)
+  v_rotated[0:3] = np.dot(rotation_matrix, prescribed_velocity[0:3])
+  v_rotated[3:6] = np.dot(rotation_matrix, prescribed_velocity[3:6])
+  return v_rotated
 
 
 def bodies_external_force_torque(bodies, r_vectors, *args, **kwargs):

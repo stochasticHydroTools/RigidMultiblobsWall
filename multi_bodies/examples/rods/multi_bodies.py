@@ -694,7 +694,11 @@ if __name__ == '__main__':
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
-                                               periodic_length = read.periodic_length) 
+                                               periodic_length = read.periodic_length,
+                                               mass_options = read.mass_options,
+                                               r_gc_to_com = read.r_gc_to_com,
+                                               alpha = read.alpha) 
+
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid
@@ -715,6 +719,9 @@ if __name__ == '__main__':
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
   integrator.rf_delta = read.rf_delta
+  integrator.plot_velocity_field = read.plot_velocity_field
+  integrator.output_name = read.output_name
+  integrator.tracer_radius = read.tracer_radius
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:
@@ -797,6 +804,17 @@ if __name__ == '__main__':
           name = output_name + '.body_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_bodies, delimiter='  ')
         
+
+      # Save wallclock time 
+      if step % max(1, n_steps // 100) == 0:
+        with open(output_name + '.time', 'w', 1) as f:
+          f.write(str(time.time() - start_time) + '\n')
+          with open(output_name + '.info', 'w', 1) as f:
+            f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
+                    + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
+                    + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
+
+
     # Update HydroGrid
     if (step % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
       cc.calculate_concentration(output_name, 
@@ -883,8 +901,8 @@ if __name__ == '__main__':
         resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
         mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
         name = output_name + '.body_mobility.' + str(step+1).zfill(8) + '.dat'
-        np.savetxt(name, mobility_bodies, delimiter='  ')
-        
+        np.savetxt(name, mobility_bodies, delimiter='  ')      
+
   # Update HydroGrid data
   if ((step+1) % read.sample_HydroGrid) == 0 and found_HydroGrid and read.call_HydroGrid:
     cc.calculate_concentration(output_name, 

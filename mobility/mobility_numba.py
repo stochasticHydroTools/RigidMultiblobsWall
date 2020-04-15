@@ -120,7 +120,7 @@ def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True, fastmath=True)
+@njit(parallel=False, fastmath=True)
 def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -436,7 +436,7 @@ def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
 
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -1326,3 +1326,148 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
             u[i,2] += (Mzx * torque[j,0] + Mzy * torque[j,1] + Mzz * torque[j,2]) * norm_fact_f
 
   return u.flatten()
+
+
+@njit(parallel=True, fastmath=True)
+def no_wall_pressure_Stokeslet_numba(source, target, force, L):
+  ''' 
+  Returns the pressure created by Stokeslets located at source in the positions
+  of the targets. The space is unbounded.
+  '''
+  # Variables
+  Ns = source.size // 3
+  Nt = target.size // 3
+  source = source.reshape(Ns, 3)
+  target = target.reshape(Nt, 3)
+  force = force.reshape(Ns, 3)
+  p = np.zeros(Nt)
+  norm_fact_f = 1.0 / (4.0 * np.pi)
+
+  # Determine if the space is pseudo-periodic in any dimension
+  # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  periodic_x = 0
+  periodic_y = 0
+  periodic_z = 0 
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
+  if Lx > 0:
+    periodic_x = 1
+  if Ly > 0:
+    periodic_y = 1
+  if Lz > 0:
+    periodic_z = 1
+   
+    
+  # Loop over image boxes and then over particles
+  for i in prange(Nt):
+    rxi = target[i,0]
+    ryi = target[i,1]
+    rzi = target[i,2]
+    for boxX in range(-periodic_x, periodic_x+1):
+      for boxY in range(-periodic_y, periodic_y+1):
+        for boxZ in range(-periodic_z, periodic_z+1):
+          for j in range(Ns):
+	  
+            # Compute vector between particles i and j
+            rx = rxi - source[j,0]
+            ry = ryi - source[j,1]
+            rz = rzi - source[j,2]
+            r = np.sqrt(rx*rx + ry*ry + rz*rz)
+            r3 = r * r * r
+
+            # Project a vector r to the extended unit cell
+            # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+            # any dimension of L is equal or smaller than zero the 
+            # box is assumed to be infinite in that direction.
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
+               
+            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
+
+  return p
+
+
+@njit(parallel=True, fastmath=True)
+def single_wall_pressure_Stokeslet_numba(source, target, force, L):
+  ''' 
+  Returns the pressure created by Stokeslets located at source in the positions
+  of the targets. Stokeslets above an infinite no-slip wall.
+  '''
+  # Variables
+  Ns = source.size // 3
+  Nt = target.size // 3
+  source = source.reshape(Ns, 3)
+  target = target.reshape(Nt, 3)
+  force = force.reshape(Ns, 3)
+  p = np.zeros(Nt)
+  norm_fact_f = 1.0 / (4.0 * np.pi)
+
+  # Determine if the space is pseudo-periodic in any dimension
+  # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  periodic_x = 0
+  periodic_y = 0
+  periodic_z = 0 
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
+  if Lx > 0:
+    periodic_x = 1
+  if Ly > 0:
+    periodic_y = 1
+  if Lz > 0:
+    periodic_z = 1
+   
+    
+  # Loop over image boxes and then over particles
+  for i in prange(Nt):
+    rxi = target[i,0]
+    ryi = target[i,1]
+    rzi = target[i,2]
+    for boxX in range(-periodic_x, periodic_x+1):
+      for boxY in range(-periodic_y, periodic_y+1):
+        for boxZ in range(-periodic_z, periodic_z+1):
+          for j in range(Ns):
+	  
+            # Compute vector between particles i and j
+            rx = rxi - source[j,0]
+            ry = ryi - source[j,1]
+            rz = rzi - source[j,2]
+            r = np.sqrt(rx*rx + ry*ry + rz*rz)
+            r3 = r * r * r
+
+            # Project a vector r to the extended unit cell
+            # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+            # any dimension of L is equal or smaller than zero the 
+            # box is assumed to be infinite in that direction.
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
+               
+            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
+
+            # Add wall corrections
+            rz = rzi + source[j,2]
+            r = np.sqrt(rx*rx + ry*ry + rz*rz)
+            r3 = r * r * r
+            r5 = r3 * r * r
+            
+            p[i] += -(force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
+            p[i] += -force[j,0] * 2*source[j,2] * (-3 * rz * rx / r5)
+            p[i] += -force[j,1] * 2*source[j,2] * (-3 * rz * ry / r5)
+            p[i] +=  force[j,2] * 2*source[j,2] * (-3 * rz * rz / r5 + 1.0 / r3)
+
+  return p

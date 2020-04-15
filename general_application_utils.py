@@ -595,7 +595,7 @@ def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=No
 
   # If left preconditioner (or no Preconditioner) just call scipy gmres
   if PC_side == 'left' or M is None:
-    return scspla.gmres(A, b, M=M, x0=x0, tol=tol, maxiter=maxiter, restart=restart, callback=callback)
+    return scspla.gmres(A, b, M=M, x0=x0, tol=tol, atol=0, maxiter=maxiter, restart=restart, callback=callback)
 
   # Create LinearOperator for A and P^{-1}
   A_LO = scspla.aslinearoperator(A)
@@ -608,7 +608,7 @@ def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=No
   APinv_partial_LO = scspla.LinearOperator((b.size, b.size), matvec = APinv_partial, dtype='float64') 
 
   # Solve system A*P^{-1} * y = b
-  (y, info) = scspla.gmres(APinv_partial_LO, b, x0=x0, tol=tol, maxiter=maxiter, restart=restart, callback=callback) 
+  (y, info) = scspla.gmres(APinv_partial_LO, b, x0=x0, tol=tol, atol=0, maxiter=maxiter, restart=restart, callback=callback) 
 
   # Solve system P*x = y
   x = M_LO.matvec(y)

@@ -44,15 +44,20 @@ try:
 except ImportError:
   pass
 
-
 # Callback generator
-def make_callback():
-  closure_variables = dict(counter=0, residuals=[]) 
-  def callback(residuals):
-    closure_variables["counter"] += 1
-    closure_variables["residuals"].append(residuals)
-    print(closure_variables["counter"], residuals)
-  return callback
+class gmres_counter(object):
+  '''
+  Callback generator to count iterations. 
+  '''
+  def __init__(self, print_residual = False):
+    self.print_residual = print_residual
+    self.niter = 0
+  def __call__(self, rk=None):
+    self.niter += 1
+    if self.print_residual is True:
+      if self.niter == 1:
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
 
 
 def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, *args, **kwargs):
@@ -101,15 +106,12 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       eta, 
                                                                       *args, 
                                                                       **kwargs)
-  elif mobility_vector_prod_implementation == 'numba':
-    grid_velocity = mob.mobility_vector_product_source_target_one_wall_numba(r_vectors_blobs, 
-                                                                             grid_coor, 
-                                                                             lambda_blobs, 
-                                                                             radius_source, 
-                                                                             radius_target, 
-                                                                             eta, 
-                                                                             *args, 
-                                                                             **kwargs) 
+  elif False:
+    grid_velocity = mob.single_wall_pressure_Stokeslet_numba(r_vectors_blobs, 
+                                                             grid_coor, 
+                                                             lambda_blobs, 
+                                                             *args, 
+                                                             **kwargs) 
   else:
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 
@@ -124,10 +126,13 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
   dims = np.array([grid_points[0]+1, grid_points[1]+1, grid_points[2]+1], dtype=np.int32) 
   nvars = 1
-  vardims = np.array([3])
   centering = np.array([0])
+  vardims = np.array([3])
   varnames = ['velocity\0']
   name = output + '.velocity_field.vtk'
+  #vardims = np.array([1])
+  #varnames = ['pressure\0']
+  #name = output + '.pressure_field.vtk'
   grid_x = grid_x - dx_grid[0] * 0.5
   grid_y = grid_y - dx_grid[1] * 0.5
   grid_z = grid_z - dx_grid[2] * 0.5
@@ -245,7 +250,8 @@ if __name__ ==  '__main__':
                                                                                    debye_length_wall = read.debye_length_wall, 
                                                                                    repulsion_strength = read.repulsion_strength, 
                                                                                    debye_length = read.debye_length, 
-                                                                                   periodic_length = read.periodic_length) 
+                                                                                   periodic_length = read.periodic_length,
+                                                                                   mass_options = read.mass_options) 
 
     # Set right hand side
     System_size = Nblobs * 3 + num_bodies * 6
@@ -256,25 +262,55 @@ if __name__ ==  '__main__':
     A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
     # Set preconditioner
-    mobility_inv_blobs = []
-    mobility_bodies = np.empty((len(bodies), 6, 6))
-    # Loop over bodies
-    for k, b in enumerate(bodies):
-      # 1. Compute blobs mobility and invert it
-      M = b.calc_mobility_blobs(read.eta, read.blob_radius)
-      M_inv = np.linalg.inv(M)
-      mobility_inv_blobs.append(M_inv)
-      # 2. Compute body mobility
-      N = b.calc_mobility_body(read.eta, read.blob_radius, M_inv = M_inv)
-      mobility_bodies[k] = N
+    # Set method, block_diag, diag or scalar
+    PC_method = 'block_diag'
+    if PC_method == 'block_diag':
+      mobility_inv_blobs = []
+      mobility_bodies = np.empty((len(bodies), 6, 6))
+      # Loop over bodies
+      for k, b in enumerate(bodies):
+        # 1. Compute blobs mobility and invert it
+        M = b.calc_mobility_blobs(read.eta, read.blob_radius)
+        M_inv = np.linalg.inv(M)
+        mobility_inv_blobs.append(M_inv)
+        # 2. Compute body mobility
+        N = b.calc_mobility_body(read.eta, read.blob_radius, M_inv = M_inv)
+        mobility_bodies[k] = N
+    elif PC_method == 'diag':
+      # Use diagonal PC
+      mobility_inv_blobs = []
+      mobility_bodies = np.empty((len(bodies), 6, 6))
+      # Loop over bodies
+      for k, b in enumerate(bodies):
+        # 1. Compute blobs mobility and invert it
+        M = np.eye(b.Nblobs * 3) / (6 * np.pi * read.eta * read.blob_radius) 
+        M_inv = np.eye(b.Nblobs * 3) * (6 * np.pi * read.eta * read.blob_radius) 
+        mobility_inv_blobs.append(M_inv)
+        # 2. Compute body mobility
+        N = b.calc_mobility_body(read.eta, read.blob_radius, M_inv = M_inv)
+        mobility_bodies[k] = N
+    elif PC_method == 'scalar':
+      # Use scalar PC
+      mobility_inv_blobs = []
+      mobility_bodies = np.empty((len(bodies), 6, 6))
+      # Loop over bodies
+      for k, b in enumerate(bodies):
+        # 1. Compute blobs mobility and invert it
+        M = 1.0 / (6 * np.pi * read.eta * read.blob_radius) 
+        M_inv = (6 * np.pi * read.eta * read.blob_radius) 
+        mobility_inv_blobs.append(M_inv)
+        # 2. Compute body mobility
+        N = b.calc_mobility_body_scalar(read.eta, read.blob_radius, M_inv = M_inv)
+        mobility_bodies[k] = N
 
     # 4. Pack preconditioner
     PC_partial = partial(multi_bodies.block_diagonal_preconditioner, bodies=bodies, mobility_bodies=mobility_bodies, \
-                           mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs)
+                           mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs, PC_method=PC_method)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
-    # Solve preconditioned linear system # callback=make_callback()
-    (sol_precond, info_precond) = utils.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60) 
+    # Solve preconditioned linear system 
+    counter = gmres_counter(print_residual = args.print_residual)
+    (sol_precond, info_precond) = utils.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
     
     # Extract velocities and constraint forces on blobs
     velocity = np.reshape(sol_precond[3*Nblobs: 3*Nblobs + 6*num_bodies], (num_bodies, 6))
@@ -288,6 +324,7 @@ if __name__ ==  '__main__':
     # Plot velocity field
     if read.plot_velocity_field.size > 1: 
       print('plot_velocity_field')
+      np.savetxt(read.output_name + '.lambda.dat', lambda_blobs)
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
                           mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
       
@@ -346,6 +383,30 @@ if __name__ ==  '__main__':
     # Solve mobility problem
 
     # Compute velocity field
+
+
+
+  # Save wallclock time 
+  elapsed_time = time.time() - start_time
+  with open(read.output_name + '.time', 'w') as f:
+    f.write(str(time.time() - start_time) + '\n')
+
+  # For each type of structure save locations and orientations to one file
+  body_offset = 0
+  for i, ID in enumerate(read.structures_ID):
+    name = read.output_name + '.' + ID + '.clones'
+    with open(name, 'w') as f_ID:
+      f_ID.write(str(body_types[i]) + '\n')
+      for j in range(body_types[i]):
+        orientation = bodies[body_offset + j].orientation.entries
+        f_ID.write('%s %s %s %s %s %s %s\n' % (bodies[body_offset + j].location[0], 
+                                               bodies[body_offset + j].location[1], 
+                                               bodies[body_offset + j].location[2], 
+                                               orientation[0], 
+                                               orientation[1], 
+                                               orientation[2], 
+                                               orientation[3]))
+    body_offset += body_types[i]
 
   print('\n\n\n# End')
 

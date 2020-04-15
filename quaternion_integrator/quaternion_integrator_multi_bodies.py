@@ -10,7 +10,9 @@ import copy
 
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
+from plot import plot_velocity_field as pvf
 import general_application_utils as utils
+
 try:
   from quaternion import Quaternion
 except ImportError:
@@ -841,11 +843,12 @@ class QuaternionIntegrator(object):
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(noise = velocities_noise_W1, 
-                                                x0 = self.first_guess, 
-                                                save_first_guess = True,
-                                                PC_partial = PC_partial)
-      # Extract velocities
+                                                x0 = self.first_guess,    
+                                                save_first_guess = True,  
+                                                PC_partial = PC_partial)  
+      # Extract velocities and lambdas
       velocities_1 = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+      lambda_blobs = sol_precond[0:3*self.Nblobs]
 
       # Solve mobility problem
       slip_precond_rfd = self.solve_mobility_problem(RHS = np.concatenate([-1.0*W_slip, np.zeros(len(self.bodies) * 6)]), PC_partial = PC_partial)
@@ -854,9 +857,10 @@ class QuaternionIntegrator(object):
 
       # Update configuration for rfd 
       for k, b in enumerate(self.bodies):
-        b.location = b.location_old + W_RFD[k*6 : k*6+3] * self.rf_delta
-        quaternion_dt = Quaternion.from_rotation(W_RFD[(k*6+3):(k*6+6)] * self.rf_delta )
-        b.orientation = quaternion_dt * b.orientation_old
+        if b.prescribed_kinematics is False:
+          b.location = b.location_old + W_RFD[k*6 : k*6+3] * self.rf_delta
+          quaternion_dt = Quaternion.from_rotation(W_RFD[(k*6+3):(k*6+6)] * self.rf_delta )
+          b.orientation = quaternion_dt * b.orientation_old        
 
       # Compute M at RFD time level
       r_vectors_blobs_rfd = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
@@ -901,6 +905,31 @@ class QuaternionIntegrator(object):
 
       # Check positions, if valid return 
       if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
+        
+        step = kwargs.get('step')
+        n_save = kwargs.get('n_save')
+        if step == 0:
+          # Plot velocity field
+          if self.plot_velocity_field.size > 1: 
+            pvf.plot_velocity_field(self.plot_velocity_field, 
+                                    self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
+                                    np.zeros(self.Nblobs * 3), 
+                                    self.bodies[0].blob_radius, 
+                                    self.eta, 
+                                    self.output_name + '.' + str(0), 
+                                    self.tracer_radius,
+                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
+        if ((step+1) % n_save) == 0 and step >= 0:
+          # Plot velocity field
+          if self.plot_velocity_field.size > 1: 
+            pvf.plot_velocity_field(self.plot_velocity_field, 
+                                    self.get_blobs_r_vectors(self.bodies, self.Nblobs), 
+                                    lambda_blobs, 
+                                    self.bodies[0].blob_radius, 
+                                    self.eta, 
+                                    self.output_name + '.' + str(step+1), 
+                                    self.tracer_radius,
+                                    mobility_vector_prod_implementation = self.mobility_vector_prod)
         return
 
     return
@@ -1164,6 +1193,16 @@ class QuaternionIntegrator(object):
           force_torque += noise_FT
         # Set right hand side
         RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
+        # If prescribed velocity modify RHS
+        offset = 0
+        for k, b in enumerate(self.bodies):
+          if b.prescribed_kinematics is True:
+            # Add K*U to Right Hand side 
+            KU = np.dot(b.calc_K_matrix(), b.calc_prescribed_velocity())
+            RHS[3*offset : 3*(offset+b.Nblobs)] += KU.flatten()
+            # Set F to zero
+            RHS[3*self.Nblobs+k*6 : 3*self.Nblobs+(k+1)*6] = 0.0
+          offset += b.Nblobs
 
       # Add noise to the slip
       if noise is not None:
@@ -1205,6 +1244,13 @@ class QuaternionIntegrator(object):
         sol_precond = sol_precond * RHS_norm
       else:
         sol_precond[:] = 0.0
+
+      # If prescribed velocity we know the velocity
+      offset = 0
+      for k, b in enumerate(self.bodies):
+        if b.prescribed_kinematics is True:
+          sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
+        offset += b.Nblobs  
       
       # Return solution
       return sol_precond

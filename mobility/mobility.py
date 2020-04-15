@@ -1256,3 +1256,25 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, *args
 
 
 
+def no_wall_pressure_Stokeslet_numba(source, target, force, *args, **kwargs):
+  ''' 
+  Returns the pressure created by Stokeslets located at source in the positions
+  of the targets. The space is unbounded.
+  
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  p = mobility_numba.no_wall_pressure_Stokeslet_numba(source, target, force, L)
+  return p
+
+
+def single_wall_pressure_Stokeslet_numba(source, target, force, *args, **kwargs):
+  ''' 
+  Returns the pressure created by Stokeslets located at source in the positions
+  of the targets. Stokeslets above an infinite no-slip wall.
+
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  p = mobility_numba.single_wall_pressure_Stokeslet_numba(source, target, force, L)
+  return p
