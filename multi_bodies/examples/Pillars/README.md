@@ -11,7 +11,7 @@ structure ../../Structures/rod_Lg_1.845_Rg_0.1308_Nx_16_Ntheta_6.vertex rod_reso
 As usual the `vertex` and `clones` files give the location of the blobs in the reference configuration and the initial configuration respectively.
 
 The file `rod_resolved.slip` contains the slip on the blobs on the
-reference configuratin (quaternion = (1,0,0,0)). The format is
+reference configuration (quaternion = (1,0,0,0)). The format is
 
 ```
 number_of_blobs_in_rigid_body
@@ -26,7 +26,7 @@ vector_slip_blob_2
 This slip is rotated with the orientation of the body every step.
 
 ### Obstacles
-Obstacles are rigid particles that do not move. The code solves a resistance problem to find the constraint force and torque that keep the particle. See reference 2 in the documentation for a description of mobility and resistance problems.
+Obstacles are rigid particles that do not move. The code solves a resistance problem to find the constraint force and torque that keep the particle fixed. See reference 2 in the documentation for a description of mobility and resistance problems.
 
 In this example the only obstacle is pillar centered around `(x,y)=(0,0)`. The files describing the obstacle are given in the line
 
