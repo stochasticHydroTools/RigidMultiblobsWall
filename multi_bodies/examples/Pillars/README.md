@@ -26,7 +26,7 @@ vector_slip_blob_2
 This slip is rotated with the orientation of the body every step.
 
 ### Obstacles
-Obstacles are rigid particles that do not move. The code solves a resistance problem to find the constraint force and torque that keep the particle fixed. See reference 2 in the documentation for a description of mobility and resistance problems.
+Obstacles are rigid particles that do not move. The code solves a resistance problem to find the constraint force and torque that keep the particle fixed. See `latex` document notesMixedKinematics.tex (it can be compiled to a `pdf`).
 
 In this example the only obstacle is pillar centered around `(x,y)=(0,0)`. The files describing the obstacle are given in the line
 

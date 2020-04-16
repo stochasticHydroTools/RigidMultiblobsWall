@@ -1,0 +1,228 @@
+
+\documentclass[a4paper,12pt,twoside]{revtex4}
+\usepackage[utf8]{inputenc}% 
+\usepackage[left=0.5in,right=0.45in,top=0.8in,bottom=0.8in,includefoot,includehead,headheight=13.6pt]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{lmodern}
+
+\bibliographystyle{apsrev}
+
+
+\newcommand{\eqn}{\begin{eqnarray}}
+\newcommand{\eqnend}{\end{eqnarray}}
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\newcommand{\ps}[1]{\partial_{#1}}
+\newcommand{\pare}[1]{\left( #1 \right) }
+\newcommand{\corchete}[1]{\left[ #1 \right]}
+\newcommand{\fr}[2]{\frac{#1}{#2}}
+\newcommand{\wtil}[1]{\widetilde{#1}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+\newcommand{\avg}[1]{\langle #1 \rangle}
+\newcommand{\tex}[1]{\mbox{\scriptsize{#1}}}
+\newcommand{\redComment}[1]{{\bf\begin{color}{red}{#1}\end{color}}}
+\newcommand{\textgreek}[1]{\begingroup\fontencoding{LGR}\selectfont#1\endgroup}
+\newcommand{\what}[1]{\widehat{#1}}
+\newcommand{\cita}[1]{\begin{color}{blue} \footnotesize #1 \end{color}}
+\newcommand{\blankpage}{
+  \newpage
+  \thispagestyle{empty}
+  \mbox{}
+  \newpage
+}
+
+
+
+% Miscellaneous 
+\def\dt{\Delta t}
+\def\dd{\mathrm{d}}  
+\def\kt{k_B T}
+\def\bna{\bs{\nabla}}
+
+% Bold symbols
+\def\bA{\bs{A}}
+\def\bb{\bs{b}}
+\def\bB{\bs{B}}
+\def\bD{\bs{D}}
+\def\be{\bs{e}}
+\def\bbf{\bs{f}}
+\def\bF{\bs{F}}
+\def\bI{\bs{I}}
+\def\bJ{\bs{J}}
+\def\bK{\bs{K}}
+\def\bl{\bs{l}}
+\def\bL{\bs{L}}
+\def\bm{\bs{m}}
+\def\bM{\bs{M}}
+\def\bn{\bs{n}}
+\def\bp{\bs{p}}
+\def\bP{\bs{P}}
+\def\bq{\bs{q}}
+\def\br{\bs{r}}
+\def\bR{\bs{R}}
+\def\bt{\bs{t}}
+\def\bT{\bs{T}}
+\def\bu{\bs{u}}
+\def\bU{\bs{U}}
+\def\bv{\bs{v}}
+\def\bW{\bs{W}}
+\def\bx{\bs{x}}
+\def\bX{\bs{X}}
+\def\by{\bs{y}}
+\def\bz{\bs{z}}
+\def\blambda{\bs{\lambda}}
+\def\btheta{\bs{\theta}}
+\def\bTheta{\bs{\Theta}}
+\def\bPsi{\bs{\Psi}}
+\def\bomega{\bs{\omega}}
+
+% Bold tilde symbols
+\def\bub{\wtil{\bu}}
+
+% mathcal symbols
+\def\bmM{\bs{\mc{M}}}
+\def\bmW{\bs{\mc{W}}}
+\def\bmN{\bs{\mc{N}}}
+\def\bmK{\bs{\mc{K}}}
+\def\bmMb{\breve{\bs{\mc{M}}}}
+
+\def\genF{\left[\begin{array}{c}\bbf \\ \bs{\tau} \end{array}\right]}
+\def\genU{\left[\begin{array}{c}\bu \\ \bw \end{array}\right]}
+
+
+\begin{document}
+
+\title{Scientific report: Mixed kinematics}
+\author{The authors}
+\begin{abstract}
+  Implementation details for mixed kinematic problems. Our implementation works for combinations of free and fixed
+  (i.e. $\bU=0$) bodies. 
+\end{abstract}
+
+\maketitle
+
+
+
+
+
+\section{Mobility-Resistance problem}
+We write in this section the linear systems that appear in the free and prescribed kinematics problems (see Ref. \cite{Usabiaga2016} for details and notation). In the free kinematics problem the linear system is
+\eqn
+\left[ \begin{array}{cc}
+\bM & -\bK \\
+\bK^T & 0
+\end{array}\right] 
+\left[ \begin{array}{c}
+\blambda \\
+\bU
+\end{array}\right] = 
+\left[ \begin{array}{c}
+\wtil{\bu} + \bW_1 \\
+-\bF + \bW_2
+\end{array}\right],
+\label{eq:free}
+\eqnend
+where the value of the noise terms ($\bW_1$ and $\bW_2$) is different for each stochastic integrator.
+
+The linear system for prescribed kinematics is
+\eqn
+\left[ \begin{array}{cc}
+\bM & 0 \\
+\bK^T & \bI
+\end{array}\right] 
+\left[ \begin{array}{c}
+\blambda \\
+\bF
+\end{array}\right] = 
+\left[ \begin{array}{c}
+\wtil{\bu} + \bK \bU + \bW_1 \\
+0
+\end{array}\right].
+\label{eq:prescribed}
+\eqnend
+Note that the second equation ($\bK^T \blambda + \bF = 0$) is redundant and therefore it is not necessary to include it. However,
+having linear systems of the same size for both the free and prescribed kinematic simplifies the bookkeeping of variables in the code, therefore, we include it in our implementation.
+Note also that in our implementation $\bK \bU=0$.
+
+The only coupling between bodies in \eqref{eq:free} and \eqref{eq:prescribed} is through the blob mobility matrix $\bM$. Since that term is the same in both equations is trivial to combine them to simulate bodies with free and prescribed kinematics simultaneously
+\eqn
+\left[ \begin{array}{ccc}
+\bM & -\bK_{\tex{free}} & 0 \\
+\bK_{\tex{free}}^T & 0 & 0 \\
+\bK^T_{\tex{presc}} & 0 & \bI
+\end{array}\right] 
+\left[ \begin{array}{c}
+\blambda \\
+\bU_{\tex{free}} \\
+\bF_{\tex{presc}}
+\end{array}\right] = 
+\left[ \begin{array}{c}
+\wtil{\bu} + \bK_{\tex{presc}}\bU_{\tex{presc}} + \bW_1 \\
+-\bF_{\tex{free}} + \bW_2 \\
+0
+\end{array}\right],
+\label{eq:mixed}
+\eqnend
+where $\blambda$ is the constraint force acting on all blobs in the system.
+
+We use GMRES with a block diagonal preconditioner to solve these linear systems.
+In all cases the preconditioner is an exact solver for a single body but it does not include any coupling between bodies.
+
+
+\section{Stochastic integrator}
+Our implementation of obstacles works with the deterministic schemes \emph{Forward Euler} and \emph{Adams-Basforth} and with the stochastic integrators \emph{Trapezoidal Slip} and \emph{Midpoint Slip}, see Ref. \cite{Sprinkle2017}.
+
+In the stochastic integrators the only modification that we do, besides using the linear system \eqref{eq:mixed}, is to fix the position of bodies with prescribed kinematics. We do not update their positions 
+neither to perform RFD nor to update the middle or final configurations.
+
+
+
+
+
+
+
+
+
+
+% \bibliography{../../../../../articulos/all}
+\begin{thebibliography}{2}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname bibnamefont\endcsname\relax
+  \def\bibnamefont#1{#1}\fi
+\expandafter\ifx\csname bibfnamefont\endcsname\relax
+  \def\bibfnamefont#1{#1}\fi
+\expandafter\ifx\csname citenamefont\endcsname\relax
+  \def\citenamefont#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\providecommand{\bibinfo}[2]{#2}
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem[{\citenamefont{{Balboa Usabiaga} et~al.}(2016)\citenamefont{{Balboa
+  Usabiaga}, Kallemov, Delmotte, Bhalla, Griffith, and Donev}}]{Usabiaga2016}
+\bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{{Balboa Usabiaga}}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Kallemov}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Delmotte}},
+  \bibinfo{author}{\bibfnamefont{A.~P.~S.} \bibnamefont{Bhalla}},
+  \bibinfo{author}{\bibfnamefont{B.~E.} \bibnamefont{Griffith}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Donev}},
+  \bibinfo{journal}{Communications in Applied Mathematics and Computational
+  Science} \textbf{\bibinfo{volume}{11}}, \bibinfo{pages}{217}
+  (\bibinfo{year}{2016}).
+
+\bibitem[{\citenamefont{Sprinkle et~al.}(2017)\citenamefont{Sprinkle, {Balboa
+  Usabiaga}, Patankar, and Donev}}]{Sprinkle2017}
+\bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Sprinkle}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{{Balboa Usabiaga}}},
+  \bibinfo{author}{\bibfnamefont{N.~A.} \bibnamefont{Patankar}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Donev}},
+  \bibinfo{journal}{The Journal of Chemical Physics}
+  \textbf{\bibinfo{volume}{147}}, \bibinfo{pages}{244103}
+  (\bibinfo{year}{2017}), \eprint{https://doi.org/10.1063/1.5003833},
+  \urlprefix\url{https://doi.org/10.1063/1.5003833}.
+
+\end{thebibliography}
+\end{document} 
+
