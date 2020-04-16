@@ -131,11 +131,15 @@ vector_location_blob_1
 For example, the file `multi_bodies/Structures/boomerang_N_15.vertex` gives the
 structure of a boomerang-like particle formed by 15 blobs.
 
-## 3. Fixed obstacles and Active slip
+## 3. Fixed bodies and active slip
+
+### 3.1 Obstacles
 
 Bodies can be frozen in place as obstacles by using `obstacle` instead of `structure` in the input file, see example in
 `multi_bodies/examples/Pillars/`
 and also the documentation in `doc/Obstacles.pdf` for the mixed mobility/resistance formulation (not yet published) used.
+
+### 3.2 Active slip
 
 The blobs can have an active slip as described in the Ref. [2](http://arxiv.org/abs/1602.02170),
 therefore, we can simulate the dynamics of active bodies like bacteria
