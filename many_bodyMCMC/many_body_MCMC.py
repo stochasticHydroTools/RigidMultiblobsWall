@@ -112,10 +112,6 @@ if __name__ == '__main__':
     print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    # Set prescribed kinematics for obstacles
-    prescribed_velocity = None
-    if(len(structure) > 3):
-      prescribed_velocity = True
     body_types.append(num_bodies_struct)
     # Creat each body of type structure
     for i in range(num_bodies_struct):
@@ -123,7 +119,7 @@ if __name__ == '__main__':
       b.ID = read.structures_ID[ID]
       body_length = b.calc_body_length()
       max_body_length = (body_length if body_length > max_body_length else max_body_length)
-      if prescribed_velocity is not None:
+      if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
       bodies.append(b)
   bodies = np.array(bodies)
