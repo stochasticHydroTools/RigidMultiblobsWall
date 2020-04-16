@@ -232,6 +232,10 @@ see multibodies/inputfile.dat for an example. If the slip file is not
 given the active slip is set to zero for that structure (i.e. it will
 be a passive particle).
 
+* `obstacle`: (two or three strings) same as for `structures`, see above. Obstacles are rigid bodies that obey prescribed kinematics; their velocities are always zero through, therefore they do not move.
+Not all the stochastic schemes implement obstacles.
+For stochastic simulations with obstacles use the schemes `stochastic_Slip_Trapz` or `stochastic_Slip_Mid`.
+
 * `plot_velocity_field`: (x_0 x_1 N_x y_0 y_1 N_y z_0 z_1 N_z) if the
 code is run with this options and the schemes `mobility` or `resistance` the code plots
 the velocity field of the fluid to a `vtk` file. The velocity field
