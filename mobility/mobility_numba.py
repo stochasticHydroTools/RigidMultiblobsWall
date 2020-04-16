@@ -9,7 +9,7 @@ except ImportError:
   print('numba not found')
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -287,7 +287,7 @@ def single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def in_plane_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility at the blob level to the force 
@@ -544,7 +544,7 @@ def no_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -686,7 +686,7 @@ def single_wall_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def in_plane_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -828,7 +828,7 @@ def in_plane_mobility_trans_times_torque_numba(r_vectors, torque, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -934,7 +934,7 @@ def no_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -1073,7 +1073,7 @@ def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def no_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
@@ -1185,7 +1185,7 @@ def no_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
   return u.flatten()
 
 
-@njit(parallel=True)
+@njit(parallel=True, fastmath=True)
 def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, L):
   ''' 
   Returns the product of the mobility translation-rotation at the blob level to the torque 
