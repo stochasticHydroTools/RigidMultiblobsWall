@@ -60,7 +60,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   g = kwargs.get('g')
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
-  #1) Compute slip due to external torques on single blobs (if any)
+  #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors,
                                                               blob_radius = a, 
                                                               g = g) 
