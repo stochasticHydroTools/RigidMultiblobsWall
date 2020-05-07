@@ -305,7 +305,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
-      if b.prescribed_kinematics and len(initialized) > 0:
+      if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
         mobility_bodies.append(build_block_diagonal_preconditioners_det_stoch.mobility_bodies[k])
         K_bodies.append(build_block_diagonal_preconditioners_det_stoch.K_bodies[k])
         M_factorization_blobs.append(build_block_diagonal_preconditioners_det_stoch.M_factorization_blobs[k])
@@ -433,7 +433,7 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
-      if b.prescribed_kinematics and len(initialized) > 0:
+      if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
         mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
         mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
         K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
