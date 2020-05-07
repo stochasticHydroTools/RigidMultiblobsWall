@@ -50,18 +50,41 @@ while found_functions is False:
       print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
 
-def calc_slip(bodies, Nblobs):
+def calc_slip(bodies, Nblobs, *args, **kwargs):
   '''
   Function to calculate the slip in all the blobs.
   '''
   slip = np.empty((Nblobs, 3))
+  a = kwargs.get('blob_radius')
+  eta = kwargs.get('eta')
+  g = kwargs.get('g')
+  r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+
+  #1) Compute slip due to external torques on single blobs (if any)
+  torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors,
+                                                              blob_radius = a, 
+                                                              g = g) 
+
+  if np.amax(np.absolute(torque_blobs))>0:
+    implementation = kwargs.get('implementation')
+    offset = 0
+    for b in bodies:
+      if b.Nblobs>1:
+        torque_blobs[offset:offset+b.Nblobs] = 0.0  
+      offset += b.Nblobs
+    if implementation == 'pycuda':
+      slip_blobs = mb.single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque_blobs, eta, a) 
+    elif implementation == 'pycuda_no_wall':
+      slip_blobs = mb.no_wall_mobility_trans_times_torque_pycuda(r_vectors, torque_blobs, eta, a) 
+    slip = np.reshape(-slip_blobs, (Nblobs, 3) ) 
+ 
+  #2) Add prescribed slip 
   offset = 0
   for b in bodies:
     slip_b = b.calc_slip()
-    slip[offset:offset+b.Nblobs] = slip_b
+    slip[offset:offset+b.Nblobs] += slip_b
     offset += b.Nblobs
   return slip
-
 
 def get_blobs_r_vectors(bodies, Nblobs):
   '''
@@ -682,7 +705,11 @@ if __name__ == '__main__':
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
 
-  integrator.calc_slip = calc_slip 
+  integrator.calc_slip = partial(calc_slip,
+                                 implementation = read.mobility_vector_prod_implementation,
+                                 blob_radius = a, 
+                                 eta = a, 
+                                 g = g) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
