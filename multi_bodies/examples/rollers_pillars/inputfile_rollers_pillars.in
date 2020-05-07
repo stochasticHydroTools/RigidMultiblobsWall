@@ -39,7 +39,7 @@ debye_length                             0.019
 
 
 # Set output name
-output_name                              data/run1
+output_name                              run1
 save_clones                              one_file
 
 
