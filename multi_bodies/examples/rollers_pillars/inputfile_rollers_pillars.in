@@ -1,0 +1,47 @@
+
+# Length, time and mass are given in units of microns, seconds and miligrams.
+
+# Select scheme to integrate Brownian equations
+scheme                                   deterministic_adams_bashforth
+
+# Select implementation to compute M and M*f
+# We recommend to use the C++ implementation which is faster,
+# see documentation
+mobility_blobs_implementation            python
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           pycuda
+
+# Set time step, number of steps and save frequency
+dt                                       0.002
+n_steps                                  1000
+n_save                                   5
+initial_step                             0
+
+# Solver params
+solver_tolerance                         1.0e-4
+update_PC                                1
+
+# Set fluid viscosity (eta), gravity*blob_mass (g) and blob radius
+eta                                      8.9e-04 
+g                                        1e-3
+blob_radius                              0.1913417161825449
+
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.001
+debye_length_wall                        0.019
+
+# Define implementation to compute the blobs-blob force and pass its arguments
+repulsion_strength                       0.001
+debye_length                             0.019
+
+
+# Set output name
+output_name                              data/run1
+save_clones                              one_file
+
+
+structure Structures/blob.vertex Structures/Lattice_blobs_Np_2000_a_0_19134_Z_1_2a_dx_dy_2_2_2_2a.clones
+structure Structures/pillar_R_0_5_h_4_64_Ntheta_8_Nz_15.vertex Structures/pillars.clones Structures/slip_zero_N1536.dat Structures/velocities_zero.dat
