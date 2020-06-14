@@ -238,28 +238,12 @@ def calc_one_blob_forces(r_vectors, *args, **kwargs):
   return force_blobs
 
 
-def blob_external_torque(r_vectors, *args, **kwargs):
-  ''' 
-  This function compute the external torque acting on a
-  single blob. It returns an array with shape (3).
-  '''
-  t = np.zeros(3)
-  return t
-
-
 def calc_one_blob_torques(r_vectors, *args, **kwargs):
   ''' 
   Compute one-blob torques. It returns an array with shape (Nblobs, 3).
   '''
   Nblobs = r_vectors.size // 3
-  torque_blobs = np.zeros((Nblobs, 3)) 
-  r_vectors = np.reshape(r_vectors, (Nblobs, 3)) 
-  
-  # Loop over blobs
-  for blob in range(Nblobs):
-    torque_blobs[blob] += blob_external_torque(r_vectors[blob], *args, **kwargs)   
-
-  return torque_blobs
+  return np.zeros((Nblobs, 3)) 
 
 
 def set_blob_blob_forces(implementation):
