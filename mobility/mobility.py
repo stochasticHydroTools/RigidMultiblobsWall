@@ -527,6 +527,45 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   return velocities
 
 
+def single_wall_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Returns the product of the mobility at the blob level by the force
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the
+  Blake paper point particle result.
+
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes.
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function uses numba.
+  '''
+  # Compute effective heights
+  x = shift_heights_different_radius(target, radius_target)
+  y = shift_heights_different_radius(source, radius_source)
+
+  # Compute dumping matrices
+  B_target, overlap_target = damping_matrix_B_different_radius(target, radius_target, *args, **kwargs)
+  B_source, overlap_source = damping_matrix_B_different_radius(source, radius_source, *args, **kwargs)
+
+  # Compute B * force
+  if overlap_source is True:
+    force = B_source.dot(force.flatten())
+
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.mobility_trans_times_force_source_target_numba(y, x, force, radius_source, radius_target, eta, L=np.zeros(3), wall=1)
+
+  # Compute B.T * M * B * vector
+  if overlap_target is True:
+    velocities = B_target.dot(velocities)
+  return velocities
+
+
 def single_wall_fluid_mobility_loops(r_vectors, eta, a, *args, **kwargs):
   ''' 
   Mobility for particles near a wall.  This uses the expression from
