@@ -507,32 +507,42 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-def block_diagonal_preconditioner(vector, bodies, mobility_bodies, mobility_inv_blobs, Nblobs):
+def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, Nblobs = None):
   '''
-  Block diagonal preconditioner for rigid bodies.
-  It solves exactly the mobility problem for each body
-  independently, i.e., no interation between bodies is taken
-  into account.
+  Apply the block diagonal preconditioner.
   '''
   result = np.empty(vector.shape)
   offset = 0
   for k, b in enumerate(bodies):
-    # 1. Solve M*Lambda_tilde = slip
-    slip = vector[3*offset : 3*(offset + b.Nblobs)]
-    Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+    if b.prescribed_kinematics is False:
+      # 1. Solve M*Lambda_tilde = slip
+      slip = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+        
+      # 2. Compute rigid body velocity
+      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+      Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
+        
+      # 3. Solve M*Lambda = (slip + K*Y)
+      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
+        
+      # 4. Set result
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+    if b.prescribed_kinematics is True:
+      # 1. Solve M*Lambda = (slip + K*Y)
+      slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
+      Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
 
-    # 2. Compute rigid body velocity
-    F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-    Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
+      # 2. Set force
+      F = np.dot(b.calc_K_matrix().T, Lambda)
 
-    # 3. Solve M*Lambda = (slip + K*Y)
-    Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-
-    # 4. Set result
-    result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-    result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+      # 3. Set result
+      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
     offset += b.Nblobs
   return result
+
 
 def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
   '''
@@ -718,7 +728,8 @@ if __name__ == '__main__':
                                                debye_length_wall = read.debye_length_wall, 
                                                repulsion_strength = read.repulsion_strength, 
                                                debye_length = read.debye_length, 
-                                               periodic_length = read.periodic_length) 
+                                               periodic_length = read.periodic_length,
+                                               omega_one_roller = read.omega_one_roller) 
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
   integrator.linear_operator = linear_operator_rigid

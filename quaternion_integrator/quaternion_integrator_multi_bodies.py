@@ -1219,7 +1219,7 @@ class QuaternionIntegrator(object):
       for k, b in enumerate(self.bodies):
         if b.prescribed_kinematics is True:
           sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
-      
+
       # Return solution
       return sol_precond
 
