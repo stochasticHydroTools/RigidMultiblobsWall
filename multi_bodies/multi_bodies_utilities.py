@@ -106,15 +106,15 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       eta, 
                                                                       *args, 
                                                                       **kwargs)
-  elif mobility_vector_prod_implementation == 'numba':
-    grid_velocity = mob.mobility_vector_product_source_target_one_wall_numba(r_vectors_blobs, 
-                                                                             grid_coor, 
-                                                                             lambda_blobs, 
-                                                                             radius_source, 
-                                                                             radius_target, 
-                                                                             eta, 
-                                                                             *args, 
-                                                                             **kwargs) 
+  elif mobility_vector_prod_implementation == 'numba':                        
+    grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_numba(r_vectors_blobs, 
+                                                                                   grid_coor, 
+                                                                                   lambda_blobs, 
+                                                                                   radius_source, 
+                                                                                   radius_target, 
+                                                                                   eta, 
+                                                                                   *args, 
+                                                                                   **kwargs) 
   else:
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 

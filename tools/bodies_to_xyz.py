@@ -16,6 +16,7 @@ import argparse
 import sys
 
 sys.path.append('../')
+sys.path.append('./')
 
 import multi_bodies 
 from quaternion_integrator.quaternion import Quaternion
