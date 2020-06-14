@@ -55,3 +55,18 @@ def blob_external_torque_new(r_vectors, *args, **kwargs):
   t = 75.0 * g * blob_mass * blob_radius * np.array([0., 1., 0.0])
   return t
 multi_bodies_functions.blob_external_torque = blob_external_torque_new
+
+def calc_one_blob_torques_new(r_vectors, *args, **kwargs):
+  ''' 
+  Compute one-blob torques. It returns an array with shape (Nblobs, 3).
+  '''
+  Nblobs = r_vectors.size // 3
+  torque_blobs = np.zeros((Nblobs, 3)) 
+  r_vectors = np.reshape(r_vectors, (Nblobs, 3)) 
+  
+  # Loop over blobs
+  for blob in range(Nblobs):
+    torque_blobs[blob] += blob_external_torque(r_vectors[blob], *args, **kwargs)   
+
+  return torque_blobs
+multi_bodies_functions.calc_one_blob_torques = calc_one_blob_torques_new
