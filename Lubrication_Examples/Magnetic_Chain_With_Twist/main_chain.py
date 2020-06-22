@@ -22,6 +22,7 @@ while found_functions is False:
         from Lubrication import Lubrication
         from Lub_Solver import Lub_Solver as LS
         from stochastic_forcing import stochastic_forcing as stochastic
+	from quaternion_integrator.quaternion import Quaternion
         from mobility import mobility as mb
         from body import body
         from read_input import read_input
