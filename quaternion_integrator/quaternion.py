@@ -59,6 +59,14 @@ class Quaternion(object):
     ''' Return the inverse quaternion.'''
     return Quaternion([self.s, -1.*self.p[0], -1.*self.p[1],
                        -1.*self.p[2]])
+  
+  def square_root(self):
+    ''' Return the root quaternion.'''
+    if self.s != -1:
+      return Quaternion([np.sqrt((self.s+1.0)/2.0), np.sqrt(1.0/(2.0*self.s+2.0))*self.p[0], np.sqrt(1.0/(2.0*self.s+2.0))*self.p[1],
+                      np.sqrt(1.0/(2.0*self.s+2.0))*self.p[2]])
+    else:
+      return Quaternion([0.0, 0.0, 0.0, 1.0])
 
   
   def rotation_angle(self):
