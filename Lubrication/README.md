@@ -54,7 +54,7 @@ https://github.com/stochasticHydroTools/LubricationCorrections/blob/eb60857f0899
 ## Test
 To test the the C++ helper function run properly, simply run 
 ```
-python test.py 
+python test_Lub_Class_CC.py 
 ```
 after a sucessful `make` in the `/Lubrication` directory. If this code produces output, 
 then things are working as they should. 
