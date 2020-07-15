@@ -6,7 +6,8 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic
 dynamic simulations.
 Spherical bodies can be made of single blobs (minimally-resolved Brownian-Dynamics)
-for more rapid but less accurate Brownian Dynamics, see section 5.2.
+for more rapid but less accurate Brownian Dynamics, see section 5.2 or a fast an accuracte 
+lubrication corrected method can be used, see section 5.3
 
 We explain in the next sections how to use the package.
 For the theory consult the references:
@@ -30,6 +31,12 @@ Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
 A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5.
 [DOI](http://dx.doi.org/10.1063/1.5003833)
 [arXiv](https://arxiv.org/abs/1709.02410).
+
+5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev,  submitted to Soft Matter, 2020
+[arXiv](https://arxiv.org/abs/2005.06002)
+
+6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, to appear in PNAS, 2020
+
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using
 the Rotne-Prager-Blake tensor in the appendices B and C of:
@@ -599,8 +606,16 @@ of the velocities is zero. This ensures that the partilces position
 in the z direction never changes from that specified in the initial
 `.clones` file.
 
+### 5.3 Lubrication Corrections
+To use the lubrication corrected method which we outline in [5], follow the compilation instructions 
+in the README `./Lubrication/README.md`. The directory `./Lubrication/Lubrication_Examples` contains 
+an example from [5], see documentation in `./Lubrication/Lubrication_Examples/Uniform_Rollers/README.md` 
+as well as [6], see documentation `./Lubrication/Lubrication_Examples/Magnetic_Chain_With_Twist/README.md`. 
 
-### 5.3 Modify the codes
+The structure of the imputfiles is broadly similar to those of section 5.1 and 5.2, however there is only one (Trapezoidal) method 
+implemented which uses lubrication corrections, so there is no need to specify a `scheme`. Additional options pertaining to lubrication corrected Brownian dynamics in the inputfiles are `repulsion_strength_firm` which sets the strength of the 'Firm Potential' [5] and we recommend setting to `4 k_B T`. Also one can change `firm_delta` which represents the dimensionless (relative to particle radius) length at which we cannot resolve hydrodynamic interactions, we recommend setting this to `1e-2`. 
+
+### 5.4 Modify the codes
 We provide default implementations to calculate the slip on the rigid bodies
 and the interactions between blobs and between bodies as explained above. However,
 the user can override the default implementation with their own functions. We explain
