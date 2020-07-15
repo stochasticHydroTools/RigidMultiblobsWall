@@ -2,7 +2,8 @@
 This example contains the code to reproduce the simulation data shown in figure 1 of the SI of
 `Reconfigurable microbots folded from simple colloidal chains`
 https://cims.nyu.edu/~donev/FluctHydro/ReconfigurableChains+SI.pdf
-##Run the code
+
+###Run the code
 To run this example, ensure that the makefile has been succesfully run in the `Lubrication` base directory.
 Then one may simply type the following into a terminal
 ```
