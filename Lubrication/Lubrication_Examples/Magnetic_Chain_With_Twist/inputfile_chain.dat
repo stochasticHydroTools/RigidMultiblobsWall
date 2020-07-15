@@ -27,7 +27,12 @@ debye_length                             0.05
 
 # Set interaction with the wall
 repulsion_strength_wall                  0.016
-debye_length_wall                        1e-2
+debye_length_wall                        0.05
+
+# Set parameters for the firm-potential
+repulsion_strength_firm                  0.0163
+firm_delta                               1e-2
+
 
 seed					 1
 
