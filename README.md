@@ -36,12 +36,12 @@ The Journal of Chemical Physics, **146**, 134104
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
 A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017)
 [DOI](http://dx.doi.org/10.1063/1.5003833)
-[arXiv](https://arxiv.org/abs/1709.02410).
+[arXiv](https://arxiv.org/abs/1709.02410)
 
-5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev,  submitted to Soft Matter, 2020
-[arXiv](https://arxiv.org/abs/2005.06002)
+5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev, in press in Soft Matter, 2020
+[DOI](http://dx.doi.org/10.1039/D0SM00879F) [arXiv](https://arxiv.org/abs/2005.06002)
 
-6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, to appear in PNAS, 2020
+6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, PNAS, 202007255, 2020 [DOI](http://dx.doi.org/10.1073/pnas.2007255117)
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.

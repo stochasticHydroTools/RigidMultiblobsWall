@@ -6,8 +6,8 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic
 dynamic simulations.
 Spherical bodies can be made of single blobs (minimally-resolved Brownian-Dynamics)
-for more rapid but less accurate Brownian Dynamics, see section 5.2 or a fast an accuracte 
-lubrication corrected method can be used, see section 5.3
+for more rapid but less accurate Brownian Dynamics, see section 5.2; accuracy
+can be substantially improved by adding lubrication corrections, see section 5.3.
 
 We explain in the next sections how to use the package.
 For the theory consult the references:
@@ -32,10 +32,10 @@ A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5
 [DOI](http://dx.doi.org/10.1063/1.5003833)
 [arXiv](https://arxiv.org/abs/1709.02410).
 
-5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev,  submitted to Soft Matter, 2020
-[arXiv](https://arxiv.org/abs/2005.06002)
+5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev, in press in Soft Matter, 2020
+[DOI](http://dx.doi.org/10.1039/D0SM00879F) [arXiv](https://arxiv.org/abs/2005.06002)
 
-6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, to appear in PNAS, 2020
+6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, PNAS, 202007255, 2020 [DOI](http://dx.doi.org/10.1073/pnas.2007255117)
 
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using
