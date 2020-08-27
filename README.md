@@ -10,7 +10,9 @@ rigid bodies made out of  rigidly connected _blobs_, and confined above a
 a single wall (floor). These codes can compute the
 mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic 
-dynamic simulations.
+dynamic simulations. **If the object happens to be a sphere, we also provide 
+a faster and more accurate alternative to the rigid multiblob method, which uses Lubrication corrections 
+to improve the performance of nearfield hydrodynamic calculations.** 
 
 For the theory behind the numerical methods consult the references:
 
@@ -34,7 +36,12 @@ The Journal of Chemical Physics, **146**, 134104
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
 A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017)
 [DOI](http://dx.doi.org/10.1063/1.5003833)
-[arXiv](https://arxiv.org/abs/1709.02410).
+[arXiv](https://arxiv.org/abs/1709.02410)
+
+5. **Driven dynamics in dense suspensions of microrollers** by B. Sprinkle, E. B. van der Wee and Y. Luo and M. Driscoll, and A. Donev, in press in Soft Matter, 2020
+[DOI](http://dx.doi.org/10.1039/D0SM00879F) [arXiv](https://arxiv.org/abs/2005.06002)
+
+6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, PNAS, 202007255, 2020 [DOI](http://dx.doi.org/10.1073/pnas.2007255117)
 
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
@@ -44,6 +51,7 @@ For usage see **doc/README.md**.
 ### Software organization
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
+* **Lubrication/** A small class which implements our fast lubrication corrected sheme for fluctuating colloidal suspensions above a wall. Instalation instructions are included in `./Lubrication/README.md`. The directory `./Lubrication/Lubrication_Examples` contains an example from [5], see documentation in `./Lubrication/Lubrication_Examples/Uniform_Rollers/README.md` as well as [6], see documentation `./Lubrication/Lubrication_Examples/Magnetic_Chain_With_Twist/README.md`. 
 * **boomerang/**: older stochastic example from [1], see documentation `boomerang/README.md`.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center

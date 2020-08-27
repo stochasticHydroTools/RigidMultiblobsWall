@@ -9,7 +9,7 @@ PYTHON_LIB = $(PYTHON_DIR)/lib/python$(PYTHON_VERSION)/config/
 BOOST_INC = /usr/include/boost
 BOOST_LIB = /usr/lib64
 
-EIGEN_INC = /usr/local/include/eigen3
+EIGEN_INC = /usr/include/eigen3
 
 # Location of Fortran libraries,
 # uncomment to use the Fast Multipole Metho library dstfmmlib3d-1.2
