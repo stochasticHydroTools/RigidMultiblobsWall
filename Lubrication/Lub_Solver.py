@@ -10,7 +10,7 @@ from functools import partial
 import copy
 import inspect
 import time
-import utils
+import general_application_utils
 import sys
 from mobility import mobility as mob
 import pyamg
@@ -18,7 +18,7 @@ import scipy.sparse as sp
 from sksparse.cholmod import cholesky
 import Lubrication_Class as Lub_cc
 from stochastic_forcing import stochastic_forcing as stochastic
-from quaternion import Quaternion
+from quaternion_integrator.quaternion import Quaternion
 
 class Lub_Solver(object):
   '''
@@ -365,7 +365,7 @@ class Lub_Solver(object):
     
     return RHS_Xm, RHS_X
   
-  
+
   
   def IpMDR_Mult(self, X):
     '''
@@ -706,13 +706,7 @@ class Lub_Solver(object):
     return reject_wall, reject_jump
   
   
-  def Update_Bodies_Trap(self, FT_calc, Omega=None, Out_Torque=False):
-    '''
-    Updates the positions and orientations of the bodies using stochastic velocity from Trapezoidal scheme. 
-    If Omega is not NONE, a torque is computed based on the forces so that the angular velocity of the particles 
-    is approximatly constrained to be = Omega. If Out_Torque is set to true, Omega is not NONE, the constraining torque
-    will be returned
-    '''
+  def Update_Bodies_Trap(self, FT_calc, Omega=None, Out_Torque=False, Cut_Torque=None):
     L = self.periodic_length
     # Save initial configuration
     for k, b in enumerate(self.bodies):
@@ -722,7 +716,10 @@ class Lub_Solver(object):
     # compute forces for predictor step
     r_vecs_np = [b.location for b in self.bodies]
     r_vecs = self.put_r_vecs_in_periodic_box(r_vecs_np,self.periodic_length)
+    start = time.time()
     FT = FT_calc(self.bodies, r_vecs)
+    end = time.time()
+    print 'F calc time : '+ str((end - start))
     FT = FT.flatten()
     FT = FT[:,np.newaxis]
     
@@ -733,18 +730,18 @@ class Lub_Solver(object):
       F = FTrs[:,0:3]
       start = time.time()
       T_omega, VO_guess = self.Torque_from_Omega(Omega,F)
+      if Cut_Torque is not None:
+          Tn = np.linalg.norm(T_omega,axis=1)
+          NewNorm = np.minimum(Tn,Cut_Torque)/Tn
+          T_omega = NewNorm[:,None]*T_omega
       end = time.time()
       print 'Omega time : '+ str((end - start))
       FTrs[:,3::] += T_omega
       FT = np.reshape(FTrs,(6*len(self.bodies),1))
       
     # compute relevant matrix root for pred. and corr. steps
-    #Mhalf = self.Lub_Mobility_Root_RHS()
-    #Mhalf = Mhalf.flatten()
-    #Mhalf = Mhalf[:,np.newaxis]
-    
     start = time.time()
-    Root_Xm, Root_X = self.Lub_Mobility_Root_RHS() #self.Lub_Mobility_Root_RHS() #
+    Root_Xm, Root_X = self.Lub_Mobility_Root_RHS() 
     X = Root_X[:,np.newaxis]
     MXm = self.Wall_Mobility_Mult(Root_Xm)
     MXm = MXm[:,np.newaxis]
@@ -786,7 +783,10 @@ class Lub_Solver(object):
     # compute RHSs for the corr. step
     RHS_X_C = D_M + Mhalf
     
+    start = time.time()
     FT_C = FT_calc(self.bodies, r_vecs_c)
+    end = time.time()
+    print 'F calc time : '+ str((end - start))
     FT_C = FT_C.flatten()
     FT_C = FT_C[:,np.newaxis]
     
@@ -797,10 +797,14 @@ class Lub_Solver(object):
       FTrsc = np.reshape(FT_C,(len(self.bodies),6))
       Fc = FTrsc[:,0:3]
       if second_order:
-	# you could use the previous Torque_from_Omega solve as an initial guess here and it should work very well
-	Tc, VO_guessc = self.Torque_from_Omega(Omega,Fc)
+        # you could use the previous Torque_from_Omega solve as an initial guess here and it should work very well
+        Tc, VO_guessc = self.Torque_from_Omega(Omega,Fc)
+        if Cut_Torque is not None:
+          Tn = np.linalg.norm(Tc,axis=1)
+          NewNorm = np.minimum(Tn,Cut_Torque)/Tn
+          Tc = NewNorm[:,None]*Tc
       else:
-	Tc = T_omega
+        Tc = T_omega
       FTrsc[:,3::] += Tc
       FT_C = np.reshape(FTrsc,(6*len(self.bodies),1))
     
@@ -835,12 +839,13 @@ class Lub_Solver(object):
         b.orientation = copy.copy(b.orientation_old)
 
 	
+
     self.Set_R_Mats() ######## VERY IMPORTANT
-    
     if Out_Torque:
       return reject_wall, reject_jump, T_omega.flatten()
     else:
       return reject_wall, reject_jump
+  
   
   def Torque_from_Omega(self,Om,F):
     '''
