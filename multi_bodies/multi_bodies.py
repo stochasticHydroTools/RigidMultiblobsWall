@@ -228,6 +228,54 @@ def K_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
   result = np.reshape(result, (2*len(bodies), 3))
   return result
 
+### UNDER CONSTRUCTION ####
+def C_matrix_vector_prod(bodies, vector, Nconstraints, C_constraints = None):
+  '''
+  Compute the matrix vector product C*vector where
+  C is the Jacobian of the velocity constraints.
+  ''' 
+  # Prepare variables
+  result = np.empty((Nconstraints, 3))
+  v = np.reshape(vector, (len(bodies) * 6))
+
+  # Loop over bodies
+  offset = 0
+  for k, b in enumerate(bodies):
+    if C_constraints is None:
+      C = b.calc_C_matrix()
+    else:
+      C = C_constraints[k] 
+    result[offset : offset+1] = np.reshape(np.dot(C, v[6*k : 6*(k+1)]), (b.Nblobs, 3))
+    offset += b.Nblobs    
+  return result
+### UNDER CONSTRUCTION ####
+
+
+def C_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
+  '''
+  Compute the matrix vector product K^T*vector where
+  K is the geometrix matrix that transport the information from the 
+  level of describtion of the body to the level of describtion of the blobs.
+  ''' 
+  # Prepare variables
+  result = np.empty((len(bodies), 6))
+  v = np.reshape(vector, (Nblobs * 3))
+
+  # Loop over bodies
+  offset = 0
+  for k, b in enumerate(bodies):
+    if K_bodies is None:
+      K = b.calc_K_matrix()
+    else:
+      K = K_bodies[k] 
+    result[k : k+1] = np.dot(K.T, v[3*offset : 3*(offset+b.Nblobs)])
+    offset += b.Nblobs    
+
+  result = np.reshape(result, (2*len(bodies), 3))
+  return result
+
+
+
 
 def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *args, **kwargs):
   '''
@@ -265,6 +313,44 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
       res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
     offset += b.Nblobs
   return res
+
+
+def linear_operator_rigid_articulated(vector, bodies, r_vectors, eta, a, K_bodies = None, C_constraints = None, *args, **kwargs):
+  '''
+  Return the action of the linear operator of the articulated rigid bodies on vector v.
+  The linear operator is
+  |  M   -K  0  ||lambda| = | slip + noise_1|
+  | -K^T  0  C^T||  U   |   | -F   + noise_2|
+  |  0    C  0  || phi  |   |  B            |
+  ''' 
+  # Reserve memory for the solution and create some variables
+  L = kwargs.get('periodic_length')
+  Nconstraints = kwargs.get('Nconstraints')
+  Ncomp_blobs = r_vectors.size
+  Nblobs = r_vectors.size // 3
+  Nbodies = len(bodies)
+  Ncomp_bodies = 6 * Nbodies
+  Ncomp_phi = 3 * Nconstraints
+  Ncomp_tot = Ncomp_blobs + Ncomp_bodies + Ncomp_phi
+  res = np.empty((Ncomp_tot))
+  v = np.reshape(vector, (vector.size//3, 3))
+  
+  # Compute the "slip" part
+  res[0:Ncomp_blobs] = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs) 
+  K_times_U = K_matrix_vector_prod(bodies, v[Nblobs : Nblobs+2*Nbodies], Nblobs, K_bodies = K_bodies) 
+  res[0:Ncomp_blobs] -= np.reshape(K_times_U , (3*Nblobs))
+
+  # Compute the "-force_torque" part
+  K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
+  C_T_times_phi = C_matrix_T_vector_prod(bodies, vector[Ncomp_blobs + Ncomp_bodies:Ncomp_tot], Ncomp_phi, C_constraints = C_constraints)
+  res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda + C_T_times_phi, (Ncomp_bodies))
+
+  # Compute the "constraint velocity: B" part
+  C_times_U = C_matrix_vector_prod(bodies, v[Nblobs+2*Nbodies:Nblobs+2*Nbodies+Nconstraints], Ncomp_phi, C_constraints = C_constraints)
+  res[Ncomp_blobs+Ncomp_bodies:Ncomp_tot] = np.reshape(C_times_U , (Ncomp_phi))
+ 
+  return res
+
 
 
 @utils.static_var('initialized', [])
