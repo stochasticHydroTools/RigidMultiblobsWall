@@ -37,6 +37,7 @@ class QuaternionIntegrator(object):
     self.mobility_blobs = None
     self.force_torque_calculator = None
     self.calc_K_matrix_bodies = None
+    self.calc_C_matrix_constraints = None
     self.linear_operator = None
     self.eta = None
     self.a = None
@@ -62,7 +63,9 @@ class QuaternionIntegrator(object):
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
-    return 
+    return
+    self.constraints = None
+     
 
   def advance_time_step(self, dt, *args, **kwargs):
     '''
@@ -1132,7 +1135,6 @@ class QuaternionIntegrator(object):
 
     return
 
-
   def solve_mobility_problem(self, RHS = None, noise = None, noise_FT = None, AB = None, x0 = None, save_first_guess = False, PC_partial = None, *args, **kwargs): 
     ''' 
     Solve the mobility problem using preconditioned GMRES. Compute 
@@ -1188,6 +1190,109 @@ class QuaternionIntegrator(object):
                                         eta = self.eta, 
                                         a = self.a, 
                                         K_bodies = K,
+                                        periodic_length=self.periodic_length)
+      A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
+
+      # Set preconditioner 
+      if PC_partial is None:
+        PC_partial = self.build_block_diagonal_preconditioner(self.bodies, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
+      PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
+
+      # Scale RHS to norm 1
+      RHS_norm = np.linalg.norm(RHS)
+      if RHS_norm > 0:
+        RHS = RHS / RHS_norm
+
+      # Solve preconditioned linear system
+      counter = gmres_counter(print_residual = self.print_residual)
+      (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
+      self.det_iterations_count += counter.niter
+
+      if save_first_guess:
+        self.first_guess = sol_precond  
+
+      # Scale solution with RHS norm
+      if RHS_norm > 0:
+        sol_precond = sol_precond * RHS_norm
+      else:
+        sol_precond[:] = 0.0
+
+      # If prescribed velocity we know the velocity
+      for k, b in enumerate(self.bodies):
+        if b.prescribed_kinematics is True:
+          sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
+
+      # Return solution
+      return sol_precond
+
+
+  ### UNDER CONSTRUCTION: GENERAL SOLVER FOR MOBILITY PROBLEM
+  ## SHOULD REPLACE solve_mobility_problem ABOVE
+  def solve_mobility_problem_general(self, RHS = None, noise = None, noise_FT = None, AB = None, x0 = None, save_first_guess = False, PC_partial = None, *args, **kwargs): 
+    ''' 
+    Solve the mobility problem using preconditioned GMRES. Compute 
+    velocities on the bodies subject to active slip, external 
+    forces-torques and kinematic constraints
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+      Nconstraints = len(self.constraints) 
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6 + Nconstraints * 3
+
+      # Get blobs coordinates
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # If RHS = None set RHS = [slip, -force_torque, B ]
+      if RHS is None:
+        # Calculate slip on blobs
+        if self.calc_slip is not None:
+          slip = self.calc_slip(self.bodies, self.Nblobs)
+        else:
+          slip = np.zeros((self.Nblobs, 3))
+        # Calculate force-torque on bodies
+        force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
+        # Add noise to the force/torque
+        if noise_FT is not None:
+          force_torque += noise_FT
+        # Add the prescribed constraint velocity 
+        B = np.zeros((Nconstraints,3))
+        if Nconstraints>0:
+          ##### TO DO: FILL THE B VECTOR WITH THE PRESCRIBED VELOCITY IN THE FRAME OF BODY p
+
+        # Set right hand side
+        RHS = np.reshape(np.concatenate([slip, -force_torque, B]), (System_size))
+        # If prescribed velocity modify RHS
+        offset = 0
+        for k, b in enumerate(self.bodies):
+          if b.prescribed_kinematics is True:
+            # Add K*U to Right Hand side 
+            KU = np.dot(b.calc_K_matrix(), b.calc_prescribed_velocity())
+            RHS[3*offset : 3*(offset+b.Nblobs)] += KU.flatten()
+            # Set F to zero
+            RHS[3*self.Nblobs+k*6 : 3*self.Nblobs+(k+1)*6] = 0.0
+          offset += b.Nblobs
+
+      # Add noise to the slip
+      if noise is not None:
+        RHS[0:r_vectors_blobs.size] -= noise
+
+      # Calculate K matrix
+      K = self.calc_K_matrix_bodies(self.bodies, self.Nblobs)
+
+      # Calculate C matrix
+      C = self.calc_C_matrix_constraints(self.constraints)
+
+      # Set linear operators 
+      linear_operator_partial = partial(self.linear_operator, 
+                                        bodies = self.bodies, 
+                                        constraints = self.constraints, 
+                                        r_vectors = r_vectors_blobs, 
+                                        eta = self.eta, 
+                                        a = self.a, 
+                                        K_bodies = K,
+                                        C_constraints = C,
                                         periodic_length=self.periodic_length)
       A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 

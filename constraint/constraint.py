@@ -24,8 +24,8 @@ class Constraint(object):
     self.articulated_body = articulated_body
     # 2 by 3 array that gives the (time-dependent) prescribed positions of the two links in the reference frame of the first body
     self.links = links
-    # 2 by 3 array that gives the (time-dependent) prescribed velocities of the two links in the reference frame of the first body (RHS of the linear constraint problem)
-    self.presc_vel = np.zeros((2,3))
+    # 3 by 1 array that gives the (time-dependent) prescribed velocity of the joint in the reference frame of the first body (RHS of the linear constraint problem)
+    self.presc_vel = np.zeros(3)
     # Jacobian of the time-derivative of the constraint (3 by 12 matrix)
     self.C  = None
 

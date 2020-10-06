@@ -171,6 +171,25 @@ def calc_K_matrix(bodies, Nblobs):
   return K
 
 
+def calc_C_matrix(bodies, constraints):
+  '''
+  Calculate the constraint block-diagonal matrix C.
+  Shape (3*Nconstraints, 6*Nbodies).
+  '''
+  C = np.zeros((3*len(constraints), 6*len(bodies)))
+  offset = 0
+  for k, c in enumerate(constraints):
+    C_body = c.calc_C_matrix()
+    ind1 = c.ind_bodies[0]
+    ind2 = c.ind_bodies[1]
+    C1 = C_body[:,0:6]
+    C2 = C_body[:,6:12]
+    C[3*k:3*(k+1), 6*ind1:6*(ind1+1)] = C1
+    C[3*k:3*(k+1), 6*ind2:6*(ind2+1)] = C2
+  return C
+
+
+
 def calc_K_matrix_bodies(bodies, Nblobs):
   '''
   Calculate the geometric matrix K for
@@ -181,6 +200,18 @@ def calc_K_matrix_bodies(bodies, Nblobs):
     K_body = b.calc_K_matrix()
     K.append(K_body)
   return K
+
+
+def calc_C_matrix_constraints(constraints):
+  '''
+  Calculate the geometric matrix C for
+  each constraint. List of shape (3*Nconstraints, 6*Nbodies).
+  '''
+  C = []
+  for k, c in enumerate(constraints):
+    C_constraint = c.calc_C_matrix()
+    C.append(C_constraint)
+  return C
 
 
 def K_matrix_vector_prod(bodies, vector, Nblobs, K_bodies = None):
@@ -249,34 +280,36 @@ def C_matrix_vector_prod(bodies, constraints, vector, Nconstraints, C_constraint
     ind2 = c.ind_bodies[1]
     vbody2 = v[6*ind2 : 6*(ind2+1)]  
 
-    result[3*k:3*(k+1)] = np.dot(C, np.concatenate([vbody1, vbody2], axis = 2))
+    result[k] = np.dot(C, np.concatenate([vbody1, vbody2], axis = 2))
   return result
 
 
-### UNDER CONSTRUCTION ####
-def C_matrix_T_vector_prod(bodies, vector, Nblobs, K_bodies = None):
+def C_matrix_T_vector_prod(bodies, constraints, vector, Nconstraints, C_constraints = None):
   '''
-  Compute the matrix vector product K^T*vector where
-  K is the geometrix matrix that transport the information from the 
-  level of describtion of the body to the level of describtion of the blobs.
+  Compute the matrix vector product C^T*vector where
+  C is the Jacobian of the velocity constraints.
   ''' 
   # Prepare variables
-  result = np.empty((len(bodies), 6))
-  v = np.reshape(vector, (Nblobs * 3))
+  result = np.zeros((len(bodies), 6))
+  v = np.reshape(vector, (Nconstraints * 3))
 
   # Loop over bodies
-  offset = 0
-  for k, b in enumerate(bodies):
-    if K_bodies is None:
-      K = b.calc_K_matrix()
+  for k, c in enumerate(constraints):
+    if C_constraints is None:
+      C = c.calc_C_matrix()
     else:
-      K = K_bodies[k] 
-    result[k : k+1] = np.dot(K.T, v[3*offset : 3*(offset+b.Nblobs)])
-    offset += b.Nblobs    
+      C = C_constraints[k] 
+    
+    ind1 = c.ind_bodies[0]
+    ind2 = c.ind_bodies[1]
+    C1 = C[:,0:6]
+    C2 = C[:,6:12]
+
+    result[ind1] += np.dot(C1.T, v[3*k:3*(k+1)])
+    result[ind2] += np.dot(C2.T, v[3*k:3*(k+1)])
 
   result = np.reshape(result, (2*len(bodies), 3))
   return result
-### UNDER CONSTRUCTION ####
 
 
 def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *args, **kwargs):
@@ -316,7 +349,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
     offset += b.Nblobs
   return res
 
-
+##### COMMENT: I THINK THIS FUNCTION COULD EVEN REPLACE linear_operator_rigid SINCE IT SHOULD WORK IF Nconstraints  == 0
 def linear_operator_rigid_articulated(vector, bodies, constraints, r_vectors, eta, a, K_bodies = None, C_constraints = None, *args, **kwargs):
   '''
   Return the action of the linear operator of the articulated rigid bodies on vector v.
@@ -600,21 +633,25 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
 #################### UNDER CONSTRUCTION ####################
 #################### UNDER CONSTRUCTION ####################
 '''
+##### COMMENT: HOWEVER I AM NOT SURE THIS ROUTINE COULD BE GENERIC (WITH/WITHOUT) CONSTRAINTS, IT WOULD REQUIRE A LOT OF if STATEMENTS
+##### TO BE DISCUSSED
 @utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
 @utils.static_var('mobility_inv_blobs', [])
-def build_block_diagonal_preconditioner_articulated(bodies, r_vectors, Nblobs, eta, a, *args, **kwargs):
+def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vectors, Nblobs, eta, a, *args, **kwargs):
   '''
-  Build the block diagonal preconditioner for rigid bodies.
+  Build the block diagonal preconditioner for articulated rigid bodies.
   It solves exactly the mobility problem for each body
   independently, i.e., no interation between bodies is taken
-  into account.
+  into account, and exactly the constraint problem.
   '''
   initialized = build_block_diagonal_preconditioner.initialized
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
+  C_constraints = []
+  Kfull = zeros((3*Nblobs,6*len(bodies)))
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
@@ -635,7 +672,8 @@ def build_block_diagonal_preconditioner_articulated(bodies, r_vectors, Nblobs, e
         K_bodies.append(K)
         # 5. Compute body mobility
         mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
-
+    C = calc_C_matrix(bodies,constraints)
+    
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
     build_block_diagonal_preconditioner.K_bodies = K_bodies
@@ -649,7 +687,7 @@ def build_block_diagonal_preconditioner_articulated(bodies, r_vectors, Nblobs, e
     K_bodies = build_block_diagonal_preconditioner.K_bodies
     mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
 
-  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+  def block_diagonal_preconditioner_articulated(vector, bodies = None, constraints = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
     '''
     Apply the block diagonal preconditioner.
     '''
@@ -875,6 +913,13 @@ if __name__ == '__main__':
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
 
+  ''' 
+  ############# UNDER CONSTRUCTION ################
+        HERE IS WHERE WE BUILD THE CONSTAINT LIST
+  ############# UNDER CONSTRUCTION ################
+  '''
+
+
   # Save bodies information
   with open(output_name + '.bodies_info', 'w') as f:
     f.write('num_of_body_types  ' + str(num_of_body_types) + '\n')
@@ -940,6 +985,9 @@ if __name__ == '__main__':
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
   integrator.rf_delta = read.rf_delta
+  integrator.constraints = constraints
+  integrator.calc_C_matrix_constraints = calc_C_matrix_constraints
+
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:
