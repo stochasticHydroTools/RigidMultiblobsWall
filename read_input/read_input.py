@@ -16,8 +16,9 @@ class ReadInput(object):
     self.entries = entries
     self.input_file = entries
     self.options = {}
-    number_of_structures = 0
-    number_of_obstacles = 0
+    number_of_structures = 0 
+    number_of_obstacles = 0 
+    number_of_articulated = 0 
 
     # Read input file
     comment_symbols = ['#']   
@@ -38,6 +39,9 @@ class ReadInput(object):
           if option == 'obstacle':
             option += str(number_of_obstacles)
             number_of_obstacles += 1
+          if option == 'articulated':
+            option += str(number_of_articulated)
+            number_of_articulated += 1
           self.options[option] = value
 
     # Set option to file or default values
@@ -93,6 +97,9 @@ class ReadInput(object):
     # Create list with [vertex_file, clones_file] for each structure
     self.num_free_bodies = number_of_structures
     self.structures = []
+    self.structures_ID = []
+    self.articulated = []
+    self.articulated_ID = []
     for i in range(number_of_structures):
       option = 'structure' + str(i)
       structure_files = str.split(str(self.options.get(option)))
@@ -103,9 +110,18 @@ class ReadInput(object):
       option = 'obstacle' + str(i)
       structure_files = str.split(str(self.options.get(option)))
       self.structures.append(structure_files)
+
+    # Create list with [vertex_file, clones_file, contraints_file] for each articulated
+    for i in range(number_of_articulated):
+      option = 'articulated' + str(i)
+      structure_files = str.split(str(self.options.get(option)))
+      head, tail = ntpath.split(structure_files[1])
+      # then, remove end (.clones)
+      tail = tail[:-7]
+      self.articulated_ID.append(tail)
+      self.articulated.append(structure_files)
       
     # Create structures ID for each kind 
-    self.structures_ID = []
     for struct in self.structures:
       # First, remove directory from structure name
       head, tail = ntpath.split(struct[1])
