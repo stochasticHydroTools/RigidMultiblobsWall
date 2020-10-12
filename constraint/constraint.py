@@ -12,7 +12,7 @@ class Constraint(object):
   '''
   Small class to handle a single constraint.
   '''  
-  def __init__(self, bodies, ind_bodies,  articulated_body, links ):
+  def __init__(self, bodies, ind_bodies,  articulated_body, links):
     '''
     Constructor. Take arguments like ...
     '''

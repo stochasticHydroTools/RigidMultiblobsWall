@@ -35,6 +35,8 @@ while found_functions is False:
     from read_input import read_clones_file
     from read_input import read_slip_file
     from read_input import read_velocity_file
+    from read_input import read_constraints_file
+    from constraint.constraint import Constraint 
     import general_application_utils as utils
     try:
       import libCallHydroGrid as cc
@@ -906,19 +908,69 @@ if __name__ == '__main__':
         b.prescribed_velocity = np.zeros(6)
       # Append bodies to total bodies list
       bodies.append(b)
-  bodies = np.array(bodies)
 
+  # Set some variables
+  num_bodies_rigid = len(bodies)
+      
+  # Create articulated bodies
+  articulated = []
+  constraints = []
+  for ID, structure in enumerate(read.articulated):
+    print('Creating articulated = ', structure[1])
+    # Read vertex, clones and constraint files
+    struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
+    num_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2])
+    
+    # Read slip file if it exists
+    slip = None
+    if(len(structure) > 3):
+      slip = read_slip_file.read_slip_file(structure[3])
+    body_types.append(num_bodies_struct)
+    body_names.append(read.articulated_ID[ID])
+    # Create each body of type structure
+    for i in range(num_bodies_struct):
+      subbody = i % num_articulated
+      first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[first_blob:first_blob+num_blobs[subbody]], a)
+      b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
+      b.ID = read.articulated_ID[ID]
+      # Calculate body length for the RFD
+      if b.Nblobs > 2000:
+        b.body_length = 10.0
+      elif i == 0:
+        b.calc_body_length()
+      else:
+        b.body_length = bodies[-1].body_length
+      multi_bodies_functions.set_slip_by_ID(b, slip)
+      # If structure is an obstacle
+      if ID >= read.num_free_bodies:
+        b.prescribed_kinematics = True
+        b.prescribed_velocity = np.zeros(6)
+      # Append bodies to total bodies list
+      bodies.append(b)
+
+    # Total number of constraints 
+    num_constraints_total = num_constraints * (num_bodies_struct // num_articulated)
+    
+    # Create list of constraints
+    for i in range(num_constraints_total):
+      # Prepare info for constraint
+      subconstraint = i % num_constraints
+      articulated_body = i // num_constraints
+      bodies_indices = constraints_info[subconstraint, 1:3].astype(int) + num_articulated * articulated_body + num_bodies_rigid  
+      bodies_in_link = [bodies[bodies_indices[0]], bodies[bodies_indices[1]]]
+      parameters = constraints_info[subconstraint, 4:]
+
+      # Create constraint
+      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters)
+      constraints.append(c)
+  bodies = np.array(bodies)
+  
   # Set some more variables
   num_of_body_types = len(body_types)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
-
-  ''' 
-  ############# UNDER CONSTRUCTION ################
-        HERE IS WHERE WE BUILD THE CONSTAINT LIST
-  ############# UNDER CONSTRUCTION ################
-  '''
-
 
   # Save bodies information
   with open(output_name + '.bodies_info', 'w') as f:
