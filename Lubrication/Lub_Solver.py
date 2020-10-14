@@ -524,7 +524,7 @@ class Lub_Solver(object):
       Eig_Shift_R_Sup = self.R_Sup + sp.diags(small*np.ones(6*num_particles),0,format='csc')
       factor = cholesky(Eig_Shift_R_Sup)
       end = time.time()
-      print 'factor time : '+ str((end - start))
+      print('factor time : '+ str((end - start)))
       PC_operator_partial = partial(self.IpMDR_PC, R_fact=factor,isolated=isolated)
       
       ################## SWAN #####################
@@ -719,7 +719,7 @@ class Lub_Solver(object):
     start = time.time()
     FT = FT_calc(self.bodies, r_vecs)
     end = time.time()
-    print 'F calc time : '+ str((end - start))
+    print('F calc time : '+ str((end - start)))
     FT = FT.flatten()
     FT = FT[:,np.newaxis]
     
@@ -735,7 +735,7 @@ class Lub_Solver(object):
           NewNorm = np.minimum(Tn,Cut_Torque)/Tn
           T_omega = NewNorm[:,None]*T_omega
       end = time.time()
-      print 'Omega time : '+ str((end - start))
+      print('Omega time : '+ str((end - start)))
       FTrs[:,3::] += T_omega
       FT = np.reshape(FTrs,(6*len(self.bodies),1))
       
@@ -747,14 +747,14 @@ class Lub_Solver(object):
     MXm = MXm[:,np.newaxis]
     Mhalf = X + MXm
     end = time.time()
-    print 'root time : '+ str((end - start))
+    print('root time : '+ str((end - start)))
     
     
     # compute predictor velocities and update positions
     start = time.time()
     vel_p, res_p = self.Lubrucation_solve(X = Mhalf, Xm = FT, X0=VO_guess)
     end = time.time()
-    print 'solve 1 : '+ str((end - start))
+    print('solve 1 : '+ str((end - start)))
     
 
     for k, b in enumerate(self.bodies):
@@ -786,7 +786,7 @@ class Lub_Solver(object):
     start = time.time()
     FT_C = FT_calc(self.bodies, r_vecs_c)
     end = time.time()
-    print 'F calc time : '+ str((end - start))
+    print('F calc time : '+ str((end - start)))
     FT_C = FT_C.flatten()
     FT_C = FT_C[:,np.newaxis]
     
@@ -814,7 +814,7 @@ class Lub_Solver(object):
     start = time.time()
     vel_c, res_c = self.Lubrucation_solve(X = RHS_X_C, Xm = RHS_Xm_C, X0=VO_guessc)
     end = time.time()
-    print 'solve 2 : '+ str((end - start))
+    print('solve 2 : '+ str((end - start)))
     
     vel_trap = 0.5 * (vel_c + vel_p)
     
@@ -935,7 +935,7 @@ class Lub_Solver(object):
     res_list = []
     (VT_gmres, info_precond) = pyamg.krylov.gmres(A, RHS, M=PC, x0 = X0_vt, tol=self.tolerance, maxiter=100, restrt = min(100,A.shape[0]),residuals=res_list)
 
-    print res_list
+    print(res_list)
     # Scale solution with RHS norm
     if RHS_norm > 0:
       VT_gmres = VT_gmres * RHS_norm
@@ -991,7 +991,7 @@ class Lub_Solver(object):
     for j in range(num_particles):
       s1 = r_vecs[j]
       if s1[2] < 0:
-	print "rejected time step, wall"
+	print("rejected time step, wall")
 	reject_wall = 1
 	return reject_wall, reject_jump
       
@@ -1000,7 +1000,7 @@ class Lub_Solver(object):
       r = self.project_to_periodic_image(r,self.periodic_length)
       disp = np.linalg.norm(r)
       if disp > 2*self.a:
-	print "rejected time step large jump: ", disp, s1, s1_old
+	print("rejected time step large jump: ", disp, s1, s1_old)
 	reject_jump = 1
 	return reject_wall, reject_jump
       
@@ -1019,7 +1019,7 @@ class Lub_Solver(object):
     for j in range(num_particles):
       s1 = r_vecs[j]
       if s1[2] < 0:
-	print "rejected time step, wall"
+	print("rejected time step, wall")
 	reject_wall = 1
 	return reject_wall, reject_jump
       
@@ -1028,7 +1028,7 @@ class Lub_Solver(object):
       r = self.project_to_periodic_image(r,self.periodic_length)
       disp = np.linalg.norm(r)
       if disp > 2*self.a:
-	print "rejected time step large jump: ", disp, s1, s1_old
+	print("rejected time step large jump: ", disp, s1, s1_old)
 	reject_jump = 1
 	return reject_wall, reject_jump
       

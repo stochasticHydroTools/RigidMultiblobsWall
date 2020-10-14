@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 import imp
@@ -13,14 +13,14 @@ try:
   found_cpp = True
 except ImportError:
   try:
-    from mobility import mobility_cpp
+    from .mobility import mobility_cpp
     found_cpp = True
   except ImportError:
     pass
 
 
 sys.path.append('../')
-import mobility as mob
+from . import mobility as mob
 from general_application_utils import timer
 
 

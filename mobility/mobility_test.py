@@ -1,5 +1,5 @@
 ''' Test the fluid mobilities. '''
-from __future__ import division, print_function
+
 import unittest
 import numpy as np
 import random
@@ -8,7 +8,7 @@ sys.path.append('..')
 
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-import mobility as mb
+from . import mobility as mb
 
 
 class TestMobility(unittest.TestCase):

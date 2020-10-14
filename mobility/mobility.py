@@ -1,5 +1,5 @@
 ''' Fluid Mobilities near a wall, from Swan and Brady's paper.'''
-from __future__ import division, print_function
+
 import numpy as np
 import scipy.sparse
 import sys
@@ -20,9 +20,9 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     try:
-      import mobility_pycuda
+      from . import mobility_pycuda
     except ImportError:
-      from mobility import mobility_pycuda
+      from .mobility import mobility_pycuda
 # If numba is installed import mobility_numba
 try: 
   imp.find_module('numba')
@@ -31,9 +31,9 @@ except ImportError:
   found_numba = False
 if found_numba:
   try:
-    import mobility_numba
+    from . import mobility_numba
   except ImportError:
-    from mobility import mobility_numba
+    from .mobility import mobility_numba
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm
@@ -43,7 +43,7 @@ try:
   import mobility_cpp
 except ImportError:
   try:
-    from mobility import mobility_cpp
+    from .mobility import mobility_cpp
   except ImportError:
     pass
 

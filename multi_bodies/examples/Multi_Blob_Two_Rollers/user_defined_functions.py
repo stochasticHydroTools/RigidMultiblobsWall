@@ -14,7 +14,7 @@ RigidMultiblobsWall/multi_bodies/user_defined_functions.py
 This module defines (and override) the following interactions:
 
 '''
-from __future__ import division, print_function
+
 import multi_bodies_functions
 from multi_bodies_functions import *
 

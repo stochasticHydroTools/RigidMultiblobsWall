@@ -1,7 +1,7 @@
-from __future__ import division, print_function
+
 import numpy as np
 from functools import partial
-import stochastic_forcing as stoch
+from . import stochastic_forcing as stoch
 
 
 import sys

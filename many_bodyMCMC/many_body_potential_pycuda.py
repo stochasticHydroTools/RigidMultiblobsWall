@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit

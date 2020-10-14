@@ -1,7 +1,7 @@
-from __future__ import division, print_function
+
 import numpy as np
 
-import visit_writer
+from . import visit_writer
 
 
 if __name__ == '__main__':

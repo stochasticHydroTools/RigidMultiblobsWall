@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import unittest
 import numpy as np
 import random
@@ -101,8 +100,7 @@ class TestQuaternion(unittest.TestCase):
     for j in range(3):
       for k in range(3):
         self.assertAlmostEqual(R[j, k], R_rodriguez[j, k])
-                                           
->>>>>>> 9d81c63e9e914c3783b81d215bcfbe1e16011e79
+                                        
 
   def test_quaternion_inverse(self):
     '''Test that the quaternion inverse works.'''

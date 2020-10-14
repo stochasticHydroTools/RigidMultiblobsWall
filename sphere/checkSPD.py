@@ -4,7 +4,7 @@
 
 import numpy as np
 import sys
-import sphere as sph
+from . import sphere as sph
 sys.path.append('..')
 
 
@@ -42,8 +42,8 @@ if __name__ == '__main__':
             data += str(mobility[3, 3] * (8.0*np.pi*sph.ETA * sph.A**3)) + '  '
             data += str(mobility[5, 5] * (8.0*np.pi*sph.ETA * sph.A**3)) + '  '
             data += str(mobility[0, 4] * (6.0*np.pi*sph.ETA * sph.A**2)) 
-            print  data
+            print(data)
             mobility_half = np.linalg.cholesky(mobility)
 
 
-    print "#END"
+    print("#END")

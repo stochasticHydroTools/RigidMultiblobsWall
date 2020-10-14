@@ -2,7 +2,7 @@
 This code works as an interface to call the C library
 visit_writer to write files in VTK format.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 try:
   import visit_writer_interface

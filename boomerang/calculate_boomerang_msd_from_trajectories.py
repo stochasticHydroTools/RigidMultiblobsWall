@@ -12,19 +12,19 @@ This call would analyze trajectories from 4 runs performed with the
 given parameters using --data-name=example-1 --data-name=example-2
 --data-name=example-3 and --data-name=example-4.
 '''
-from __future__ import division, print_function
+
 import argparse
-import cPickle
+import pickle
 import cProfile
 import logging
 import numpy as np
 import os
 import pstats
-import StringIO
+import io
 import sys
 sys.path.append('..')
 
-import boomerang as bm
+from . import boomerang as bm
 from config_local import DATA_DIR
 from quaternion_integrator.quaternion import Quaternion
 from general_application_utils import MSDStatistics
@@ -259,11 +259,11 @@ if __name__ == '__main__':
         (dt, N, end, scheme, args.gfactor, len(trajectory_file_names), data_name))
 
   with open(msd_data_file_name, 'wb') as f:
-    cPickle.dump(msd_statistics, f)
+    pickle.dump(msd_statistics, f)
   
   if args.profile:
     pr.disable()
-    s = StringIO.StringIO()
+    s = io.StringIO()
     sortby = 'cumulative'
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()

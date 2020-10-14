@@ -1,7 +1,7 @@
 '''
 Integrator for several rigid bodies.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
@@ -12,9 +12,9 @@ from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 import general_application_utils as utils
 try:
-  from quaternion import Quaternion
+  from .quaternion import Quaternion
 except ImportError:
-  from quaternion_integrator.quaternion import Quaternion
+  from .quaternion_integrator.quaternion import Quaternion
 
 
 class QuaternionIntegratorRollers(object):

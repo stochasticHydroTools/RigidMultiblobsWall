@@ -10,7 +10,7 @@ w^m = (Psi^T * Psi)^{-1}*Psi^T theta^n / ((n - m)*dt)
 where Psi=Psi^m, theta is the quaternion and
 we use the fact Psi^T * Psi = 0.25 * I.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 

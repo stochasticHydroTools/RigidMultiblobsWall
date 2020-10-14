@@ -4,7 +4,7 @@ configuration of a multibody supensions and it can save some data like
 the velocities or forces on the bodies, the mobility of a body or
 the mobility of the blobs.
 '''
-from __future__ import division, print_function
+
 import argparse
 import numpy as np
 import scipy.linalg as scla
@@ -19,8 +19,8 @@ found_functions = False
 path_to_append = ''
 while found_functions is False:
   try:
-    import multi_bodies_functions
-    import multi_bodies
+    from . import multi_bodies_functions
+    from . import multi_bodies
     from mobility import mobility as mob
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator

@@ -4,7 +4,7 @@ code multi_blobs.py. For example, functions to define the
 blobs-blobs interactions, the forces and torques on the rigid
 bodies or the slip on the blobs.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 import imp
@@ -28,9 +28,9 @@ if found_pycuda:
     autoinit_pycuda = False
   if autoinit_pycuda:
     try:
-      import forces_pycuda
+      from . import forces_pycuda
     except ImportError:
-      from multi_bodies import forces_pycuda
+      from .multi_bodies import forces_pycuda
 # If numba is installed import forces_numba
 try: 
   imp.find_module('numba')
@@ -38,7 +38,7 @@ try:
 except ImportError:
   found_numba = False
 if found_numba:
-  import forces_numba
+  from . import forces_numba
 try:
   import forces_cpp
 except ImportError:
@@ -53,7 +53,7 @@ if found_pycuda:
   if forces_pycuda_user_defined:
     del sys.modules['forces_pycuda']
     sys.modules['forces_pycuda'] = __import__('forces_pycuda_user_defined')
-    import forces_pycuda
+    from . import forces_pycuda
 
 
 # Override forces_numba with user defined functions.
@@ -65,7 +65,7 @@ if found_numba:
   if forces_numba_user_defined:
     del sys.modules['forces_numba']
     sys.modules['forces_numba'] = __import__('forces_numba_user_defined')
-    import forces_numba
+    from . import forces_numba
     
 
 def project_to_periodic_image(r, L):

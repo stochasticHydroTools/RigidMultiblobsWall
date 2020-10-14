@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
 import numpy as np
-import cPickle
+import pickle
 import sys
 sys.path.append('..')
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
   # Open data file.
   data_name = os.path.join('data', sys.argv[1])
   with open(data_name, 'rb') as f:
-    msd_statistics = cPickle.load(f)
+    msd_statistics = pickle.load(f)
     msd_statistics.print_params()
 
   ind = [0, 0]

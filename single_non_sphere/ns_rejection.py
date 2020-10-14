@@ -3,7 +3,7 @@
 On top of the histogram is a plot of the analytical GB distribution  
 Prints the time taken for all the calculations'''
 
-from __future__ import division, print_function
+
 import numpy as np
 import time
 import non_sphere as s

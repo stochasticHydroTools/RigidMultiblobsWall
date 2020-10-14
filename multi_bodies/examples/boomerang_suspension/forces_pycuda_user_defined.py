@@ -3,7 +3,7 @@ This module override the pycuda functions used to compute the blob-blob forces.
 To use this implementation copy this file to
 RigidMultiblobsWall/multi_bodies/forces_pycuda_user_defined.py
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit

@@ -4,7 +4,7 @@ import scipy.linalg
 import scipy.spatial as spatial
 import scipy.sparse.linalg as spla
 import subprocess
-import cPickle
+import pickle
 from functools import partial
 import sys
 import time
@@ -34,12 +34,10 @@ while found_functions is False:
         found_functions = True
     except ImportError:
         path_to_append += '../'
-        print
-        'searching functions in path ', path_to_append
+        print('searching functions in path ', path_to_append)
         sys.path.append(path_to_append)
         if len(path_to_append) > 21:
-            print
-            '\nProjected functions not found. Edit path in multi_bodies.py'
+            print('\nProjected functions not found. Edit path in multi_bodies.py')
             sys.exit()
 
 if __name__ == '__main__':
@@ -67,20 +65,20 @@ if __name__ == '__main__':
     # Set random generator state
     if read.random_state is not None:
       with open(read.random_state, 'rb') as f:
-	np.random.set_state(cPickle.load(f))
+	np.random.set_state(pickle.load(f))
     elif read.seed is not None:
       np.random.seed(int(read.seed))
     
     # Save random generator state
     with open(output_name + '.random_state', 'wb') as f:
-      cPickle.dump(np.random.get_state(), f)
+      pickle.dump(np.random.get_state(), f)
 
     # Create rigid bodies
     bodies = []
     body_types = []
     body_names = []
     for ID, structure in enumerate(structures):
-      print 'Creating structures = ', structure[1]
+      print('Creating structures = ', structure[1])
       # Read vertex and clones files
       struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
       num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
@@ -119,7 +117,7 @@ if __name__ == '__main__':
     n_save = read.n_save
     dt = read.dt 
     
-    print L
+    print(L)
     
     for b in bodies:
       for i in range(3):
@@ -148,13 +146,13 @@ if __name__ == '__main__':
     t0 = time.time()
     LSolv.Set_R_Mats()
     dt1 = time.time() - t0
-    print("Make R mats time : %s" %dt1)
+    print(("Make R mats time : %s" %dt1))
     
     Omega = 9.0*2.0*np.pi
     
     total_rej = 0
     for n in range(n_steps):
-      print n
+      print(n)
       
       FT_calc = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
                                                g = read.g, 
@@ -195,12 +193,12 @@ if __name__ == '__main__':
       #reject_wall, reject_jump = LSolv.Update_Bodies(force_torque.flatten())
       #dt1 = time.time() - t0
       
-      print("walltime for time step : %s" %dt1)
-      print("Number of rejected timesteps wall: %s" %LSolv.num_rejections_wall)
-      print("Number of rejected timesteps jump: %s" %LSolv.num_rejections_jump)
+      print(("walltime for time step : %s" %dt1))
+      print(("Number of rejected timesteps wall: %s" %LSolv.num_rejections_wall))
+      print(("Number of rejected timesteps jump: %s" %LSolv.num_rejections_jump))
       
       if n % n_save == 0:
-	print("SAVING CONFIGURATION : %s" %n)
+	print(("SAVING CONFIGURATION : %s" %n))
 	if (reject_wall+reject_jump) == 0:
 	  body_offset = 0
 	  for i, ID in enumerate(structures_ID):
