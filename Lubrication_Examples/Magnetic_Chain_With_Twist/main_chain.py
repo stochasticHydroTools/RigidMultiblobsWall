@@ -35,12 +35,10 @@ while found_functions is False:
         found_functions = True
     except ImportError:
         path_to_append += '../'
-        print()
-        'searching functions in path ', path_to_append
+        print('searching functions in path ', path_to_append)
         sys.path.append(path_to_append)
         if len(path_to_append) > 21:
-            print()
-            '\nProjected functions not found. Edit path in multi_bodies.py'
+            print('\nProjected functions not found. Edit path in multi_bodies.py')
             sys.exit()
 
 if __name__ == '__main__':
