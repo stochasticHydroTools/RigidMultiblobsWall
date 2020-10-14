@@ -1,6 +1,6 @@
 '''File with utilities for the scripts and functions in this project.'''
 
-from __future__ import division, print_function
+
 import logging
 try:
   import matplotlib
@@ -125,9 +125,9 @@ def plot_time_dependent_msd(msd_statistics, ind, figure, color=None, symbol=None
   if not num_err_bars:
      num_err_bars = 40
   linestyles = [':', '--', '-.', '']
-  for scheme in msd_statistics.data.keys():
-    for dt in msd_statistics.data[scheme].keys():
-      if dt in DT_STYLES.keys():
+  for scheme in list(msd_statistics.data.keys()):
+    for dt in list(msd_statistics.data[scheme].keys()):
+      if dt in list(DT_STYLES.keys()):
         if not symbol:
           style = ''
           nosymbol_style = DT_STYLES[dt]
@@ -348,7 +348,7 @@ def write_trajectory_to_txt(file_name, trajectory, params, location=True):
   # Write data to file, parameters first then trajectory.
   with open(file_name, 'w') as f:
     f.write('Parameters:\n')
-    for key, value in params.items():
+    for key, value in list(params.items()):
       f.writelines(['%s: %s \n' % (key, value)])
     f.write('Trajectory data:\n')
     if location:

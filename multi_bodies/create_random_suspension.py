@@ -13,7 +13,7 @@ Ly = length along y-axis.
 z = average height of particles.
 rand_factor = amplitude perturbation from the square lattice.
 '''
-from __future__ import division, print_function
+
 import sys
 import numpy as np
 

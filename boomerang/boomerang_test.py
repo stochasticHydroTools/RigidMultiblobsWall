@@ -1,9 +1,9 @@
 ''' Unit tests for boomerang. '''
-from __future__ import division, print_function
+
 import unittest
 import numpy as np
 
-import boomerang as bmr
+from . import boomerang as bmr
 from quaternion_integrator.quaternion import Quaternion
 from general_application_utils import transfer_mobility
 

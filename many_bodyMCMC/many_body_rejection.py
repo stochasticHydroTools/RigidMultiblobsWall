@@ -1,9 +1,9 @@
-from __future__ import division, print_function
+
 import numpy as np
 import time
 import sys
 import subprocess
-import cPickle
+import pickle
 import many_body_potential_pycuda as pycuda
 sys.path.append('..')
 from body import body
@@ -65,13 +65,13 @@ if __name__ == '__main__':
   # Set random generator state
   if read.random_state is not None:
     with open(read.random_state, 'rb') as f:
-      np.random.set_state(cPickle.load(f))
+      np.random.set_state(pickle.load(f))
   elif read.seed is not None:
     np.random.seed(int(read.seed))
   
   # Save random generator state
   with open(read.output_name + '.random_state', 'wb') as f:
-    cPickle.dump(np.random.get_state(), f)
+    pickle.dump(np.random.get_state(), f)
 
   # Parameters from the input file
   blob_radius = read.blob_radius

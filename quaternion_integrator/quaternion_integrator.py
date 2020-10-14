@@ -1,9 +1,9 @@
 '''
 Simple integrator for N quaternions.
 '''
-from __future__ import division, print_function
+
 import numpy as np
-from quaternion import Quaternion
+from .quaternion import Quaternion
 
 class QuaternionIntegrator(object):
   '''

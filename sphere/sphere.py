@@ -7,10 +7,10 @@ sys.path.append('..')
 from fluids import mobility as mb
 from general_application_utils import static_var
 
-import selfMobilityHuang as Huang
-import selfMobilityGoldman as Goldman
-import selfMobilityFaucheux as Faucheux
-import splines
+from . import selfMobilityHuang as Huang
+from . import selfMobilityGoldman as Goldman
+from . import selfMobilityFaucheux as Faucheux
+from . import splines
 
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):

@@ -1,7 +1,7 @@
 '''
 This module compute the blob-blob forces using pycuda.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import pycuda.driver as cuda
 import pycuda.autoinit

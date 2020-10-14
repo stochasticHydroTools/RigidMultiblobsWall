@@ -1,11 +1,11 @@
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 
 #import rod_gmres as rod
 sys.path.append('../')
 from quaternion_integrator.quaternion import Quaternion
-import mobility as mob
+from . import mobility as mob
 
 
 def get_r_vectors(location, orientation):

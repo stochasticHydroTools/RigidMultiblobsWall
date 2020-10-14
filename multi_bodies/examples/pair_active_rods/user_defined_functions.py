@@ -18,7 +18,7 @@ This module defines (and override) the slip function:
 and it defines the new slip function slip_extensile_rod, 
 see below.
 '''
-from __future__ import division, print_function
+
 import multi_bodies_functions
 from multi_bodies_functions import *
 

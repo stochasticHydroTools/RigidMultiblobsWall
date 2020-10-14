@@ -1,7 +1,7 @@
 '''This module contains functions needed for generating heights according to the boltzmann distribution
 for a sphere next to a wall'''
 
-from __future__ import division, print_function
+
 import numpy as np
 import matplotlib.pyplot as plt
 

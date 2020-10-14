@@ -1,7 +1,7 @@
 '''
 Integrator for several rigid bodies.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import math as m
 import scipy.sparse.linalg as spla
@@ -14,9 +14,9 @@ from plot import plot_velocity_field as pvf
 import general_application_utils as utils
 
 try:
-  from quaternion import Quaternion
+  from .quaternion import Quaternion
 except ImportError:
-  from quaternion_integrator.quaternion import Quaternion
+  from .quaternion_integrator.quaternion import Quaternion
 
 
 class QuaternionIntegrator(object):

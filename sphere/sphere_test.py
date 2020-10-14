@@ -5,13 +5,13 @@ import numpy as np
 import sys
 import unittest
 
-import sphere as sph
+from . import sphere as sph
 from quaternion_integrator.quaternion import Quaternion
 
 class TestSphere(unittest.TestCase):
     
   def setUp(self):
-    print ' setUp'
+    print(' setUp')
     pass
 
   def test_sphere_mobility_spd(self):
@@ -30,12 +30,12 @@ class TestSphere(unittest.TestCase):
       for k in range(j+1, 6):
         self.assertAlmostEqual(mobility[j][k], mobility[k, j])
         
-    print ' test_sphere_mobility_spd'
+    print(' test_sphere_mobility_spd')
 
 
   def test_sphere_mobility_entries_make_sense(self):
     #'''Test that we get the expected sign for the entries of the sphere mobility.'''
-    print ' sphere_mobility_entries_make_sense'
+    print(' sphere_mobility_entries_make_sense')
     location = [np.random.normal(4.0, 1.0, 3)]
     theta = np.random.normal(0., 1., 4)
     theta = Quaternion(theta/np.linalg.norm(theta))

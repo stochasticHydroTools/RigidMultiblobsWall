@@ -35,7 +35,7 @@ This module defines (and override) the following interactions:
   eps = potential strength
   r_norm = distance between bodies' location
 '''
-from __future__ import division, print_function
+
 import multi_bodies_functions
 from multi_bodies_functions import *
 import math as m

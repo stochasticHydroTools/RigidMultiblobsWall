@@ -1,7 +1,7 @@
 '''
 Small module to read the slip file of a rigid bodies.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 
 def read_slip_file(name_file):

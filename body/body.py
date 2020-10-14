@@ -4,7 +4,7 @@ loosely the paper Brownian dynamics of confined rigid
 bodies, Steven Delong et al. The Journal of Chemical
 Physics 143, 144107 (2015). doi: 10.1063/1.4932062
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import copy
 from quaternion_integrator.quaternion import Quaternion 

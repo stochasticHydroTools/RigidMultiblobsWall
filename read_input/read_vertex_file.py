@@ -1,7 +1,7 @@
 '''
 Small module to read a vertex file of the rigid bodies.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 
 def read_vertex_file(name_file):

@@ -10,14 +10,14 @@ the boomerang, and contains several parameters for the run.
 Running this script will generate a boomerang trajectory
 which can be analyzed with other python scripts in this folder.
 '''
-from __future__ import division, print_function
+
 import argparse
 import cProfile
 import numpy as np
 import logging
 import os
 import pstats
-import StringIO
+import io
 import sys
 sys.path.append('..')
 import time
@@ -334,7 +334,7 @@ def generate_boomerang_equilibrium_sample(n_precompute=20000):
   # TODO: Figure this out a better way that includes repulsion.
   # Get a rough upper bound on max height.
   norm_constants = generate_boomerang_equilibrium_sample.normalization_constants
-  if sum(M) in norm_constants.keys():
+  if sum(M) in list(norm_constants.keys()):
     normalization_factor = norm_constants[sum(M)]
   else:
     # Estimate normalization constant from random samples
@@ -506,7 +506,7 @@ if __name__ == '__main__':
   # Write data to file, parameters first then trajectory.
   with open(data_file, 'w', 1) as f:
     f.write('Parameters:\n')
-    for key, value in params.items():
+    for key, value in list(params.items()):
       f.writelines(['%s: %s \n' % (key, value)])
     f.write('Trajectory data:\n')
     f.write('Location, Orientation:\n')
@@ -551,7 +551,7 @@ if __name__ == '__main__':
 
   if args.profile:
     pr.disable()
-    s = StringIO.StringIO()
+    s = io.StringIO()
     sortby = 'cumulative'
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()

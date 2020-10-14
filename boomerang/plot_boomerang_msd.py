@@ -3,8 +3,8 @@ Plot the MSD of a boomerang. This script takes 1
 argument, which is the name of a .pkl file containing MSD data generated
 by calculate_boomerang_msd_from_trajectories.py
 '''
-from __future__ import division, print_function
-import cPickle
+
+import pickle
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 import os
 
-import boomerang as bm
+from . import boomerang as bm
 from config_local import DATA_DIR
 from general_application_utils import plot_time_dependent_msd
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
   for name in data_files:
     file_name = os.path.join(DATA_DIR, 'boomerang', name)
     with open(file_name, 'rb') as f:
-      msd_statistics = cPickle.load(f)
+      msd_statistics = pickle.load(f)
       msd_statistics.print_params()
 
     # Add xx and yy to get translational data (D parallel).

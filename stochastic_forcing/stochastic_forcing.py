@@ -1,7 +1,7 @@
 '''
 Module to compute the stochastic forcing (sqrt(2*k_B*T*dt)*M^{1/2}*z) with several algorithms.
 '''
-from __future__ import division, print_function
+
 import numpy as np
 
 def stochastic_forcing_eig(mobility, factor = 1.0, z = None):

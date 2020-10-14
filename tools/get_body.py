@@ -4,7 +4,7 @@ Extract one body trajectory from configurational files.
 How to use:
 python get_body.py file_name num_bodies body_number dt
 '''
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 

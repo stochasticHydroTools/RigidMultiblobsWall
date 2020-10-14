@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+
 import argparse
 import numpy as np
 import scipy.linalg
@@ -8,7 +8,7 @@ from functools import partial
 import sys
 import time
 try:
-  import cPickle as cpickle
+  import pickle as cpickle
 except:
   try:
     import cpickle
@@ -24,7 +24,7 @@ found_functions = False
 path_to_append = ''
 while found_functions is False:
   try:
-    import multi_bodies_functions
+    from . import multi_bodies_functions
     from mobility import mobility as mb
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator

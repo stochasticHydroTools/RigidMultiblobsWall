@@ -75,7 +75,7 @@ def splint(xa, ya, y2a, n, x):
             
     h = xa[khi] - xa[klo]
     if(h == 0):
-        print 'Bad xa input to routine splint'
+        print('Bad xa input to routine splint')
         return 1e+999
     a = (xa[khi]-x) / h
     b = (x-xa[klo]) / h

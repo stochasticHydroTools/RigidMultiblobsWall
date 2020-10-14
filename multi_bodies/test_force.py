@@ -1,12 +1,12 @@
-from __future__ import division, print_function
+
 import numpy as np
 import sys
 import imp
 sys.path.append('../')
 
 from general_application_utils import timer
-import forces_numba
-import multi_bodies_functions as mbf
+from . import forces_numba
+from . import multi_bodies_functions as mbf
 
 try: 
   imp.find_module('pycuda')
@@ -14,7 +14,7 @@ try:
 except ImportError:
   found_pycuda = False
 if found_pycuda:
-  import forces_pycuda   
+  from . import forces_pycuda   
 
 try:
   import forces_cpp

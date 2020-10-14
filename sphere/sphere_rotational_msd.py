@@ -11,7 +11,7 @@ of sphere height.
 '''
 
 import argparse
-import cPickle
+import pickle
 import logging
 import math
 import matplotlib
@@ -26,7 +26,7 @@ import time
 from fluids import mobility as mb
 from quaternion_integrator.quaternion import Quaternion
 from quaternion_integrator.quaternion_integrator import QuaternionIntegrator
-import sphere as sph
+from . import sphere as sph
 from general_application_utils import log_time_progress
 from general_application_utils import static_var
 from general_application_utils import MSDStatistics
@@ -185,7 +185,7 @@ def plot_x_and_y_msd(msd_statistics, mob_and_friction, n_steps):
   num_err_bars = 12
   average_msd_slope = 0.  # Calculate average slope of MSD.
   num_series = 0
-  for scheme in msd_statistics.data.keys():
+  for scheme in list(msd_statistics.data.keys()):
     dt = min(msd_statistics.data[scheme].keys())
     for ind in [[0, 0], [1, 1]]:
       # Extract the entry specified by ind to plot.
@@ -267,7 +267,7 @@ def bin_sphere_height(sample, height_histogram, bin_width):
     height_histogram[idx] += 1
   else:
     # Extend histogram to allow for this index.
-    print 'Index %d exceeds histogram length' % idx
+    print('Index %d exceeds histogram length' % idx)
 
 
 def plot_height_histograms(buckets, height_histograms, labels):
@@ -355,7 +355,7 @@ if __name__ == '__main__':
     dt, n_steps, args.data_name)
 
   with open(data_name, 'wb') as f:
-    cPickle.dump(msd_statistics, f)
+    pickle.dump(msd_statistics, f)
 
   height_histograms = []
   labels = []
@@ -368,7 +368,7 @@ if __name__ == '__main__':
                                n_steps)
 
   plot_height_histograms(buckets, height_histograms, labels)
-  print "Mobility is ", average_mob_and_friction[0]
-  print "Average friction is ", average_mob_and_friction[1]
-  print "1/Friction is %f" % (1./average_mob_and_friction[1])
-  print "Slope/2kT is ", avg_slope/2./sph.KT
+  print("Mobility is ", average_mob_and_friction[0])
+  print("Average friction is ", average_mob_and_friction[1])
+  print("1/Friction is %f" % (1./average_mob_and_friction[1]))
+  print("Slope/2kT is ", avg_slope/2./sph.KT)
