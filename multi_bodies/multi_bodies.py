@@ -280,9 +280,9 @@ def C_matrix_vector_prod(bodies, constraints, vector, Nconstraints, C_constraint
     ind1 = c.ind_bodies[0]
     vbody1 = v[6*ind1 : 6*(ind1+1)]  
     ind2 = c.ind_bodies[1]
-    vbody2 = v[6*ind2 : 6*(ind2+1)]  
-
-    result[k] = np.dot(C, np.concatenate([vbody1, vbody2], axis = 2))
+    vbody2 = v[6*ind2 : 6*(ind2+1)] 
+ 
+    result[k] = np.dot(C, np.concatenate([vbody1, vbody2], axis = 0))
   return result
 
 
@@ -354,7 +354,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
 ##### COMMENT: I THINK THIS FUNCTION COULD EVEN REPLACE linear_operator_rigid SINCE IT SHOULD WORK IF Nconstraints  == 0
 def linear_operator_rigid_articulated(vector, bodies, constraints, r_vectors, eta, a, K_bodies = None, C_constraints = None, *args, **kwargs):
   '''
-  Return the action of the linear operator of the articulated rigid bodies on vector v.
+  RetC_matrix_vector_produrn the action of the linear operator of the articulated rigid bodies on vector v.
   The linear operator is
   |  M   -K  0  ||lambda| = | slip + noise_1|
   | -K^T  0  C^T||  U   |   | -F   + noise_2|
@@ -379,13 +379,17 @@ def linear_operator_rigid_articulated(vector, bodies, constraints, r_vectors, et
 
   # Compute the "-force_torque" part
   K_T_times_lambda = K_matrix_T_vector_prod(bodies, vector[0:Ncomp_blobs], Nblobs, K_bodies = K_bodies)
-  C_T_times_phi = C_matrix_T_vector_prod(bodies, constraints, vector[Ncomp_blobs + Ncomp_bodies:Ncomp_tot], Nconstraints, C_constraints = C_constraints)
-  res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda + C_T_times_phi, (Ncomp_bodies))
+  if Nconstraints > 0:
+    C_T_times_phi = C_matrix_T_vector_prod(bodies, constraints, vector[Ncomp_blobs + Ncomp_bodies:Ncomp_tot], Nconstraints, C_constraints = C_constraints)
+    res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda + C_T_times_phi, (Ncomp_bodies))
+  else:
+    res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda, (Ncomp_bodies))
 
   # Compute the "constraint velocity: B" part
-  C_times_U = C_matrix_vector_prod(bodies, constraints, v[Nblobs+2*Nbodies:Nblobs+2*Nbodies+Nconstraints], Nconstraints, C_constraints = C_constraints)
-  res[Ncomp_blobs+Ncomp_bodies:Ncomp_tot] = np.reshape(C_times_U , (Ncomp_phi))
- 
+  if Nconstraints > 0:
+    C_times_U = C_matrix_vector_prod(bodies, constraints, v[Nblobs:Nblobs+2*Nbodies], Nconstraints, C_constraints = C_constraints)
+    res[Ncomp_blobs+Ncomp_bodies:Ncomp_tot] = np.reshape(C_times_U , (Ncomp_phi))
+    
   return res
 
 
@@ -646,14 +650,13 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
   Build the block diagonal preconditioner for articulated rigid bodies.
   It solves exactly the mobility problem for each body
   independently, i.e., no interation between bodies is taken
-  into account, and exactly the constraint problem.
+  into account.
+  The first version does not precondition the constraint part. 
   '''
   initialized = build_block_diagonal_preconditioner.initialized
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
-  C_constraints = []
-  Kfull = zeros((3*Nblobs,6*len(bodies)))
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
@@ -674,7 +677,6 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
         K_bodies.append(K)
         # 5. Compute body mobility
         mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
-    C = calc_C_matrix(bodies,constraints)
     
     # Save variables to use in next steps if PC is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
@@ -689,11 +691,11 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
     K_bodies = build_block_diagonal_preconditioner.K_bodies
     mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
 
-  def block_diagonal_preconditioner_articulated(vector, bodies = None, constraints = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
     '''
     Apply the block diagonal preconditioner.
     '''
-    result = np.empty(vector.shape)
+    result = np.zeros(vector.shape)
     offset = 0
     for k, b in enumerate(bodies):
       if b.prescribed_kinematics is False:
@@ -932,7 +934,9 @@ if __name__ == '__main__':
     for i in range(num_bodies_struct):
       subbody = i % num_articulated
       first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
-      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[first_blob:first_blob+num_blobs[subbody]], a)
+      # Fixed a small error: the reference config is the same for all bodies of the articulated body
+      #b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[first_blob:first_blob+num_blobs[subbody]], a)
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.articulated_ID[ID]
       # Calculate body length for the RFD
@@ -943,10 +947,13 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip)
+      ### I HAD TO COMMENT THE PART BELOW BECAUSE IT WAS SETTING THE FLAG TO TRUE FOR CONSTRAINED BODIES
+      '''
       # If structure is an obstacle
       if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
         b.prescribed_velocity = np.zeros(6)
+      '''
       # Append bodies to total bodies list
       bodies.append(b)
 
@@ -966,7 +973,7 @@ if __name__ == '__main__':
       c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters)
       constraints.append(c)
   bodies = np.array(bodies)
-  
+ 
   # Set some more variables
   num_of_body_types = len(body_types)
   num_bodies = bodies.size
@@ -1019,13 +1026,19 @@ if __name__ == '__main__':
                                                omega_one_roller = read.omega_one_roller) 
   integrator.calc_K_matrix_bodies = calc_K_matrix_bodies
   integrator.calc_K_matrix = calc_K_matrix
-  integrator.linear_operator = linear_operator_rigid
+
+  ### TEMPORARY: linear opreator and precond should be unified in the future
+  if len(constraints)>0:
+    integrator.linear_operator = linear_operator_rigid_articulated
+    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated
+  else:
+    integrator.linear_operator = linear_operator_rigid
+    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   integrator.preconditioner = block_diagonal_preconditioner
-  integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
   integrator.eta = eta
   integrator.a = a
-  integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
+  integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6 + len(constraints)*3)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
@@ -1062,7 +1075,12 @@ if __name__ == '__main__':
   if read.save_clones == 'one_file':
     output_files = []
     buffering = max(1, min(body_types) * n_steps // n_save // 200)
-    for i, ID in enumerate(structures_ID):
+    #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
+    if len(constraints)>0:
+      ID_loop = read.articulated_ID
+    else:
+      ID_loop = structures_ID
+    for i, ID in enumerate(ID_loop):
       name = output_name + '.' + ID + '.config'
       output_files.append(open(name, 'w', buffering=buffering))
 
@@ -1074,7 +1092,12 @@ if __name__ == '__main__':
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
-        for i, ID in enumerate(structures_ID):
+        #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
+        if len(constraints)>0:
+          ID_loop = read.articulated_ID
+        else:
+          ID_loop = structures_ID
+        for i, ID in enumerate(ID_loop):
           name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
           with open(name, 'w') as f_ID:
             f_ID.write(str(body_types[i]) + '\n')
@@ -1162,7 +1185,12 @@ if __name__ == '__main__':
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
-      for i, ID in enumerate(structures_ID):
+      #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
+      if len(constraints)>0:
+        ID_loop = read.articulated_ID
+      else:
+        ID_loop = structures_ID
+      for i, ID in enumerate(ID_loop):
         name = output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
         with open(name, 'w') as f_ID:
           f_ID.write(str(body_types[i]) + '\n')

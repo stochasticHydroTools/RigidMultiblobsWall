@@ -22,7 +22,7 @@ class Constraint(object):
     self.ind_bodies = ind_bodies
     # Index of articulated body to which the constraint belongs to
     self.articulated_body = articulated_body
-    # 2 by 3 array that gives the (time-dependent) prescribed positions of the two links in the reference frame of the first body
+    # 6 by 1 array that gives the (time-dependent) prescribed positions of the two links in the reference frame of the first body
     self.links = links
     # 3 by 1 array that gives the (time-dependent) prescribed velocity of the joint in the reference frame of the first body (RHS of the linear constraint problem)
     self.presc_vel = np.zeros(3)
@@ -38,7 +38,7 @@ class Constraint(object):
     rot_link = np.zeros((3,6))
 
     # Compute product [R_p x Delta l_pq]
-    vec = np.dot(self.bodies[0].orientation.rotation_matrix(),self.links[0])
+    vec = np.dot(self.bodies[0].orientation.rotation_matrix(),self.links[0:3])
     # Compute product [R_p x Delta l_pq]^x
     rot_link[0,1] = -vec[2]
     rot_link[0,2] =  vec[1]
@@ -46,8 +46,9 @@ class Constraint(object):
     rot_link[1,2] = -vec[0]
     rot_link[2,0] = -vec[1]
     rot_link[2,1] =  vec[0]
+
     # Compute product [R_q x Delta l_qp]
-    vec = np.dot(self.bodies[1].orientation.rotation_matrix(),self.links[1])
+    vec = np.dot(self.bodies[1].orientation.rotation_matrix(),self.links[3:6])
     # Compute product [R_q x Delta l_qp]^x
     rot_link[0,4] = -vec[2]
     rot_link[0,5] =  vec[1]
