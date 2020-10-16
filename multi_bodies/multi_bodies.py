@@ -36,6 +36,7 @@ while found_functions is False:
     from read_input import read_slip_file
     from read_input import read_velocity_file
     from read_input import read_constraints_file
+    from read_input import read_vertex_file_list      
     from constraint.constraint import Constraint 
     import general_application_utils as utils
     try:
@@ -920,10 +921,10 @@ if __name__ == '__main__':
   for ID, structure in enumerate(read.articulated):
     print('Creating articulated = ', structure[1])
     # Read vertex, clones and constraint files
-    struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
+    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     num_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2])
-    
+   
     # Read slip file if it exists
     slip = None
     if(len(structure) > 3):
@@ -934,9 +935,7 @@ if __name__ == '__main__':
     for i in range(num_bodies_struct):
       subbody = i % num_articulated
       first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
-      # Fixed a small error: the reference config is the same for all bodies of the articulated body
-      #b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[first_blob:first_blob+num_blobs[subbody]], a)
-      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.articulated_ID[ID]
       # Calculate body length for the RFD
@@ -947,13 +946,6 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip)
-      ### I HAD TO COMMENT THE PART BELOW BECAUSE IT WAS SETTING THE FLAG TO TRUE FOR CONSTRAINED BODIES
-      '''
-      # If structure is an obstacle
-      if ID >= read.num_free_bodies:
-        b.prescribed_kinematics = True
-        b.prescribed_velocity = np.zeros(6)
-      '''
       # Append bodies to total bodies list
       bodies.append(b)
 
