@@ -16,7 +16,7 @@ class Constraint(object):
     '''
     Constructor. Take arguments like ...
     '''
-    # List of the two body objects involved in the constraint
+    # List of the two bodies objects involved in the constraint
     self.bodies = bodies
     # Indices of the two bodies involved
     self.ind_bodies = ind_bodies
@@ -67,3 +67,20 @@ class Constraint(object):
     rot_link = self.calc_rot_link_matrix()
     return np.concatenate( ( np.eye(3), -rot_link[:,0:3], -np.eye(3), rot_link[:,3:6] ), axis=1)
 
+
+  def calc_constraint_violation(self, time_point=0):
+    '''
+    Compute the constraint violation g = q_p + R_p * l_qp - q_q - R_q * l_pq.
+    '''
+    if time_point == 0:
+      g = self.bodies[0].location - self.bodies[1].location
+      g += np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
+      g -= np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+    elif time_point == 1:
+      g = self.bodies[0].location_new - self.bodies[1].location_new
+      g += np.dot(self.bodies[0].orientation_new.rotation_matrix(), self.links[0:3])
+      g -= np.dot(self.bodies[1].orientation_new.rotation_matrix(), self.links[3:6])      
+    return g
+
+  
+    

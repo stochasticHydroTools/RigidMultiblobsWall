@@ -1422,6 +1422,53 @@ class QuaternionIntegrator(object):
       return (np.dot(mobility_bodies, FTS), mobility_bodies, mobility_blobs, resistance_blobs, K, r_vectors_blobs)
 
 
+  def articulated_deterministic_forward_euler(self, dt, *args, **kwargs):
+    '''
+    Forward Euler scheme for articulated rigid bodies.
+    '''
+    while True:
+      
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem_articulated(x0 = self.first_guess,
+                                                            save_first_guess = True,
+                                                            update_PC = self.update_PC,
+                                                            step = kwargs.get('step')) 
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+
+      # Compute center of mass and update
+      for art in self.articulated:
+        art.compute_cm()
+        art.update_cm(dt)
+        
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location + velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.solve_relative_position()      
+        art.correct_respect_cm(dt) 
+    
+      # Nonlinear miniminzation of constraint violation
+      for art in self.articulated:
+        art.non_linear_solver()
+      
+      # Final update
+    
+      # Check positions, if valid, return 
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
+        return
+    return
+  
+    
+
   def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None, domain = 'single_wall'):
     '''
     This function checks if the configuration is valid calling

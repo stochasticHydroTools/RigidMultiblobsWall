@@ -36,7 +36,9 @@ while found_functions is False:
     from read_input import read_slip_file
     from read_input import read_velocity_file
     from read_input import read_constraints_file
-    from constraint.constraint import Constraint 
+    from read_input import read_vertex_file_list      
+    from constraint.constraint import Constraint
+    from articulated.articulated import Articulated 
     import general_application_utils as utils
     try:
       import libCallHydroGrid as cc
@@ -922,13 +924,15 @@ if __name__ == '__main__':
   # Create articulated bodies
   articulated = []
   constraints = []
+  bodies_offset = num_bodies_rigid
+  constraints_offset = 0
   for ID, structure in enumerate(read.articulated):
     print('Creating articulated = ', structure[1])
     # Read vertex, clones and constraint files
-    struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
+    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    num_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2])
-    
+    num_bodies_in_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2])
+
     # Read slip file if it exists
     slip = None
     if(len(structure) > 3):
@@ -937,11 +941,9 @@ if __name__ == '__main__':
     body_names.append(read.articulated_ID[ID])
     # Create each body of type structure
     for i in range(num_bodies_struct):
-      subbody = i % num_articulated
+      subbody = i % num_bodies_in_articulated
       first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
-      # Fixed a small error: the reference config is the same for all bodies of the articulated body
-      #b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[first_blob:first_blob+num_blobs[subbody]], a)
-      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, a)
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.articulated_ID[ID]
       # Calculate body length for the RFD
@@ -952,33 +954,47 @@ if __name__ == '__main__':
       else:
         b.body_length = bodies[-1].body_length
       multi_bodies_functions.set_slip_by_ID(b, slip)
-      ### I HAD TO COMMENT THE PART BELOW BECAUSE IT WAS SETTING THE FLAG TO TRUE FOR CONSTRAINED BODIES
-      '''
-      # If structure is an obstacle
-      if ID >= read.num_free_bodies:
-        b.prescribed_kinematics = True
-        b.prescribed_velocity = np.zeros(6)
-      '''
       # Append bodies to total bodies list
       bodies.append(b)
 
-    # Total number of constraints 
-    num_constraints_total = num_constraints * (num_bodies_struct // num_articulated)
-    
+    # Total number of constraints and articulated rigid bodies
+    num_constraints_total = num_constraints * (num_bodies_struct // num_bodies_in_articulated)
+   
     # Create list of constraints
     for i in range(num_constraints_total):
       # Prepare info for constraint
       subconstraint = i % num_constraints
       articulated_body = i // num_constraints
-      bodies_indices = constraints_info[subconstraint, 1:3].astype(int) + num_articulated * articulated_body + num_bodies_rigid  
+      bodies_indices = constraints_info[subconstraint, 1:3].astype(int) + num_bodies_in_articulated * articulated_body + bodies_offset
       bodies_in_link = [bodies[bodies_indices[0]], bodies[bodies_indices[1]]]
       parameters = constraints_info[subconstraint, 4:]
 
       # Create constraint
       c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters)
       constraints.append(c)
+
+    # Create articulated rigid body
+    for i in range(num_bodies_struct // num_bodies_in_articulated):
+      bodies_indices = bodies_offset + i * num_bodies_in_articulated + np.arange(num_bodies_in_articulated, dtype=int)
+      bodies_in_articulated = bodies[bodies_indices[0] : bodies_indices[-1] + 1]
+      constraints_indices = constraints_offset + i * num_constraints + np.arange(num_constraints, dtype=int)
+      constraints_in_articulated = constraints[constraints_indices[0] : constraints_indices[-1] + 1]
+      art = Articulated(bodies_in_articulated,
+                        bodies_indices,
+                        constraints_in_articulated,
+                        constraints_indices,
+                        num_bodies_in_articulated,
+                        num_blobs,
+                        num_constraints,
+                        constraints_info)
+      articulated.append(art)
+
+    # Update offsets
+    bodies_offset += num_bodies_struct
+    constraints_offset += num_constraints
+      
   bodies = np.array(bodies)
- 
+  
   # Set some more variables
   num_of_body_types = len(body_types)
   num_bodies = bodies.size
@@ -1055,9 +1071,10 @@ if __name__ == '__main__':
   integrator.update_PC = read.update_PC
   integrator.print_residual = args.print_residual
   integrator.rf_delta = read.rf_delta
+  integrator.num_bodies_rigid = num_bodies_rigid
   integrator.constraints = constraints
   integrator.calc_C_matrix_constraints = calc_C_matrix_constraints
-
+  integrator.articulated = articulated
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:
@@ -1080,11 +1097,7 @@ if __name__ == '__main__':
   if read.save_clones == 'one_file':
     output_files = []
     buffering = max(1, min(body_types) * n_steps // n_save // 200)
-    #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
-    if len(constraints)>0:
-      ID_loop = read.articulated_ID
-    else:
-      ID_loop = structures_ID
+    ID_loop = read.structures_ID + read.articulated_ID
     for i, ID in enumerate(ID_loop):
       name = output_name + '.' + ID + '.config'
       output_files.append(open(name, 'w', buffering=buffering))
@@ -1097,11 +1110,7 @@ if __name__ == '__main__':
       # For each type of structure save locations and orientations to one file
       body_offset = 0
       if read.save_clones == 'one_file_per_step':
-        #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
-        if len(constraints)>0:
-          ID_loop = read.articulated_ID
-        else:
-          ID_loop = structures_ID
+        ID_loop = read.structures_ID + read.articulated_ID
         for i, ID in enumerate(ID_loop):
           name = output_name + '.' + ID + '.' + str(step).zfill(8) + '.clones'
           with open(name, 'w') as f_ID:
@@ -1190,11 +1199,7 @@ if __name__ == '__main__':
     # For each type of structure save locations and orientations to one file
     body_offset = 0
     if read.save_clones == 'one_file_per_step':
-      #### TEMPORARY: I HAD TO MODIFY MANUALY TO SAVE THE BODIES POSITIONS WHEN ARTICLUATED
-      if len(constraints)>0:
-        ID_loop = read.articulated_ID
-      else:
-        ID_loop = structures_ID
+      ID_loop = read.structures_ID + read.articulated_ID
       for i, ID in enumerate(ID_loop):
         name = output_name + '.' + ID + '.' + str(step+1).zfill(8) + '.clones'
         with open(name, 'w') as f_ID:
