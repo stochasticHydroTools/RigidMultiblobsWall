@@ -93,7 +93,6 @@ class QuaternionIntegrator(object):
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
-      print(velocities)
       # Update location orientation 
       for k, b in enumerate(self.bodies):
         b.location_new = b.location + velocities[6*k:6*k+3] * dt
@@ -108,42 +107,6 @@ class QuaternionIntegrator(object):
         return
 
     return
-
-  ##### TEMPORARY: WILL BE REMOVED IN THE FUTURE, ONLY FOR TESTING ##########    
-  def deterministic_forward_euler_articulated(self, dt, *args, **kwargs): 
-    ''' 
-    Take a time step of length dt using the deterministic forward Euler scheme. 
-    The function uses gmres to solve the rigid body equations.
-
-    The linear and angular velocities are sorted like
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    ''' 
-    while True: 
-      # Call preprocess
-      preprocess_result = self.preprocess(self.bodies)
-
-      # Solve mobility problem
-      sol_precond = self.solve_mobility_problem_articulated(x0 = self.first_guess, save_first_guess = True, update_PC = self.update_PC, step = kwargs.get('step'))
-      
-      # Extract velocities
-      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Update location orientation 
-      for k, b in enumerate(self.bodies):
-        b.location_new = b.location + velocities[6*k:6*k+3] * dt
-        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation_new = quaternion_dt * b.orientation
-        
-      # Call postprocess
-      postprocess_result = self.postprocess(self.bodies)
-
-      # Check positions, if valid, return 
-      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
-        return
-
-    return
-      
 
 
   def deterministic_forward_euler_dense_algebra(self, dt, *args, **kwargs): 
@@ -1346,10 +1309,11 @@ class QuaternionIntegrator(object):
 
     # Solve preconditioned linear system
     counter = gmres_counter(print_residual = self.print_residual)
-    #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
-    (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, maxiter=1000, restart=60, callback=counter) 
+    (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
+    #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, maxiter=1000, restart=60, callback=counter) 
     self.det_iterations_count += counter.niter
-    print("GMRES iterations without preconditionner = ", counter.niter)
+    #print("GMRES iterations without preconditionner = ", counter.niter)
+    print("GMRES iterations with preconditionner = ", counter.niter)
     if save_first_guess:
       self.first_guess = sol_precond  
 

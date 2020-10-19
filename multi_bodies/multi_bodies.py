@@ -691,11 +691,12 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
     K_bodies = build_block_diagonal_preconditioner.K_bodies
     mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
 
-  def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+  def block_diagonal_preconditioner(vector, bodies = None, constraints = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
     '''
     Apply the block diagonal preconditioner.
     '''
     result = np.zeros(vector.shape)
+    Ncomp = len(vector)
     offset = 0
     for k, b in enumerate(bodies):
       if b.prescribed_kinematics is False:
@@ -725,9 +726,13 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
         result[3*offset : 3*(offset + b.Nblobs)] = Lambda
         result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
       offset += b.Nblobs
+
+    # Set constraint force = RHS
+    result[3*Nblobs + 6*len(bodies):Ncomp] = vector[3*Nblobs + 6*len(bodies):Ncomp]
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
                                                   bodies = bodies, 
+                                                  constraints = constraints, 
                                                   mobility_bodies = mobility_bodies, 
                                                   mobility_inv_blobs = mobility_inv_blobs, 
                                                   K_bodies = K_bodies,
