@@ -986,7 +986,7 @@ if __name__ == '__main__':
 
     # Update offsets
     bodies_offset += num_bodies_struct
-    constraints_offset += num_constraints
+    constraints_offset += num_constraints_total
       
   bodies = np.array(bodies)
   
