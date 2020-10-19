@@ -636,7 +636,6 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
   return block_diagonal_preconditioner_partial
 
 
-
 '''
 #################### UNDER CONSTRUCTION ####################
 #################### UNDER CONSTRUCTION ####################
@@ -645,50 +644,50 @@ def build_block_diagonal_preconditioner(bodies, r_vectors, Nblobs, eta, a, *args
 ##### TO BE DISCUSSED
 @utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
-@utils.static_var('K_bodies', [])
+@utils.static_var('k_bodies', [])
 @utils.static_var('mobility_inv_blobs', [])
 def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vectors, Nblobs, eta, a, *args, **kwargs):
   '''
-  Build the block diagonal preconditioner for articulated rigid bodies.
-  It solves exactly the mobility problem for each body
+  build the block diagonal preconditioner for articulated rigid bodies.
+  it solves exactly the mobility problem for each body
   independently, i.e., no interation between bodies is taken
   into account.
-  The first version does not precondition the constraint part. 
+  the first version only preconditions the constraint part with the identity matrix. 
   '''
   initialized = build_block_diagonal_preconditioner.initialized
   mobility_inv_blobs = []
   mobility_bodies = []
   K_bodies = []
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
-    # Loop over bodies
+    # loop over bodies
     for k, b in enumerate(bodies):
       if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
         mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
         mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
         K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
       else:
-        # 1. Compute blobs mobility and invert it
+        # 1. compute blobs mobility and invert it
         M = b.calc_mobility_blobs(eta, a)
-        # 2. Compute Cholesy factorization, M = L^T * L
+        # 2. compute cholesy factorization, M = L^t * L
         L, lower = scipy.linalg.cho_factor(M)
         L = np.triu(L)   
-        # 3. Compute inverse mobility blobs
+        # 3. compute inverse mobility blobs
         mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
-        # 4. Compute geometric matrix K
+        # 4. compute geometric matrix K
         K = b.calc_K_matrix()
         K_bodies.append(K)
-        # 5. Compute body mobility
+        # 5. compute body mobility
         mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
     
-    # Save variables to use in next steps if PC is not updated
+    # save variables to use in next steps if pc is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
     build_block_diagonal_preconditioner.K_bodies = K_bodies
     build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
 
-    # The function is initialized
+    # the function is initialized
     build_block_diagonal_preconditioner.initialized.append(1)
   else:
-    # Use old values
+    # use old values
     mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
     K_bodies = build_block_diagonal_preconditioner.K_bodies
     mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
@@ -702,34 +701,144 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints,  r_vect
     offset = 0
     for k, b in enumerate(bodies):
       if b.prescribed_kinematics is False:
-        # 1. Solve M*Lambda_tilde = slip
+        # 1. solve M*Lambda_tilde = slip
         slip = vector[3*offset : 3*(offset + b.Nblobs)]
         Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
         
-        # 2. Compute rigid body velocity
+        # 2. compute rigid body velocity
         F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-        Y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+        y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
         
-        # 3. Solve M*Lambda = (slip + K*Y)
-        Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], Y))
+        # 3. solve M*Lambda = (slip + K*y)
+        Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], y))
         
-        # 4. Set result
+        # 4. set result
         result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = y
       if b.prescribed_kinematics is True:
-        # 1. Solve M*Lambda = (slip + K*Y)
+        # 1. solve M*Lambda = (slip + K*y)
         slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
         Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
 
-        # 2. Set force
+        # 2. set force
         F = np.dot(K_bodies[k].T, Lambda)
 
-        # 3. Set result
+        # 3. set result
         result[3*offset : 3*(offset + b.Nblobs)] = Lambda
         result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
       offset += b.Nblobs
 
-    # Set constraint force = RHS
+    # set constraint force = rhs
+    result[3*Nblobs + 6*len(bodies):Ncomp] = vector[3*Nblobs + 6*len(bodies):Ncomp]
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  constraints = constraints, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  mobility_inv_blobs = mobility_inv_blobs, 
+                                                  K_bodies = K_bodies,
+                                                  Nblobs = Nblobs)
+  return block_diagonal_preconditioner_partial
+'''
+#################### UNDER CONSTRUCTION ####################
+#################### UNDER CONSTRUCTION ####################
+'''
+
+
+
+'''
+#################### UNDER CONSTRUCTION ####################
+#################### UNDER CONSTRUCTION ####################
+'''
+##### COMMENT: HOWEVER I AM NOT SURE THIS ROUTINE COULD BE GENERIC (WITH/WITHOUT) CONSTRAINTS, IT WOULD REQUIRE A LOT OF if STATEMENTS
+##### TO BE DISCUSSED
+@utils.static_var('initialized', [])
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('k_bodies', [])
+@utils.static_var('mobility_inv_blobs', [])
+def build_block_diagonal_preconditioner_articulated_identity(bodies, constraints,  r_vectors, Nblobs, eta, a, *args, **kwargs):
+  '''
+  build the block diagonal preconditioner for articulated rigid bodies.
+  it solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+  the first version only preconditions the constraint part with the identity matrix. 
+  '''
+  initialized = build_block_diagonal_preconditioner.initialized
+  mobility_inv_blobs = []
+  mobility_bodies = []
+  K_bodies = []
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
+    # loop over bodies
+    for k, b in enumerate(bodies):
+      if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
+        mobility_inv_blobs.append(build_block_diagonal_preconditioner.mobility_inv_blobs[k])
+        mobility_bodies.append(build_block_diagonal_preconditioner.mobility_bodies[k])
+        K_bodies.append(build_block_diagonal_preconditioner.K_bodies[k])
+      else:
+        # 1. compute blobs mobility and invert it
+        M = b.calc_mobility_blobs(eta, a)
+        # 2. compute cholesy factorization, M = L^t * L
+        L, lower = scipy.linalg.cho_factor(M)
+        L = np.triu(L)   
+        # 3. compute inverse mobility blobs
+        mobility_inv_blobs.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False))
+        # 4. compute geometric matrix K
+        K = b.calc_K_matrix()
+        K_bodies.append(K)
+        # 5. compute body mobility
+        mobility_bodies.append(np.linalg.pinv(np.dot(K.T, scipy.linalg.cho_solve((L,lower), K, check_finite=False))))
+    
+    # save variables to use in next steps if pc is not updated
+    build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioner.K_bodies = K_bodies
+    build_block_diagonal_preconditioner.mobility_inv_blobs = mobility_inv_blobs
+
+    # the function is initialized
+    build_block_diagonal_preconditioner.initialized.append(1)
+  else:
+    # use old values
+    mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
+    K_bodies = build_block_diagonal_preconditioner.K_bodies
+    mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
+
+  def block_diagonal_preconditioner(vector, bodies = None, constraints = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, Nblobs = None):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    result = np.zeros(vector.shape)
+    Ncomp = len(vector)
+    offset = 0
+    for k, b in enumerate(bodies):
+      if b.prescribed_kinematics is False:
+        # 1. solve M*Lambda_tilde = slip
+        slip = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
+        
+        # 2. compute rigid body velocity
+        F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
+        y = np.dot(mobility_bodies[k], -F - np.dot(K_bodies[k].T, Lambda_tilde))
+        
+        # 3. solve M*Lambda = (slip + K*y)
+        Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(K_bodies[k], y))
+        
+        # 4. set result
+        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = y
+      if b.prescribed_kinematics is True:
+        # 1. solve M*Lambda = (slip + K*y)
+        slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
+        Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
+
+        # 2. set force
+        F = np.dot(K_bodies[k].T, Lambda)
+
+        # 3. set result
+        result[3*offset : 3*(offset + b.Nblobs)] = Lambda
+        result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
+      offset += b.Nblobs
+
+    # set constraint force = rhs
     result[3*Nblobs + 6*len(bodies):Ncomp] = vector[3*Nblobs + 6*len(bodies):Ncomp]
     return result
   block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
@@ -1051,7 +1160,7 @@ if __name__ == '__main__':
   ### TEMPORARY: linear opreator and precond should be unified in the future
   if len(constraints)>0:
     integrator.linear_operator = linear_operator_rigid_articulated
-    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated
+    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated_identity
   else:
     integrator.linear_operator = linear_operator_rigid
     integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner

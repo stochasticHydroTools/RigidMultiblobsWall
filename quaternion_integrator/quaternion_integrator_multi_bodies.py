@@ -1427,8 +1427,7 @@ class QuaternionIntegrator(object):
     Forward Euler scheme for articulated rigid bodies.
     '''
     while True:
-      
-      # Solve mobility problem
+      # Solve mobility problem 
       sol_precond = self.solve_mobility_problem_articulated(x0 = self.first_guess,
                                                             save_first_guess = True,
                                                             update_PC = self.update_PC,
