@@ -13,9 +13,11 @@ constraint_type_0 body_i body_j number_of_parameters parameters
 '''
 import numpy as np
 import numexpr as ne
+from shutil import copyfile
+import ntpath
 
 
-def read_constraints_file(name_file):
+def read_constraints_file(name_file, output_name):
   comment_symbols = ['#']   
   with open(name_file, 'r') as f:
     counter = 0
@@ -43,5 +45,10 @@ def read_constraints_file(name_file):
       counter += 1
 
   constraints_info = np.array(constraints_info)
+
+  # Copy file to output
+  head, tail = ntpath.split(name_file)
+  copyfile(name_file, output_name + '.' + tail)
+
   return num_rigid_bodies, num_blobs, num_constraints, constraints_info
   

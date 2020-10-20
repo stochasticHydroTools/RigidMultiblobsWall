@@ -704,6 +704,7 @@ def build_block_diagonal_preconditioner_articulated(bodies, constraints, articul
       CNCT = np.dot(CN,CT)
       L, lower = scipy.linalg.cho_factor(CNCT)  
       res_art_bodies.append(scipy.linalg.solve_triangular(L, scipy.linalg.solve_triangular(L, np.eye(art.num_constraints * 3), trans='T', check_finite=False), check_finite=False))
+      # res_art_bodies.append(np.linalg.pinv(CNCT))
      
     # save variables to use in next steps if pc is not updated
     build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
@@ -1093,9 +1094,9 @@ if __name__ == '__main__':
   for ID, structure in enumerate(read.articulated):
     print('Creating articulated = ', structure[1])
     # Read vertex, clones and constraint files
-    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0])
+    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], output_name)
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    num_bodies_in_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2])
+    num_bodies_in_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2], output_name)
 
     # Read slip file if it exists
     slip = None
