@@ -1299,7 +1299,7 @@ class QuaternionIntegrator(object):
 
     # Set preconditioner 
     if PC_partial is None:
-      PC_partial = self.build_block_diagonal_preconditioner(self.bodies, self.constraints, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
+      PC_partial = self.build_block_diagonal_preconditioner(self.bodies, self.constraints, self.articulated, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Scale RHS to norm 1
@@ -1310,10 +1310,8 @@ class QuaternionIntegrator(object):
     # Solve preconditioned linear system
     counter = gmres_counter(print_residual = self.print_residual)
     (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
-    #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, maxiter=1000, restart=60, callback=counter) 
     self.det_iterations_count += counter.niter
-    #print("GMRES iterations without preconditionner = ", counter.niter)
-    print("GMRES iterations with preconditionner = ", counter.niter)
+    print("GMRES iterations = ", counter.niter)
     if save_first_guess:
       self.first_guess = sol_precond  
 

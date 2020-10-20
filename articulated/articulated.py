@@ -21,7 +21,7 @@ class Articulated(object):
 
     # List of the constraints in articulated rigid body and indices
     self.constraints = constraints
-    self.ind_constraints = constraints
+    self.ind_constraints = ind_constraints
 
     # Number of rigid bodies and blobs
     self.num_bodies = num_bodies
@@ -117,3 +117,22 @@ class Articulated(object):
 
     print('g = \n', np.linalg.norm(g))
     return
+
+  def calc_C_matrix_articulated_body(self):
+    '''  
+    Calculate the constraint block-diagonal matrix C of an articulated body
+    Shape (3*num_constraints, 6*num_bodies).
+    '''
+    C = np.zeros((3*self.num_constraints, 6*self.num_bodies))
+    for k, c in enumerate(self.constraints):
+      C_constraint = c.calc_C_matrix()
+      b1loc = self.return_body_local_index(c.ind_bodies[0])
+      b2loc = self.return_body_local_index(c.ind_bodies[1])
+      C1 = C_constraint[:,0:6]
+      C2 = C_constraint[:,6:12]
+      C[3*k:3*(k+1), 6*b1loc:6*(b1loc+1)] = C1 
+      C[3*k:3*(k+1), 6*b2loc:6*(b2loc+1)] = C2
+    return C
+
+  def return_body_local_index(self,ind):
+   return np.where(self.ind_bodies == ind)[0][0]
