@@ -1,11 +1,14 @@
 '''
 Small class to handle an articulated rigid body.
 '''
-from quaternion_integrator.quaternion import Quaternion
-from body import body
 import numpy as np
+import scipy.optimize as scop
 import copy
 import sys
+from functools import partial
+from quaternion_integrator.quaternion import Quaternion
+from body import body
+
 
 class Articulated(object):
   '''
@@ -45,7 +48,7 @@ class Articulated(object):
       self.A[3 * i : 3 * (i+1), 3 * bodies_indices[0] : 3 * (bodies_indices[0]+1)] = np.eye(3)
       self.A[3 * i : 3 * (i+1), 3 * bodies_indices[1] : 3 * (bodies_indices[1]+1)] = -np.eye(3)
     self.Ainv = np.linalg.pinv(self.A)
-
+    
 
   def compute_cm(self):
     '''
@@ -103,20 +106,8 @@ class Articulated(object):
     
     # Solve linear system
     self.q_relative = np.dot(self.Ainv, b.flatten()).reshape((self.num_bodies, 3))
-    
     return self.q_relative
     
-
-  def non_linear_solver(self):
-    '''
-    Use nonlinear solver to enforce constraints.
-    '''
-    g = np.zeros((self.num_constraints, 3))
-    for k, c in enumerate(self.constraints):
-      g[k] = c.calc_constraint_violation(time_point=1)
-
-    print('g = \n', np.linalg.norm(g))
-    return
 
   def calc_C_matrix_articulated_body(self):
     '''  
@@ -134,5 +125,81 @@ class Articulated(object):
       C[3*k:3*(k+1), 6*b2loc:6*(b2loc+1)] = C2
     return C
 
+
   def return_body_local_index(self,ind):
-   return np.where(self.ind_bodies == ind)[0][0]
+    return np.where(self.ind_bodies == ind)[0][0]
+
+ 
+  def non_linear_solver(self, time_point=0):
+    '''
+    Use nonlinear solver to enforce constraints.
+    '''
+    g = np.zeros((self.num_constraints, 3))
+    for k, c in enumerate(self.constraints):
+      g[k] = c.calc_constraint_violation(time_point=1)
+    g_total = np.linalg.norm(g)
+    print('g = \n', g_total)
+
+    # If error is small return
+    if g_total < 1e-12:
+      return
+
+    # Get bodies coordinates
+    q = np.zeros((self.num_bodies, 3))
+    for k, b in enumerate(self.bodies):
+      q[k] = b.location_new
+
+    # Pre-rotate links
+    links = np.zeros((self.num_constraints, 6))
+    for k, c in enumerate(self.constraints):
+      bodies_indices = self.constraints_info[k, 1:3].astype(int)
+      links[k, 0:3] = np.dot(self.bodies[bodies_indices[0]].orientation_new.rotation_matrix(), self.constraints_info[k, 4:7])
+      links[k, 3:6] = np.dot(self.bodies[bodies_indices[1]].orientation_new.rotation_matrix(), self.constraints_info[k, 7:10])
+
+    # Define residual function
+    def residual(x, q, A, links, constraints_info):
+      dq = x[0 : 3 * self.num_bodies]
+      theta = x[3 * self.num_bodies : ]
+      R = np.zeros((self.num_bodies, 3, 3))
+      for k in range(self.num_bodies):
+        theta_k = theta[4 * k : 4 * (k+1)] / np.linalg.norm(theta[4 * k : 4 * (k+1)])
+        diag = theta_k[0]**2 - 0.5
+        R[k] = 2.0 * np.array([[theta_k[1]**2+diag, theta_k[1]*theta_k[2]-theta_k[0]*theta_k[3], theta_k[1]*theta_k[3]+theta_k[0]*theta_k[2]], 
+                               [theta_k[2]*theta_k[1]+theta_k[0]*theta_k[3], theta_k[2]**2+diag, theta_k[2]*theta_k[3]-theta_k[0]*theta_k[1]],
+                               [theta_k[3]*theta_k[1]-theta_k[0]*theta_k[2], theta_k[3]*theta_k[2]+theta_k[0]*theta_k[1], theta_k[3]**2+diag]])
+
+      g_new = np.dot(A, dq).reshape(g.shape) 
+      for k in range(constraints_info.shape[0]):
+        bodies_indices = constraints_info[k, 1:3].astype(int)
+        g_new[k] += q[bodies_indices[0]] - q[bodies_indices[1]]
+        g_new[k] += np.dot(R[bodies_indices[0]], links[k, 0:3]) - np.dot(R[bodies_indices[1]], links[k, 3:6])
+      return g_new.flatten()
+
+    residual_partial = partial(residual, q=q, A=self.A, links=links, constraints_info=self.constraints_info)
+
+    # x = scop.newton_krylov(residual_partial, np.zeros(3 * len(self.bodies)), verbose=True)
+    xin = np.zeros(7 * len(self.bodies))
+    xin[3 * len(self.bodies) :: 4] = 1.0
+    result = scop.least_squares(residual_partial, xin, verbose=2)
+
+    x = result.x
+    print('cost = ', result.cost)
+    print('x = \n', x)
+
+    for k, b in enumerate(self.bodies):
+      dq = x[3 * k : 3 * (k+1)]
+      theta_k = x[3 * self.num_bodies + 4 * k : 3 * self.num_bodies + 4 * (k+1)]
+      quaternion_correction = Quaternion(theta_k / np.linalg.norm(theta_k))
+      b.location_new += dq
+      b.orientation_new = quaternion_correction * b.orientation_new
+
+    g = np.zeros((self.num_constraints, 3))
+    for k, c in enumerate(self.constraints):
+      g[k] = c.calc_constraint_violation(time_point=1)
+    print('g = ', g)
+    g_total = np.linalg.norm(g)
+    print('g = \n', g_total)
+      
+    print('PPPPPPPPPPPPP = ', g_total**2 / 2.0 - result.cost)
+    
+    return
