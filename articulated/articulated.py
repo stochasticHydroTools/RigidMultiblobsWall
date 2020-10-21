@@ -8,6 +8,7 @@ import sys
 from functools import partial
 from quaternion_integrator.quaternion import Quaternion
 from body import body
+import general_application_utils as utils
 
 
 class Articulated(object):
@@ -130,18 +131,18 @@ class Articulated(object):
     return np.where(self.ind_bodies == ind)[0][0]
 
  
-  def non_linear_solver(self, time_point=0):
+  def non_linear_solver(self, verbose=False):
     '''
     Use nonlinear solver to enforce constraints.
     '''
+    # Compute constraints violation
     g = np.zeros((self.num_constraints, 3))
     for k, c in enumerate(self.constraints):
       g[k] = c.calc_constraint_violation(time_point=1)
-    g_total = np.linalg.norm(g)
-    print('g = \n', g_total)
+    g_total_old = np.linalg.norm(g)
 
     # If error is small return
-    if g_total < 1e-12:
+    if g_total_old < 1e-12:
       return
 
     # Get bodies coordinates
@@ -158,6 +159,7 @@ class Articulated(object):
 
     # Define residual function
     def residual(x, q, A, links, constraints_info):
+      # Extract new displacements and rotations
       dq = x[0 : 3 * self.num_bodies]
       theta = x[3 * self.num_bodies : ]
       R = np.zeros((self.num_bodies, 3, 3))
@@ -168,24 +170,23 @@ class Articulated(object):
                                [theta_k[2]*theta_k[1]+theta_k[0]*theta_k[3], theta_k[2]**2+diag, theta_k[2]*theta_k[3]-theta_k[0]*theta_k[1]],
                                [theta_k[3]*theta_k[1]-theta_k[0]*theta_k[2], theta_k[3]*theta_k[2]+theta_k[0]*theta_k[1], theta_k[3]**2+diag]])
 
-      g_new = np.dot(A, dq).reshape(g.shape) 
+      # Compute new residual
+      g_new = np.dot(A, dq).reshape((A.shape[0] // 3, 3))
+      bodies_indices = constraints_info[:, 1:3].astype(int)
       for k in range(constraints_info.shape[0]):
-        bodies_indices = constraints_info[k, 1:3].astype(int)
-        g_new[k] += q[bodies_indices[0]] - q[bodies_indices[1]]
-        g_new[k] += np.dot(R[bodies_indices[0]], links[k, 0:3]) - np.dot(R[bodies_indices[1]], links[k, 3:6])
+        # For rotations we use the property R(theta_2 * theta_1) = R(theta_2) * R(theta_1)
+        g_new[k] += (q[bodies_indices[k,0]] - q[bodies_indices[k,1]] + 
+                     np.dot(R[bodies_indices[k,0]], links[k, 0:3]) - np.dot(R[bodies_indices[k,1]], links[k, 3:6]))
       return g_new.flatten()
-
     residual_partial = partial(residual, q=q, A=self.A, links=links, constraints_info=self.constraints_info)
 
-    # x = scop.newton_krylov(residual_partial, np.zeros(3 * len(self.bodies)), verbose=True)
+    # Call nonlinear solver
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
-    result = scop.least_squares(residual_partial, xin, verbose=2)
+    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=1e-12, xtol=1e-12, gtol=None, method='dogbox')
 
+    # Update solution
     x = result.x
-    print('cost = ', result.cost)
-    print('x = \n', x)
-
     for k, b in enumerate(self.bodies):
       dq = x[3 * k : 3 * (k+1)]
       theta_k = x[3 * self.num_bodies + 4 * k : 3 * self.num_bodies + 4 * (k+1)]
@@ -193,13 +194,14 @@ class Articulated(object):
       b.location_new += dq
       b.orientation_new = quaternion_correction * b.orientation_new
 
-    g = np.zeros((self.num_constraints, 3))
-    for k, c in enumerate(self.constraints):
-      g[k] = c.calc_constraint_violation(time_point=1)
-    print('g = ', g)
-    g_total = np.linalg.norm(g)
-    print('g = \n', g_total)
-      
-    print('PPPPPPPPPPPPP = ', g_total**2 / 2.0 - result.cost)
-    
+    # Print constraints violations
+    if verbose:
+      print('nfev            = ', result.nfev)
+      print('njev            = ', result.njev)        
+      print('cost            = ', result.cost)
+      print('g_old           = ', g_total_old)        
+      print('g               = ', np.linalg.norm(result.fun))
+      print('\n\n')
     return
+      
+    
