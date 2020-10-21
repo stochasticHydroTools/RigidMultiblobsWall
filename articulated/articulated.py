@@ -160,23 +160,32 @@ class Articulated(object):
     # Define residual function
     def residual(x, q, A, links, constraints_info):
       # Extract new displacements and rotations
-      dq = x[0 : 3 * self.num_bodies]
-      theta = x[3 * self.num_bodies : ]
-      R = np.zeros((self.num_bodies, 3, 3))
-      for k in range(self.num_bodies):
-        theta_k = theta[4 * k : 4 * (k+1)] / np.linalg.norm(theta[4 * k : 4 * (k+1)])
-        diag = theta_k[0]**2 - 0.5
-        R[k] = 2.0 * np.array([[theta_k[1]**2+diag, theta_k[1]*theta_k[2]-theta_k[0]*theta_k[3], theta_k[1]*theta_k[3]+theta_k[0]*theta_k[2]], 
-                               [theta_k[2]*theta_k[1]+theta_k[0]*theta_k[3], theta_k[2]**2+diag, theta_k[2]*theta_k[3]-theta_k[0]*theta_k[1]],
-                               [theta_k[3]*theta_k[1]-theta_k[0]*theta_k[2], theta_k[3]*theta_k[2]+theta_k[0]*theta_k[1], theta_k[3]**2+diag]])
-
-      # Compute new residual
-      g_new = np.dot(A, dq).reshape((A.shape[0] // 3, 3))
       bodies_indices = constraints_info[:, 1:3].astype(int)
-      for k in range(constraints_info.shape[0]):
-        # For rotations we use the property R(theta_2 * theta_1) = R(theta_2) * R(theta_1)
-        g_new[k] += (q[bodies_indices[k,0]] - q[bodies_indices[k,1]] + 
-                     np.dot(R[bodies_indices[k,0]], links[k, 0:3]) - np.dot(R[bodies_indices[k,1]], links[k, 3:6]))
+      num_bodies = x.size // 7
+      dq = x[0 : 3 * num_bodies]
+      theta = x[3 * num_bodies : ].reshape((num_bodies, 4))
+      theta_norm = np.linalg.norm(theta, axis=1)
+      theta = theta / theta_norm[:, None]
+
+      # Compute rotation matrices
+      R = np.zeros((num_bodies, 3, 3))
+      diag = theta[:,0]**2 - 0.5
+      R[:,0,0] = theta[:,1]**2 + diag
+      R[:,0,1] = theta[:,1] * theta[:,2] - theta[:,0] * theta[:,3]
+      R[:,0,2] = theta[:,1] * theta[:,3] + theta[:,0] * theta[:,2]
+      R[:,1,0] = theta[:,2] * theta[:,1] + theta[:,0] * theta[:,3]
+      R[:,1,1] = theta[:,2]**2 + diag
+      R[:,1,2] = theta[:,2] * theta[:,3] - theta[:,0] * theta[:,1]
+      R[:,2,0] = theta[:,3] * theta[:,1] - theta[:,0] * theta[:,2]
+      R[:,2,1] = theta[:,3] * theta[:,2] + theta[:,0] * theta[:,1]
+      R[:,2,2] = theta[:,3]**2 + diag
+      R = 2 * R
+        
+      # Compute new residual
+      g_new = np.dot(A, dq).reshape((A.shape[0] // 3, 3)) + \
+        np.einsum('kij,kj->ki', R[bodies_indices[:,0]], links[:, 0:3]) - \
+        np.einsum('kij,kj->ki', R[bodies_indices[:,1]], links[:, 3:6]) + \
+        (q[bodies_indices[:,0]] - q[bodies_indices[:,1]])
       return g_new.flatten()
     residual_partial = partial(residual, q=q, A=self.A, links=links, constraints_info=self.constraints_info)
 
@@ -201,8 +210,7 @@ class Articulated(object):
       print('cost            = ', result.cost)
       print('norm(x-xin)     = ', np.linalg.norm(x - xin))
       print('g_old           = ', g_total_old)        
-      print('g               = ', np.linalg.norm(result.fun))
-      print('\n\n')
+      print('g               = ', np.linalg.norm(result.fun), '\n')
     return
       
     
