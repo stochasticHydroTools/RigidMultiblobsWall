@@ -131,7 +131,7 @@ class Articulated(object):
     return np.where(self.ind_bodies == ind)[0][0]
 
  
-  def non_linear_solver(self, verbose=False):
+  def non_linear_solver(self, tol=1e-08, verbose=False):
     '''
     Use nonlinear solver to enforce constraints.
     '''
@@ -142,7 +142,7 @@ class Articulated(object):
     g_total_old = np.linalg.norm(g)
 
     # If error is small return
-    if g_total_old < 1e-12:
+    if g_total_old < tol:
       return
 
     # Get bodies coordinates
@@ -183,7 +183,7 @@ class Articulated(object):
     # Call nonlinear solver
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
-    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=1e-12, xtol=1e-12, gtol=None, method='dogbox')
+    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=tol, xtol=tol, gtol=None, method='dogbox')
 
     # Update solution
     x = result.x
@@ -199,6 +199,7 @@ class Articulated(object):
       print('nfev            = ', result.nfev)
       print('njev            = ', result.njev)        
       print('cost            = ', result.cost)
+      print('norm(x-xin)     = ', np.linalg.norm(x - xin))
       print('g_old           = ', g_total_old)        
       print('g               = ', np.linalg.norm(result.fun))
       print('\n\n')

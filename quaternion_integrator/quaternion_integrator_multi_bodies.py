@@ -1425,11 +1425,12 @@ class QuaternionIntegrator(object):
     Forward Euler scheme for articulated rigid bodies.
     '''
     while True:
-      # Solve mobility problem 
+      # Solve mobility problem
       sol_precond = self.solve_mobility_problem_articulated(x0 = self.first_guess,
                                                             save_first_guess = True,
                                                             update_PC = self.update_PC,
-                                                            step = kwargs.get('step')) 
+                                                            step = kwargs.get('step'))
+
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
 
@@ -1451,14 +1452,12 @@ class QuaternionIntegrator(object):
       # Solve relative position and correct respect cm
       for art in self.articulated:
         art.solve_relative_position()      
-        art.correct_respect_cm(dt) 
+        art.correct_respect_cm(dt)
     
       # Nonlinear miniminzation of constraint violation
       for art in self.articulated:
-        art.non_linear_solver()
-      
-      # Final update
-    
+        art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+          
       # Check positions, if valid, return 
       if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
         return

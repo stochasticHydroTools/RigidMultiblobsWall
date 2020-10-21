@@ -1242,6 +1242,7 @@ if __name__ == '__main__':
   integrator.constraints = constraints
   integrator.calc_C_matrix_constraints = calc_C_matrix_constraints
   integrator.articulated = articulated
+  integrator.nonlinear_solver_tolerance = read.nonlinear_solver_tolerance
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:
