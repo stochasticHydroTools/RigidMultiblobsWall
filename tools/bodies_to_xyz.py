@@ -24,7 +24,8 @@ from body import body
 from read_input import read_input
 from read_input import read_vertex_file
 from read_input import read_clones_file
-
+from read_input import read_constraints_file
+from read_input import read_vertex_file_list
 
 if __name__ == '__main__':
 
@@ -56,6 +57,27 @@ if __name__ == '__main__':
       bodies.append(b) 
       if b.ID == name_ID:
         num_blobs_ID += b.Nblobs
+
+  # Create articulated bodies
+  for ID, structure in enumerate(read.articulated):
+    # Read vertex, clones and constraint files
+    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], None)
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
+    num_bodies_in_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2], None)
+
+    # Read slip file if it exists
+    body_types.append(num_bodies_struct)
+    # body_names.append(read.articulated_ID[ID])
+    # Create each body of type structure
+    for i in range(num_bodies_struct):
+      subbody = i % num_bodies_in_articulated
+      first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], a)
+      b.ID = read.articulated_ID[ID]
+      # Append bodies to total bodies list 
+      bodies.append(b) 
+      if b.ID == name_ID:
+        num_blobs_ID += b.Nblobs        
   bodies = np.array(bodies) 
   num_bodies = bodies.size 
   num_blobs = sum([x.Nblobs for x in bodies]) 
