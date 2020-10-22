@@ -139,10 +139,10 @@ class Articulated(object):
     g = np.zeros((self.num_constraints, 3))
     for k, c in enumerate(self.constraints):
       g[k] = c.calc_constraint_violation(time_point=1)
-    g_total_old = np.linalg.norm(g)
+    g_total = np.linalg.norm(g)
 
     # If error is small return
-    if g_total_old < tol:
+    if g_total < tol:
       return
 
     # Get bodies coordinates
@@ -158,9 +158,10 @@ class Articulated(object):
       links[k, 3:6] = np.dot(self.bodies[bodies_indices[1]].orientation_new.rotation_matrix(), self.constraints_info[k, 7:10])
 
     # Define residual function
-    def residual(x, q, A, links, constraints_info):
+    @utils.static_var('counter', 0)
+    def residual(x, q, A, links, bodies_indices):
+      residual.counter += 1
       # Extract new displacements and rotations
-      bodies_indices = constraints_info[:, 1:3].astype(int)
       num_bodies = x.size // 7
       dq = x[0 : 3 * num_bodies]
       theta = x[3 * num_bodies : ].reshape((num_bodies, 4))
@@ -187,12 +188,29 @@ class Articulated(object):
         np.einsum('kij,kj->ki', R[bodies_indices[:,1]], links[:, 3:6]) + \
         (q[bodies_indices[:,0]] - q[bodies_indices[:,1]])
       return g_new.flatten()
-    residual_partial = partial(residual, q=q, A=self.A, links=links, constraints_info=self.constraints_info)
+    bodies_indices = self.constraints_info[:, 1:3].astype(int)
+    residual_partial = partial(residual, q=q, A=self.A, links=links, bodies_indices=bodies_indices)
 
-    # Call nonlinear solver
+    # Prepare inputs for nonlinear solver
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
-    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=tol, xtol=tol, gtol=None, method='dogbox')
+    jac_sparsity = np.zeros((3 * self.num_constraints, 7 * self.num_bodies), dtype=int)
+    for k, c in enumerate(self.constraints):
+      jac_sparsity[3 * k,     3 * bodies_indices[k,0]]     = 1
+      jac_sparsity[3 * k + 1, 3 * bodies_indices[k,0] + 1] = 1
+      jac_sparsity[3 * k + 2, 3 * bodies_indices[k,0] + 2] = 1    
+      jac_sparsity[3 * k,     3 * bodies_indices[k,1]]     = 1
+      jac_sparsity[3 * k + 1, 3 * bodies_indices[k,1] + 1] = 1
+      jac_sparsity[3 * k + 2, 3 * bodies_indices[k,1] + 2] = 1
+      jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+      jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+      jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+      jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+      jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+      jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+      
+    # Call nonlinear solver
+    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=tol, xtol=tol, gtol=None, method='dogbox', jac_sparsity=jac_sparsity)
 
     # Update solution
     x = result.x
@@ -205,12 +223,13 @@ class Articulated(object):
 
     # Print constraints violations
     if verbose:
-      print('nfev            = ', result.nfev)
-      print('njev            = ', result.njev)        
-      print('cost            = ', result.cost)
-      print('norm(x-xin)     = ', np.linalg.norm(x - xin))
-      print('g_old           = ', g_total_old)        
-      print('g               = ', np.linalg.norm(result.fun), '\n')
+      print('residual.counter = ', residual.counter)
+      print('nfev             = ', result.nfev)
+      print('njev             = ', result.njev)        
+      print('cost             = ', result.cost)
+      print('norm(x-xin)      = ', np.linalg.norm(x - xin))
+      print('g_old            = ', g_total)  
+      print('g                = ', np.linalg.norm(result.fun), '\n')
     return
       
     
