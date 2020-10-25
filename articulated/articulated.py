@@ -159,7 +159,7 @@ class Articulated(object):
 
     # Define residual function
     @utils.static_var('counter', 0)
-    def residual(x, q, A, links, bodies_indices):
+    def residual(x, q, A, links, bodies_indices, *args, **kwargs):
       residual.counter += 1
       # Extract new displacements and rotations
       num_bodies = x.size // 7
@@ -189,28 +189,93 @@ class Articulated(object):
         (q[bodies_indices[:,0]] - q[bodies_indices[:,1]])
       return g_new.flatten()
     bodies_indices = self.constraints_info[:, 1:3].astype(int)
-    residual_partial = partial(residual, q=q, A=self.A, links=links, bodies_indices=bodies_indices)
 
     # Prepare inputs for nonlinear solver
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
-    jac_sparsity = np.zeros((3 * self.num_constraints, 7 * self.num_bodies), dtype=int)
-    for k, c in enumerate(self.constraints):
-      jac_sparsity[3 * k,     3 * bodies_indices[k,0]]     = 1
-      jac_sparsity[3 * k + 1, 3 * bodies_indices[k,0] + 1] = 1
-      jac_sparsity[3 * k + 2, 3 * bodies_indices[k,0] + 2] = 1    
-      jac_sparsity[3 * k,     3 * bodies_indices[k,1]]     = 1
-      jac_sparsity[3 * k + 1, 3 * bodies_indices[k,1] + 1] = 1
-      jac_sparsity[3 * k + 2, 3 * bodies_indices[k,1] + 2] = 1
-      jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
-      jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
-      jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
-      jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
-      jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
-      jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+
+    if g_total < 0.5:
+      @utils.static_var('counter', 0)
+      def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
+        '''
+        Jacobian approximation for small rotations.
+        '''
+        jacobian.counter += 1
+        # Extract new displacements and rotations
+        num_bodies = x.size // 7
+        theta = x[3 * num_bodies : ].reshape((num_bodies, 4))
+        theta_norm = np.linalg.norm(theta, axis=1)
+        theta = theta / theta_norm[:, None]
+        offset = 3 * num_bodies
+
+        # Fill Jacobian
+        J = np.zeros((3 * num_constraints, 7 * num_bodies))
+        for i in range(num_constraints):
+          bi = bodies_indices[i,0]
+          bj = bodies_indices[i,1]
+          J[3 * i + 0, 3 * bi + 0] = 1
+          J[3 * i + 1, 3 * bi + 1] = 1
+          J[3 * i + 2, 3 * bi + 2] = 1
+          J[3 * i + 0, 3 * bj + 0] = -1
+          J[3 * i + 1, 3 * bj + 1] = -1
+          J[3 * i + 2, 3 * bj + 2] = -1
+          J[3 * i + 0, offset + 4 * bi + 0] =  ( 2 * links[i,2] * theta[bi, 2] - 2 * links[i,1] * theta[bi, 3]) 
+          J[3 * i + 1, offset + 4 * bi + 0] =  (-2 * links[i,2] * theta[bi, 1] + 2 * links[i,0] * theta[bi, 3]) 
+          J[3 * i + 2, offset + 4 * bi + 0] =  ( 2 * links[i,1] * theta[bi, 1] - 2 * links[i,0] * theta[bi, 2]) 
+          J[3 * i + 1, offset + 4 * bi + 1] =  (- 2 * links[i,2] * theta[bi, 0]) 
+          J[3 * i + 2, offset + 4 * bi + 1] =  (  2 * links[i,1] * theta[bi, 0]) 
+          J[3 * i + 0, offset + 4 * bi + 2] =  (  2 * links[i,2] * theta[bi, 0]) 
+          J[3 * i + 2, offset + 4 * bi + 2] =  (- 2 * links[i,0] * theta[bi, 0]) 
+          J[3 * i + 0, offset + 4 * bi + 3] =  (- 2 * links[i,1] * theta[bi, 0]) 
+          J[3 * i + 1, offset + 4 * bi + 3] =  (  2 * links[i,0] * theta[bi, 0]) 
+          J[3 * i + 0, offset + 4 * bj + 0] = -( 2 * links[i,5] * theta[bj, 2] - 2 * links[i,4] * theta[bj, 3]) 
+          J[3 * i + 1, offset + 4 * bj + 0] = -(-2 * links[i,5] * theta[bj, 1] + 2 * links[i,3] * theta[bj, 3]) 
+          J[3 * i + 2, offset + 4 * bj + 0] = -( 2 * links[i,4] * theta[bj, 1] - 2 * links[i,3] * theta[bj, 2]) 
+          J[3 * i + 1, offset + 4 * bj + 1] = -(- 2 * links[i,5] * theta[bj, 0]) 
+          J[3 * i + 2, offset + 4 * bj + 1] = -(  2 * links[i,4] * theta[bj, 0]) 
+          J[3 * i + 0, offset + 4 * bj + 2] = -(  2 * links[i,5] * theta[bj, 0]) 
+          J[3 * i + 2, offset + 4 * bj + 2] = -(- 2 * links[i,3] * theta[bj, 0]) 
+          J[3 * i + 0, offset + 4 * bj + 3] = -(- 2 * links[i,4] * theta[bj, 0]) 
+          J[3 * i + 1, offset + 4 * bj + 3] = -(  2 * links[i,3] * theta[bj, 0]) 
+        return J
       
-    # Call nonlinear solver
-    result = scop.least_squares(residual_partial, xin, verbose=(2 if verbose else 0), ftol=tol, xtol=tol, gtol=None, method='dogbox', jac_sparsity=jac_sparsity)
+      result = scop.least_squares(residual,
+                                  xin,
+                                  verbose=(2 if verbose else 0),
+                                  ftol=tol,
+                                  xtol=tol,
+                                  gtol=None,
+                                  method='dogbox',
+                                  jac=jacobian,
+                                  kwargs={'q':q, 'A':self.A, 'links':links, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
+      
+    else:
+      jac_sparsity = np.zeros((3 * self.num_constraints, 7 * self.num_bodies), dtype=int)
+      for k, c in enumerate(self.constraints):
+        jac_sparsity[3 * k,     3 * bodies_indices[k,0]]     = 1
+        jac_sparsity[3 * k + 1, 3 * bodies_indices[k,0] + 1] = 1
+        jac_sparsity[3 * k + 2, 3 * bodies_indices[k,0] + 2] = 1    
+        jac_sparsity[3 * k,     3 * bodies_indices[k,1]]     = 1
+        jac_sparsity[3 * k + 1, 3 * bodies_indices[k,1] + 1] = 1
+        jac_sparsity[3 * k + 2, 3 * bodies_indices[k,1] + 2] = 1
+        jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+        jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+        jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,0] : 3 * self.num_bodies + 4 * bodies_indices[k,0] + 4] = 1
+        jac_sparsity[3 * k,     3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+        jac_sparsity[3 * k + 1, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+        jac_sparsity[3 * k + 2, 3 * self.num_bodies + 4 * bodies_indices[k,1] : 3 * self.num_bodies + 4 * bodies_indices[k,1] + 4] = 1
+      
+      # Call nonlinear solver
+      result = scop.least_squares(residual,
+                                  xin,
+                                  verbose=(2 if verbose else 0),
+                                  ftol=tol,
+                                  xtol=tol,
+                                  gtol=None,
+                                  method='dogbox',
+                                  jac_sparsity=jac_sparsity,
+                                  jac='2-point',
+                                  kwargs={'q':q, 'A':self.A, 'links':links, 'bodies_indices':bodies_indices})
 
     # Update solution
     x = result.x
