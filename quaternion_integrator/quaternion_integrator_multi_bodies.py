@@ -1333,6 +1333,11 @@ class QuaternionIntegrator(object):
     Forward Euler scheme for articulated rigid bodies.
     '''
     while True:
+      # Save initial configuration 
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
@@ -1353,24 +1358,101 @@ class QuaternionIntegrator(object):
         
       # Update bodies position and orientations
       for k, b in enumerate(self.bodies):
-        b.location_new = b.location + velocities[6*k:6*k+3] * dt
+        b.location = b.location + velocities[6*k:6*k+3] * dt
         quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
-        b.orientation_new = quaternion_dt * b.orientation
+        b.orientation = quaternion_dt * b.orientation
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
         art.solve_relative_position()      
-        art.correct_respect_cm(dt)
+        art.correct_respect_cm()
     
       # Nonlinear miniminzation of constraint violation
       for art in self.articulated:
         art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
           
       # Check positions, if valid, return 
-      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
+      if self.check_positions(new = 'current', old = 'old', update_in_success = True, domain = self.domain) is True:
         return
     return
-  
+
+
+  def articulated_deterministic_midpoint(self, dt, *args, **kwargs):
+    '''
+    Forward Euler scheme for articulated rigid bodies.
+    '''
+    while True:
+      # Save initial configuration 
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+              
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = kwargs.get('step'))
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+
+      # Compute center of mass and update
+      for art in self.articulated:
+        art.compute_cm()
+        art.update_cm(dt * 0.5)
+        
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location + velocities[6*k:6*k+3] * (dt * 0.5)
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * (dt * 0.5))
+        b.orientation = quaternion_dt * b.orientation
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.solve_relative_position()      
+        art.correct_respect_cm()
+
+      # Solve mobility problem at Mid-Point
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = kwargs.get('step') + 0.5)
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+
+      # Compute center of mass and update
+      for art in self.articulated:
+        art.compute_cm(time_point='old')
+        art.update_cm(dt)
+        
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.solve_relative_position()      
+        art.correct_respect_cm()
+             
+      # Nonlinear miniminzation of constraint violation
+      for art in self.articulated:
+        art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+          
+      # Check positions, if valid, return 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = True, domain = self.domain) is True:
+        return
+    return
     
 
   def check_positions(self, new = None, old = None, update_in_success = None, update_in_failure = None, domain = 'single_wall'):

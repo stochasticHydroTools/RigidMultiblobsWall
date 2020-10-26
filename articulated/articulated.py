@@ -51,13 +51,17 @@ class Articulated(object):
     self.Ainv = np.linalg.pinv(self.A)
     
 
-  def compute_cm(self):
+  def compute_cm(self, time_point='current'):
     '''
     Compute center of mass.
     '''
     self.q_cm = np.zeros(3)
-    for b in self.bodies:
-      self.q_cm += b.location
+    if time_point == 'old':
+      for b in self.bodies:
+        self.q_cm += b.location_old
+    elif time_point == 'current':
+      for b in self.bodies:
+        self.q_cm += b.location
     self.q_cm /= self.num_bodies
     return self.q_cm
   
@@ -80,7 +84,7 @@ class Articulated(object):
     return self.q_cm
 
   
-  def correct_respect_cm(self, dt):
+  def correct_respect_cm(self):
     '''
     Correct bodies position respect the cm.
     '''
@@ -90,7 +94,7 @@ class Articulated(object):
 
     # Correct respect cm
     for k, b in enumerate(self.bodies):
-      b.location_new = self.q_relative[k] + self.q_cm - q_cm
+      b.location = self.q_relative[k] + self.q_cm - q_cm
     return
   
     
@@ -102,8 +106,8 @@ class Articulated(object):
     b = np.zeros((self.num_constraints, 3))
     for i in range(self.num_constraints):
       bodies_indices = self.constraints_info[i, 1:3].astype(int)
-      b[i] = -np.dot(self.bodies[bodies_indices[0]].orientation_new.rotation_matrix(), self.constraints_info[i, 4:7])
-      b[i] += np.dot(self.bodies[bodies_indices[1]].orientation_new.rotation_matrix(), self.constraints_info[i, 7:10])
+      b[i] = -np.dot(self.bodies[bodies_indices[0]].orientation.rotation_matrix(), self.constraints_info[i, 4:7])
+      b[i] += np.dot(self.bodies[bodies_indices[1]].orientation.rotation_matrix(), self.constraints_info[i, 7:10])
     
     # Solve linear system
     self.q_relative = np.dot(self.Ainv, b.flatten()).reshape((self.num_bodies, 3))
@@ -138,8 +142,9 @@ class Articulated(object):
     # Compute constraints violation
     g = np.zeros((self.num_constraints, 3))
     for k, c in enumerate(self.constraints):
-      g[k] = c.calc_constraint_violation(time_point=1)
+      g[k] = c.calc_constraint_violation(time_point=0)
     g_total = np.linalg.norm(g)
+    g_total_inf = np.linalg.norm(g, ord=np.inf)
 
     # If error is small return
     if g_total < tol:
@@ -148,14 +153,14 @@ class Articulated(object):
     # Get bodies coordinates
     q = np.zeros((self.num_bodies, 3))
     for k, b in enumerate(self.bodies):
-      q[k] = b.location_new
+      q[k] = b.location
 
     # Pre-rotate links
     links = np.zeros((self.num_constraints, 6))
     for k, c in enumerate(self.constraints):
       bodies_indices = self.constraints_info[k, 1:3].astype(int)
-      links[k, 0:3] = np.dot(self.bodies[bodies_indices[0]].orientation_new.rotation_matrix(), self.constraints_info[k, 4:7])
-      links[k, 3:6] = np.dot(self.bodies[bodies_indices[1]].orientation_new.rotation_matrix(), self.constraints_info[k, 7:10])
+      links[k, 0:3] = np.dot(self.bodies[bodies_indices[0]].orientation.rotation_matrix(), self.constraints_info[k, 4:7])
+      links[k, 3:6] = np.dot(self.bodies[bodies_indices[1]].orientation.rotation_matrix(), self.constraints_info[k, 7:10])
 
     # Define residual function
     @utils.static_var('counter', 0)
@@ -194,7 +199,7 @@ class Articulated(object):
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
 
-    if g_total < 0.5:
+    if g_total_inf < 0.1:
       @utils.static_var('counter', 0)
       def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
         '''
@@ -283,8 +288,8 @@ class Articulated(object):
       dq = x[3 * k : 3 * (k+1)]
       theta_k = x[3 * self.num_bodies + 4 * k : 3 * self.num_bodies + 4 * (k+1)]
       quaternion_correction = Quaternion(theta_k / np.linalg.norm(theta_k))
-      b.location_new += dq
-      b.orientation_new = quaternion_correction * b.orientation_new
+      b.location += dq
+      b.orientation = quaternion_correction * b.orientation
 
     # Print constraints violations
     if verbose:
@@ -293,7 +298,9 @@ class Articulated(object):
       print('njev             = ', result.njev)        
       print('cost             = ', result.cost)
       print('norm(x-xin)      = ', np.linalg.norm(x - xin))
+      print('g_old_inf        = ', g_total_inf)  
       print('g_old            = ', g_total)  
+      print('g_inf            = ', np.linalg.norm(result.fun, ord=np.inf))
       print('g                = ', np.linalg.norm(result.fun), '\n')
     return
       
