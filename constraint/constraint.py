@@ -12,7 +12,7 @@ class Constraint(object):
   '''
   Small class to handle a single constraint.
   '''  
-  def __init__(self, bodies, ind_bodies,  articulated_body, links):
+  def __init__(self, bodies, ind_bodies,  articulated_body, links, constraint_type=0):
     '''
     Constructor. Take arguments like ...
     '''
@@ -26,6 +26,8 @@ class Constraint(object):
     self.links = links
     # 3 by 1 array that gives the (time-dependent) prescribed velocity of the joint in the reference frame of the first body (RHS of the linear constraint problem)
     self.presc_vel = np.zeros(3)
+    # Type of constraint: constant, time-dependent etc.
+    self.constraint_type = constraint_type
     # Jacobian of the time-derivative of the constraint (3 by 12 matrix)
     self.C  = None
 
@@ -68,15 +70,15 @@ class Constraint(object):
     return np.concatenate( ( np.eye(3), -rot_link[:,0:3], -np.eye(3), rot_link[:,3:6] ), axis=1)
 
 
-  def calc_constraint_violation(self, time_point=0):
+  def calc_constraint_violation(self, time_point='current'):
     '''
     Compute the constraint violation g = q_p + R_p * l_qp - q_q - R_q * l_pq.
     '''
-    if time_point == 0:
+    if time_point == 'current':
       g = self.bodies[0].location - self.bodies[1].location
       g += np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
       g -= np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
-    elif time_point == 1:
+    elif time_point == 'new':
       g = self.bodies[0].location_new - self.bodies[1].location_new
       g += np.dot(self.bodies[0].orientation_new.rotation_matrix(), self.links[0:3])
       g -= np.dot(self.bodies[1].orientation_new.rotation_matrix(), self.links[3:6])      

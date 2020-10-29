@@ -15,7 +15,7 @@ class Articulated(object):
   '''
   Small class to handle an articulated rigid body.
   '''  
-  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_blobs, num_constraints, constraints_info):
+  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_blobs, num_constraints, constraints_bodies, constraints_links):
     '''
     Constructor. Take arguments like ...
     '''
@@ -33,7 +33,8 @@ class Articulated(object):
 
     # Constraints info
     self.num_constraints = num_constraints
-    self.constraints_info = constraints_info
+    self.constraints_bodies_indices = constraints_bodies
+    self.constraints_links = constraints_links
 
     # Center of mass position and velocity
     self.q_cm = np.zeros(3)
@@ -45,11 +46,10 @@ class Articulated(object):
     # Build connectivity matrix and pseudo inverse
     self.A = np.zeros((3 * self.num_constraints, 3 * self.num_bodies))
     for i in range(self.num_constraints):
-      bodies_indices = self.constraints_info[i, 1:3].astype(int)
-      self.A[3 * i : 3 * (i+1), 3 * bodies_indices[0] : 3 * (bodies_indices[0]+1)] = np.eye(3)
-      self.A[3 * i : 3 * (i+1), 3 * bodies_indices[1] : 3 * (bodies_indices[1]+1)] = -np.eye(3)
+      self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,0] : 3 * (self.constraints_bodies_indices[i,0]+1)] = np.eye(3)
+      self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,1] : 3 * (self.constraints_bodies_indices[i,1]+1)] = -np.eye(3)
     self.Ainv = np.linalg.pinv(self.A)
-    
+
 
   def compute_cm(self, time_point='current'):
     '''
@@ -105,9 +105,8 @@ class Articulated(object):
     # Build RHS
     b = np.zeros((self.num_constraints, 3))
     for i in range(self.num_constraints):
-      bodies_indices = self.constraints_info[i, 1:3].astype(int)
-      b[i] = -np.dot(self.bodies[bodies_indices[0]].orientation.rotation_matrix(), self.constraints_info[i, 4:7])
-      b[i] += np.dot(self.bodies[bodies_indices[1]].orientation.rotation_matrix(), self.constraints_info[i, 7:10])
+      b[i] = -np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i, 0:3])
+      b[i] += np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i, 3:6])
     
     # Solve linear system
     self.q_relative = np.dot(self.Ainv, b.flatten()).reshape((self.num_bodies, 3))
@@ -142,7 +141,7 @@ class Articulated(object):
     # Compute constraints violation
     g = np.zeros((self.num_constraints, 3))
     for k, c in enumerate(self.constraints):
-      g[k] = c.calc_constraint_violation(time_point=0)
+      g[k] = c.calc_constraint_violation(time_point='current')
     g_total = np.linalg.norm(g)
     g_total_inf = np.linalg.norm(g, ord=np.inf)
 
@@ -158,9 +157,8 @@ class Articulated(object):
     # Pre-rotate links
     links = np.zeros((self.num_constraints, 6))
     for k, c in enumerate(self.constraints):
-      bodies_indices = self.constraints_info[k, 1:3].astype(int)
-      links[k, 0:3] = np.dot(self.bodies[bodies_indices[0]].orientation.rotation_matrix(), self.constraints_info[k, 4:7])
-      links[k, 3:6] = np.dot(self.bodies[bodies_indices[1]].orientation.rotation_matrix(), self.constraints_info[k, 7:10])
+      links[k, 0:3] = np.dot(self.bodies[self.constraints_bodies_indices[k,0]].orientation.rotation_matrix(), self.constraints_links[k, 0:3])
+      links[k, 3:6] = np.dot(self.bodies[self.constraints_bodies_indices[k,1]].orientation.rotation_matrix(), self.constraints_links[k, 3:6])
 
     # Define residual function
     @utils.static_var('counter', 0)
@@ -195,7 +193,7 @@ class Articulated(object):
       return g_new.flatten()
 
     # Prepare inputs for nonlinear solver
-    bodies_indices = self.constraints_info[:, 1:3].astype(int)
+    bodies_indices = self.constraints_bodies_indices 
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
     
