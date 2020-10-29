@@ -22,7 +22,8 @@ def read_vertex_file_list(name_files, output_name):
         struct_ref_config.append(struct)      
 
   # Copy file to output
-  head, tail = ntpath.split(name_files)
-  copyfile(name_files, output_name + '.' + tail)
+  if output_name is not None:
+    head, tail = ntpath.split(name_files)
+    copyfile(name_files, output_name + '.' + tail)
   return struct_ref_config
 

@@ -47,8 +47,9 @@ def read_constraints_file(name_file, output_name):
   constraints_info = np.array(constraints_info)
 
   # Copy file to output
-  head, tail = ntpath.split(name_file)
-  copyfile(name_file, output_name + '.' + tail)
+  if output_name is not None:
+    head, tail = ntpath.split(name_file)
+    copyfile(name_file, output_name + '.' + tail)
 
   return num_rigid_bodies, num_blobs, num_constraints, constraints_info
   
