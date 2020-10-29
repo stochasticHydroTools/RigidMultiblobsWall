@@ -24,6 +24,7 @@ class Constraint(object):
     self.articulated_body = articulated_body
     # 6 by 1 array that gives the (time-dependent) prescribed positions of the two links in the reference frame of the first body
     self.links = links
+    self.links_updated = np.copy(links)
     # 3 by 1 array that gives the (time-dependent) prescribed velocity of the joint in the reference frame of the first body (RHS of the linear constraint problem)
     self.presc_vel = np.zeros(3)
     # Type of constraint: constant, time-dependent etc.
@@ -40,7 +41,8 @@ class Constraint(object):
     rot_link = np.zeros((3,6))
 
     # Compute product [R_p x Delta l_pq]
-    vec = np.dot(self.bodies[0].orientation.rotation_matrix(),self.links[0:3])
+    # vec = np.dot(self.bodies[0].orientation.rotation_matrix(),self.links[0:3])
+    vec = self.links_updated[0:3]
     # Compute product [R_p x Delta l_pq]^x
     rot_link[0,1] = -vec[2]
     rot_link[0,2] =  vec[1]
@@ -50,7 +52,8 @@ class Constraint(object):
     rot_link[2,1] =  vec[0]
 
     # Compute product [R_q x Delta l_qp]
-    vec = np.dot(self.bodies[1].orientation.rotation_matrix(),self.links[3:6])
+    # vec = np.dot(self.bodies[1].orientation.rotation_matrix(),self.links[3:6])
+    vec = self.links_updated[3:6]
     # Compute product [R_q x Delta l_qp]^x
     rot_link[0,4] = -vec[2]
     rot_link[0,5] =  vec[1]
@@ -85,4 +88,11 @@ class Constraint(object):
     return g
 
   
+  def update_links(self):
+    '''
+    Rotate links to current orientation.
+    '''
+    self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
+    self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+    return
     

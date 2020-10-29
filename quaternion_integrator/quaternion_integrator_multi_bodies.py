@@ -3,7 +3,6 @@ Integrator for several rigid bodies.
 '''
 from __future__ import division, print_function
 import numpy as np
-import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
 import copy
@@ -1336,6 +1335,10 @@ class QuaternionIntegrator(object):
         np.copyto(b.location_old, b.location)
         b.orientation_old = copy.copy(b.orientation)
 
+      # Update links to current orientation
+      for c in self.constraints:
+        c.update_links()       
+
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
@@ -1362,7 +1365,8 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
-        art.solve_relative_position()      
+        art.update_links()
+        art.solve_relative_position()
         art.correct_respect_cm()
     
       # Nonlinear miniminzation of constraint violation
@@ -1384,7 +1388,11 @@ class QuaternionIntegrator(object):
       for k, b in enumerate(self.bodies):
         np.copyto(b.location_old, b.location)
         b.orientation_old = copy.copy(b.orientation)
-              
+
+      # Update links to current orientation
+      for c in self.constraints:
+        c.update_links()       
+        
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
@@ -1411,8 +1419,13 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
+        art.update_links()
         art.solve_relative_position()      
         art.correct_respect_cm()
+
+      # Update links to current orientation
+      for c in self.constraints:
+        c.update_links()       
 
       # Solve mobility problem at Mid-Point
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
@@ -1440,6 +1453,7 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
+        art.update_links()
         art.solve_relative_position()      
         art.correct_respect_cm()
              

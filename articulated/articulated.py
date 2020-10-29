@@ -35,6 +35,7 @@ class Articulated(object):
     self.num_constraints = num_constraints
     self.constraints_bodies_indices = constraints_bodies
     self.constraints_links = constraints_links
+    self.constraints_links_updated = np.copy(constraints_links)
 
     # Center of mass position and velocity
     self.q_cm = np.zeros(3)
@@ -105,8 +106,10 @@ class Articulated(object):
     # Build RHS
     b = np.zeros((self.num_constraints, 3))
     for i in range(self.num_constraints):
-      b[i] = -np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i, 0:3])
-      b[i] += np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i, 3:6])
+      # b[i] = -np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i, 0:3])
+      # b[i] += np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i, 3:6])
+      b[i] = -self.constraints_links_updated[i, 0:3]
+      b[i] += self.constraints_links_updated[i, 3:6]
     
     # Solve linear system
     self.q_relative = np.dot(self.Ainv, b.flatten()).reshape((self.num_bodies, 3))
@@ -145,6 +148,7 @@ class Articulated(object):
     g_total = np.linalg.norm(g)
     g_total_inf = np.linalg.norm(g, ord=np.inf)
 
+    print('g_total_inf = ', g_total_inf)
     # If error is small return
     if g_total_inf < tol:
       return
@@ -154,11 +158,11 @@ class Articulated(object):
     for k, b in enumerate(self.bodies):
       q[k] = b.location
 
-    # Pre-rotate links
-    links = np.zeros((self.num_constraints, 6))
-    for k, c in enumerate(self.constraints):
-      links[k, 0:3] = np.dot(self.bodies[self.constraints_bodies_indices[k,0]].orientation.rotation_matrix(), self.constraints_links[k, 0:3])
-      links[k, 3:6] = np.dot(self.bodies[self.constraints_bodies_indices[k,1]].orientation.rotation_matrix(), self.constraints_links[k, 3:6])
+    # # Pre-rotate links
+    # links = np.zeros((self.num_constraints, 6))
+    # for k, c in enumerate(self.constraints):
+    #   links[k, 0:3] = np.dot(self.bodies[self.constraints_bodies_indices[k,0]].orientation.rotation_matrix(), self.constraints_links[k, 0:3])
+    #   links[k, 3:6] = np.dot(self.bodies[self.constraints_bodies_indices[k,1]].orientation.rotation_matrix(), self.constraints_links[k, 3:6])
 
     # Define residual function
     @utils.static_var('counter', 0)
@@ -248,7 +252,8 @@ class Articulated(object):
                                   gtol=None,
                                   method='dogbox',
                                   jac=jacobian,
-                                  kwargs={'q':q, 'A':self.A, 'links':links, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
+                                  kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated,
+                                          'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
       
     else:
       # Build sparsity of Jacobian
@@ -298,7 +303,7 @@ class Articulated(object):
                                   method='dogbox',
                                   jac_sparsity=jac_sparsity,
                                   jac='2-point',
-                                  kwargs={'q':q, 'A':self.A, 'links':links, 'bodies_indices':bodies_indices})
+                                  kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices})
 
     # Update solution
     x = result.x
@@ -321,5 +326,15 @@ class Articulated(object):
       print('g_inf            = ', np.linalg.norm(result.fun, ord=np.inf))
       print('g                = ', np.linalg.norm(result.fun), '\n')
     return
-      
-    
+
+  
+  def update_links(self):
+    '''
+    Rotate links to current orientation.
+    '''
+
+    for i in range(self.num_constraints):
+      self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(),
+                                                     self.constraints_links[i,0:3])
+      self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(),
+                                                     self.constraints_links[i,3:6])

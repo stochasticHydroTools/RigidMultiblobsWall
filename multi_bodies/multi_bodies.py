@@ -47,7 +47,7 @@ while found_functions is False:
       found_HydroGrid = False
     found_functions = True
   except ImportError as exc:
-    sys.stderr.write("Error: failed to import settings module ({})".format(exc))
+    # sys.stderr.write("Error: failed to import settings module ({})".format(exc))
     path_to_append += '../'
     print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
@@ -838,7 +838,15 @@ if __name__ == '__main__':
     # Read vertex, clones and constraint files
     struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], output_name)
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    num_bodies_in_articulated, num_blobs, num_constraints, constraints_type, constraints_bodies, constraints_links = read_constraints_file.read_constraints_file(structure[2], output_name)
+    ### num_bodies_in_articulated, num_blobs, num_constraints, constraints_type, constraints_bodies, constraints_links = read_constraints_file.read_constraints_file(structure[2], output_name)
+    constraints_info = read_constraints_file.read_constraints_file(structure[2], output_name)
+    num_bodies_in_articulated = constraints_info[0]
+    num_blobs = constraints_info[1]
+    num_constraints = constraints_info[2]
+    constraints_type = constraints_info[3]
+    constraints_bodies = constraints_info[4]
+    constraints_links = constraints_info[5]
+    constraints_extra = constraints_info[6]
     # Read slip file if it exists
     slip = None
     if(len(structure) > 3):
