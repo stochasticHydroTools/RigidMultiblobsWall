@@ -53,13 +53,11 @@ class QuaternionIntegrator(object):
     self.domain = domain
 
     # Optional variables
-    self.build_stochastic_block_diagonal_preconditioner = None
     self.periodic_length = None
     self.calc_slip = None
     self.calc_force_torque = None
     self.mobility_inv_blobs = None
     self.first_guess = None
-    self.preconditioner = None
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
