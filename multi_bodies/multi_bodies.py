@@ -46,7 +46,8 @@ while found_functions is False:
     except ImportError:
       found_HydroGrid = False
     found_functions = True
-  except ImportError:
+  except ImportError as exc:
+    sys.stderr.write("Error: failed to import settings module ({})".format(exc))
     path_to_append += '../'
     print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
@@ -331,6 +332,14 @@ def linear_operator_rigid(vector, bodies, constraints, r_vectors, eta, a, K_bodi
   else:
     res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda, (Ncomp_bodies))
 
+  # Modify to account for prescribed kinematics
+  offset = 0
+  for k, b in enumerate(bodies):
+    if b.prescribed_kinematics is True:
+      res[3*offset : 3*(offset+b.Nblobs)] += (K_times_U[offset : (offset+b.Nblobs)]).flatten()
+      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
+    offset += b.Nblobs
+
   # Compute the "constraint velocity: B" part if any
   if Nconstraints > 0:
     C_times_U = C_matrix_vector_prod(bodies, constraints, v[Nblobs:Nblobs+2*Nbodies], Nconstraints, C_constraints = C_constraints)
@@ -589,6 +598,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         # 4. set result
         result[3*offset : 3*(offset + b.Nblobs)] = Lambda
         result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = U_unconst
+
       if b.prescribed_kinematics is True:
         # 1. solve M*Lambda = (slip + K*y)
         slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
@@ -736,102 +746,6 @@ def build_block_diagonal_preconditioner_articulated_identity(bodies, constraints
                                                   K_bodies = K_bodies,
                                                   Nblobs = Nblobs)
   return block_diagonal_preconditioner_partial
-
-
-
-def block_diagonal_preconditioner(vector, bodies = None, mobility_bodies = None, mobility_inv_blobs = None, Nblobs = None):
-  '''
-  Apply the block diagonal preconditioner.
-  '''
-  result = np.empty(vector.shape)
-  offset = 0
-  for k, b in enumerate(bodies):
-    if b.prescribed_kinematics is False:
-      # 1. Solve M*Lambda_tilde = slip
-      slip = vector[3*offset : 3*(offset + b.Nblobs)]
-      Lambda_tilde = np.dot(mobility_inv_blobs[k], slip)
-        
-      # 2. Compute rigid body velocity
-      F = vector[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)]
-      Y = np.dot(mobility_bodies[k], -F - np.dot(b.calc_K_matrix().T, Lambda_tilde))
-        
-      # 3. Solve M*Lambda = (slip + K*Y)
-      Lambda = np.dot(mobility_inv_blobs[k], slip + np.dot(b.calc_K_matrix(), Y))
-        
-      # 4. Set result
-      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = Y
-    if b.prescribed_kinematics is True:
-      # 1. Solve M*Lambda = (slip + K*Y)
-      slip_KU = vector[3*offset : 3*(offset + b.Nblobs)]
-      Lambda = np.dot(mobility_inv_blobs[k], slip_KU)
-
-      # 2. Set force
-      F = np.dot(b.calc_K_matrix().T, Lambda)
-
-      # 3. Set result
-      result[3*offset : 3*(offset + b.Nblobs)] = Lambda
-      result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
-    offset += b.Nblobs
-  return result
-
-
-def build_stochastic_block_diagonal_preconditioner(bodies, r_vectors, eta, a, *args, **kwargs):
-  '''
-  Build block diagonal preconditioner to generate the noise
-  for rigid bodies. If the mobility of a body at the blob
-  level is M=L^T * L with L the Cholesky factor  we form the stochastic preconditioners
-  
-  P = inv(L)
-  P_inv = L
-
-  and return the functions to compute matrix vector products
-  y = (P.T * M * P) * x
-  y = P_inv * x
-  '''
-  P = []
-  P_inv = []
-  for b in bodies:
-    # Compute blobs mobility for one body
-    M = b.calc_mobility_blobs(eta, a)
-    
-    # 2. Compute Cholesy factorization, M = L^T * L
-    L, lower = scipy.linalg.cho_factor(M)
-    L = np.triu(L)   
-    P_inv.append(L.T)
-
-    # Form preconditioners version P 
-    P.append(scipy.linalg.solve_triangular(L, np.eye(b.Nblobs * 3), check_finite=False))
-
-  # Define preconditioned mobility matrix product
-  def mobility_pc(w, bodies = None, P = None, r_vectors = None, eta = None, a = None, *args, **kwargs):
-    result = np.empty_like(w)
-    # Multiply by P.T
-    offset = 0
-    for k, b in enumerate(bodies):
-      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k], w[3*offset : 3*(offset + b.Nblobs)])
-      offset += b.Nblobs
-    # Multiply by M
-    result_2 = mobility_vector_prod(r_vectors, result, eta, a, *args, **kwargs)
-    # Multiply by P
-    offset = 0
-    for k, b in enumerate(bodies):
-      result[3*offset : 3*(offset + b.Nblobs)] = np.dot(P[k].T, result_2[3*offset : 3*(offset + b.Nblobs)])
-      offset += b.Nblobs
-    return result
-  mobility_pc_partial = partial(mobility_pc, bodies = bodies, P = P, r_vectors = r_vectors, eta = eta, a = a, *args, **kwargs)
-  
-  # Define inverse preconditioner P_inv
-  def P_inv_mult(w, bodies = None, P_inv = None):
-    offset = 0
-    for k, b in enumerate(bodies):
-      w[3*offset : 3*(offset + b.Nblobs)] = np.dot(P_inv[k], w[3*offset : 3*(offset + b.Nblobs)])
-      offset += b.Nblobs
-    return w
-  P_inv_mult_partial = partial(P_inv_mult, bodies = bodies, P_inv = P_inv)
-
-  # Return preconditioner functions
-  return mobility_pc_partial, P_inv_mult_partial
 
 
 if __name__ == '__main__':
@@ -1044,7 +958,6 @@ if __name__ == '__main__':
   integrator.linear_operator = linear_operator_rigid
   integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   #integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated_identity
-  integrator.preconditioner = block_diagonal_preconditioner
   integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
   integrator.eta = eta
   integrator.a = a
@@ -1053,7 +966,6 @@ if __name__ == '__main__':
   integrator.mobility_vector_prod = mobility_vector_prod
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
   integrator.K_matrix_vector_prod = K_matrix_vector_prod
-  integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
   integrator.preprocess = multi_bodies_functions.preprocess
   integrator.postprocess = multi_bodies_functions.postprocess
   integrator.periodic_length = read.periodic_length
