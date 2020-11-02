@@ -58,3 +58,28 @@ distance to the wall. In those case you can write your own slip
 function without modifying the main code, see a simple example in
 `RigidMultiblobsWall/multi_bodies/examples/pair_active_rods/`.
 
+
+## 4. Plot velocity fields
+
+You can plot the velocity field at some configuration.
+The field, computed at a rectangular grid, will be saved to a `VTK` file that you can postprocess with other software
+such as [VisIt](https://wci.llnl.gov/simulation/computer-codes/visit).
+To specify the size of the rectangular grid in the inputfile use the keyword
+
+```
+plot_velocity_field      x_min x_max x_N   y_min y_max y_N   z_min z_max z_N
+```
+
+See an example in the inputfile `inputfile_squirmer_velocity_field.dat`.
+
+To run this example, first, you have to compile the `C++` coda in `RigidMultiblobsWall/vist/`;
+you will need to edit the `Makefile` in the folder to reflect your configuration.
+Then, copy the file `RigidMultiblobsWall/multi_bodies/multi_bodies_utilities.py` to this folder
+and run the command
+
+```
+python multi_bodies_utilities.py --input-file inputfile_squirmer_velocity_field.dat
+``` 
+This example should generate a file `*.vtk` with the velocity field.
+
+

@@ -38,7 +38,7 @@ try:
 except ImportError:
   found_numba = False
 if found_numba:
-  from . import forces_numba
+  import forces_numba
 try:
   import forces_cpp
 except ImportError:

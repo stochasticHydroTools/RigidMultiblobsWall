@@ -86,6 +86,8 @@ The code includes a utility to write the fluid velocity field to VTK
 files. To use it is necessary to compile the _C++_ code in `visit/`,
 you need to edit the Makefile to reflect your environment.
 You need the library boost 1.63 or higher.
+You can see an example of how to plot a velocity field in the folder
+`RigidMultiblobsWall/multi_bodies/examples/squirmer/`.
 
 ### 1.4 HydroGrid interface
 Our codes can call HydroGrid

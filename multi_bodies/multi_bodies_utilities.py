@@ -19,8 +19,8 @@ found_functions = False
 path_to_append = ''
 while found_functions is False:
   try:
-    from . import multi_bodies_functions
-    from . import multi_bodies
+    import multi_bodies_functions
+    import multi_bodies
     from mobility import mobility as mob
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
@@ -28,6 +28,7 @@ while found_functions is False:
     from read_input import read_input
     from read_input import read_vertex_file
     from read_input import read_clones_file
+    from read_input import read_slip_file
     import general_application_utils as utils
     found_functions = True
   except ImportError:

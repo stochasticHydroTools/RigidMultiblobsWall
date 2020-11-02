@@ -24,7 +24,7 @@ found_functions = False
 path_to_append = ''
 while found_functions is False:
   try:
-    from . import multi_bodies_functions
+    import multi_bodies_functions
     from mobility import mobility as mb
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
