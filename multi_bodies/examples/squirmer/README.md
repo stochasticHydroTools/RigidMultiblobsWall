@@ -72,8 +72,8 @@ plot_velocity_field      x_min x_max x_N   y_min y_max y_N   z_min z_max z_N
 
 See an example in the inputfile `inputfile_squirmer_velocity_field.dat`.
 
-To run this example, first, you have to compile the `C++` coda in `RigidMultiblobsWall/vist/`;
-you will need to edit the `Makefile` in the folder to reflect your configuration.
+To run this example, first, you have to compile the `C++` code in `RigidMultiblobsWall/vist/`;
+you will need to edit the `Makefile` in that folder to reflect your computer configuration.
 Then, copy the file `RigidMultiblobsWall/multi_bodies/multi_bodies_utilities.py` to this folder
 and run the command
 
