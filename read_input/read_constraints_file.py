@@ -39,17 +39,21 @@ def read_constraints_file(name_file, output_name):
       elif counter == 2:
         num_constraints = int(line.split()[0])
       else:
-        constraints_info.append(np.fromstring(line, sep=' '))
-
+        constraints_info.append(line.split())
+        
       # Advance counter
       counter += 1
 
   constraints_info = np.array(constraints_info)
+  constraints_type = constraints_info[:,0].astype(int)
+  constraints_indices = constraints_info[:,1:3].astype(int)
+  constraints_links = constraints_info[:, 4:10].astype(float)
+  constraints_extra = constraints_info[:, 10:]
+    
 
   # Copy file to output
   if output_name is not None:
     head, tail = ntpath.split(name_file)
     copyfile(name_file, output_name + '.' + tail)
 
-  return num_rigid_bodies, num_blobs, num_constraints, constraints_info
-  
+  return num_rigid_bodies, num_blobs, num_constraints, constraints_type, constraints_indices, constraints_links, constraints_extra

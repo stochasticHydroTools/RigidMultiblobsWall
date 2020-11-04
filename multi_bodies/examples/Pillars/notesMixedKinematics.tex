@@ -111,7 +111,7 @@ We write in this section the linear systems that appear in the free and prescrib
 \eqn
 \left[ \begin{array}{cc}
 \bM & -\bK \\
-\bK^T & 0
+-\bK^T & 0
 \end{array}\right] 
 \left[ \begin{array}{c}
 \blambda \\
@@ -129,7 +129,7 @@ The linear system for prescribed kinematics is
 \eqn
 \left[ \begin{array}{cc}
 \bM & 0 \\
-\bK^T & \bI
+-\bK^T & \bI
 \end{array}\right] 
 \left[ \begin{array}{c}
 \blambda \\
@@ -141,7 +141,7 @@ The linear system for prescribed kinematics is
 \end{array}\right].
 \label{eq:prescribed}
 \eqnend
-Note that the second equation ($\bK^T \blambda + \bF = 0$) is redundant and therefore it is not necessary to include it. However,
+Note that the second equation ($-\bK^T \blambda + \bF = 0$) is redundant and therefore it is not necessary to include it. However,
 having linear systems of the same size for both the free and prescribed kinematic simplifies the bookkeeping of variables in the code, therefore, we include it in our implementation.
 Note also that in our implementation $\bK \bU=0$.
 
@@ -149,8 +149,8 @@ The only coupling between bodies in \eqref{eq:free} and \eqref{eq:prescribed} is
 \eqn
 \left[ \begin{array}{ccc}
 \bM & -\bK_{\tex{free}} & 0 \\
-\bK_{\tex{free}}^T & 0 & 0 \\
-\bK^T_{\tex{presc}} & 0 & \bI
+-\bK_{\tex{free}}^T & 0 & 0 \\
+-\bK^T_{\tex{presc}} & 0 & \bI
 \end{array}\right] 
 \left[ \begin{array}{c}
 \blambda \\
