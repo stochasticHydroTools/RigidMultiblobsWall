@@ -145,6 +145,7 @@ class Articulated(object):
       g[k] = c.calc_constraint_violation(time_point=0)
     g_total = np.linalg.norm(g)
     g_total_inf = np.linalg.norm(g, ord=np.inf)
+    print(g_total_inf)
 
     # If error is small return
     if g_total_inf < tol:
@@ -247,7 +248,7 @@ class Articulated(object):
                                   verbose=(2 if verbose else 0),
                                   ftol=tol,
                                   xtol=tol,
-                                  gtol=None,
+                                  gtol=1e-8,
                                   method='dogbox',
                                   jac=jacobian,
                                   kwargs={'q':q, 'A':self.A, 'links':links, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
@@ -296,7 +297,7 @@ class Articulated(object):
                                   verbose=(2 if verbose else 0),
                                   ftol=tol,
                                   xtol=tol,
-                                  gtol=None,
+                                  gtol=1e-8,
                                   method='dogbox',
                                   jac_sparsity=jac_sparsity,
                                   jac='2-point',
