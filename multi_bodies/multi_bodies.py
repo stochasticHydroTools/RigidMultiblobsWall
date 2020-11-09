@@ -884,7 +884,7 @@ if __name__ == '__main__':
       parameters = constraints_links[subconstraint]
 
       # Create constraint
-      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_type[subconstraint])
+      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_type[subconstraint], constraints_extra[subconstraint])
       constraints.append(c)
 
     # Create articulated rigid body
@@ -901,7 +901,8 @@ if __name__ == '__main__':
                         num_blobs,
                         num_constraints,
                         constraints_bodies,
-                        constraints_links)
+                        constraints_links,
+                        constraints_extra)
       articulated.append(art)
 
     # Update offsets

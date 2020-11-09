@@ -11,6 +11,7 @@ from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 from plot import plot_velocity_field as pvf
 import general_application_utils as utils
+import gmres
 
 try:
   from quaternion import Quaternion
@@ -1163,8 +1164,8 @@ class QuaternionIntegrator(object):
       # Add the prescribed constraint velocity 
       B = np.zeros((Nconstraints,3))
       if Nconstraints>0:
-        ##### TO DO: FILL THE B VECTOR WITH THE PRESCRIBED VELOCITY
-        pass
+        for k, c in enumerate(self.constraints):
+          B[k] = - (c.links_deriv_updated[0:3] - c.links_deriv_updated[3:6])
       # Set right hand side
       RHS = np.reshape(np.concatenate([slip.flatten(), -force_torque.flatten(), B.flatten()]), (System_size))
       # If prescribed velocity modify RHS
@@ -1214,10 +1215,13 @@ class QuaternionIntegrator(object):
     if RHS_norm > 0:
       RHS = RHS / RHS_norm
 
-    # Solve preconditioned linear system
-    counter = gmres_counter(print_residual = self.print_residual)
-    (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter) 
-    self.det_iterations_count += counter.niter
+      # Solve preconditioned linear system
+      counter = gmres_counter(print_residual = self.print_residual)
+      # (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      sol_precond, _, _ = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
+      self.det_iterations_count += counter.niter
+    else:
+      sol_precond = np.zeros_like(RHS)
 
     if save_first_guess:
       self.first_guess = sol_precond  
@@ -1329,21 +1333,22 @@ class QuaternionIntegrator(object):
     '''
     Forward Euler scheme for articulated rigid bodies.
     '''
-    while True:
+    while True:      
       # Save initial configuration 
       for k, b in enumerate(self.bodies):
         np.copyto(b.location_old, b.location)
         b.orientation_old = copy.copy(b.orientation)
 
       # Update links to current orientation
+      step = kwargs.get('step')
       for c in self.constraints:
-        c.update_links()       
+        c.update_links(time = step * dt)
 
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
                                                 update_PC = self.update_PC,
-                                                step = kwargs.get('step'))
+                                                step = step)
 
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
@@ -1365,7 +1370,7 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
-        art.update_links()
+        art.update_links(time = (step + 1) * dt)
         art.solve_relative_position()
         art.correct_respect_cm()
     
@@ -1390,14 +1395,15 @@ class QuaternionIntegrator(object):
         b.orientation_old = copy.copy(b.orientation)
 
       # Update links to current orientation
+      step = kwargs.get('step')
       for c in self.constraints:
-        c.update_links()       
+        c.update_links(time = step * dt) 
         
       # Solve mobility problem
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
                                                 update_PC = self.update_PC,
-                                                step = kwargs.get('step'))
+                                                step = step)
 
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
@@ -1419,19 +1425,19 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
-        art.update_links()
+        art.update_links(time = (step + 0.5) * dt)
         art.solve_relative_position()      
         art.correct_respect_cm()
 
       # Update links to current orientation
       for c in self.constraints:
-        c.update_links()       
+        c.update_links(time = (step + 0.5) * dt)
 
       # Solve mobility problem at Mid-Point
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
                                                 update_PC = self.update_PC,
-                                                step = kwargs.get('step') + 0.5)
+                                                step = step + 0.5)
 
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
@@ -1453,7 +1459,7 @@ class QuaternionIntegrator(object):
 
       # Solve relative position and correct respect cm
       for art in self.articulated:
-        art.update_links()
+        art.update_links(time = (step + 1) * dt)
         art.solve_relative_position()      
         art.correct_respect_cm()
              

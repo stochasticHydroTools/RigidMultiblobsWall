@@ -12,7 +12,6 @@ constraint_type_0 body_i body_j number_of_parameters parameters
 
 '''
 import numpy as np
-import numexpr as ne
 from shutil import copyfile
 import ntpath
 
@@ -22,6 +21,11 @@ def read_constraints_file(name_file, output_name):
   with open(name_file, 'r') as f:
     counter = 0
     constraints_info = []
+    constraints_type = []
+    constraints_indices = []
+    constraints_links = []
+    constraints_extra = []
+    
     for line in f:
       # Strip comments
       if comment_symbols[0] in line:
@@ -39,18 +43,19 @@ def read_constraints_file(name_file, output_name):
       elif counter == 2:
         num_constraints = int(line.split()[0])
       else:
-        constraints_info.append(line.split())
+        constraints_info = line.split()
+        constraints_type.append(constraints_info[0])
+        constraints_indices.append(constraints_info[1:3])
+        constraints_links.append(constraints_info[4:10])
+        constraints_extra.append(constraints_info[10:])
         
       # Advance counter
       counter += 1
 
-  constraints_info = np.array(constraints_info)
-  constraints_type = constraints_info[:,0].astype(int)
-  constraints_indices = constraints_info[:,1:3].astype(int)
-  constraints_links = constraints_info[:, 4:10].astype(float)
-  constraints_extra = constraints_info[:, 10:]
+  constraints_type = np.array(constraints_type, dtype=int)
+  constraints_indices = np.array(constraints_indices, dtype=int)
+  constraints_links = np.array(constraints_links, dtype=float)
     
-
   # Copy file to output
   if output_name is not None:
     head, tail = ntpath.split(name_file)

@@ -9,13 +9,17 @@ from functools import partial
 from quaternion_integrator.quaternion import Quaternion
 from body import body
 import general_application_utils as utils
+try:
+  import numexpr as ne
+except ImportError:
+  pass
 
 
 class Articulated(object):
   '''
   Small class to handle an articulated rigid body.
   '''  
-  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_blobs, num_constraints, constraints_bodies, constraints_links):
+  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_blobs, num_constraints, constraints_bodies, constraints_links, constraints_extra):
     '''
     Constructor. Take arguments like ...
     '''
@@ -36,6 +40,7 @@ class Articulated(object):
     self.constraints_bodies_indices = constraints_bodies
     self.constraints_links = constraints_links
     self.constraints_links_updated = np.copy(constraints_links)
+    self.constraints_extra = constraints_extra
 
     # Center of mass position and velocity
     self.q_cm = np.zeros(3)
@@ -50,7 +55,7 @@ class Articulated(object):
       self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,0] : 3 * (self.constraints_bodies_indices[i,0]+1)] = np.eye(3)
       self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,1] : 3 * (self.constraints_bodies_indices[i,1]+1)] = -np.eye(3)
     self.Ainv = np.linalg.pinv(self.A)
-
+    
 
   def compute_cm(self, time_point='current'):
     '''
@@ -147,9 +152,10 @@ class Articulated(object):
       g[k] = c.calc_constraint_violation(time_point='current')
     g_total = np.linalg.norm(g)
     g_total_inf = np.linalg.norm(g, ord=np.inf)
-    print(g_total_inf)
 
-    print('g_total_inf = ', g_total_inf)
+    if verbose:
+      print('g_total_inf = ', g_total_inf)
+
     # If error is small return
     if g_total_inf < tol:
       return
@@ -158,12 +164,6 @@ class Articulated(object):
     q = np.zeros((self.num_bodies, 3))
     for k, b in enumerate(self.bodies):
       q[k] = b.location
-
-    # # Pre-rotate links
-    # links = np.zeros((self.num_constraints, 6))
-    # for k, c in enumerate(self.constraints):
-    #   links[k, 0:3] = np.dot(self.bodies[self.constraints_bodies_indices[k,0]].orientation.rotation_matrix(), self.constraints_links[k, 0:3])
-    #   links[k, 3:6] = np.dot(self.bodies[self.constraints_bodies_indices[k,1]].orientation.rotation_matrix(), self.constraints_links[k, 3:6])
 
     # Define residual function
     @utils.static_var('counter', 0)
@@ -329,13 +329,30 @@ class Articulated(object):
     return
 
   
-  def update_links(self):
+  def update_links(self, time=0):
     '''
     Rotate links to current orientation.
     '''
 
     for i in range(self.num_constraints):
-      self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(),
-                                                     self.constraints_links[i,0:3])
-      self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(),
-                                                     self.constraints_links[i,3:6])
+      if len(self.constraints_extra[i]) == 0:
+        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(),
+                                                       self.constraints_links[i,0:3])
+        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(),
+                                                       self.constraints_links[i,3:6])
+      else:
+        t = time
+      
+        # Evaluate link and its time derivative in the body frame of reference
+        self.constraints_links[i,0] = ne.evaluate(self.constraints_extra[i][0])
+        self.constraints_links[i,1] = ne.evaluate(self.constraints_extra[i][1])
+        self.constraints_links[i,2] = ne.evaluate(self.constraints_extra[i][2])
+        self.constraints_links[i,3] = ne.evaluate(self.constraints_extra[i][3])
+        self.constraints_links[i,4] = ne.evaluate(self.constraints_extra[i][4])
+        self.constraints_links[i,5] = ne.evaluate(self.constraints_extra[i][5])
+
+        # Rotate links and its derivative to the laboratory frame of reference
+        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.constraints_links[i,0:3])
+        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.constraints_links[i,3:6])
+        
+    return
