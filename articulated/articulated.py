@@ -147,7 +147,6 @@ class Articulated(object):
       g[k] = c.calc_constraint_violation(time_point='current')
     g_total = np.linalg.norm(g)
     g_total_inf = np.linalg.norm(g, ord=np.inf)
-    print(g_total_inf)
 
     print('g_total_inf = ', g_total_inf)
     # If error is small return
@@ -202,7 +201,7 @@ class Articulated(object):
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
     
-    if g_total_inf < 0.1:
+    if g_total_inf < 0.0:
       def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
         '''
         Jacobian approximation for small rotations.
@@ -250,8 +249,8 @@ class Articulated(object):
                                   verbose=(2 if verbose else 0),
                                   ftol=tol,
                                   xtol=tol,
-                                  gtol=1e-8,
-                                  method='dogbox',
+                                  gtol=None,
+                                  method='trf',
                                   jac=jacobian,
                                   kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated,
                                           'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
@@ -300,8 +299,8 @@ class Articulated(object):
                                   verbose=(2 if verbose else 0),
                                   ftol=tol,
                                   xtol=tol,
-                                  gtol=1e-8,
-                                  method='dogbox',
+                                  gtol=None,
+                                  method='trf',
                                   jac_sparsity=jac_sparsity,
                                   jac='2-point',
                                   kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices})
