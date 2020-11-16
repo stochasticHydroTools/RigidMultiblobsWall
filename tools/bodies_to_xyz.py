@@ -63,7 +63,14 @@ if __name__ == '__main__':
     # Read vertex, clones and constraint files
     struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], None)
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    num_bodies_in_articulated, num_blobs, num_constraints, constraints_info = read_constraints_file.read_constraints_file(structure[2], None)
+    constraints_info = read_constraints_file.read_constraints_file(structure[2], None)
+    num_bodies_in_articulated = constraints_info[0]
+    num_blobs = constraints_info[1]
+    num_constraints = constraints_info[2]
+    constraints_type = constraints_info[3]
+    constraints_bodies = constraints_info[4]
+    constraints_links = constraints_info[5]
+    constraints_extra = constraints_info[6]
 
     # Read slip file if it exists
     body_types.append(num_bodies_struct)
@@ -92,16 +99,13 @@ if __name__ == '__main__':
       
       print(num_blobs_ID)
       print('#')
-      r_vectors = []
       for k, b in enumerate(bodies):
         if b.ID == name_ID:
           data = f.readline().split()
           b.location = [float(data[0]), float(data[1]), float(data[2])]
           b.orientation = Quaternion([float(data[3]), float(data[4]), float(data[5]), float(data[6])])
-          r_vectors.append(b.get_r_vectors())
-      r_vectors = np.array(r_vectors)
-      r_vectors = np.reshape(r_vectors, (r_vectors.size // 3, 3))
-      for i in range(len(r_vectors)):
-        print(name_ID[0].upper() + ' ' + str(r_vectors[i,0]) + ' ' + str(r_vectors[i,1]) + ' ' + str(r_vectors[i,2]))
+          for ri in b.get_r_vectors():
+            print(b.ID[0].upper() + ' ', ri[0] , ri[1] , ri[2])
+          
 
 

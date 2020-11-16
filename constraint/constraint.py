@@ -7,12 +7,16 @@ from body import body
 import numpy as np
 import copy
 import sys
+try:
+  import numexpr as ne
+except ImportError:
+  pass
 
 class Constraint(object):
   '''
   Small class to handle a single constraint.
   '''  
-  def __init__(self, bodies, ind_bodies,  articulated_body, links, constraint_type=0):
+  def __init__(self, bodies, ind_bodies,  articulated_body, links, constraint_type=0, constraint_extra=None):
     '''
     Constructor. Take arguments like ...
     '''
@@ -31,6 +35,10 @@ class Constraint(object):
     self.constraint_type = constraint_type
     # Jacobian of the time-derivative of the constraint (3 by 12 matrix)
     self.C  = None
+    # Info for time dependent constraints and time derivative of the links
+    self.constraint_extra = constraint_extra
+    self.links_deriv = np.zeros(6)
+    self.links_deriv_updated = np.zeros(6)
 
 
   def calc_rot_link_matrix(self):
@@ -88,11 +96,35 @@ class Constraint(object):
     return g
 
   
-  def update_links(self):
+  def update_links(self, time=0):
     '''
     Rotate links to current orientation.
     '''
-    self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
-    self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+    if len(self.constraint_extra) == 0:
+      self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
+      self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+    else:
+      t = time
+
+      # Evaluate link and its time derivative in the body frame of reference
+      self.links[0] = ne.evaluate(self.constraint_extra[0])
+      self.links[1] = ne.evaluate(self.constraint_extra[1])
+      self.links[2] = ne.evaluate(self.constraint_extra[2])
+      self.links[3] = ne.evaluate(self.constraint_extra[3])
+      self.links[4] = ne.evaluate(self.constraint_extra[4])
+      self.links[5] = ne.evaluate(self.constraint_extra[5])
+      self.links_deriv[0] = ne.evaluate(self.constraint_extra[6])
+      self.links_deriv[1] = ne.evaluate(self.constraint_extra[7])
+      self.links_deriv[2] = ne.evaluate(self.constraint_extra[8])
+      self.links_deriv[3] = ne.evaluate(self.constraint_extra[9])
+      self.links_deriv[4] = ne.evaluate(self.constraint_extra[10])
+      self.links_deriv[5] = ne.evaluate(self.constraint_extra[11])
+
+      # Rotate links and its derivative to the laboratory frame of reference
+      self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
+      self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+      self.links_deriv_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links_deriv[0:3])
+      self.links_deriv_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links_deriv[3:6])
+               
     return
     
