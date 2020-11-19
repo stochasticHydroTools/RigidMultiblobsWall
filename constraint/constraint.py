@@ -127,7 +127,9 @@ class Constraint(object):
       self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
       self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
       self.links_deriv_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links_deriv[0:3])
-      self.links_deriv_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links_deriv[3:6])
-      
+      if self.ind_bodies[0] != self.ind_bodies[1]:
+        self.links_deriv_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links_deriv[3:6])
+      else:
+        self.links_deriv_updated[3:6] = 0
     return
     

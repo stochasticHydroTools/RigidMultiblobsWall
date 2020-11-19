@@ -352,7 +352,6 @@ class Articulated(object):
         self.constraints_links[i,5] = ne.evaluate(self.constraints_extra[i][5])
 
         # Rotate links and its derivative to the laboratory frame of reference
-        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.constraints_links[i,0:3])
-        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.constraints_links[i,3:6])
-        
+        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i,0:3])
+        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i,3:6])
     return
