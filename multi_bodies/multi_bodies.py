@@ -47,7 +47,7 @@ while found_functions is False:
       found_HydroGrid = False
     found_functions = True
   except ImportError as exc:
-    sys.stderr.write("Error: failed to import settings module ({})".format(exc))
+    sys.stderr.write('Error: failed to import settings module ({})\n'.format(exc))
     path_to_append += '../'
     print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
@@ -548,8 +548,8 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         b2loc = art.return_body_local_index(b2)
         C1 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b1loc:6*(b1loc+1)]
         C2 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b2loc:6*(b2loc+1)]
-        CN[3*kc:3*(kc+1),6*b1loc:6*(b1loc+1)] += np.dot(C1,mobility_bodies[b1])
-        CN[3*kc:3*(kc+1),6*b2loc:6*(b2loc+1)] += np.dot(C2,mobility_bodies[b2])
+        CN[3*kc:3*(kc+1),6*b1loc:6*(b1loc+1)] = np.dot(C1,mobility_bodies[b1])
+        CN[3*kc:3*(kc+1),6*b2loc:6*(b2loc+1)] = np.dot(C2,mobility_bodies[b2])
       # Compute resistance matrix G = (C*N*C^T)^{-1} of each articulated body
       CT = C_art_bodies[ka].T
       CNCT = np.dot(CN,CT)
@@ -635,12 +635,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         # Computes the correction for lambda due to constraints
         Lambda_corr = np.dot(mobility_inv_blobs[indb], np.dot(K_bodies[indb], NFc[6*kb:6*(kb+1)]))
         # Navigate through bodies to assign the correction at the right location
-        offset = 0
-        for koff, boff in enumerate(bodies):
-          if koff < indb:
-            offset += boff.Nblobs
-          else:
-            break
+        offset = b.blobs_offset
         result[3*offset : 3*(offset + b.Nblobs)] += Lambda_corr
 
       # Set result U = U_unconst + N*Fc
@@ -803,6 +798,7 @@ if __name__ == '__main__':
   bodies = []
   body_types = []
   body_names = []
+  blobs_offset = 0
   for ID, structure in enumerate(structures):
     print('Creating structures = ', structure[1])
     # Read vertex and clones files
@@ -826,6 +822,9 @@ if __name__ == '__main__':
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
+      # Compute the blobs offset for lambda in the whole system array
+      b.blobs_offset = blobs_offset
+      blobs_offset += b.Nblobs
       multi_bodies_functions.set_slip_by_ID(b, slip)
       # If structure is an obstacle
       if ID >= read.num_free_bodies:
@@ -876,6 +875,9 @@ if __name__ == '__main__':
         b.calc_body_length()
       else:
         b.body_length = bodies[-1].body_length
+      # Compute the blobs offset for lambda in the whole system array
+      b.blobs_offset = blobs_offset
+      blobs_offset += b.Nblobs
       multi_bodies_functions.set_slip_by_ID(b, slip)
       # Append bodies to total bodies list
       bodies.append(b)
