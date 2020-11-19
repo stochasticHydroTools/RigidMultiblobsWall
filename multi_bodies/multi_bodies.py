@@ -47,7 +47,7 @@ while found_functions is False:
       found_HydroGrid = False
     found_functions = True
   except ImportError as exc:
-    # sys.stderr.write("Error: failed to import settings module ({})".format(exc))
+    sys.stderr.write("Error: failed to import settings module ({})".format(exc))
     path_to_append += '../'
     print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
@@ -632,6 +632,17 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
       for kb, b in enumerate(art.bodies):
         indb = art.ind_bodies[kb]
         NFc[6*kb:6*(kb+1)] = np.dot(mobility_bodies[indb],Fc[6*kb:6*(kb+1)])
+        # Computes the correction for lambda due to constraints
+        Lambda_corr = np.dot(mobility_inv_blobs[indb], np.dot(K_bodies[indb], NFc[6*kb:6*(kb+1)]))
+        # Navigate through bodies to assign the correction at the right location
+        offset = 0
+        for koff, boff in enumerate(bodies):
+          if koff < indb:
+            offset += boff.Nblobs
+          else:
+            break
+        result[3*offset : 3*(offset + b.Nblobs)] += Lambda_corr
+
       # Set result U = U_unconst + N*Fc
       result[3*Nblobs + 6*indb_first:3*Nblobs + 6*(indb_last+1)] += NFc
       # Set result Phi 

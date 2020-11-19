@@ -6,17 +6,17 @@ import numpy as np
 import scipy.sparse.linalg as spla
 from functools import partial
 import copy
-
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 from plot import plot_velocity_field as pvf
 import general_application_utils as utils
-import gmres
 
 try:
   from quaternion import Quaternion
+  import gmres 
 except ImportError:
   from quaternion_integrator.quaternion import Quaternion
+  from quaternion_integrator import gmres 
 
 
 class QuaternionIntegrator(object):
@@ -1217,9 +1217,10 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
-      # (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
-      sol_precond, _, _ = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
-      self.det_iterations_count += counter.niter
+      #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      #self.det_iterations_count += counter.niter
+      (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
+      self.det_iterations_count += len(resnorms)
     else:
       sol_precond = np.zeros_like(RHS)
 
