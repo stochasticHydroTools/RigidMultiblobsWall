@@ -133,8 +133,8 @@ class Articulated(object):
       b2loc = self.return_body_local_index(c.ind_bodies[1])
       C1 = C_constraint[:,0:6]
       C2 = C_constraint[:,6:12]
-      C[3*k:3*(k+1), 6*b1loc:6*(b1loc+1)] = C1 
-      C[3*k:3*(k+1), 6*b2loc:6*(b2loc+1)] = C2
+      C[3*k:3*(k+1), 6*b1loc:6*(b1loc+1)] += C1 
+      C[3*k:3*(k+1), 6*b2loc:6*(b2loc+1)] += C2
     return C
 
 

@@ -78,7 +78,10 @@ class Constraint(object):
     Return geometric matrix C = [I -rot_link_pq -I rot_link_qp] with shape (3, 12)
     '''
     rot_link = self.calc_rot_link_matrix()
-    return np.concatenate( ( np.eye(3), -rot_link[:,0:3], -np.eye(3), rot_link[:,3:6] ), axis=1)
+    if self.ind_bodies[0] != self.ind_bodies[1]:
+      return np.concatenate( ( np.eye(3), -rot_link[:,0:3], -np.eye(3), rot_link[:,3:6] ), axis=1)
+    else:
+      return np.concatenate( ( np.eye(3), -rot_link[:,0:3], np.zeros((3,3)), np.zeros((3,3)) ), axis=1)
 
 
   def calc_constraint_violation(self, time_point='current'):
@@ -125,6 +128,6 @@ class Constraint(object):
       self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
       self.links_deriv_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links_deriv[0:3])
       self.links_deriv_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links_deriv[3:6])
-               
+      
     return
     

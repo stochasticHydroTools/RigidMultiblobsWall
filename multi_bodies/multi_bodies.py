@@ -265,7 +265,6 @@ def C_matrix_vector_prod(bodies, constraints, vector, Nconstraints, C_constraint
     vbody1 = v[6*ind1 : 6*(ind1+1)]  
     ind2 = c.ind_bodies[1]
     vbody2 = v[6*ind2 : 6*(ind2+1)] 
- 
     result[k] = np.dot(C, np.concatenate([vbody1, vbody2], axis = 0))
   return result
 
@@ -290,7 +289,6 @@ def C_matrix_T_vector_prod(bodies, constraints, vector, Nconstraints, C_constrai
     ind2 = c.ind_bodies[1]
     C1 = C[:,0:6]
     C2 = C[:,6:12]
-
     result[ind1] += np.dot(C1.T, v[3*k:3*(k+1)])
     result[ind2] += np.dot(C2.T, v[3*k:3*(k+1)])
 
@@ -550,8 +548,8 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         b2loc = art.return_body_local_index(b2)
         C1 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b1loc:6*(b1loc+1)]
         C2 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b2loc:6*(b2loc+1)]
-        CN[3*kc:3*(kc+1),6*b1loc:6*(b1loc+1)] = np.dot(C1,mobility_bodies[b1])
-        CN[3*kc:3*(kc+1),6*b2loc:6*(b2loc+1)] = np.dot(C2,mobility_bodies[b2])
+        CN[3*kc:3*(kc+1),6*b1loc:6*(b1loc+1)] += np.dot(C1,mobility_bodies[b1])
+        CN[3*kc:3*(kc+1),6*b2loc:6*(b2loc+1)] += np.dot(C2,mobility_bodies[b2])
       # Compute resistance matrix G = (C*N*C^T)^{-1} of each articulated body
       CT = C_art_bodies[ka].T
       CNCT = np.dot(CN,CT)
