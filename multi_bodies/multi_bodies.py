@@ -346,7 +346,6 @@ def linear_operator_rigid(vector, bodies, constraints, r_vectors, eta, a, K_bodi
   return res
 
 
-
 @utils.static_var('initialized', [])
 @utils.static_var('mobility_bodies', [])
 @utils.static_var('K_bodies', [])
@@ -751,6 +750,113 @@ def build_block_diagonal_preconditioner_articulated_identity(bodies, constraints
                                                   Nblobs = Nblobs)
   return block_diagonal_preconditioner_partial
 
+@utils.static_var('initialized', [])
+@utils.static_var('mobility_bodies', [])
+@utils.static_var('C_art_bodies', [])
+@utils.static_var('res_art_bodies', [])
+def build_block_diagonal_preconditioner_articulated_single_blobs(bodies, articulated, Nblobs, Nconstraints, eta, a, *args, **kwargs):
+  '''
+  build the block diagonal preconditioner for articulated rigid bodies.
+  it solves exactly the mobility problem for each body
+  independently, i.e., no interation between bodies is taken
+  into account.
+  the first version only preconditions the constraint part with the identity matrix. 
+  '''
+  initialized = build_block_diagonal_preconditioner.initialized
+  mobility_bodies = []
+  C_art_bodies = []
+  res_art_bodies = []
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
+    # 1. compute diag single blob mobility
+    factor_Mtt = 1./(6*np.pi*eta*a)
+    factor_Mrr = 1./(8*np.pi*eta*a**3)
+    M = np.eye(6)
+    np.fill_diagonal(M[0:3,0:3], factor_Mtt)
+    np.fill_diagonal(M[3:6,3:6], factor_Mrr)
+    # loop over bodies
+    for k, b in enumerate(bodies):
+      # 2. add it to the body(=blob) mobility
+      mobility_bodies.append(M)
+    
+    # Loop over articulated bodies
+    for ka, art in enumerate(articulated):     
+      # Compute C matrix for each articulated body
+      C_art_bodies.append(art.calc_C_matrix_articulated_body())
+      # Compute the product C*N for each articulated body
+      CN = np.zeros((3*art.num_constraints,6*art.num_bodies))
+      for kc, const in enumerate(art.constraints):
+        b1 = const.ind_bodies[0]
+        b2 = const.ind_bodies[1]
+        # Use local indices to the articulated body
+        b1loc = art.return_body_local_index(b1)
+        b2loc = art.return_body_local_index(b2)
+        C1 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b1loc:6*(b1loc+1)]
+        C2 = C_art_bodies[ka][3*kc:3*(kc+1), 6*b2loc:6*(b2loc+1)]
+        CN[3*kc:3*(kc+1),6*b1loc:6*(b1loc+1)] = np.dot(C1,mobility_bodies[b1])
+        CN[3*kc:3*(kc+1),6*b2loc:6*(b2loc+1)] = np.dot(C2,mobility_bodies[b2])
+      # Compute resistance matrix G = (C*N*C^T)^{-1} of each articulated body
+      CT = C_art_bodies[ka].T
+      CNCT = np.dot(CN,CT)
+      res_art_bodies.append(np.linalg.pinv(CNCT))
+     
+    # save variables to use in next steps if pc is not updated
+    build_block_diagonal_preconditioner.mobility_bodies = mobility_bodies
+    build_block_diagonal_preconditioner.C_art_bodies = C_art_bodies
+    build_block_diagonal_preconditioner.res_art_bodies = res_art_bodies
+
+    # the function is initialized
+    build_block_diagonal_preconditioner.initialized.append(1)
+  else:
+    # use old values
+    mobility_bodies = build_block_diagonal_preconditioner.mobility_bodies 
+    C_art_bodies = build_block_diagonal_preconditioner.C_art_bodies
+    res_art_bodies = build_block_diagonal_preconditioner.res_art_bodies
+
+  def block_diagonal_preconditioner(vector, bodies = None, articulated = None, mobility_bodies = None, Nblobs = None, Nconstraints = None):
+    '''
+    Apply the block diagonal preconditioner.
+    '''
+    result = np.zeros(vector.shape)
+    Ncomp = len(vector)
+    # First get unconstrained body velocities for RHS: M*F
+    result[3*Nconstraints:3*Nconstraints+6*Nblobs] = vector[0:6*Nblobs] 
+
+    # Compute constraint forces and body velocities for each articulated body separately
+    U_unconst = result[3*Nconstraints:3*Nconstraints+6*Nblobs]
+    for ka, art in enumerate(articulated): 
+      # Get first and last indices of the bodies in art 
+      indb_first = art.ind_bodies[0]
+      indb_last = art.ind_bodies[-1]
+      # C*U_unconst 
+      C_times_U = np.dot(C_art_bodies[ka],U_unconst[6*indb_first:6*(indb_last+1)])
+      # Get first and last indices of the constraints in art 
+      indc_first = art.ind_constraints[0]
+      indc_last = art.ind_constraints[-1]
+      # RHS: prescribed link velocity B  
+      B = vector[6*Nblobs + 3*indc_first : 6*Nblobs + 3*(indc_last+1)]
+      # Lagrange multipliers: Phi = G*(C*U_unconst-B)
+      Phi = np.dot(res_art_bodies[ka],C_times_U-B)
+      # Constraint forces: Fc = C^T*Phi
+      Fc = np.dot(C_art_bodies[ka].T,Phi)
+      # N*Fc
+      NFc = np.zeros(6*art.num_bodies)
+      for kb, b in enumerate(art.bodies):
+        indb = art.ind_bodies[kb]
+        NFc[6*kb:6*(kb+1)] = np.dot(mobility_bodies[indb],Fc[6*kb:6*(kb+1)])
+      # Set result U = U_unconst - N*Fc
+      result[3*Nconstraints + 6*indb_first: 3*Nconstraints + 6*(indb_last+1)] -= NFc
+      # Set result Phi 
+      result[3*indc_first : 3*(indc_last+1)] = Phi
+    return result
+  block_diagonal_preconditioner_partial = partial(block_diagonal_preconditioner, 
+                                                  bodies = bodies, 
+                                                  articulated = articulated, 
+                                                  mobility_bodies = mobility_bodies, 
+                                                  Nblobs = Nblobs,
+                                                  Nconstraints = Nconstraints)
+  return block_diagonal_preconditioner_partial
+
+
 
 if __name__ == '__main__':
   # Get command line arguments
@@ -938,6 +1044,8 @@ if __name__ == '__main__':
   # Create integrator
   if scheme.find('rollers') == -1:
     integrator = QuaternionIntegrator(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain) 
+    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
+    integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6 + len(constraints)*3)
   else:
     integrator = QuaternionIntegratorRollers(bodies, Nblobs, scheme, tolerance = read.solver_tolerance, domain = read.domain, 
                                              mobility_vector_prod_implementation = read.mobility_vector_prod_implementation) 
@@ -955,6 +1063,10 @@ if __name__ == '__main__':
     integrator.omega_one_roller = read.omega_one_roller
     integrator.free_kinematics = read.free_kinematics
     integrator.hydro_interactions = read.hydro_interactions
+    integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated_single_blobs
+    integrator.C_matrix_T_vector_prod = C_matrix_T_vector_prod 
+    integrator.C_matrix_vector_prod = C_matrix_vector_prod 
+    integrator.first_guess = np.zeros(num_bodies*6 + len(constraints)*3)
 
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation,
@@ -976,12 +1088,10 @@ if __name__ == '__main__':
   integrator.calc_K_matrix = calc_K_matrix
 
   integrator.linear_operator = linear_operator_rigid
-  integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner
   #integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated_identity
   integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
   integrator.eta = eta
   integrator.a = a
-  integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6 + len(constraints)*3)
   integrator.kT = read.kT
   integrator.mobility_vector_prod = mobility_vector_prod
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
