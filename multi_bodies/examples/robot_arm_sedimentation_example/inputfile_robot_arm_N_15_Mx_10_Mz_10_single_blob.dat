@@ -1,0 +1,37 @@
+# Select integrator 
+scheme                                   articulated_deterministic_forward_euler_rollers
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++_no_wall
+mobility_vector_prod_implementation      numba_no_wall
+domain                                   no_wall
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           None
+
+
+# Set time step, number of steps and save frequency
+dt                                       0.01
+n_steps                                  50
+n_save                                   10
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0e-3 
+g                                        2.5e-2
+blob_radius                              1
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0.0
+debye_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.0
+debye_length_wall                        1.0
+
+# Set output name
+output_name                              run_robot_arm_N_15_Mx_10_Mz_10_single_blob
+save_clones                              one_file
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+articulated robot_arm_N_15_Mx_10_Mz_10_single_blob.list_vertex robot_arm_N_15_Mx_10_Mz_10.clones robot_arm_N_15_Mx_10_Mz_10.const
+
