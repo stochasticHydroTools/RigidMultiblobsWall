@@ -202,7 +202,7 @@ class Articulated(object):
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
     
-    if g_total_inf < 0.0:
+    if g_total_inf < 0.:
       def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
         '''
         Jacobian approximation for small rotations.
@@ -245,18 +245,13 @@ class Articulated(object):
         J[indx + 1, offset + 4 * bj + 3] = -( 2 * links[:,3] * theta[bj, 0])        
         return J
 
-      result = scop.least_squares(residual,
-                                  xin,
-                                  verbose=(2 if verbose else 0),
-                                  ftol=tol,
-                                  xtol=tol,
-                                  gtol=None,
-                                  method='trf',
-                                  jac=jacobian,
-                                  kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated,
-                                          'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
-      
+      # Build sparsity of Jacobian
+      jac_sparsity = None
+    
     else:
+      # Build jacobian
+      jacobian = '2-point'
+      
       # Build sparsity of Jacobian
       jac_sparsity = np.zeros((3 * self.num_constraints, 7 * self.num_bodies), dtype=int)
       indx = np.arange(self.num_constraints, dtype=int) * 3
@@ -294,18 +289,18 @@ class Articulated(object):
       jac_sparsity[indx + 2, offset + 4 * bj + 2] = 1
       jac_sparsity[indx + 2, offset + 4 * bj + 3] = 1
 
-      # Call nonlinear solver
-      result = scop.least_squares(residual,
-                                  xin,
-                                  verbose=(2 if verbose else 0),
-                                  ftol=tol,
-                                  xtol=tol,
-                                  gtol=None,
-                                  method='trf',
-                                  jac_sparsity=jac_sparsity,
-                                  jac='2-point',
-                                  kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices})
-
+    # Call nonlinear solver
+    result = scop.least_squares(residual,
+                                xin,
+                                verbose=(2 if verbose else 0),
+                                ftol=tol,
+                                xtol=tol,
+                                gtol=None,
+                                method='trf',
+                                jac=jacobian,
+                                jac_sparsity=jac_sparsity,
+                                kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
+    
     # Update solution
     x = result.x
     for k, b in enumerate(self.bodies):

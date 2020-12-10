@@ -118,24 +118,32 @@ if __name__ == '__main__':
       
       print(num_blobs_total + len(constraints) + len(bodies))
       print('#')
-      # Print blobs
+      # Get bodies config
       for k, b in enumerate(bodies):
         data = f.readline().split()
         b.location = [float(data[0]), float(data[1]), float(data[2])]
         b.orientation = Quaternion([float(data[3]), float(data[4]), float(data[5]), float(data[6])])
+      
+      if False:  
+        # Get center of mass and substract it
+        r_cm = np.zeros(3)
+        for k, b in enumerate(bodies):
+          r_cm += b.location
+        r_cm = r_cm / len(bodies)
+        for k, b in enumerate(bodies):
+          b.location -= r_cm              
+      # Print blobs      
+      for k, b in enumerate(bodies):
         for ri in b.get_r_vectors():
-          # print(b.ID[0].upper() + ' ', ri[0] , ri[1] , ri[2], 0, read.blob_radius)
           print('0 ', ri[0] , ri[1] , ri[2], 0, read.blob_radius)
 
       # Print joints
       for k, c in enumerate(constraints):
         c.update_links()
         l = bodies[c.ind_bodies[0]].location + c.links_updated[0:3]
-        # print('H ', l[0] , l[1] , l[2], 1, read.blob_radius / 2)
         print('1 ', l[0] , l[1] , l[2], 1, read.blob_radius / 2)
 
       # Print bodies' tracker point
       for b in bodies:
-        # print('Zn ', b.location[0], b.location[1], b.location[2], 0.5, read.blob_radius * 1.25)
         print('2 ', b.location[0], b.location[1], b.location[2], 0.5, read.blob_radius * 1.25)
         

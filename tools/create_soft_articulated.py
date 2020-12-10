@@ -1,3 +1,23 @@
+'''
+Create articulated input files from vertex file.
+
+Use:
+
+python create_soft_articulated.py file.vertex d_max d_frac
+
+with:
+file.vertex =  vertex file to conect with links
+d_max = maximum distance to connect blobs with links
+d_frac = (between 0 and 1) where to put the joint in the links between two blobs. 0.5 is the middle.
+
+
+It generates the following files:
+create_soft_articulated_histogram.dat = histogram of the blob-blob distances. Usefult to determine right value of d_max.
+create_soft_articulated.clones = clones file with the position (and orientation) of the blobs.
+create_soft_articulated.const = file with the constrainst information.
+create_soft_articulated.list_vertex = file with the list of vertex files.
+'''
+
 import numpy as np
 import sys
 
@@ -19,7 +39,7 @@ if __name__ == '__main__':
 
   # Compute histogram distances and save it
   h, h_edges = np.histogram(dr.flatten(), x.size, range=(0, np.max(dr.flatten())), density=False)
-  h = h // 2
+  
   with open('create_soft_articulated_histogram.dat', 'w') as f:
     for i in range(x.size - 1):
       f.write(str(0.5*(h_edges[i] + h_edges[i+1])) + '  ' + str(h[i]) + '\n')
