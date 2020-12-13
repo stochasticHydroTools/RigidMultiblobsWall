@@ -27,6 +27,11 @@ if __name__ == '__main__':
   r = np.loadtxt(sys.argv[1], skiprows=1)
   d_max = float(sys.argv[2])
   d_frac = float(sys.argv[3])
+  if len(sys.argv) > 4:
+    method = sys.argv[4]
+    max_num_neighbors = int(sys.argv[5])
+  else:
+    method = 'distance'
 
   # Compute blob-blob distances
   x = r[:,0]
@@ -49,16 +54,37 @@ if __name__ == '__main__':
 
   # Loop over blobs and create links
   links = []
-  for i in range(x.size-1):
-    for j in range(i+1, x.size):
-      if dr[i,j] <= d_max:
-        l = np.zeros(10)
-        l[1] = i
-        l[2] = j
-        l[3] = 6
-        l[4:7] = (r[j] - r[i]) * d_frac
-        l[7:10] = (r[i] - r[j]) * (1 - d_frac)
-        links.append(l)
+  if method == 'distance':
+    for i in range(x.size-1):
+      for j in range(i+1, x.size):
+        if dr[i,j] <= d_max:
+          l = np.zeros(10)
+          l[1] = i
+          l[2] = j
+          l[3] = 6
+          l[4:7] = (r[j] - r[i]) * d_frac
+          l[7:10] = (r[i] - r[j]) * (1 - d_frac)
+          links.append(l)
+  else:
+    num_links = np.zeros(x.size)
+    for i in range(x.size - 1):
+      dri_ind  = np.argsort(dr[i])
+      count = 0
+      while num_links[i] < max_num_neighbors:
+        j = dri_ind[count]
+        if num_links[j] < max_num_neighbors and j > i:
+          l = np.zeros(10)
+          l[1] = i
+          l[2] = j
+          l[3] = 6
+          l[4:7] = (r[j] - r[i]) * d_frac
+          l[7:10] = (r[i] - r[j]) * (1 - d_frac)
+          links.append(l)
+          num_links[i] += 1
+          num_links[j] += 1
+        count += 1
+        
+      
 
 
   # Save constraint file

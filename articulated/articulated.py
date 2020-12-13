@@ -202,7 +202,7 @@ class Articulated(object):
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
     
-    if g_total_inf < 0.:
+    if g_total_inf < 0:
       def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
         '''
         Jacobian approximation for small rotations.
@@ -331,10 +331,8 @@ class Articulated(object):
 
     for i in range(self.num_constraints):
       if len(self.constraints_extra[i]) == 0:
-        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(),
-                                                       self.constraints_links[i,0:3])
-        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(),
-                                                       self.constraints_links[i,3:6])
+        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i,0:3])
+        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i,3:6])
       else:
         t = time
       
