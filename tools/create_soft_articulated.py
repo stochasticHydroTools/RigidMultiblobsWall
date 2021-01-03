@@ -70,7 +70,7 @@ if __name__ == '__main__':
     for i in range(x.size - 1):
       dri_ind  = np.argsort(dr[i])
       count = 0
-      while num_links[i] < max_num_neighbors:
+      while num_links[i] < max_num_neighbors and count < x.size:
         j = dri_ind[count]
         if num_links[j] < max_num_neighbors and j > i:
           l = np.zeros(10)
