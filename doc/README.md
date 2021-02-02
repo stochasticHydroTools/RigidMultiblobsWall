@@ -153,13 +153,13 @@ therefore, we can simulate the dynamics of active bodies like bacteria
 or self-propelled colloids.
 
 For each structure the user can include the name of a slip file in the
-input file (in the line `structure` see below). In this case the code reads the slip at the beginning of the
+input file (in the line `structure` or `obstacle` see below). In this case the code reads the slip at the beginning of the
 simulation. This active slip is assumed to be time independent and fixed in the reference body frame and
 will be converted to the lab frame as the body moves.
 You can see an example in `multi_bodies/examples/squirmer/`.
 If the slip file is not given the slip is set to zero.
 
-Note that in practice the slip probably depends on the position of the particles relative to the boundary and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime, see Section 5.3 for details.
+Note that in practice the slip probably depends on the position of the particles relative to the boundary and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime, see Section 5.4 for details.
 
 
 ## 4. Run static simulations
@@ -235,7 +235,7 @@ corresponding to linear (first three) and angular velocities (last three).
 in the `mobility` problem. The format of the file is one line per body and six floats per line
 corresponding to force (first three) and torque (last three).
 If no file is given the code compute the forces on the bodies as
-explained in the section 5.3.
+explained in the section 5.4.
 
 * `structure`: (two or three strings) name of the vertex, clones and
 optionally slip files with the rigid
@@ -434,7 +434,7 @@ but it can compute blob-blob interactions which lead to effective
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
 The default soft repulsion is meant for sphere suspensions (no torques) and described under `repulsion_strength` below.
-See Section 5.3 for more details on how to implement your own force law in python.
+See Section 5.4 for more details on how to implement your own force law in python.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -474,21 +474,21 @@ form (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`)
 where `r` is the distance between blobs, `b` is the characteristic
 length, `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
-`eps` in the above expression (see section 5.3 to modify blobs interactions).
+`eps` in the above expression (see section 5.4 to modify blobs interactions).
 
 * `debye_length`: (float) the characteristic length of the blob-blob soft potential, `b` in the expression
 given above under `repulsion_strength`.
-(see section 5.3 to modify blobs interactions).
+(see section 5.4 to modify blobs interactions).
 
 * `repulsion_strength_wall`: (float) the blobs interact with the wall
 with a soft potential. The potential is
 (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
 the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength.
-This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.3 to modify blobs interactions).
+This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.4 to modify blobs interactions).
 
 * `debye_length_wall`: (float) the characteristic length of the Yukawa blob-wall potential,
-`b` in the expression given above under `repulsion_strength_wall` (see section 5.3 to modify blobs interactions).
+`b` in the expression given above under `repulsion_strength_wall` (see section 5.4 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
@@ -696,6 +696,13 @@ the potentials to simulate a boomerang suspension as in Ref. [4].
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: older stochastic example from [1], see documentation `doc/boomerang.txt`.
+* **Lubrication/**: folder with Lubrication correction implementation for spherical particles.
+* **many_bodyMCMC/**: Markov Chain Monte Carlo code for rigid bodies.
+* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
+product **Mf** using CPUs or GPUs, see [2].
+* **multi_bodies/**: codes to run many-body simulations, based on [3] (minimally-resolved active rollers) and primarily on [4] (general many-particle case).
+* **quaternion_integrator/**: it has a small class to handle quaternions and
+the schemes to integrate the equations of motion, see [1] and [4].
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
 (i.e., gravity generates a torque), sedimented near a no-slip wall
@@ -704,14 +711,9 @@ Unlike the boomerang example this code does not use a rigid
 multiblob model of the sphere but rather uses the best known
 (semi)analytical approximations to the sphere mobility.
 See documentation `doc/boomerang.txt`.
-* **many_bodyMCMC/**: Markov Chain Monte Carlo code for rigid bodies.
-* **mobility/**: it has functions to compute the blob mobility matrix **M** and the
-product **Mf** using CPUs or GPUs, see [2].
-* **multi_bodies/**: codes to run many-body simulations, based on [3] (minimally-resolved active rollers) and primarily on [4] (general many-particle case).
-* **quaternion_integrator/**: it has a small class to handle quaternions and
-the schemes to integrate the equations of motion, see [1] and [4].
 * **stochastic_forcing/**: it contains functions to compute the product
  **M**^{1/2}**z** necessary to perform Brownian simulations, see [3] and [4].
 * **utils.py**: this file has some general functions that would be useful for
 general rigid bodies (mostly for analyzing and reading trajectory
 data and for logging).
+* **visit/**: folder with code to save flow fields like VTK files.
