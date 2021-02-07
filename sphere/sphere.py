@@ -4,13 +4,13 @@ import os
 import sys
 sys.path.append('..')
 
-from fluids import mobility as mb
+from mobility import mobility as mb
 from general_application_utils import static_var
 
-from . import selfMobilityHuang as Huang
-from . import selfMobilityGoldman as Goldman
-from . import selfMobilityFaucheux as Faucheux
-from . import splines
+import selfMobilityHuang as Huang
+import selfMobilityGoldman as Goldman
+import selfMobilityFaucheux as Faucheux
+import splines
 
 # Make sure figures folder exists
 if not os.path.isdir(os.path.join(os.getcwd(), 'figures')):

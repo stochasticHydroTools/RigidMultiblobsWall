@@ -5,7 +5,7 @@ import numpy as np
 import sys
 import unittest
 
-from . import sphere as sph
+import sphere as sph
 from quaternion_integrator.quaternion import Quaternion
 
 class TestSphere(unittest.TestCase):

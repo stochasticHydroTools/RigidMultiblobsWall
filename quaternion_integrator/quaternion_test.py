@@ -75,8 +75,6 @@ class TestQuaternion(unittest.TestCase):
     self.assertAlmostEqual(R[1][1], 2.*(theta.s**2 + theta.p[1]**2 - 0.5))
     self.assertAlmostEqual(R[2][2], 2.*(theta.s**2 + theta.p[2]**2 - 0.5))
     self.assertAlmostEqual(R[2][0], 2.*(theta.p[0]*theta.p[2] - theta.s*theta.p[1]))
-<<<<<<< HEAD
-=======
 
 
   def test_rot_matrix_against_rodriguez(self):
