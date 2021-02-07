@@ -1,0 +1,43 @@
+# Brownian simulation of two boomerang colloidal particles
+# attached by an harmonic spring. Length, time and mass are
+# given in units of microns, seconds and miligrams.
+
+# Select scheme to integrate Brownian equations
+scheme                                   mobility
+
+# Select implementation to compute M and M*f
+# We recommend to use the C++ implementation which is faster,
+# see documentation
+mobility_blobs_implementation            python
+mobility_vector_prod_implementation      python
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           None
+
+# Solver params
+solver_tolerance                         1.0e-3
+
+# Set fluid viscosity (eta), gravity*blob_mass (g) and blob radius
+eta                                      8.9e-04 
+g                                        0.0001539384
+blob_radius                              0.243553056
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0.095713728509
+debye_length                             0.162278695459
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.095713728509
+debye_length_wall                        0.162278695459
+
+# Plot velocity field
+plot_velocity_field                      -10 10 20 -10 10 20 3 3 1
+
+# Set output name
+output_name                              run_squirmer
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure ../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex  squirmer.clones  squirmer.slip
+
+
