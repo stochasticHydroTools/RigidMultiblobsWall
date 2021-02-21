@@ -321,6 +321,13 @@ if __name__ ==  '__main__':
     # Save velocity
     name = read.output_name + '.velocity.dat'
     np.savetxt(name, velocity, delimiter='  ')
+
+    # Compute force-torques on bodies
+    force = np.reshape(multi_bodies.K_matrix_T_vector_prod(bodies, lambda_blobs, Nblobs), (num_bodies, 6))
+    
+    # Save force
+    name = read.output_name + '.force.dat'
+    np.savetxt(name, force, delimiter='  ')
     print('Time to solve mobility problem =', time.time() - start_time )
 
     # Plot velocity field
