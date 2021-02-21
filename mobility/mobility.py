@@ -545,6 +545,9 @@ def single_wall_mobility_trans_times_force_source_target_numba(source, target, f
 
   This function uses numba.
   '''
+  # Get domain size for Pseudo-PBC
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  
   # Compute effective heights
   x = shift_heights_different_radius(target, radius_target)
   y = shift_heights_different_radius(source, radius_source)
@@ -558,11 +561,38 @@ def single_wall_mobility_trans_times_force_source_target_numba(source, target, f
     force = B_source.dot(force.flatten())
 
   # Compute M_tilde * B * force
-  velocities = mobility_numba.mobility_trans_times_force_source_target_numba(y, x, force, radius_source, radius_target, eta, L=np.zeros(3), wall=1)
+  velocities = mobility_numba.mobility_trans_times_force_source_target_numba(y, x, force, radius_source, radius_target, eta, L=L, wall=1)
 
   # Compute B.T * M * B * vector
   if overlap_target is True:
     velocities = B_target.dot(velocities)
+  return velocities
+
+
+def no_wall_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Returns the product of the mobility at the blob level by the force
+  on the blobs.
+  Mobility for particles near a wall.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the
+  Blake paper point particle result.
+
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes.
+
+  For blobs overlaping the wall we use
+  Compute M = B^T * M_tilde(z_effective) * B.
+
+  This function uses numba.
+  '''
+  # Get domain size for Pseudo-PBC
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L=L, wall=0)
+
   return velocities
 
 
@@ -783,7 +813,7 @@ def mobility_vector_product_source_target_one_wall(source, target, force, radius
   WARNING: pseudo-PBC are not implemented for this function.
 
   Compute velocity of targets of radius radius_target due
-  to forces on sources of radius source_targer in half-space.
+  to forces on sources of radius source_target in half-space.
 
   That is, compute the matrix vector product
   velocities_target = M_tt * forces_sources

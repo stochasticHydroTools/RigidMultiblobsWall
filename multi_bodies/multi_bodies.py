@@ -236,7 +236,7 @@ def linear_operator_rigid(vector, bodies, r_vectors, eta, a, K_bodies = None, *a
   |  M   -K||lambda| = | slip + noise_1|
   | -K^T  0||  U   |   | -F   + noise_2|
   
-  and for prescribed kinamtics
+  and for prescribed kinematics
   |  M    0||lambda| = | slip + KU + noise_1|
   | -K^T  1||  F   |   |         0          |
   ''' 

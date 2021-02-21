@@ -1537,15 +1537,15 @@ def mobility_trans_times_force_source_target_numba(source, target, force, radius
             # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
             # any dimension of L is equal or smaller than zero the 
             # box is assumed to be infinite in that direction.
-            # if Lx > 0:
-            #   rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
-            #   rx = rx + boxX * Lx
-            # if Ly > 0:
-            #   ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
-            #   ry = ry + boxY * Ly 
-            # if Lz > 0:
-            #   rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
-            #   rz = rz + boxZ * Lz            
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
 
             # Compute interaction without wall
             r2 = rx*rx + ry*ry + rz*rz

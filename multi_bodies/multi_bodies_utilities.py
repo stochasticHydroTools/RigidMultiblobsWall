@@ -327,7 +327,7 @@ if __name__ ==  '__main__':
     if read.plot_velocity_field.size > 1: 
       print('plot_velocity_field')
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
-                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation, periodic_length=read.periodic_length)
       
   # If scheme == resistance solve resistance problem 
   elif read.scheme == 'resistance': 
