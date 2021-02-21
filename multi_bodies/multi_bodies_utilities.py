@@ -272,7 +272,7 @@ if __name__ ==  '__main__':
       offset += b.Nblobs
     
     # Set linear operators 
-    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius)
+    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius, periodic_length=read.periodic_length)
     A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
     # Set preconditioner
