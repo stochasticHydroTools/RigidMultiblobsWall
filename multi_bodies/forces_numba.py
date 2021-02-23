@@ -97,6 +97,9 @@ def blob_blob_force_tree_numba(r_vectors, L, eps, b, a, list_of_neighbors, offse
   rx_vec = np.copy(r_vectors[:,0])
   ry_vec = np.copy(r_vectors[:,1])
   rz_vec = np.copy(r_vectors[:,2])
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
 
   for i in prange(N):
     for k in range(offsets[i+1] - offsets[i]):
@@ -106,6 +109,14 @@ def blob_blob_force_tree_numba(r_vectors, L, eps, b, a, list_of_neighbors, offse
       rx = rx_vec[j] - rx_vec[i]
       ry = ry_vec[j] - ry_vec[i]
       rz = rz_vec[j] - rz_vec[i]
+
+      # Use distance with PBC
+      if Lx > 0:
+        rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+      if Ly > 0:
+        ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+      if Lz > 0:
+        rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
 
       # Compute force
       r_norm = np.sqrt(rx*rx + ry*ry + rz*rz)
@@ -127,6 +138,25 @@ def calc_blob_blob_forces_tree_numba(r_vectors, *args, **kwargs):
   This function computes the blob-blob forces and returns
   an array with shape (Nblobs, 3).
   '''
+
+  def project_to_periodic_image(r, L):
+    '''
+    Project a vector r to the minimal image representation
+    of size L=(Lx, Ly, Lz) and with a corner at (0,0,0). If 
+    any dimension of L is equal or smaller than zero the 
+    box is assumed to be infinite in that direction.
+    
+    If one dimension is not periodic shift all coordinates by min(r[:,i]) value.
+    '''
+    if L is not None:
+      for i in range(3):
+        if(L[i] > 0):
+          r[:,i] = r[:,i] - (r[:,i] // L[i]) * L[i]
+        else:
+          ri_min =  np.min(r[:,i])
+          if ri_min < 0:
+            r[:,i] -= ri_min
+    return r
     
   # Get parameters from arguments
   L = kwargs.get('periodic_length')
@@ -135,6 +165,10 @@ def calc_blob_blob_forces_tree_numba(r_vectors, *args, **kwargs):
   a = kwargs.get('blob_radius')
   d_max = 2 * a + 30 * b
 
+  # Project to PBC, this is necessary here to build the Kd-tree with scipy.
+  # Copy is necessary because we don't want to modify the original vector here
+  r_vectors = project_to_periodic_image(np.copy(r_vectors), L)
+
   # Build tree and find neighbors
   build_tree = True
   if len(calc_blob_blob_forces_tree_numba.list_of_neighbors) > 0:
@@ -142,8 +176,20 @@ def calc_blob_blob_forces_tree_numba(r_vectors, *args, **kwargs):
       build_tree = False
       list_of_neighbors = calc_blob_blob_forces_tree_numba.list_of_neighbors
       offsets = calc_blob_blob_forces_tree_numba.offsets
-  if build_tree:  
-    tree = scsp.cKDTree(r_vectors)
+  if build_tree:
+    # Set box dimensions for PBC
+    if L[0] > 0 or L[1] > 0 or L[2] > 0:
+      boxsize = np.zeros(3)
+      for i in range(3):
+        if L[i] > 0:
+          boxsize[i] = L[i]
+        else:
+          boxsize[i] = (np.max(r_vectors[:,i]) - np.min(r_vectors[:,i])) + d_max * 10
+    else:
+      boxsize = None   
+
+    # Build tree
+    tree = scsp.cKDTree(r_vectors, boxsize=boxsize)
     pairs = tree.query_ball_tree(tree, d_max)
     offsets = np.zeros(len(pairs)+1, dtype=int)
     for i in range(len(pairs)):
