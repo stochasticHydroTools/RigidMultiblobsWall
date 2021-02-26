@@ -20,6 +20,9 @@ create_soft_articulated.list_vertex = file with the list of vertex files.
 
 import numpy as np
 import sys
+sys.path.append('../')
+from body import body
+from quaternion_integrator.quaternion import Quaternion
 
 
 if __name__ == '__main__':
@@ -32,6 +35,18 @@ if __name__ == '__main__':
     max_num_neighbors = int(sys.argv[5])
   else:
     method = 'distance'
+
+  if True:
+    theta = np.array([1, 0, 0, 0])
+    theta_norm = np.linalg.norm(theta)
+    q = Quaternion(theta / theta_norm)    
+    b = body.Body(np.zeros(3), q, r, 1)
+
+    theta = np.array([1, 2.3, 0.1, 0.4])
+    theta_norm = np.linalg.norm(theta)
+    q = Quaternion(theta / theta_norm)
+    r = b.get_r_vectors(orientation=q)
+    r[:,2] += 3
 
   # Compute blob-blob distances
   x = r[:,0]

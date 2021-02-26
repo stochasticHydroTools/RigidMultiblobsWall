@@ -1100,12 +1100,15 @@ class QuaternionIntegratorRollers(object):
     velocity += self.mobility_trans_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
     angular_velocity  = self.mobility_rot_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
     angular_velocity += self.mobility_rot_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
-
+    
+    # Copy velocities to a single array
     res = np.empty(6*self.Nblobs) 
-    for i in range(self.Nblobs):
-      res[6*i:6*i+3] = velocity[3*i:3*(i+1)]
-      res[6*i+3:6*(i+1)] = angular_velocity[3*i:3*(i+1)]
-    #return np.concatenate([velocity, angular_velocity])
+    res[0::6] = velocity[0::3]
+    res[1::6] = velocity[1::3]
+    res[2::6] = velocity[2::3]
+    res[3::6] = angular_velocity[0::3]
+    res[4::6] = angular_velocity[1::3]
+    res[5::6] = angular_velocity[2::3]
     return res
 
 
