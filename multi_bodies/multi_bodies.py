@@ -951,8 +951,7 @@ if __name__ == '__main__':
     print('Creating articulated = ', structure[1])
     # Read vertex, clones and constraint files
     struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], output_name)
-    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    ### num_bodies_in_articulated, num_blobs, num_constraints, constraints_type, constraints_bodies, constraints_links = read_constraints_file.read_constraints_file(structure[2], output_name)
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])    
     constraints_info = read_constraints_file.read_constraints_file(structure[2], output_name)
     num_bodies_in_articulated = constraints_info[0]
     num_blobs = constraints_info[1]
@@ -970,7 +969,6 @@ if __name__ == '__main__':
     # Create each body of type structure
     for i in range(num_bodies_struct):
       subbody = i % num_bodies_in_articulated
-      first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], a)
       b.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.articulated_ID[ID]

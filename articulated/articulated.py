@@ -202,7 +202,7 @@ class Articulated(object):
     xin = np.zeros(7 * len(self.bodies))
     xin[3 * len(self.bodies) :: 4] = 1.0
     
-    if self.num_constraints < 100:
+    if self.num_constraints < 1:
       def jacobian(x, links, bodies_indices, num_constraints, *args, **kwargs):
         '''
         Jacobian for rotations, dense matrix.
@@ -478,7 +478,7 @@ class Articulated(object):
                                 xin,
                                 verbose=(2 if verbose else 0),
                                 ftol=tol,
-                                xtol=tol,
+                                xtol=tol*1e-03,
                                 gtol=None,
                                 method='dogbox',
                                 bounds=(-1, 1),
