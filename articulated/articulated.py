@@ -56,7 +56,10 @@ class Articulated(object):
       self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,0] : 3 * (self.constraints_bodies_indices[i,0]+1)] = np.eye(3)
       self.A[3 * i : 3 * (i+1), 3 * self.constraints_bodies_indices[i,1] : 3 * (self.constraints_bodies_indices[i,1]+1)] = -np.eye(3)
     self.Ainv = np.linalg.pinv(self.A)
-    
+
+    # Iterations counter non-linear solver
+    self.nonlinear_iteration_counter = 0
+
 
   def compute_cm(self, time_point='current'):
     '''
@@ -487,6 +490,7 @@ class Articulated(object):
                                 kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
     
     # Update solution
+    self.nonlinear_iteration_counter += residual.counter
     x = result.x
     for k, b in enumerate(self.bodies):
       dq = x[3 * k : 3 * (k+1)]
@@ -507,8 +511,8 @@ class Articulated(object):
       print('g_inf            = ', np.linalg.norm(result.fun, ord=np.inf))
       print('g                = ', np.linalg.norm(result.fun), '\n')
     return
-  
-    
+
+
   def update_links(self, time=0):
     '''
     Rotate links to current orientation.

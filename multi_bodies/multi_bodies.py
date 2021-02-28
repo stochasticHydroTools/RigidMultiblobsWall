@@ -38,7 +38,7 @@ while found_functions is False:
     from read_input import read_constraints_file
     from read_input import read_vertex_file_list      
     from constraint.constraint import Constraint
-    from articulated.articulated import Articulated 
+    from articulated.articulated import Articulated
     import general_application_utils as utils
     try:
       import libCallHydroGrid as cc
@@ -54,7 +54,6 @@ while found_functions is False:
     if len(path_to_append) > 21:
       print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
-
 def calc_slip(bodies, Nblobs, *args, **kwargs):
   '''
   Function to calculate the slip in all the blobs.
@@ -1086,7 +1085,6 @@ if __name__ == '__main__':
   integrator.calc_K_matrix = calc_K_matrix
 
   integrator.linear_operator = linear_operator_rigid
-  #integrator.build_block_diagonal_preconditioner = build_block_diagonal_preconditioner_articulated_identity
   integrator.build_block_diagonal_preconditioners_det_stoch = build_block_diagonal_preconditioners_det_stoch
   integrator.eta = eta
   integrator.a = a
@@ -1330,10 +1328,14 @@ if __name__ == '__main__':
   with open(output_name + '.time', 'w') as f:
     f.write(str(time.time() - start_time) + '\n')
   # Save number of invalid configurations and number of iterations in the
-  # deterministic solvers and the Lanczos algorithm
+  # deterministic solvers and the Lanczos algorithm  
   with open(output_name + '.info', 'w') as f:
+    nonlinear_counter = 0
+    for i in range(len(articulated)):
+      nonlinear_counter += articulated[i].nonlinear_iteration_counter
+      
     f.write('invalid_configuration_count    = ' + str(integrator.invalid_configuration_count) + '\n'
             + 'deterministic_iterations_count = ' + str(integrator.det_iterations_count) + '\n'
-            + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n')
-
+            + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n'
+            + 'nonlinear_iterations_count     = ' + str(nonlinear_counter) + '\n')
   print('\n\n\n# End')
