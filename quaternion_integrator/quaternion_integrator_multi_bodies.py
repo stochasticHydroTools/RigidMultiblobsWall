@@ -1354,12 +1354,9 @@ class QuaternionIntegrator(object):
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
 
-      # Compute center of mass velocity
+      # Compute center of mass velocity and update
       for art in self.articulated:
         art.compute_velocity_cm(velocities)
-
-      # Compute center of mass and update
-      for art in self.articulated:
         art.compute_cm()
         art.update_cm(dt)
         
@@ -1412,9 +1409,6 @@ class QuaternionIntegrator(object):
       # Compute center of mass velocity
       for art in self.articulated:
         art.compute_velocity_cm(velocities)
-
-      # Compute center of mass and update
-      for art in self.articulated:
         art.compute_cm()
         art.update_cm(dt * 0.5)
         
@@ -1449,12 +1443,9 @@ class QuaternionIntegrator(object):
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
 
-      # Compute center of mass velocity
+      # Compute center of mass velocity and update
       for art in self.articulated:
         art.compute_velocity_cm(velocities)
-
-      # Compute center of mass and update
-      for art in self.articulated:
         art.compute_cm(time_point='old')
         art.update_cm(dt)
         

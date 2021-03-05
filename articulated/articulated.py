@@ -99,7 +99,7 @@ class Articulated(object):
     Correct bodies position respect the cm.
     '''
     # Compute center of mass using relative positions
-    q_cm = np.sum(self.q_relative, axis=0)      
+    q_cm = np.sum(self.q_relative, axis=0)
     q_cm /= self.num_bodies
 
     # Correct respect cm
@@ -111,12 +111,12 @@ class Articulated(object):
   def solve_relative_position(self):
     '''
     Solve the relative position given the orientation.
+
+    b = R_p * l_qp - R_q * l_pq
     '''
     # Build RHS
     b = np.zeros((self.num_constraints, 3))
     for i in range(self.num_constraints):
-      # b[i] = -np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i, 0:3])
-      # b[i] += np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i, 3:6])
       b[i] = -self.constraints_links_updated[i, 0:3]
       b[i] += self.constraints_links_updated[i, 3:6]
     

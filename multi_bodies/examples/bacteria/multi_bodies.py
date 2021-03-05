@@ -49,7 +49,7 @@ while found_functions is False:
   except ImportError as exc:
     sys.stderr.write('Error: failed to import settings module ({})\n'.format(exc))
     path_to_append += '../'
-    print('searching functions in path ', path_to_append)
+    # print('searching functions in path ', path_to_append)
     sys.path.append(path_to_append)
     if len(path_to_append) > 21:
       print('\nProjected functions not found. Edit path in multi_bodies.py')
