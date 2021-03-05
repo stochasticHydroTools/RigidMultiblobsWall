@@ -6,8 +6,8 @@ mobility of complex shape objects, solve mobility or resistance problems
 for suspensions of many bodies or run deterministic or stochastic
 dynamic simulations.
 Spherical bodies can be made of single blobs (minimally-resolved Brownian-Dynamics)
-for more rapid but less accurate Brownian Dynamics, see section 5.2; accuracy
-can be substantially improved by adding lubrication corrections, see section 5.3.
+for more rapid but less accurate Brownian Dynamics, see section 6.2; accuracy
+can be substantially improved by adding lubrication corrections, see section 6.3.
 
 We explain in the next sections how to use the package.
 For the theory consult the references:
@@ -19,16 +19,16 @@ The Journal of Chemical Physics, **143**, 144107 (2015). [DOI](http://dx.doi.org
 rigid multiblob approach** F. Balboa Usabiaga, B. Kallemov, B. Delmotte,
 A. Pal Singh Bhalla, B. E. Griffith, and A. Donev,
 Communications in Applied Mathematics and Computational Science,
-**11**, 217 (2016); see section 4.
+**11**, 217 (2016); see section 5.
 [DOI](http://dx.doi.org/10.2140/camcos.2016.11.217) [arXiv](http://arxiv.org/abs/1602.02170)
 
 3. **Brownian dynamics of condined suspensions of active microrollers**, F. Balboa Usabiaga, B. Delmotte and A. Donev,
-The Journal of Chemical Physics, **146**, 134104 (2017); see section 5.2. [DOI](http://dx.doi.org/10.1063/1.4979494)
+The Journal of Chemical Physics, **146**, 134104 (2017); see section 6.2. [DOI](http://dx.doi.org/10.1063/1.4979494)
 [arXiv](https://arxiv.org/abs/1612.00474)
 
 4. **Large Scale Brownian Dynamics of Confined Suspensions of Rigid
 Particles**, B. Sprinkle, F. Balboa Usabiaga, N. Patankar and
-A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5.
+A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 6.
 [DOI](http://dx.doi.org/10.1063/1.5003833)
 [arXiv](https://arxiv.org/abs/1709.02410).
 
@@ -46,7 +46,7 @@ We modify the mobility to allow overlaps between blobs and between
 blobs and the wall, see Ref. [3].
 
 ## 1. Prepare the package
-The codes are implemented in python (version 3.x or 2.7) and it is not necessary to compile the package to use it. 
+The codes are implemented in python (version 3.x) and it is not necessary to compile the package to use it. 
 
 We provide alternative implementations in _C++_ (through pybind11), _numba_ and _pycuda_ for some of the most computationally
 expensive functions. You can skip to section 2 but come back if you
@@ -159,10 +159,51 @@ will be converted to the lab frame as the body moves.
 You can see an example in `multi_bodies/examples/squirmer/`.
 If the slip file is not given the slip is set to zero.
 
-Note that in practice the slip probably depends on the position of the particles relative to the boundary and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime, see Section 5.3 for details.
+Note that in practice the slip probably depends on the position of the particles relative to the boundary and each other, and the user can provide a function to compute the slip (this time in the lab frame) at runtime, see Section 6.4 for details.
+
+## 4. Articulated rigid bodies
+The code can simulate articulated rigid bodies, i.e. rigid bodies connect by inextensible links,
+see reference [?].
+You can inspect an example with an active flagellated bacteria in the folder `multi_bodies/examples/bacteria/`.
+To model articulated rigid bodies it is necessary to provide the initial configuration (location and
+orientation) of the rigid bodies but also the links connecting the bodies.
+The configuration and the links information are specified in three input files:
+
+### 4.1 Files `*.list_vertex`
+File with the names of the vertex files forming the articulated rigid body.
+One name per line. For example, the file `multi_bodies/Structures/bacteria.list_vertex` gives
+the vertex files to model a bacteria modeled by a spherical body and a single flagellum.
+
+### 4.2 Files `*.clones`
+File with the location and oritenation of the rigid bodies. Same format as for rigid bodies,
+see section 2.
+
+### 4.3 Files `*.const`
+File with the constraint information to form the articulated rigid body. 
+The format is:
+
+```
+number_of_rigid_bodies
+number_of_constraints
+constraint_0_info
+constraint_1_info
+.
+.
+.
+```
+Each line `constraint_0_info` gives the information to form a link. It has at least 8 numbers,
+the first two are the indices of the bodies linked by the constraint and the next 6 the two vectors
+that go from the bodies to the joint, for example
+```
+body_p body_q vector_from_body_p_to_joint vector_from_q_to_joint additional_variables
+```
+
+It is possible to add additional variables to model time dependent constraints, see an
+example with two passive and one active constraints in `multi_bodies/Structures/bacteria_active.const`.
 
 
-## 4. Run static simulations
+
+## 5. Run static simulations
 We start explaining how to compute the mobility of a rigid body close to a wall.
 First, move to the directory `multi_bodies/` and inspect the input file
 `inputfile_body_mobility.dat`:
@@ -235,7 +276,7 @@ corresponding to linear (first three) and angular velocities (last three).
 in the `mobility` problem. The format of the file is one line per body and six floats per line
 corresponding to force (first three) and torque (last three).
 If no file is given the code compute the forces on the bodies as
-explained in the section 5.3.
+explained in the section 6.1.
 
 * `structure`: (two or three strings) name of the vertex, clones and
 optionally slip files with the rigid
@@ -288,8 +329,8 @@ corresponding to linear (first three) and angular velocities (last three).
 
 
 
-## 5. Run dynamic simulations
-### 5.1 Rigid multiblob simulations
+## 6. Run dynamic simulations
+### 6.1 Rigid multiblob simulations
 We have two python codes to run dynamic simulations. The first,
 in the directory `boomerang/`, allows to run stochastic Brownian simulations for a single body.
 See the instruction in `boomerang/README.md`. Here, we explain how to use the other
@@ -434,7 +475,7 @@ but it can compute blob-blob interactions which lead to effective
 body-body interactions.
 The cost of this function scales like (number_of_bodies)**2.
 The default soft repulsion is meant for sphere suspensions (no torques) and described under `repulsion_strength` below.
-See Section 5.3 for more details on how to implement your own force law in python.
+See Section 6.4 for more details on how to implement your own force law in python.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -474,21 +515,21 @@ form (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`)
 where `r` is the distance between blobs, `b` is the characteristic
 length, `eps` is the strength and `d=2*a` is twice the blob radius. This is the strength of the potential,
-`eps` in the above expression (see section 5.3 to modify blobs interactions).
+`eps` in the above expression (see section 6.4 to modify blobs interactions).
 
 * `debye_length`: (float) the characteristic length of the blob-blob soft potential, `b` in the expression
 given above under `repulsion_strength`.
-(see section 5.3 to modify blobs interactions).
+(see section 6.4 to modify blobs interactions).
 
 * `repulsion_strength_wall`: (float) the blobs interact with the wall
 with a soft potential. The potential is
 (`U = eps + eps * (d-r)/b` if `r < d` and `U = eps *
 exp(-(r-d)/b)` if `r >=d`) where `h` is the distance between the wall and
 the particle, `d=a` is the blob radius, `b` is the characteristic potential length and `eps` is the strength.
-This is the strength of the Yukawa potential, `eps` in the above formula (see section 5.3 to modify blobs interactions).
+This is the strength of the Yukawa potential, `eps` in the above formula (see section 6.4 to modify blobs interactions).
 
 * `debye_length_wall`: (float) the characteristic length of the Yukawa blob-wall potential,
-`b` in the expression given above under `repulsion_strength_wall` (see section 5.3 to modify blobs interactions).
+`b` in the expression given above under `repulsion_strength_wall` (see section 6.4 to modify blobs interactions).
 
 * `random_state`: (string) name of a file with the state of the random generator from a previous simulation.
 It can be used to generate the same random numbers in different simulations.
@@ -553,7 +594,7 @@ the others are labelled red. This option has not any effect on the
 dynamics of the simulation but it is used by HydroGrid to compute
 several structures factors.
 
-### 5.2 Rollers simulations
+### 6.2 Rollers simulations
 We can also use the code `multi_bodies.py` to run simulations of
 bodies discretized with a single blob interacting hydrodynamically with
 a grand-mobility matrix that includes couplings between the linear and
@@ -561,7 +602,7 @@ angular velocities, see Ref. [3] for a detailed description.
 You can see an example in `multi_bodies/examples/rollers/`.
 
 The input file options are the same than for a rigid multiblob
-simulation (see section 5.1 and the file `inputfile_body_mobility.dat`) except for the
+simulation (see section 6.1 and the file `inputfile_body_mobility.dat`) except for the
 following differences:
 
 * `mobility_blobs_implementation`:
@@ -606,16 +647,16 @@ of the velocities is zero. This ensures that the partilces position
 in the z direction never changes from that specified in the initial
 `.clones` file.
 
-### 5.3 Lubrication Corrections
+### 6.3 Lubrication Corrections
 To use the lubrication corrected method which we outline in [5], follow the compilation instructions 
 in the README `./Lubrication/README.md`. The directory `./Lubrication/Lubrication_Examples` contains 
 an example from [5], see documentation in `./Lubrication/Lubrication_Examples/Uniform_Rollers/README.md` 
 as well as [6], see documentation `./Lubrication/Lubrication_Examples/Magnetic_Chain_With_Twist/README.md`. 
 
-The structure of the imputfiles is broadly similar to those of section 5.1 and 5.2, however there is only one (Trapezoidal) method 
+The structure of the imputfiles is broadly similar to those of section 6.1 and 6.2, however there is only one (Trapezoidal) method 
 implemented which uses lubrication corrections, so there is no need to specify a `scheme`. Additional options pertaining to lubrication corrected Brownian dynamics in the inputfiles are `repulsion_strength_firm` which sets the strength of the 'Firm Potential' [5] and we recommend setting to `4 k_B T`. Also one can change `firm_delta` which represents the dimensionless (relative to particle radius) length at which we cannot resolve hydrodynamic interactions, we recommend setting this to `1e-2`. 
 
-### 5.4 Modify the codes
+### 6.4 Modify the codes
 We provide default implementations to calculate the slip on the rigid bodies
 and the interactions between blobs and between bodies as explained above. However,
 the user can override the default implementation with their own functions. We explain
@@ -671,7 +712,7 @@ own function `set_slip_by_ID` in the file `user_defined_functions.py`.
 For a simple example see `multi_bodies/examples/pair_active_rods/`.
 
 
-## 6. Run Monte Carlo simulations
+## 7. Run Monte Carlo simulations
 We have a Markov Chain Monte Carlo code to generate equilibrium
 configurations. To use this code move to the directory `many_bodyMCMC`
 and inspect the input file `inputMCMC.dat`. The options are similar to
@@ -692,7 +733,7 @@ in the file `potential_pycuda_user_defined.py`. In the folder
 `many_bodyMCMC/examples/boomerang_suspension/` we show how to override
 the potentials to simulate a boomerang suspension as in Ref. [4].
 
-## 7. Software organization
+## 8. Software organization
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
 * **boomerang/**: older stochastic example from [1], see documentation `doc/boomerang.txt`.

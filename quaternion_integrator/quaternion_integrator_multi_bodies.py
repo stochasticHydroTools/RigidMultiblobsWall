@@ -1425,7 +1425,7 @@ class QuaternionIntegrator(object):
         art.correct_respect_cm()
 
       # For some applications it may be necessary to apply the nonlinear solver at the mid-point
-      if False:
+      if True:
         # Nonlinear miniminzation of constraint violation
         for art in self.articulated:
           art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
@@ -1438,7 +1438,7 @@ class QuaternionIntegrator(object):
       sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
                                                 save_first_guess = True,
                                                 update_PC = self.update_PC,
-                                                step = step + 0.5)
+                                                step = int(step + 0.5))
 
       # Extract velocities
       velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]

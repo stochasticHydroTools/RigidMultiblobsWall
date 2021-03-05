@@ -21,7 +21,6 @@ def read_constraints_file(name_file, output_name):
   with open(name_file, 'r') as f:
     counter = 0
     constraints_info = []
-    constraints_type = []
     constraints_indices = []
     constraints_links = []
     constraints_extra = []
@@ -39,20 +38,16 @@ def read_constraints_file(name_file, output_name):
       if counter == 0:
         num_rigid_bodies = int(line.split()[0])
       elif counter == 1:
-        num_blobs = np.fromstring(line, sep=' ', dtype=int)
-      elif counter == 2:
         num_constraints = int(line.split()[0])
       else:
         constraints_info = line.split()
-        constraints_type.append(constraints_info[0])
-        constraints_indices.append(constraints_info[1:3])
-        constraints_links.append(constraints_info[4:10])
-        constraints_extra.append(constraints_info[10:])
+        constraints_indices.append(constraints_info[0:2])
+        constraints_links.append(constraints_info[2:8])
+        constraints_extra.append(constraints_info[8:])
         
       # Advance counter
       counter += 1
 
-  constraints_type = np.array(constraints_type, dtype=int)
   constraints_indices = np.array(constraints_indices, dtype=int)
   constraints_links = np.array(constraints_links, dtype=float)
     
@@ -61,4 +56,4 @@ def read_constraints_file(name_file, output_name):
     head, tail = ntpath.split(name_file)
     copyfile(name_file, output_name + '.' + tail)
 
-  return num_rigid_bodies, num_blobs, num_constraints, constraints_type, constraints_indices, constraints_links, constraints_extra
+  return num_rigid_bodies, num_constraints, constraints_indices, constraints_links, constraints_extra

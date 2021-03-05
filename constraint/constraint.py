@@ -16,7 +16,7 @@ class Constraint(object):
   '''
   Small class to handle a single constraint.
   '''  
-  def __init__(self, bodies, ind_bodies,  articulated_body, links, constraint_type=0, constraint_extra=None):
+  def __init__(self, bodies, ind_bodies,  articulated_body, links, constraint_extra=None):
     '''
     Constructor. Take arguments like ...
     '''
@@ -31,8 +31,6 @@ class Constraint(object):
     self.links_updated = np.copy(links)
     # 3 by 1 array that gives the (time-dependent) prescribed velocity of the joint in the reference frame of the first body (RHS of the linear constraint problem)
     self.presc_vel = np.zeros(3)
-    # Type of constraint: constant, time-dependent etc.
-    self.constraint_type = constraint_type
     # Jacobian of the time-derivative of the constraint (3 by 12 matrix)
     self.C  = None
     # Info for time dependent constraints and time derivative of the links

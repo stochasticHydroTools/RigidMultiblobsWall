@@ -20,7 +20,7 @@ class Articulated(object):
   '''
   Small class to handle an articulated rigid body.
   '''  
-  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_blobs, num_constraints, constraints_bodies, constraints_links, constraints_extra):
+  def __init__(self, bodies, ind_bodies, constraints, ind_constraints, num_bodies, num_constraints, constraints_bodies, constraints_links, constraints_extra):
     '''
     Constructor. Take arguments like ...
     '''
@@ -32,9 +32,8 @@ class Articulated(object):
     self.constraints = constraints
     self.ind_constraints = ind_constraints
 
-    # Number of rigid bodies and blobs
+    # Number of rigid bodies 
     self.num_bodies = num_bodies
-    self.num_blobs = num_blobs
 
     # Constraints info
     self.num_constraints = num_constraints
