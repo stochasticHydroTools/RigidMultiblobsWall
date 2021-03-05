@@ -49,18 +49,15 @@ if __name__ == '__main__':
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     constraints_info = read_constraints_file.read_constraints_file(structure[2], None)
     num_bodies_in_articulated = constraints_info[0]
-    num_blobs = constraints_info[1]
-    num_constraints = constraints_info[2]
-    constraints_type = constraints_info[3]
-    constraints_bodies = constraints_info[4]
-    constraints_links = constraints_info[5]
-    constraints_extra = constraints_info[6]
+    num_constraints = constraints_info[1]
+    constraints_bodies = constraints_info[2]
+    constraints_links = constraints_info[3]
+    constraints_extra = constraints_info[4]
     body_types.append(num_bodies_struct)
     body_names.append(read.articulated_ID[ID])
     # Create each body of type structure
     for i in range(num_bodies_struct):
       subbody = i % num_bodies_in_articulated
-      first_blob  = np.sum(num_blobs[0:subbody], dtype=int)
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], read.blob_radius)
       b.ID = read.articulated_ID[ID]
       # Append bodies to total bodies list
@@ -80,7 +77,7 @@ if __name__ == '__main__':
       parameters = constraints_links[subconstraint]
 
       # Create constraint
-      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_type[subconstraint], constraints_extra[subconstraint])
+      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_extra[subconstraint])
       constraints.append(c)
 
     # Create articulated rigid body
@@ -94,7 +91,6 @@ if __name__ == '__main__':
                         constraints_in_articulated,
                         constraints_indices,
                         num_bodies_in_articulated,
-                        num_blobs,
                         num_constraints,
                         constraints_bodies,
                         constraints_links,

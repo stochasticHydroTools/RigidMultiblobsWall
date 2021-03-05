@@ -379,7 +379,7 @@ def build_block_diagonal_preconditioners_det_stoch(bodies, r_vectors, Nblobs, et
   M_factorization_blobs_inv = []
   mobility_inv_blobs = []
 
-  if(int(kwargs.get('step')) % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioners_det_stoch.mobility_bodies) == 0:
     # Loop over bodies
     for k, b in enumerate(bodies):
       if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
@@ -511,7 +511,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
   K_bodies = []
   C_art_bodies = []
   res_art_bodies = []
-  if(int(kwargs.get('step')) % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
+  if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
     # loop over bodies
     for k, b in enumerate(bodies):
       if (b.prescribed_kinematics or b.Nblobs == 1) and len(initialized) > 0:
@@ -953,12 +953,10 @@ if __name__ == '__main__':
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])    
     constraints_info = read_constraints_file.read_constraints_file(structure[2], output_name)
     num_bodies_in_articulated = constraints_info[0]
-    num_blobs = constraints_info[1]
-    num_constraints = constraints_info[2]
-    constraints_type = constraints_info[3]
-    constraints_bodies = constraints_info[4]
-    constraints_links = constraints_info[5]
-    constraints_extra = constraints_info[6]
+    num_constraints = constraints_info[1]
+    constraints_bodies = constraints_info[2]
+    constraints_links = constraints_info[3]
+    constraints_extra = constraints_info[4]
     # Read slip file if it exists
     slip = None
     if(len(structure) > 3):
@@ -998,7 +996,7 @@ if __name__ == '__main__':
       parameters = constraints_links[subconstraint]
 
       # Create constraint
-      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_type[subconstraint], constraints_extra[subconstraint])
+      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_extra[subconstraint])
       constraints.append(c)
 
     # Create articulated rigid body
@@ -1012,7 +1010,6 @@ if __name__ == '__main__':
                         constraints_in_articulated,
                         constraints_indices,
                         num_bodies_in_articulated,
-                        num_blobs,
                         num_constraints,
                         constraints_bodies,
                         constraints_links,
