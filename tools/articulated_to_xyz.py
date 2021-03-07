@@ -26,6 +26,8 @@ if __name__ == '__main__':
   input_file = sys.argv[1]
   name_ID = sys.argv[2]
   config_file = sys.argv[3]
+  print_joints = False
+  print_tracker_points = False
 
   # Read input file
   read = read_input.ReadInput(input_file)
@@ -111,8 +113,9 @@ if __name__ == '__main__':
       data = f.readline()
       if data == '' or data.isspace():
         break
-      
-      print(num_blobs_total + len(constraints) + len(bodies))
+
+      num_total = num_blobs_total + (len(constraints) if print_joints else 0) + (len(bodies) if print_tracker_points else 0)
+      print(num_total)
       print('#')
       # Get bodies config
       for k, b in enumerate(bodies):
@@ -134,12 +137,14 @@ if __name__ == '__main__':
           print('0 ', ri[0] , ri[1] , ri[2], 0, read.blob_radius)
 
       # Print joints
-      for k, c in enumerate(constraints):
-        c.update_links()
-        l = bodies[c.ind_bodies[0]].location + c.links_updated[0:3]
-        print('1 ', l[0] , l[1] , l[2], 1, read.blob_radius / 2)
+      if print_joints:
+        for k, c in enumerate(constraints):
+          c.update_links()
+          l = bodies[c.ind_bodies[0]].location + c.links_updated[0:3]
+          print('1 ', l[0] , l[1] , l[2], 1, read.blob_radius / 2)
 
       # Print bodies' tracker point
-      for b in bodies:
-        print('2 ', b.location[0], b.location[1], b.location[2], 0.5, read.blob_radius * 1.25)
+      if print_tracker_points:
+        for b in bodies:
+          print('2 ', b.location[0], b.location[1], b.location[2], 0.5, read.blob_radius * 1.25)
         

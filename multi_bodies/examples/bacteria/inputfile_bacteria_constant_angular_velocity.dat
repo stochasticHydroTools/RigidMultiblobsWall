@@ -10,7 +10,7 @@ domain                                   no_wall
 blob_blob_force_implementation           numba
 
 # Set time step, number of steps and save frequency
-dt                                       0.25
+dt                                       0.0025
 n_steps                                  100
 n_save                                   1
 update_PC                                1

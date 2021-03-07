@@ -4,7 +4,7 @@ Example to simulated a flagellated bacteria with the rigid articulated scheme.
 ## 1. Format of list_vertex files
 The files `*.list_vertex` contain a list of all the vertex files forming an articulated rigid body.
 It should have one vertex file per line. Our model of flagellated bacteria is formed by two rigid
-bodies to represent the spherical body of the bacteria and the flagellum. The file looks like
+bodies to represent the spherical body of the bacterium and the flagellum. The file looks like
 ```
 ../../Structures/shell_N_162_Rg_0_9497_Rh_1.vertex
 ../../Structures/flagellum_L_10_alpha_0.35.vertex
