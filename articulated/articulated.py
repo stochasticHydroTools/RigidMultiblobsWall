@@ -491,8 +491,9 @@ class Articulated(object):
     # Update solution
     self.nonlinear_iteration_counter += residual.counter
     x = result.x
+    dq_cm = np.sum(x[0 : 3 * self.num_bodies].reshape((self.num_bodies, 3)), axis=0) / self.num_bodies
     for k, b in enumerate(self.bodies):
-      dq = x[3 * k : 3 * (k+1)]
+      dq = x[3 * k : 3 * (k+1)] - dq_cm
       theta_k = x[3 * self.num_bodies + 4 * k : 3 * self.num_bodies + 4 * (k+1)]
       quaternion_correction = Quaternion(theta_k / np.linalg.norm(theta_k))
       b.location += dq
