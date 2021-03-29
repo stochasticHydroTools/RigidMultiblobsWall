@@ -473,9 +473,13 @@ class Articulated(object):
         filled += indx_theta.size
         return scsp.csr_matrix((data, (rows, columns)))
 
+    # Set bounds for nonlinear solver
+    bounds_min = np.ones(xin.size) * (-4 * g_total_inf)
+    bounds_min[3 * len(self.bodies)::4] = -1
+    bounds_max = np.ones(xin.size) * (4 * g_total_inf)
+    bounds_max[3 * len(self.bodies)::4] = 1
+      
     # Call nonlinear solver
-    x_scale = np.ones(xin.size) / g_total_inf
-    x_scale[3 * self.num_bodies::4] = 1.0 / g_total_inf**2
     result = scop.least_squares(residual,
                                 xin,
                                 verbose=(2 if verbose else 0),
@@ -483,7 +487,7 @@ class Articulated(object):
                                 xtol=tol*1e-03,
                                 gtol=None,
                                 method='dogbox',
-                                bounds=(-1, 1),
+                                bounds=(bounds_min, bounds_max),
                                 jac=jacobian,
                                 x_scale='jac', 
                                 kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
