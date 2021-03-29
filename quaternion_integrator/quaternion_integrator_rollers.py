@@ -608,6 +608,107 @@ class QuaternionIntegratorRollers(object):
       print('Invalid configuration')
     return
 
+  def articulated_deterministic_midpoint(self, dt, *args, **kwargs):
+    '''
+    Forward Euler scheme for articulated rigid bodies.
+    '''
+    while True:
+      # Save initial configuration 
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+      # Update links to current orientation
+      step = kwargs.get('step')
+      for c in self.constraints:
+        c.update_links(time = step * dt)
+             
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = step)
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+        art.compute_cm()
+        art.update_cm(dt * 0.5)
+             
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location + velocities[6*k:6*k+3] * (dt * 0.5)
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * (dt * 0.5))
+        b.orientation = quaternion_dt * b.orientation
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.update_links(time = (step + 0.5) * dt)
+        art.solve_relative_position()      
+        art.correct_respect_cm()
+
+      # For some applications it may be necessary to apply the nonlinear solver at the mid-point
+      if True:
+        # Nonlinear miniminzation of constraint violation
+        for art in self.articulated:
+          art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+
+      # Update links to current orientation
+      for c in self.constraints:
+        c.update_links(time = (step + 0.5) * dt)
+
+     # Solve mobility problem at Mid-Point
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = int(step + 0.5))
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity and update
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+        art.compute_cm(time_point='old')
+        art.update_cm(dt)
+
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.update_links(time = (step + 1) * dt)
+        art.solve_relative_position()
+        art.correct_respect_cm()
+
+      # Nonlinear miniminzation of constraint violation
+      for art in self.articulated:
+        art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+
+      # Check if configuration is valid and update postions if so      
+      valid_configuration = True
+      if self.domain == 'single_wall':
+        for b in self.bodies:
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            break
+      if valid_configuration is True:
+        for b in self.bodies:
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1            
+        return
+
+      self.invalid_configuration_count += 1
+      print('Invalid configuration')
+    return
+
 
 
   def compute_deterministic_velocity_and_torque(self):
@@ -1215,8 +1316,8 @@ class QuaternionIntegratorRollers(object):
     
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
-      #(sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
+      #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
       self.det_iterations_count += counter.niter
     else:
       sol_precond = np.zeros_like(RHS)
