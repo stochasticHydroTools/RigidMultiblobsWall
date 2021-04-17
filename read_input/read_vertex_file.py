@@ -24,8 +24,7 @@ def read_vertex_file(name_file):
         if i == 0:
           Nblobs = int(line.split()[0])
         else:
-          data = line.split()
-          location = [float(data[0]), float(data[1]), float(data[2])]
+          location = np.fromstring(line, sep=' ')
           coor.append(location)
         i += 1
 

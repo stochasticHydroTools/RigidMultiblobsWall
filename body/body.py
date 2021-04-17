@@ -27,15 +27,19 @@ class Body(object):
     self.orientation_new = copy.copy(orientation)
     self.orientation_old = copy.copy(orientation)
     # Number of blobs
-    self.Nblobs = reference_configuration.size // 3
+    self.Nblobs = reference_configuration.shape[0]
     # Reference configuration. Coordinates of blobs for quaternion [1, 0, 0, 0]
     # and location = np.array[0, 0, 0]) as a np.array.shape = (Nblobs, 3) 
     # or np.array.shape = (Nblobs * 3)
-    self.reference_configuration = np.reshape(reference_configuration, (self.Nblobs, 3))
+    self.reference_configuration = np.reshape(reference_configuration[:,0:3], (self.Nblobs, 3))
     # Blob masses
     self.blob_masses = np.ones(self.Nblobs)
     # Blob radius
     self.blob_radius = blob_radius
+    if reference_configuration.shape[1] == 4:
+      self.blobs_radius = reference_configuration[:,3]
+    else:
+      self.blobs_radius = None
     # Body length
     self.body_length = None
     # Name of body and type of body. A string or number
