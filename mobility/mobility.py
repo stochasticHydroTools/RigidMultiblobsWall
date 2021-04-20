@@ -33,7 +33,7 @@ if found_numba:
   try:
     from . import mobility_numba
   except ImportError:
-    from .mobility import mobility_numba
+    import mobility_numba
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm
@@ -1347,3 +1347,12 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, *args, **kwargs)
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   p = mobility_numba.single_wall_pressure_Stokeslet_numba(source, target, force, L)
   return p
+
+
+def mobility_radii_trans_times_force(r_vectors, force, eta, radius_blobs, function, *args, **kwargs): 
+  '''
+  Mobility vector product M*f with blobs with different radii.
+  function should provide the appropiate implementation (python, numba, pycuda, above a wall or unbounded...).
+  '''
+  return function(r_vectors, r_vectors, force, radius_blobs, radius_blobs, eta, *args, **kwargs)
+
