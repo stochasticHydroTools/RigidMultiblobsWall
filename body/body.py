@@ -39,7 +39,7 @@ class Body(object):
     if reference_configuration.shape[1] == 4:
       self.blobs_radius = reference_configuration[:,3]
     else:
-      self.blobs_radius = None
+      self.blobs_radius = np.ones(self.Nblobs) * blob_radius
     # Body length
     self.body_length = None
     # Name of body and type of body. A string or number

@@ -1349,7 +1349,7 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, *args, **kwargs)
   return p
 
 
-def mobility_radii_trans_times_force(r_vectors, force, eta, radius_blobs, function, *args, **kwargs): 
+def mobility_radii_trans_times_force(r_vectors, force, eta, a, radius_blobs, function, *args, **kwargs): 
   '''
   Mobility vector product M*f with blobs with different radii.
   function should provide the appropiate implementation (python, numba, pycuda, above a wall or unbounded...).

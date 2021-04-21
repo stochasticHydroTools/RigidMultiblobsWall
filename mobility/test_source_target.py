@@ -32,7 +32,7 @@ if __name__ == '__main__':
     velocity_cpp = mob.single_wall_mobility_trans_times_force_cpp(r_vectors, force, eta, a).reshape((N, 3))
     velocity_numba = mob.single_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a).reshape((N, 3))
     velocity_trg = mob.single_wall_mobility_trans_times_force_source_target_numba(r_src, r_trg, force_src, radius_src, radius_trg, eta).reshape((N_trg, 3))
-    velocity_radii = mob.mobility_radii_trans_times_force(r_vectors, force, eta, radius, mob.single_wall_mobility_trans_times_force_source_target_numba).reshape((N, 3))
+    velocity_radii = mob.mobility_radii_trans_times_force(r_vectors, force, eta, a, radius, mob.single_wall_mobility_trans_times_force_source_target_numba).reshape((N, 3))
 
     # Print diff
     print('Near Wall')
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     velocity_py = mob.no_wall_fluid_mobility_product(r_vectors, force.flatten(), eta, a).reshape((N, 3))
     velocity_numba = mob.no_wall_mobility_trans_times_force_numba(r_vectors, force, eta, a).reshape((N, 3))
     velocity_trg = mob.no_wall_mobility_trans_times_force_source_target_numba(r_src, r_trg, force_src, radius_src, radius_trg, eta).reshape((N_trg, 3))
-    velocity_radii = mob.mobility_radii_trans_times_force(r_vectors, force, eta, radius, mob.no_wall_mobility_trans_times_force_source_target_numba).reshape((N, 3))
+    velocity_radii = mob.mobility_radii_trans_times_force(r_vectors, force, eta, a, radius, mob.no_wall_mobility_trans_times_force_source_target_numba).reshape((N, 3))
 
     # Print diff
     print('Unbounded')

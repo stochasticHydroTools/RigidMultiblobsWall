@@ -124,7 +124,7 @@ def set_mobility_blobs(implementation):
     return  mb.boosted_free_surface_mobility
 
 
-def set_mobility_vector_prod(implementation):
+def set_mobility_vector_prod(implementation, *args, **kwargs):
   '''
   Set the function to compute the matrix-vector
   product (M*F) with the mobility defined at the blob 
@@ -155,6 +155,26 @@ def set_mobility_vector_prod(implementation):
   # Implementations free surface
   elif implementation == 'pycuda_free_surface':
     return mb.free_surface_mobility_trans_times_force_pycuda
+  # Implementations different radii
+  elif implementation.find('radii') > -1:
+    # Get right function
+    if implementation == 'radii_numba':
+      function = mb.single_wall_mobility_trans_times_force_source_target_numba
+    elif implementation == 'radii_numba_no_wall':
+      function = mb.no_wall_mobility_trans_times_force_source_target_numba
+    elif implementation == 'radii_pycuda':
+      function = mb.single_wall_mobility_trans_times_force_source_target_pycuda
+    elif implementation == 'radii':
+      function = mb.mobility_vector_product_source_target_one_wall
+    elif implementation == 'radii_no_wall':
+      function = mb.mobility_vector_product_source_target_unbounded
+    # Get blobs radii
+    bodies = kwargs.get('bodies')
+    radius_blobs = []
+    for k, b in enumerate(bodies):
+      radius_blobs.append(b.blobs_radius)
+    radius_blobs = np.concatenate(radius_blobs, axis=0)    
+    return partial(mb.mobility_radii_trans_times_force, radius_blobs=radius_blobs, function=function)
 
 
 def calc_K_matrix(bodies, Nblobs):
@@ -625,7 +645,7 @@ if __name__ == '__main__':
   output_name = read.output_name 
   structures = read.structures
   structures_ID = read.structures_ID
-  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
+  # mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation) 
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
@@ -715,13 +735,14 @@ if __name__ == '__main__':
     integrator.hydro_interactions = read.hydro_interactions
 
   integrator.calc_slip = partial(calc_slip,
-                                 implementation = read.mobility_vector_prod_implementation,
+                                 implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
                                  eta = a, 
                                  g = g) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
-  integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation)
+  integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
+  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies) 
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
                                                g = g, 
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
@@ -740,7 +761,6 @@ if __name__ == '__main__':
   integrator.a = a
   integrator.first_guess = np.zeros(Nblobs*3 + num_bodies*6)
   integrator.kT = read.kT
-  integrator.mobility_vector_prod = mobility_vector_prod
   integrator.K_matrix_T_vector_prod = K_matrix_T_vector_prod
   integrator.K_matrix_vector_prod = K_matrix_vector_prod
   integrator.build_stochastic_block_diagonal_preconditioner = build_stochastic_block_diagonal_preconditioner
