@@ -28,6 +28,9 @@ python multi_bodies.py --input-file inputfile.dat
 ```
 
 ## 1. Mobility vector product
+The formulas for the mobility between blobs of different radii are taken from the paper **Rotne–Prager–Yamakawa approximation for different-sized particles in application to macromolecular bead models**, P. J. Zuk et al., J. Fluid Mech., 741 (2014) R5. doi:10.1017/jfm.2013.668.
+We modify them to include wall corrections.
+
 The functions to compute the mobility vector that support blobs of different radii are
 `radii_python`, `radii_python_no_wall`, `radii_numba`, `radii_numba_no_wall` and `radii_pycuda`.
 The functions with the words `no_wall` use the Rotne-Prager function in unbounded domains.

@@ -45,6 +45,10 @@ James Swan and John Brady, Phys. Fluids **19**, 113306 (2007)[DOI](http://dx.doi
 We modify the mobility to allow overlaps between blobs and between
 blobs and the wall, see Ref. [3].
 
+The formulas for the mobility between blobs of different radii are taken from the paper **Rotne–Prager–Yamakawa approximation for different-sized particles in application to macromolecular bead models**, P. J. Zuk et al., J. Fluid Mech., 741 (2014) R5. doi:10.1017/jfm.2013.668.
+We modify them to include wall corrections.
+
+
 ## 1. Prepare the package
 The codes are implemented in python (version 3.x or 2.7) and it is not necessary to compile the package to use it. 
 
