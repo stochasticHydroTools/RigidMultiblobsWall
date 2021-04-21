@@ -89,7 +89,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
-  if mobility_vector_prod_implementation == 'python':
+  if mobility_vector_prod_implementation.find('python') > -1:
     grid_velocity = mob.mobility_vector_product_source_target_one_wall(r_vectors_blobs, 
                                                                        grid_coor, 
                                                                        lambda_blobs, 
@@ -107,7 +107,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                       eta, 
                                                                       *args, 
                                                                       **kwargs)
-  elif mobility_vector_prod_implementation == 'numba':                        
+  elif mobility_vector_prod_implementation.find('numba') > -1: 
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_numba(r_vectors_blobs, 
                                                                                    grid_coor, 
                                                                                    lambda_blobs, 
@@ -205,7 +205,7 @@ if __name__ ==  '__main__':
   num_of_body_types = len(body_types)
   num_bodies = bodies.size
   Nblobs = sum([x.Nblobs for x in bodies])
-  multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation)
+  multi_bodies.mobility_vector_prod = multi_bodies.set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies) 
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
   multi_bodies.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)

@@ -1,0 +1,40 @@
+# Select integrator 
+scheme                                   deterministic_forward_euler
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python_no_wall
+mobility_vector_prod_implementation      radii_numba_no_wall
+domain                                   no_wall
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           None
+
+# Set time step, number of steps and save frequency
+dt                                       1
+n_steps                                  1
+n_save                                   1
+update_PC                                1
+solver_tolerance                         1e-12
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      0.0530516476972984
+blob_radius                              0.416420683
+g                                        0.083333333
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0
+debye_length                             1
+
+# Set interaction with the wall
+repulsion_strength_wall                  0
+debye_length_wall                        1
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure ../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex shell_1.clones
+structure ../../Structures/shell_N_12_Rg_0.3960_Rh_0.5.vertex shell_2.clones
+
+# Set output name
+save_clones                              one_file
+output_name                              run
+

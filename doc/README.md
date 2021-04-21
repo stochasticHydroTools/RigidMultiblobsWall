@@ -215,11 +215,15 @@ The options ended with `_no_wall` use the Rotne-Prager tensor, the others includ
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `mobility_vector_prod_implementation`: Options: `python`, `numba`,
-`pycuda`, `C++`, `python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
+`pycuda`, `C++`, `python_no_wall`, `numba_no_wall`, `pycuda_no_wall`, `radii_python`,
+`radii_python_no_wall`, `radii_numba`, `radii_numba_no_wall` and `radii_pycuda`.
 It selects the implementation to compute the matrix vector product
 **Mf**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
+The options with the word `radii` compute the mobility between blobs of different radii.
+By default the blobs will have the radius given in the inputfile, however, this value
+can be overwritten by adding a fourth column to the `vertex` files with the radius of each blob.
 
 * `eta`: (float) the fluid viscosity.
 
@@ -414,12 +418,16 @@ to compute the blob mobility  matrix **M**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
-* `mobility_vector_prod_implementation`: Options: `python`, `numba`, `pycuda`,
-`python_no_wall`, `numba_no_wall` and `pycuda_no_wall`.
-This option select the implementation to compute the matrix vector product
+* `mobility_vector_prod_implementation`: Options: `python`, `numba`,
+`pycuda`, `C++`, `python_no_wall`, `numba_no_wall`, `pycuda_no_wall`, `radii_python`,
+`radii_python_no_wall`, `radii_numba`, `radii_numba_no_wall` and `radii_pycuda`.
+It selects the implementation to compute the matrix vector product
 **Mf**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
 corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
+The options with the word `radii` compute the mobility between blobs of different radii.
+By default the blobs will have the radius given in the inputfile, however, this value
+can be overwritten by adding a fourth column to the `vertex` files with the radius of each blob.
 
 * `blob_blob_force_implementation`: Options: `None, python, C++, numba, tree_numba and pycuda`.
 Select the implementation to compute the blob-blob interactions between all pairs of blobs. If None is selected the code does not compute blob-blob interactions.
