@@ -139,6 +139,12 @@ vector_location_blob_1
 
 For example, the file `multi_bodies/Structures/boomerang_N_15.vertex` gives the
 structure of a boomerang-like particle formed by 15 blobs.
+A fourth column can be added to specify the radius of each blob, it will be used only
+to compute the matrix vector product `M*f` with some mobility functions.
+If no fourth column is included the code will use the default blob radius given in the
+input file. See an example of how to use different radii in `multi_bodies/examples/radii/`.
+
+
 
 ## 3. Fixed bodies and active slip
 
