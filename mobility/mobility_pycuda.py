@@ -8,15 +8,15 @@ from pycuda.compiler import SourceModule
 # to single or double. Set the precision
 # in the following lines and edit the lines
 # after   'mod = SourceModule("""'    accordingly
-precision = 'single'
-# precision = 'double'
+#precision = 'single'
+precision = 'double'
 
 mod = SourceModule("""
 // Set real to single or double precision.
 // This value has to agree witht the value
 // for precision setted above.
-typedef float real;
-// typedef double real;
+//typedef float real;
+typedef double real;
 
 
 #include <stdio.h>
