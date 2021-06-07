@@ -47,7 +47,6 @@ class QuaternionIntegrator(object):
     self.invalid_configuration_count = 0
     self.det_iterations_count = 0
     self.stoch_iterations_count = 0
-    self.hydro_interactions = None
     self.domain = domain
 
     # Optional variables
@@ -969,301 +968,13 @@ class QuaternionIntegrator(object):
     return
 
 
-  def stochastic_GDC(self, dt, *args, **kwargs):
-    ''' 
-    Take a time step of length dt using a stochastic 
-    Generalized DC method.
-
-    The computational cost of this scheme is 1 constrained rigid solve
-    + 2 lanczos call + 7 unconstrained solves.
-
-    The linear and angular velocities are sorted like
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    '''
-    while True:
-      # Call preprocess
-      preprocess_result = self.preprocess(self.bodies)
-
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-
-      # Save initial configuration
-      for k, b in enumerate(self.bodies):
-        np.copyto(b.location_old, b.location)
-        b.orientation_old = copy.copy(b.orientation)
-
-      # Generate random vector
-      W = np.random.normal(0.0, 1.0, self.Nblobs*3)
-
-      # Extract particle positions
-      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      if self.hydro_interactions==1:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_blobs_n, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-        # Calc noise contributions M^{1/2}*W at step n
-        velocities_noise_n, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
-      else:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_blobs_n, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-        velocities_noise_n = M_half_mult(W)*np.sqrt(2*self.kT / dt) 
-
-
-
-      # Solve unconstrained mobility problem
-      RHS_n = np.zeros(System_size)
-      RHS_n[0:self.Nblobs * 3] = -velocities_noise_n  
-      sol_unconst = Unconst_solver_identity_partial_n(RHS_n)
-
-      # Extract unconstrained velocities
-      velocities_unconst_n = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      if self.hydro_interactions==1:
-        # Finite Difference on the unconstrained velocities to compute div(U)
-        div_vel_unconst = 0.0
-      else:
-        div_vel_unconst = np.zeros(len(self.bodies))
-
-      # Compute div_x(Utrans)
-      for i in range(3):
-        delta_trans = np.zeros(3)
-        delta_trans[i] = self.rf_delta
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_old + delta_trans * b.body_length
-        r_vectors_FD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-        if self.hydro_interactions==1:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          # Calc noise contributions M^{1/2}*W at step n
-          velocities_noise_FD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = self.print_residual)
-          self.stoch_iterations_count += it_lanczos
-        else:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          velocities_noise_FD = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-
-        RHS_FD = np.zeros(System_size)
-        RHS_FD[0:self.Nblobs * 3] = -velocities_noise_FD
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_FD)
-          
-        velocities_unconst_FD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-       
-        if self.hydro_interactions==1:
-          for k, b in enumerate(self.bodies):
-            vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-            vel_trans_FD = velocities_unconst_FD[6*k:6*k+3]
-            div_vel_unconst += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*b.body_length)
-        else:
-          for k, b in enumerate(self.bodies):
-            vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-            vel_trans_FD = velocities_unconst_FD[6*k:6*k+3]
-            div_vel_unconst[k] += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*b.body_length)
-
-      # Set locations back to their initial value
-      for k, b in enumerate(self.bodies):
-          np.copyto(b.location, b.location_old)
-
-      # Compute div_\theta(Urot)
-      for i in range(3):
-        delta_rot = np.zeros(3)
-        delta_rot[i] = self.rf_delta
-        quaternion_FD = Quaternion.from_rotation(delta_rot)
-        for k, b in enumerate(self.bodies):
-          b.orientation = quaternion_FD * b.orientation_old
-        r_vectors_FD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-        
-        if self.hydro_interactions==1:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          # Calc noise contributions M^{1/2}*W at step n
-          velocities_noise_FD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = self.print_residual)
-          self.stoch_iterations_count += it_lanczos
-        else:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          velocities_noise_FD = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-         
-        RHS_FD = np.zeros(System_size)
-        RHS_FD[0:self.Nblobs * 3] = -velocities_noise_FD
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_FD)
-          
-        velocities_unconst_FD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-        if self.hydro_interactions==1:
-          for k in range(len(self.bodies)):
-            vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-            vel_rot_FD = velocities_unconst_FD[6*k+3:6*(k+1)]
-            div_vel_unconst += (vel_rot_FD[i] - vel_rot_n[i])/self.rf_delta
-        else:
-          for k in range(len(self.bodies)):
-            vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-            vel_rot_FD = velocities_unconst_FD[6*k+3:6*(k+1)]
-            div_vel_unconst[k] += (vel_rot_FD[i] - vel_rot_n[i])/self.rf_delta
-
-
-      # Update location orientation to mid point
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old + velocities_unconst_n[k*6 : k*6+3] * dt/2.0 
-        quaternion_dt = Quaternion.from_rotation(velocities_unconst_n[(k*6+3):(k*6+6)] * dt/2.0 )
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Check positions, if invalid continue 
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
-        continue       
-
-      # Extract positions at mid point
-      r_vectors_blobs_mid = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-      if self.hydro_interactions==1:
-        # Build preconditionners
-        PC_partial_mid, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
-                                                                                                            r_vectors_blobs_mid, 
-                                                                                                            self.Nblobs, 
-                                                                                                            self.eta, 
-                                                                                                            self.a,
-                                                                                                            periodic_length=self.periodic_length,
-                                                                                                            update_PC = self.update_PC,
-                                                                                                            step = kwargs.get('step'))
-
-        # Calc noise contributions M^{1/2}*W at mid point
-        velocities_noise_mid, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
-
-        # Solve constrained mobility problem 
-        sol_precond_mid = self.solve_mobility_problem(noise = velocities_noise_mid, 
-                                                    x0 = self.first_guess, 
-                                                    save_first_guess = True,
-                                                    PC_partial = PC_partial_mid)
-  
-      else:
-        PC_partial_mid, M_half_mult = self.build_block_diagonal_preconditioners_det_stoch_uncorrelated(     self.bodies, 
-                                                                                                            r_vectors_blobs_mid, 
-                                                                                                            self.Nblobs, 
-                                                                                                            self.eta, 
-                                                                                                            self.a,
-                                                                                                            periodic_length=self.periodic_length,
-                                                                                                            update_PC = self.update_PC,
-                                                                                                            step = kwargs.get('step'))
-        velocities_noise_mid = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-
-        # Calculate slip on blobs
-        if self.calc_slip is not None:
-          slip = self.calc_slip(self.bodies, self.Nblobs)
-        else:
-          slip = np.zeros((self.Nblobs, 3))
-        # Calculate force-torque on bodies
-        force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs_mid)
-        # Set right hand side
-        RHS_mid = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
-        RHS_mid[0:self.Nblobs * 3] -= velocities_noise_mid
-
-        sol_precond_mid = PC_partial_mid(RHS_mid)
-        
-        
-
-      # Extract velocities
-      velocities_mid = np.reshape(sol_precond_mid[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      # Compute correction factor for time update
-      correction_factor = 1.0 + dt/2.0*div_vel_unconst      
- 
-      if self.hydro_interactions==1:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor )
-          b.orientation_new = quaternion_dt * b.orientation_old
-      else:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor[k]
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor[k] )
-          b.orientation_new = quaternion_dt * b.orientation_old
-
-      # Call postprocess
-      postprocess_result = self.postprocess(self.bodies)
-
-      # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
-        return
-
-    return
-
-
-
   def stochastic_GDC_RFD(self, dt, *args, **kwargs):
     ''' 
     Take a time step of length dt using a stochastic 
     Generalized DC method.
 
     The computational cost of this scheme is 1 constrained rigid solve
-    + 2 lanczos call + 7 unconstrained solves.
+    + 3 lanczos call + 2 unconstrained solves.
 
     The linear and angular velocities are sorted like
     velocities = (v_1, w_1, v_2, w_2, ...)
@@ -1286,9 +997,8 @@ class QuaternionIntegrator(object):
       # Extract particle positions
       r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      if self.hydro_interactions==1:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
+      # Build lanczos preconditionners and identity mobility solver
+      Unconst_solver_identity_partial_n, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
                                                                                                                                       r_vectors_blobs_n, 
                                                                                                                                       self.Nblobs, 
                                                                                                                                       self.eta, 
@@ -1296,28 +1006,15 @@ class QuaternionIntegrator(object):
                                                                                                                                       periodic_length=self.periodic_length,
                                                                                                                                       update_PC = self.update_PC,
                                                                                                                                       step = kwargs.get('step'))
-        # Calc noise contributions M^{1/2}*W at step n
-        velocities_noise_n, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+      # Calc noise contributions M^{1/2}*W at step n
+      velocities_noise_n, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                               tolerance = self.tolerance,
                                                                               dim = self.Nblobs * 3,
                                                                               mobility_mult = mobility_pc_partial,
                                                                               L_mult = P_inv_mult,
                                                                               z = W,
                                                                               print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
-      else:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_blobs_n, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-        velocities_noise_n = M_half_mult(W)*np.sqrt(2*self.kT / dt) 
-
-
+      self.stoch_iterations_count += it_lanczos
 
       # Solve unconstrained mobility problem
       RHS_n = np.zeros(System_size)
@@ -1327,11 +1024,8 @@ class QuaternionIntegrator(object):
       # Extract unconstrained velocities
       velocities_unconst_n = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
 
-      if self.hydro_interactions==1:
-        # Random Finite Difference on the unconstrained velocities to compute div(U)
-        div_vel_unconst = 0.0
-      else:
-        div_vel_unconst = np.zeros(len(self.bodies))
+      # Random Finite Difference on the unconstrained velocities to compute div(U)
+      div_vel_unconst = 0.0
 
       # Compute div(U) with RFD
       WRFD = np.random.normal(0.0, 1.0, len(self.bodies) * 6)
@@ -1342,9 +1036,8 @@ class QuaternionIntegrator(object):
 
       r_vectors_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      if self.hydro_interactions==1:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_RFD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
+      # Build lanczos preconditionners and identity mobility solver
+      Unconst_solver_identity_partial_RFD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
                                                                                                                                       r_vectors_RFD, 
                                                                                                                                       self.Nblobs, 
                                                                                                                                       self.eta, 
@@ -1352,26 +1045,15 @@ class QuaternionIntegrator(object):
                                                                                                                                       periodic_length=self.periodic_length,
                                                                                                                                       update_PC = self.update_PC,
                                                                                                                                       step = kwargs.get('step'))
-          # Calc noise contributions M^{1/2}*W at step n
-          velocities_noise_RFD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+      # Calc noise contributions M^{1/2}*W at step n
+      velocities_noise_RFD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                               tolerance = self.tolerance,
                                                                               dim = self.Nblobs * 3,
                                                                               mobility_mult = mobility_pc_partial,
                                                                               L_mult = P_inv_mult,
                                                                               z = W,
                                                                               print_residual = self.print_residual)
-          self.stoch_iterations_count += it_lanczos
-      else:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_RFD, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_RFD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          velocities_noise_RFD = M_half_mult(W)*np.sqrt(2*self.kT / dt)
+      self.stoch_iterations_count += it_lanczos
 
       RHS_RFD = np.zeros(System_size)
       RHS_RFD[0:self.Nblobs * 3] = -velocities_noise_RFD
@@ -1379,28 +1061,19 @@ class QuaternionIntegrator(object):
           
       velocities_unconst_RFD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
        
-      if self.hydro_interactions==1:
-        for k, b in enumerate(self.bodies):
-          vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-          vel_trans_RFD = velocities_unconst_RFD[6*k:6*k+3]
-          vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-          vel_rot_RFD = velocities_unconst_RFD[6*k+3:6*(k+1)]
-          div_vel_unconst +=  np.dot(vel_trans_RFD - vel_trans_n, WRFD[6*k:6*k+3])/(self.rf_delta*b.body_length)
-          div_vel_unconst +=  np.dot(vel_rot_RFD - vel_rot_n, WRFD[6*k+3:6*(k+1)])/self.rf_delta
-      else:
-        for k, b in enumerate(self.bodies):
-          vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-          vel_trans_RFD = velocities_unconst_RFD[6*k:6*k+3]
-          vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-          vel_rot_RFD = velocities_unconst_RFD[6*k+3:6*(k+1)]
-          div_vel_unconst[k] += np.sum( np.dot(vel_trans_RFD - vel_trans_n, WRFD[6*k:6*k+3]) )/(self.rf_delta*b.body_length)
-          div_vel_unconst[k] += np.sum( np.dot(vel_rot_RFD - vel_rot_n, WRFD[6*k+3:6*(k+1)]) )/self.rf_delta
+      for k, b in enumerate(self.bodies):
+        vel_trans_n = velocities_unconst_n[6*k:6*k+3]
+        vel_trans_RFD = velocities_unconst_RFD[6*k:6*k+3]
+        vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
+        vel_rot_RFD = velocities_unconst_RFD[6*k+3:6*(k+1)]
+        div_vel_unconst +=  np.dot(vel_trans_RFD - vel_trans_n, WRFD[6*k:6*k+3])/(self.rf_delta*b.body_length)
+        div_vel_unconst +=  np.dot(vel_rot_RFD - vel_rot_n, WRFD[6*k+3:6*(k+1)])/self.rf_delta
 
       # Set locations back to their initial value
       for k, b in enumerate(self.bodies):
           np.copyto(b.location, b.location_old)
 
-      # Update location orientation to mid point
+      # Update location and orientation to mid point
       for k, b in enumerate(self.bodies):
         b.location = b.location_old + velocities_unconst_n[k*6 : k*6+3] * dt/2.0 
         quaternion_dt = Quaternion.from_rotation(velocities_unconst_n[(k*6+3):(k*6+6)] * dt/2.0 )
@@ -1413,9 +1086,8 @@ class QuaternionIntegrator(object):
       # Extract positions at mid point
       r_vectors_blobs_mid = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
-      if self.hydro_interactions==1:
-        # Build preconditionners
-        PC_partial_mid, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+      # Build preconditionners
+      PC_partial_mid, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
                                                                                                             r_vectors_blobs_mid, 
                                                                                                             self.Nblobs, 
                                                                                                             self.eta, 
@@ -1424,47 +1096,22 @@ class QuaternionIntegrator(object):
                                                                                                             update_PC = self.update_PC,
                                                                                                             step = kwargs.get('step'))
 
-        # Calc noise contributions M^{1/2}*W at mid point
-        velocities_noise_mid, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+      # Calc noise contributions M^{1/2}*W at mid point
+      velocities_noise_mid, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
                                                                               tolerance = self.tolerance,
                                                                               dim = self.Nblobs * 3,
                                                                               mobility_mult = mobility_pc_partial,
                                                                               L_mult = P_inv_mult,
                                                                               z = W,
                                                                               print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
+      self.stoch_iterations_count += it_lanczos
 
-        # Solve constrained mobility problem 
-        sol_precond_mid = self.solve_mobility_problem(noise = velocities_noise_mid, 
+      # Solve constrained mobility problem 
+      sol_precond_mid = self.solve_mobility_problem(noise = velocities_noise_mid, 
                                                     x0 = self.first_guess, 
                                                     save_first_guess = True,
                                                     PC_partial = PC_partial_mid)
   
-      else:
-        PC_partial_mid, M_half_mult = self.build_block_diagonal_preconditioners_det_stoch_uncorrelated(     self.bodies, 
-                                                                                                            r_vectors_blobs_mid, 
-                                                                                                            self.Nblobs, 
-                                                                                                            self.eta, 
-                                                                                                            self.a,
-                                                                                                            periodic_length=self.periodic_length,
-                                                                                                            update_PC = self.update_PC,
-                                                                                                            step = kwargs.get('step'))
-        velocities_noise_mid = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-
-        # Calculate slip on blobs
-        if self.calc_slip is not None:
-          slip = self.calc_slip(self.bodies, self.Nblobs)
-        else:
-          slip = np.zeros((self.Nblobs, 3))
-        # Calculate force-torque on bodies
-        force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs_mid)
-        # Set right hand side
-        RHS_mid = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
-        RHS_mid[0:self.Nblobs * 3] -= velocities_noise_mid
-
-        sol_precond_mid = PC_partial_mid(RHS_mid)
-        
-        
 
       # Extract velocities
       velocities_mid = np.reshape(sol_precond_mid[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
@@ -1472,355 +1119,11 @@ class QuaternionIntegrator(object):
       # Compute correction factor for time update
       correction_factor = 1.0 + dt/2.0*div_vel_unconst      
  
-      if self.hydro_interactions==1:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor )
-          b.orientation_new = quaternion_dt * b.orientation_old
-      else:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor[k]
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor[k] )
-          b.orientation_new = quaternion_dt * b.orientation_old
-
-      # Call postprocess
-      postprocess_result = self.postprocess(self.bodies)
-
-      # Check positions, if valid return 
-      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
-        return
-
-    return
-
-
-
-  def stochastic_GDC_testing(self, dt, *args, **kwargs):
-    ''' 
-    Take a time step of length dt using a stochastic 
-    Generalized DC method.
-
-    The computational cost of this scheme is 1 constrained rigid solve
-    + 2 lanczos call + 7 unconstrained solves.
-
-    The linear and angular velocities are sorted like
-    velocities = (v_1, w_1, v_2, w_2, ...)
-    where v_i and w_i are the linear and angular velocities of body i.
-    '''
-    while True:
-      # Call preprocess
-      preprocess_result = self.preprocess(self.bodies)
-
-      System_size = self.Nblobs * 3 + len(self.bodies) * 6
-
-      # Save initial configuration
+      # Update location orientation 
       for k, b in enumerate(self.bodies):
-        np.copyto(b.location_old, b.location)
-        b.orientation_old = copy.copy(b.orientation)
-
-      # Generate random vector
-      W = np.random.normal(0.0, 1.0, self.Nblobs*3)
-
-      # Extract particle positions
-      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-      if self.hydro_interactions==1:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, mobility_pc_partial_n, P_inv_mult_n = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_blobs_n, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-        # Calc noise contributions M^{1/2}*W at step n
-        velocities_noise_n, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial_n,
-                                                                              L_mult = P_inv_mult_n,
-                                                                              z = W,
-                                                                              print_residual = True)
-                                                                              #print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
-      else:
-        # Build lanczos preconditionners and identity mobility solver
-        Unconst_solver_identity_partial_n, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_blobs_n, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-        velocities_noise_n = M_half_mult(W)*np.sqrt(2*self.kT / dt) 
-
-
-
-      # Solve unconstrained mobility problem
-      RHS_n = np.zeros(System_size)
-      RHS_n[0:self.Nblobs * 3] = -velocities_noise_n  
-      sol_unconst = Unconst_solver_identity_partial_n(RHS_n)
-
-      # Extract unconstrained velocities
-      velocities_unconst_n = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
-      if self.hydro_interactions==1:
-        # Finite Difference on the unconstrained velocities to compute div(U)
-        div_vel_unconst = 0.0
-      else:
-        div_vel_unconst = np.zeros(len(self.bodies))
-
-      # Compute div_x(Utrans)
-      for i in range(3):
-        delta_trans = np.zeros(3)
-        delta_trans[i] = self.rf_delta
-        for k, b in enumerate(self.bodies):
-          b.location = b.location_old + delta_trans * b.body_length
-        r_vectors_FD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-        '''
-        ### TO UNCOMMENT IF NECESSARY
-        Unconst_solver_identity_partial_FD = self.build_block_diagonal_preconditioner_identity(self.bodies,
-                                                                                                r_vectors_FD,
-                                                                                                self.Nblobs,
-                                                                                                self.eta,
-                                                                                                self.a,
-                                                                                                periodic_length=self.periodic_length,
-                                                                                                update_PC = self.update_PC,
-                                                                                                step = kwargs.get('step'))
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_n)
-        ### TO COMMENT IF NECESSARY: WE MAY HAVE TO UPDATE THE NOISE AS WELL IN THE FD STEP!!!!!
-        '''
-        if self.hydro_interactions==1:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          # Calc noise contributions M^{1/2}*W at step n
-       #   velocities_noise_FD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-       #                                                                       tolerance = self.tolerance,
-       #                                                                       dim = self.Nblobs * 3,
-       #                                                                       mobility_mult = mobility_pc_partial,
-       #                                                                       L_mult = P_inv_mult,
-       #                                                                       z = W,
-       #                                                                       print_residual = True)
-                                                                              #print_residual = self.print_residual)
-          velocities_noise_FD, it_lanczos = stochastic.stochastic_forcing_lanczos_with_initial_guess(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              noise_guess = velocities_noise_n,
-                                                                              print_residual = True)
-                                                                              #print_residual = self.print_residual)
-          print('velocities_noise_n = ', velocities_noise_n)
-          print('velocities_noise_FD = ', velocities_noise_FD)
-          input()
-          self.stoch_iterations_count += it_lanczos
-        else:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          velocities_noise_FD = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-
-        RHS_FD = np.zeros(System_size)
-        RHS_FD[0:self.Nblobs * 3] = -velocities_noise_FD
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_FD)
-        ### TO COMMENT IF NECESSARY
-          
-        velocities_unconst_FD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-       
-        if self.hydro_interactions==1:
-          for k, b in enumerate(self.bodies):
-            vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-            vel_trans_FD = velocities_unconst_FD[6*k:6*k+3]
-            div_vel_unconst += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*b.body_length)
-        else:
-          for k, b in enumerate(self.bodies):
-            vel_trans_n = velocities_unconst_n[6*k:6*k+3]
-            vel_trans_FD = velocities_unconst_FD[6*k:6*k+3]
-            div_vel_unconst[k] += (vel_trans_FD[i] - vel_trans_n[i])/(self.rf_delta*b.body_length)
-
-      # Set locations back to their initial value
-      for k, b in enumerate(self.bodies):
-          np.copyto(b.location, b.location_old)
-
-      # Compute div_\theta(Urot)
-      for i in range(3):
-        delta_rot = np.zeros(3)
-        delta_rot[i] = self.rf_delta
-        quaternion_FD = Quaternion.from_rotation(delta_rot)
-        for k, b in enumerate(self.bodies):
-          b.orientation = quaternion_FD * b.orientation_old
-        r_vectors_FD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-        '''
-        # TO UNCOMMENT IF NECESSARY
-        Unconst_solver_identity_partial_FD = self.build_block_diagonal_preconditioner_identity(self.bodies,
-                                                                                                r_vectors_FD,
-                                                                                                self.Nblobs,
-                                                                                                self.eta,
-                                                                                                self.a,
-                                                                                                periodic_length=self.periodic_length,
-                                                                                                update_PC = self.update_PC,
-                                                                                                step = kwargs.get('step'))
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_n)
-        
-        ### TO COMMENT IF NECESSARY: WE MAY HAVE TO UPDATE THE NOISE AS WELL IN THE FD STEP!!!!!
-        '''
-        
-        if self.hydro_interactions==1:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          # Calc noise contributions M^{1/2}*W at step n
-          velocities_noise_FD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = True)
-                                                                              #print_residual = self.print_residual)
-          self.stoch_iterations_count += it_lanczos
-        else:
-          # Build lanczos preconditionners and identity mobility solver
-          Unconst_solver_identity_partial_FD, M_half_mult = self.build_block_diagonal_preconditioners_det_identity_stoch_uncorrelated(   self.bodies, 
-                                                                                                                                      r_vectors_FD, 
-                                                                                                                                      self.Nblobs, 
-                                                                                                                                      self.eta, 
-                                                                                                                                      self.a,
-                                                                                                                                      periodic_length=self.periodic_length,
-                                                                                                                                      update_PC = self.update_PC,
-                                                                                                                                      step = kwargs.get('step'))
-          velocities_noise_FD = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-         
-        RHS_FD = np.zeros(System_size)
-        RHS_FD[0:self.Nblobs * 3] = -velocities_noise_FD
-        sol_unconst = Unconst_solver_identity_partial_FD(RHS_FD)
-        ### TO COMMENT IF NECESSARY
-          
-        velocities_unconst_FD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-        if self.hydro_interactions==1:
-          for k in range(len(self.bodies)):
-            vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-            vel_rot_FD = velocities_unconst_FD[6*k+3:6*(k+1)]
-            div_vel_unconst += (vel_rot_FD[i] - vel_rot_n[i])/self.rf_delta
-        else:
-          for k in range(len(self.bodies)):
-            vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
-            vel_rot_FD = velocities_unconst_FD[6*k+3:6*(k+1)]
-            div_vel_unconst[k] += (vel_rot_FD[i] - vel_rot_n[i])/self.rf_delta
-
-      #print(div_vel_unconst)
-      #input()
-
-      # Update location orientation to mid point
-      for k, b in enumerate(self.bodies):
-        b.location = b.location_old + velocities_unconst_n[k*6 : k*6+3] * dt/2.0 
-        quaternion_dt = Quaternion.from_rotation(velocities_unconst_n[(k*6+3):(k*6+6)] * dt/2.0 )
-        b.orientation = quaternion_dt * b.orientation_old
-
-      # Check positions, if invalid continue 
-      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
-        continue       
-
-      # Extract positions at mid point
-      r_vectors_blobs_mid = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
-
-      if self.hydro_interactions==1:
-        # Build preconditionners
-        PC_partial_mid, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
-                                                                                                            r_vectors_blobs_mid, 
-                                                                                                            self.Nblobs, 
-                                                                                                            self.eta, 
-                                                                                                            self.a,
-                                                                                                            periodic_length=self.periodic_length,
-                                                                                                            update_PC = self.update_PC,
-                                                                                                            step = kwargs.get('step'))
-
-        # Calc noise contributions M^{1/2}*W at mid point
-        velocities_noise_mid, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
-                                                                              tolerance = self.tolerance,
-                                                                              dim = self.Nblobs * 3,
-                                                                              mobility_mult = mobility_pc_partial,
-                                                                              L_mult = P_inv_mult,
-                                                                              z = W,
-                                                                              print_residual = True)
-                                                                              #print_residual = self.print_residual)
-        self.stoch_iterations_count += it_lanczos
-
-        # Solve constrained mobility problem 
-        sol_precond_mid = self.solve_mobility_problem(noise = velocities_noise_mid, 
-                                                    x0 = self.first_guess, 
-                                                    save_first_guess = True,
-                                                    PC_partial = PC_partial_mid)
-  
-      else:
-        PC_partial_mid, M_half_mult = self.build_block_diagonal_preconditioners_det_stoch_uncorrelated(     self.bodies, 
-                                                                                                            r_vectors_blobs_mid, 
-                                                                                                            self.Nblobs, 
-                                                                                                            self.eta, 
-                                                                                                            self.a,
-                                                                                                            periodic_length=self.periodic_length,
-                                                                                                            update_PC = self.update_PC,
-                                                                                                            step = kwargs.get('step'))
-        velocities_noise_mid = M_half_mult(W)*np.sqrt(2*self.kT / dt)
-
-        # Calculate slip on blobs
-        if self.calc_slip is not None:
-          slip = self.calc_slip(self.bodies, self.Nblobs)
-        else:
-          slip = np.zeros((self.Nblobs, 3))
-        # Calculate force-torque on bodies
-        force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs_mid)
-        # Set right hand side
-        RHS_mid = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
-        RHS_mid[0:self.Nblobs * 3] -= velocities_noise_mid
-
-        sol_precond_mid = PC_partial_mid(RHS_mid)
-        
-        
-
-#      force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs_mid)
-#      print('force_torque = ', force_torque )
-      # Extract velocities
-      velocities_mid = np.reshape(sol_precond_mid[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
- #     print('velocities_mid = ', velocities_mid )
- #     input()
-      # Compute correction factor for time update
-      correction_factor = 1.0 + dt/2.0*div_vel_unconst      
- 
-      if self.hydro_interactions==1:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor )
-          b.orientation_new = quaternion_dt * b.orientation_old
-      else:
-        # Update location orientation 
-        for k, b in enumerate(self.bodies):
-          b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor[k]
-          quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor[k] )
-          b.orientation_new = quaternion_dt * b.orientation_old
+        b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor
+        quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor )
+        b.orientation_new = quaternion_dt * b.orientation_old
 
       # Call postprocess
       postprocess_result = self.postprocess(self.bodies)
