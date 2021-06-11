@@ -6,8 +6,8 @@
 # Length, time and mass are given in units of microns, seconds and miligrams.
 
 # Set time step, number of steps and save frequency
-n_steps                                  100
-n_save                                   1
+n_steps                                  1000
+n_save                                   10
 initial_step				                     0
 
 # Set gravity*blob_mass (g) and blob radius

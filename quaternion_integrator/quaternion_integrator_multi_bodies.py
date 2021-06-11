@@ -183,6 +183,69 @@ class QuaternionIntegrator(object):
 
     return
 
+  def stochastic_EM(self, dt, *args, **kwargs): 
+    ''' 
+    Take a time step of length dt using a Euler Maruyama (EM) scheme.
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+      
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+
+      # Get blobs vectors
+      r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Build preconditioners
+      PC_partial, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                        r_vectors_blobs, 
+                                                                                                        self.Nblobs, 
+                                                                                                        self.eta, 
+                                                                                                        self.a,
+                                                                                                        periodic_length=self.periodic_length,
+                                                                                                        update_PC = self.update_PC,
+                                                                                                        step = kwargs.get('step'))
+
+      # Add noise contribution sqrt(2kT/dt)*N^{1/2}*W
+      velocities_noise, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                           tolerance = self.tolerance, 
+                                                                           dim = self.Nblobs * 3, 
+                                                                           mobility_mult = mobility_pc_partial,
+                                                                           L_mult = P_inv_mult,
+                                                                           print_residual = self.print_residual)
+      self.stoch_iterations_count += it_lanczos
+
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(noise = velocities_noise, x0 = self.first_guess, save_first_guess = True, PC_partial = PC_partial)
+
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+
+      # Check positions, if valid return 
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
+        return
+
+    return
+
+
 
   def stochastic_first_order_RFD(self, dt, *args, **kwargs): 
     ''' 
@@ -781,7 +844,6 @@ class QuaternionIntegrator(object):
 
     return
 
-
   def stochastic_Slip_Trapz(self, dt, *args, **kwargs):
     ''' 
     Take a time step of length dt using a stochastic 
@@ -904,6 +966,172 @@ class QuaternionIntegrator(object):
 
     return
 
+
+  def stochastic_GDC_RFD(self, dt, *args, **kwargs):
+    ''' 
+    Take a time step of length dt using a stochastic 
+    Generalized DC method.
+
+    The computational cost of this scheme is 1 constrained rigid solve
+    + 3 lanczos call + 2 unconstrained solves.
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    while True:
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+
+      System_size = self.Nblobs * 3 + len(self.bodies) * 6
+
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+      # Generate random vector for Brownian Velocities
+      W = np.random.normal(0.0, 1.0, self.Nblobs*3)
+
+      # Extract particle positions
+      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Build lanczos preconditionners and identity mobility solver
+      Unconst_solver_identity_partial_n, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
+                                                                                                                                      r_vectors_blobs_n, 
+                                                                                                                                      self.Nblobs, 
+                                                                                                                                      self.eta, 
+                                                                                                                                      self.a,
+                                                                                                                                      periodic_length=self.periodic_length,
+                                                                                                                                      update_PC = self.update_PC,
+                                                                                                                                      step = kwargs.get('step'))
+      # Calc noise contributions M^{1/2}*W at step n
+      velocities_noise_n, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                              tolerance = self.tolerance,
+                                                                              dim = self.Nblobs * 3,
+                                                                              mobility_mult = mobility_pc_partial,
+                                                                              L_mult = P_inv_mult,
+                                                                              z = W,
+                                                                              print_residual = self.print_residual)
+      self.stoch_iterations_count += it_lanczos
+
+      # Solve unconstrained mobility problem
+      RHS_n = np.zeros(System_size)
+      RHS_n[0:self.Nblobs * 3] = -velocities_noise_n  
+      sol_unconst = Unconst_solver_identity_partial_n(RHS_n)
+
+      # Extract unconstrained velocities
+      velocities_unconst_n = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Random Finite Difference on the unconstrained velocities to compute div(U)
+      div_vel_unconst = 0.0
+
+      # Compute div(U) with RFD
+      WRFD = np.random.normal(0.0, 1.0, len(self.bodies) * 6)
+      for k, b in enumerate(self.bodies):
+          b.location = b.location_old + self.rf_delta * b.body_length * WRFD[6*k:6*k+3]
+          quaternion_RFD = Quaternion.from_rotation(self.rf_delta * WRFD[6*k+3:6*(k+1)])
+          b.orientation = quaternion_RFD * b.orientation_old
+
+      r_vectors_RFD = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Build lanczos preconditionners and identity mobility solver
+      Unconst_solver_identity_partial_RFD, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_identity_stoch(self.bodies, 
+                                                                                                                                      r_vectors_RFD, 
+                                                                                                                                      self.Nblobs, 
+                                                                                                                                      self.eta, 
+                                                                                                                                      self.a,
+                                                                                                                                      periodic_length=self.periodic_length,
+                                                                                                                                      update_PC = self.update_PC,
+                                                                                                                                      step = kwargs.get('step'))
+      # Calc noise contributions M^{1/2}*W at step n
+      velocities_noise_RFD, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                              tolerance = self.tolerance,
+                                                                              dim = self.Nblobs * 3,
+                                                                              mobility_mult = mobility_pc_partial,
+                                                                              L_mult = P_inv_mult,
+                                                                              z = W,
+                                                                              print_residual = self.print_residual)
+      self.stoch_iterations_count += it_lanczos
+
+      RHS_RFD = np.zeros(System_size)
+      RHS_RFD[0:self.Nblobs * 3] = -velocities_noise_RFD
+      sol_unconst = Unconst_solver_identity_partial_RFD(RHS_RFD)
+          
+      velocities_unconst_RFD = np.reshape(sol_unconst[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+       
+      for k, b in enumerate(self.bodies):
+        vel_trans_n = velocities_unconst_n[6*k:6*k+3]
+        vel_trans_RFD = velocities_unconst_RFD[6*k:6*k+3]
+        vel_rot_n = velocities_unconst_n[6*k+3:6*(k+1)]
+        vel_rot_RFD = velocities_unconst_RFD[6*k+3:6*(k+1)]
+        div_vel_unconst +=  np.dot(vel_trans_RFD - vel_trans_n, WRFD[6*k:6*k+3])/(self.rf_delta*b.body_length)
+        div_vel_unconst +=  np.dot(vel_rot_RFD - vel_rot_n, WRFD[6*k+3:6*(k+1)])/self.rf_delta
+
+      # Set locations back to their initial value
+      for k, b in enumerate(self.bodies):
+          np.copyto(b.location, b.location_old)
+
+      # Update location and orientation to mid point
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities_unconst_n[k*6 : k*6+3] * dt/2.0 
+        quaternion_dt = Quaternion.from_rotation(velocities_unconst_n[(k*6+3):(k*6+6)] * dt/2.0 )
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Check positions, if invalid continue 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
+        continue       
+
+      # Extract positions at mid point
+      r_vectors_blobs_mid = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+      # Build preconditionners
+      PC_partial_mid, mobility_pc_partial, P_inv_mult = self.build_block_diagonal_preconditioners_det_stoch(self.bodies, 
+                                                                                                            r_vectors_blobs_mid, 
+                                                                                                            self.Nblobs, 
+                                                                                                            self.eta, 
+                                                                                                            self.a,
+                                                                                                            periodic_length=self.periodic_length,
+                                                                                                            update_PC = self.update_PC,
+                                                                                                            step = kwargs.get('step'))
+
+      # Calc noise contributions M^{1/2}*W at mid point
+      velocities_noise_mid, it_lanczos = stochastic.stochastic_forcing_lanczos(factor = np.sqrt(2*self.kT / dt),
+                                                                              tolerance = self.tolerance,
+                                                                              dim = self.Nblobs * 3,
+                                                                              mobility_mult = mobility_pc_partial,
+                                                                              L_mult = P_inv_mult,
+                                                                              z = W,
+                                                                              print_residual = self.print_residual)
+      self.stoch_iterations_count += it_lanczos
+
+      # Solve constrained mobility problem 
+      sol_precond_mid = self.solve_mobility_problem(noise = velocities_noise_mid, 
+                                                    x0 = self.first_guess, 
+                                                    save_first_guess = True,
+                                                    PC_partial = PC_partial_mid)
+  
+
+      # Extract velocities
+      velocities_mid = np.reshape(sol_precond_mid[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Compute correction factor for time update
+      correction_factor = 1.0 + dt/2.0*div_vel_unconst      
+ 
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt * correction_factor
+        quaternion_dt = Quaternion.from_rotation( velocities_mid[6*k+3:6*k+6] * dt * correction_factor )
+        b.orientation_new = quaternion_dt * b.orientation_old
+
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid return 
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
+        return
+
+    return
 
   def stochastic_Slip_Mid(self, dt, *args, **kwargs): 
     ''' 

@@ -12,6 +12,7 @@ try:
   found_pycuda = True
 except ImportError:
   found_pycuda = False
+  print('pycuda not found')
 if found_pycuda:
   try:
     import pycuda.autoinit
@@ -23,6 +24,7 @@ if found_pycuda:
       from . import mobility_pycuda
     except ImportError:
       from .mobility import mobility_pycuda
+
 # If numba is installed import mobility_numba
 try: 
   imp.find_module('numba')
@@ -34,6 +36,7 @@ if found_numba:
     from . import mobility_numba
   except ImportError:
     import mobility_numba
+
 # Try to import the mobility fmm implementation
 try:
   import mobility_fmm as fmm

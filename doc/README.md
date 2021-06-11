@@ -37,6 +37,8 @@ A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017); see section 5
 
 6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, PNAS, 202007255, 2020 [DOI](http://dx.doi.org/10.1073/pnas.2007255117)
 
+7. **A generalised drift-correcting time integration scheme for Brownian suspensions of rigid particles with arbitrary shape** by T. Westwood, B. Delmotte, E. Keaveny, ArXiv, 2021 [arXiv] (https://arxiv.org/abs/2106.00449)
+
 
 Note: The key blob-blob translational mobility in the presence of a wall is computed using
 the Rotne-Prager-Blake tensor in the appendices B and C of:
@@ -404,6 +406,7 @@ The input file should select one of the following ones
 | stochastic_traction_EM                    | Iterative    | first order. two mobility solves and one Lanczos call per step.|
 | Fixman                                    | Direct solve | cost `O(number_of_blobs**3)`    |
 | stochastic_Slip_Trapz                     | Iterative    | second order accurate deterministically and weakly first order accurate stochastically. It uses three mobility solves and one Lanczos call per step |
+| stochastic_GDC_RFD                        | Iterative    | First order. It uses one mobility solve and three Lanczos calls per step |
 | stochastic_traction_AB                    | Iterative    | (Not tested) Cost and accuracy like stochastic_traction_AB |
 | stochastic_Slip_Mid                       | Iterative    | (Not tested) Accuracy like in stochastic_traction_AB. It uses three mobility solves and two Lanczos calls per step  |
 | stochastic_Slip_Mid_DLA                   | Direct solve | cost `O(number_of_blobs**3)` (dense LA version of Slip_Mid) |
