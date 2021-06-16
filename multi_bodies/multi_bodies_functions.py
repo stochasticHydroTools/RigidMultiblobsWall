@@ -55,7 +55,6 @@ if found_pycuda:
     sys.modules['forces_pycuda'] = __import__('forces_pycuda_user_defined')
     from . import forces_pycuda
 
-print(forces_pycuda_user_defined)
 # Override forces_numba with user defined functions.
 # If forces_pycuda_user_defined does not exists nothing happens.
 if found_numba:
