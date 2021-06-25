@@ -105,7 +105,7 @@ if __name__ == '__main__':
     f.write(str(x.size) + '\n')
     f.write(str(len(links)) + '\n')
     for l in links:
-      f.write(str(int(l[0])) + ' ' + str(int(l[1])) + ' ' + str(int(l[2])) + ' ' + str(int(l[3])) + ' ' + str(l[4]) + ' ' + str(l[5]) + ' ' + str(l[6]) + ' ' + str(l[7]) + ' ' + '\n')
+      f.write(str(int(l[0])) + ' ' + str(int(l[1])) + ' ' + str(l[2]) + ' ' + str(l[3]) + ' ' + str(l[4]) + ' ' + str(l[5]) + ' ' + str(l[6]) + ' ' + str(l[7]) + ' ' + '\n')
 
   # Save clones file
   with open('create_soft_articulated.clones', 'w') as f:

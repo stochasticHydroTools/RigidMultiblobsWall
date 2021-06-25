@@ -1279,7 +1279,7 @@ class QuaternionIntegratorRollers(object):
       force += self.calc_blob_blob_forces(r_vectors_blobs, blob_radius = self.a)
       force = np.reshape(force, force.size)
       # Compute external torque
-      torque = self.get_torque()   
+      torque = self.get_torque()
       FT = np.concatenate([force, torque])
       # Calculate unconstrained velocity on bodies on bodies
       U_unconst = self.full_mobility_matrix(FT, r_vectors_blobs, self.eta, self.a, self.periodic_length)
@@ -1317,8 +1317,9 @@ class QuaternionIntegratorRollers(object):
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
       #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      #self.det_iterations_count += counter.niter
       (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
-      self.det_iterations_count += counter.niter
+      self.det_iterations_count += len(resnorms)
     else:
       sol_precond = np.zeros_like(RHS)
 
