@@ -36,7 +36,7 @@ if __name__ == '__main__':
   else:
     method = 'distance'
 
-  if True:
+  if False:
     theta = np.array([1, 0, 0, 0])
     theta_norm = np.linalg.norm(theta)
     q = Quaternion(theta / theta_norm)    
@@ -73,12 +73,11 @@ if __name__ == '__main__':
     for i in range(x.size-1):
       for j in range(i+1, x.size):
         if dr[i,j] <= d_max:
-          l = np.zeros(10)
-          l[1] = i
-          l[2] = j
-          l[3] = 6
-          l[4:7] = (r[j] - r[i]) * d_frac
-          l[7:10] = (r[i] - r[j]) * (1 - d_frac)
+          l = np.zeros(8)
+          l[0] = i
+          l[1] = j
+          l[2:5] = (r[j] - r[i]) * d_frac
+          l[5:8] = (r[i] - r[j]) * (1 - d_frac)
           links.append(l)
   else:
     num_links = np.zeros(x.size)
@@ -88,12 +87,11 @@ if __name__ == '__main__':
       while num_links[i] < max_num_neighbors and count < x.size:
         j = dri_ind[count]
         if num_links[j] < max_num_neighbors and j > i:
-          l = np.zeros(10)
-          l[1] = i
-          l[2] = j
-          l[3] = 6
-          l[4:7] = (r[j] - r[i]) * d_frac
-          l[7:10] = (r[i] - r[j]) * (1 - d_frac)
+          l = np.zeros(8)
+          l[0] = i
+          l[1] = j
+          l[2:5] = (r[j] - r[i]) * d_frac
+          l[5:8] = (r[i] - r[j]) * (1 - d_frac)
           links.append(l)
           num_links[i] += 1
           num_links[j] += 1
@@ -105,11 +103,9 @@ if __name__ == '__main__':
   # Save constraint file
   with open('create_soft_articulated.const', 'w') as f:
     f.write(str(x.size) + '\n')
-    np.savetxt(f, np.ones(x.size), fmt='%2i', newline=' ')
-    f.write('\n')
     f.write(str(len(links)) + '\n')
     for l in links:
-      f.write(str(int(l[0])) + ' ' + str(int(l[1])) + ' ' + str(int(l[2])) + ' ' + str(int(l[3])) + ' ' + str(l[4]) + ' ' + str(l[5]) + ' ' + str(l[6]) + ' ' + str(l[7]) + ' ' + str(l[8]) + ' ' + str(l[9]) + '\n')
+      f.write(str(int(l[0])) + ' ' + str(int(l[1])) + ' ' + str(int(l[2])) + ' ' + str(int(l[3])) + ' ' + str(l[4]) + ' ' + str(l[5]) + ' ' + str(l[6]) + ' ' + str(l[7]) + ' ' + '\n')
 
   # Save clones file
   with open('create_soft_articulated.clones', 'w') as f:

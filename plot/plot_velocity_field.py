@@ -1,7 +1,10 @@
 from __future__ import division, print_function
 import numpy as np
 from mobility import mobility as mob
-from pyevtk.hl import gridToVTK
+try:
+  from pyevtk.hl import gridToVTK
+except ImportError:
+  pass
 
 # Try to import the visit_writer (boost implementation)
 try:
