@@ -474,10 +474,11 @@ class Articulated(object):
         return scsp.csr_matrix((data, (rows, columns)))
 
     # Set bounds for nonlinear solver
-    bounds_min = np.ones(xin.size) * (-10 * g_total_inf)
-    bounds_min[3 * len(self.bodies)::4] = -1
-    bounds_max = np.ones(xin.size) * (10 * g_total_inf)
-    bounds_max[3 * len(self.bodies)::4] = 1
+    bound = np.sqrt(self.num_bodies) * g_total_inf
+    bounds_min = -np.ones(xin.size) * bound
+    bounds_min[3 * len(self.bodies)::4] = -1 - bound
+    bounds_max = np.ones(xin.size) * bound
+    bounds_max[3 * len(self.bodies)::4] = 1 + bound
       
     # Call nonlinear solver
     result = scop.least_squares(residual,
@@ -489,7 +490,8 @@ class Articulated(object):
                                 method='dogbox',
                                 bounds=(bounds_min, bounds_max),
                                 jac=jacobian,
-                                x_scale='jac', 
+                                x_scale='jac',
+                                max_nfev = xin.size,
                                 kwargs={'q':q, 'A':self.A, 'links':self.constraints_links_updated, 'bodies_indices':bodies_indices, 'num_constraints':self.num_constraints})
     
     # Update solution
@@ -509,8 +511,8 @@ class Articulated(object):
       print('nfev             = ', result.nfev)
       print('njev             = ', result.njev)        
       print('cost             = ', result.cost)
-      print('norm(x-xin)      = ', np.linalg.norm(x - xin))
       print('norm(x-xin)_inf  = ', np.linalg.norm(x - xin, ord=np.inf))
+      print('norm(x-xin)      = ', np.linalg.norm(x - xin))
       print('g_old_inf        = ', g_total_inf)  
       print('g_old            = ', g_total)  
       print('g_inf            = ', np.linalg.norm(result.fun, ord=np.inf))
