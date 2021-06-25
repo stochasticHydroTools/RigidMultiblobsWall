@@ -474,9 +474,9 @@ class Articulated(object):
         return scsp.csr_matrix((data, (rows, columns)))
 
     # Set bounds for nonlinear solver
-    bounds_min = np.ones(xin.size) * (-4 * g_total_inf)
+    bounds_min = np.ones(xin.size) * (-10 * g_total_inf)
     bounds_min[3 * len(self.bodies)::4] = -1
-    bounds_max = np.ones(xin.size) * (4 * g_total_inf)
+    bounds_max = np.ones(xin.size) * (10 * g_total_inf)
     bounds_max[3 * len(self.bodies)::4] = 1
       
     # Call nonlinear solver
@@ -510,6 +510,7 @@ class Articulated(object):
       print('njev             = ', result.njev)        
       print('cost             = ', result.cost)
       print('norm(x-xin)      = ', np.linalg.norm(x - xin))
+      print('norm(x-xin)_inf  = ', np.linalg.norm(x - xin, ord=np.inf))
       print('g_old_inf        = ', g_total_inf)  
       print('g_old            = ', g_total)  
       print('g_inf            = ', np.linalg.norm(result.fun, ord=np.inf))
