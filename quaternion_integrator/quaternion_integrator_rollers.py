@@ -116,7 +116,7 @@ class QuaternionIntegratorRollers(object):
     return getattr(self, self.scheme.replace('_rollers', ''))(dt, *args, **kwargs)
     
 
-  def deterministic_forward_euler(self, dt): 
+  def deterministic_forward_euler(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using the deterministic forward Euler scheme. 
     ''' 
@@ -151,7 +151,7 @@ class QuaternionIntegratorRollers(object):
     return
 
   
-  def stochastic_first_order(self, dt):
+  def stochastic_first_order(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator.
@@ -196,7 +196,7 @@ class QuaternionIntegratorRollers(object):
     return
 
 
-  def deterministic_adams_bashforth(self, dt):
+  def deterministic_adams_bashforth(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator.
@@ -248,7 +248,7 @@ class QuaternionIntegratorRollers(object):
     return
     
 
-  def stochastic_adams_bashforth(self, dt):
+  def stochastic_adams_bashforth(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator.
@@ -492,7 +492,7 @@ class QuaternionIntegratorRollers(object):
 
     return    
 
-  def stochastic_mid_point(self, dt):
+  def stochastic_mid_point(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator. 
@@ -574,7 +574,7 @@ class QuaternionIntegratorRollers(object):
       return
 
 
-  def stochastic_mid_point_version_2(self, dt):
+  def stochastic_mid_point_version_2(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator. 
@@ -656,7 +656,7 @@ class QuaternionIntegratorRollers(object):
       return
 
 
-  def stochastic_trapezoidal(self, dt):
+  def stochastic_trapezoidal(self, dt, *args, **kwargs):
     '''
     Take a time step of length dt using a first order
     stochastic integrator. 

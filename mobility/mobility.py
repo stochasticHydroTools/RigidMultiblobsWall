@@ -46,7 +46,7 @@ try:
   import mobility_cpp
 except ImportError:
   try:
-    from .mobility import mobility_cpp
+    from . import mobility_cpp
   except ImportError:
     pass
 
