@@ -1,0 +1,43 @@
+# Select integrator 
+scheme                                   articulated_deterministic_midpoint
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python_no_wall
+mobility_vector_prod_implementation      numba_no_wall
+domain                                   no_wall
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           numba
+
+# Select implementation to compute the body-body force
+# it is used to apply constant torque in the body frame of reference
+body_body_force_torque_implementation    python
+omega_one_roller                         0        0         0.4643845
+
+# Set time step, number of steps and save frequency
+dt                                       0.0025
+n_steps                                  100
+n_save                                   1
+update_PC                                1
+solver_tolerance                         1e-10
+nonlinear_solver_tolerance               1e-10
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1e-03 
+g                                        0 
+blob_radius                              0.1310
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0.01
+debye_length                             0.01310
+
+# Set interaction with the wall, we use no wall here
+repulsion_strength_wall                  0 
+debye_length_wall                        0.01310
+
+# Set output name
+save_clones                              one_file
+output_name                              run_constant_torque
+
+# Load rigid bodies configuration, provide
+articulated ../../Structures/bacteria.list_vertex ../../Structures/bacteria_constant_torque.clones ../../Structures/bacteria_passive.const

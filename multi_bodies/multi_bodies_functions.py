@@ -417,7 +417,6 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   # Compute blob-blob forces (same function for all pair of blobs)
   force_blobs += calc_blob_blob_forces(r_vectors, blob_radius = blob_radius, *args, **kwargs)  
-
   # Compute body force-torque forces from blob forces
   offset = 0
   for k, b in enumerate(bodies):
@@ -433,6 +432,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   # Add body-body forces (same for all pair of bodies)
   force_torque_bodies += calc_body_body_forces_torques(bodies, r_vectors, *args, **kwargs)
+
   return force_torque_bodies
 
 

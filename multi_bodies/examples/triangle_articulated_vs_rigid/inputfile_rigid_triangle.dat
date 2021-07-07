@@ -1,0 +1,36 @@
+# Select integrator 
+scheme                                   deterministic_forward_euler
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++_no_wall
+mobility_vector_prod_implementation      numba_no_wall
+domain                                   no_wall
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           numba
+
+# Set time step, number of steps and save frequency
+dt                                       0.1
+n_steps                                  1000
+n_save                                   20
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0 
+g                                        1.0
+blob_radius                              0.33
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       1.0
+debye_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.0
+debye_length_wall                        1.0
+
+# Set output name
+output_name                              run_triangle_rigid
+save_clones                              one_file
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure triangle_3_shells.vertex triangle_3_shells.clones 
+

@@ -576,15 +576,20 @@ def no_wall_mobility_trans_times_force_source_target_numba(source, target, force
   '''
   Returns the product of the mobility at the blob level by the force
   on the blobs.
+<<<<<<< HEAD
   Mobility for particles near a wall.  This uses the expression from
   the Swan and Brady paper for a finite size particle, as opposed to the
   Blake paper point particle result.
+=======
+  Mobility for particles in unbounded domain.  
+>>>>>>> articulated
 
   If a component of periodic_length is larger than zero the
   space is assume to be pseudo-periodic in that direction. In that case
   the code will compute the interactions M*f between particles in
   the minimal image convection and also in the first neighbor boxes.
 
+<<<<<<< HEAD
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
 
@@ -595,6 +600,13 @@ def no_wall_mobility_trans_times_force_source_target_numba(source, target, force
 
   # Compute M_tilde * B * force
   velocities = mobility_numba.mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L=L, wall=0)
+=======
+  This function uses numba.
+  '''
+
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L=np.zeros(3), wall=0)
+>>>>>>> articulated
 
   return velocities
 

@@ -7,14 +7,17 @@ import math as m
 import scipy.sparse.linalg as spla
 from functools import partial
 import time
+import copy
 
 from stochastic_forcing import stochastic_forcing as stochastic
 from mobility import mobility as mob
 import general_application_utils as utils
 try:
-  from .quaternion import Quaternion
+  import gmres
+  from quaternion import Quaternion
 except ImportError:
-  from .quaternion_integrator.quaternion import Quaternion
+  from quaternion_integrator import gmres
+  from quaternion_integrator.quaternion import Quaternion
 
 
 class QuaternionIntegratorRollers(object):
@@ -90,6 +93,7 @@ class QuaternionIntegratorRollers(object):
 	
     # Optional variables
     self.build_stochastic_block_diagonal_preconditioner = None
+    self.build_block_diagonal_preconditioner = None
     self.periodic_length = None
     self.calc_slip = None
     self.calc_force_torque = None
@@ -98,6 +102,9 @@ class QuaternionIntegratorRollers(object):
     self.preconditioner = None
     self.mobility_vector_prod = None    
     self.hydro_interactions = None
+    self.articulated = None
+    self.C_matrix_T_vector_prod = None
+    self.C_matrix_vector_prod = None
     if tolerance is not None:
       self.tolerance = tolerance
     return 
@@ -106,7 +113,7 @@ class QuaternionIntegratorRollers(object):
     '''
     Advance time step with integrator self.scheme
     '''
-    return getattr(self, self.scheme.replace('_rollers', ''))(dt)
+    return getattr(self, self.scheme.replace('_rollers', ''))(dt, *args, **kwargs)
     
 
   def deterministic_forward_euler(self, dt): 
@@ -727,6 +734,173 @@ class QuaternionIntegratorRollers(object):
             self.wall_overlaps += 1            
       return
 
+  def articulated_deterministic_forward_euler(self, dt, *args, **kwargs):
+    '''  
+    Forward Euler scheme for articulated rigid bodies.
+    '''
+    while True:          
+      Nconstraints = len(self.constraints) 
+      # Save initial configuration 
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+      # Update links to current orientation
+      step = kwargs.get('step')
+      for c in self.constraints:
+        c.update_links(time = step * dt)
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = step)
+
+      # Extract velocities
+      velocities = sol_precond[3*Nconstraints:3*Nconstraints + 6*len(self.bodies)]
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+
+      # Compute center of mass and update
+      for art in self.articulated:
+        art.compute_cm()
+        art.update_cm(dt)
+             
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location + velocities[6*k:6*k+3] * dt 
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.update_links(time = (step + 1) * dt)
+        art.solve_relative_position()
+        art.correct_respect_cm()
+    
+      # Nonlinear miniminzation of constraint violation
+      for art in self.articulated:
+        art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+      # Check if configuration is valid and update postions if so      
+      valid_configuration = True
+      if self.domain == 'single_wall':
+        for b in self.bodies:
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            break
+      if valid_configuration is True:
+        for b in self.bodies:
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1            
+        return
+
+      self.invalid_configuration_count += 1
+      print('Invalid configuration')
+    return
+
+  def articulated_deterministic_midpoint(self, dt, *args, **kwargs):
+    '''
+    Forward Euler scheme for articulated rigid bodies.
+    '''
+    while True:
+      # Save initial configuration 
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+      # Update links to current orientation
+      step = kwargs.get('step')
+      for c in self.constraints:
+        c.update_links(time = step * dt)
+             
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = step)
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+        art.compute_cm()
+        art.update_cm(dt * 0.5)
+             
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location + velocities[6*k:6*k+3] * (dt * 0.5)
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * (dt * 0.5))
+        b.orientation = quaternion_dt * b.orientation
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.update_links(time = (step + 0.5) * dt)
+        art.solve_relative_position()      
+        art.correct_respect_cm()
+
+      # For some applications it may be necessary to apply the nonlinear solver at the mid-point
+      if True:
+        # Nonlinear miniminzation of constraint violation
+        for art in self.articulated:
+          art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+
+      # Update links to current orientation
+      for c in self.constraints:
+        c.update_links(time = (step + 0.5) * dt)
+
+     # Solve mobility problem at Mid-Point
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess,
+                                                save_first_guess = True,
+                                                update_PC = self.update_PC,
+                                                step = int(step + 0.5))
+
+      # Extract velocities
+      velocities = sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)]
+
+      # Compute center of mass velocity and update
+      for art in self.articulated:
+        art.compute_velocity_cm(velocities)
+        art.compute_cm(time_point='old')
+        art.update_cm(dt)
+
+      # Update bodies position and orientations
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Solve relative position and correct respect cm
+      for art in self.articulated:
+        art.update_links(time = (step + 1) * dt)
+        art.solve_relative_position()
+        art.correct_respect_cm()
+
+      # Nonlinear miniminzation of constraint violation
+      for art in self.articulated:
+        art.non_linear_solver(tol=self.nonlinear_solver_tolerance, verbose=self.print_residual)
+
+      # Check if configuration is valid and update postions if so      
+      valid_configuration = True
+      if self.domain == 'single_wall':
+        for b in self.bodies:
+          if b.location[2] < 0.0:      
+            valid_configuration = False
+            break
+      if valid_configuration is True:
+        for b in self.bodies:
+          if self.domain == 'single_wall':
+            if b.location[2] < self.a:
+              self.wall_overlaps += 1            
+        return
+
+      self.invalid_configuration_count += 1
+      print('Invalid configuration')
+    return
+
+
 
   def compute_deterministic_velocity_and_torque(self):
     '''
@@ -1258,6 +1432,147 @@ class QuaternionIntegratorRollers(object):
     else:
       div_M_tt = np.zeros(velocities_noise.size)
     return (self.kT / (self.rf_delta * self.a)) * div_M_tt 
+
+  # Define grand mobility matrix
+  def full_mobility_matrix(self, force_torque, r_vectors, eta, a, periodic_length):
+    half_size = force_torque.size // 2
+    velocity  = self.mobility_trans_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
+    velocity += self.mobility_trans_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
+    angular_velocity  = self.mobility_rot_times_force(r_vectors, force_torque[0:half_size], eta, a, periodic_length = periodic_length)
+    angular_velocity += self.mobility_rot_times_torque(r_vectors, force_torque[half_size:], eta, a, periodic_length = periodic_length)
+    
+    # Copy velocities to a single array
+    res = np.empty(6*self.Nblobs) 
+    res[0::6] = velocity[0::3]
+    res[1::6] = velocity[1::3]
+    res[2::6] = velocity[2::3]
+    res[3::6] = angular_velocity[0::3]
+    res[4::6] = angular_velocity[1::3]
+    res[5::6] = angular_velocity[2::3]
+    return res
+
+
+  def linear_operator_articulated_single_blobs(self, vector, bodies = None, constraints = None, r_vectors = None, eta = None, a = None, C_constraints = None, *args, **kwargs):
+    '''  
+    Return the action of the linear operator of the articulated blobs on vector v.
+    The linear operator is
+    |  M*C^T   I  || phi| = | M*F |
+    |  0       C  || U  |   |  B  |
+    ''' 
+    # Reserve memory for the solution and create some variables
+    Nblobs = r_vectors.size // 3 
+    Nbodies = Nblobs
+    Nconstraints = len(self.constraints)
+    Ncomp_bodies = 6 * Nbodies
+    Ncomp_phi = 3 * Nconstraints
+    Ncomp_tot = Ncomp_bodies + Ncomp_phi
+    res = np.empty((Ncomp_tot))
+    v = np.reshape(vector, (vector.size//3, 3))
+    
+    # Compute the "MF" part
+    C_T_times_phi = self.C_matrix_T_vector_prod(bodies, constraints, vector[0:Ncomp_phi], Nconstraints, C_constraints = C_constraints)
+    # Here C^T*phi is [F1 T1....] --> we reshape it to [F1 F2...T1 T2..] for mob product
+    C_T_times_phi_col = np.empty(C_T_times_phi.size)
+    C_T_times_phi_col[0:3*Nblobs] = C_T_times_phi[0:2*Nblobs:2].flatten()
+    C_T_times_phi_col[3*Nblobs:6*Nblobs] = C_T_times_phi[1:2*Nblobs:2].flatten()
+    # M*C^T*phi
+    res[0 : Ncomp_bodies] = self.full_mobility_matrix(C_T_times_phi_col, 
+                                                      r_vectors, 
+                                                      self.eta, 
+                                                      self.a, 
+                                                      self.periodic_length)
+    #res[0 : Ncomp_bodies] = np.reshape(C_T_times_phi,C_T_times_phi.size)
+    # + U
+    res[0 : Ncomp_bodies] += vector[Ncomp_phi:Ncomp_tot]
+    
+    # Compute the "constraint velocity: B" part
+    C_times_U = self.C_matrix_vector_prod(bodies, constraints, v[Nconstraints:Nconstraints + 2*Nblobs], Nconstraints, C_constraints = C_constraints)
+    res[Ncomp_bodies:Ncomp_tot] = np.reshape(C_times_U , (Ncomp_phi))
+    
+    return res
+  
+
+
+  def solve_mobility_problem(self, RHS = None, AB = None, x0 = None, save_first_guess = False, PC_partial = None, *args, **kwargs):
+    ''' 
+    Solve the mobility problem using preconditioned GMRES. Compute 
+    velocities on the bodies subject to external 
+    forces-torques and kinematic constraints
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    '''
+    Nconstraints = len(self.constraints)
+    System_size = self.Nblobs * 6 + Nconstraints * 3
+    blob_mass = 1.0
+
+    # Get blobs coordinates
+    r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+
+    # If RHS = None set RHS = [M*F, B ]
+    if RHS is None:
+      # Compute forces and torques on blobs
+      force = self.calc_one_blob_forces(r_vectors_blobs, blob_radius = self.a, blob_mass = blob_mass)
+      # Compute blob-blob forces (same function for all pair of blobs)
+      force += self.calc_blob_blob_forces(r_vectors_blobs, blob_radius = self.a)
+      force = np.reshape(force, force.size)
+      # Compute external torque
+      torque = self.get_torque()
+      FT = np.concatenate([force, torque])
+      # Calculate unconstrained velocity on bodies on bodies
+      U_unconst = self.full_mobility_matrix(FT, r_vectors_blobs, self.eta, self.a, self.periodic_length)
+      # Add the prescribed constraint velocity 
+      B = np.zeros((Nconstraints,3))
+      for k, c in enumerate(self.constraints):
+        B[k] = - (c.links_deriv_updated[0:3] - c.links_deriv_updated[3:6])
+      # Set right hand side
+      RHS = np.reshape(np.concatenate([ U_unconst, B.flatten()]), (System_size))
+    # Calculate C matrix 
+    C = self.calc_C_matrix_constraints(self.constraints)
+    
+    # Set linear operators 
+    linear_operator_partial = partial(self.linear_operator_articulated_single_blobs,
+                                      bodies = self.bodies,
+                                      constraints = self.constraints,
+                                      r_vectors = r_vectors_blobs,
+                                      eta = self.eta,
+                                      a = self.a,
+                                      C_constraints = C,
+                                      periodic_length=self.periodic_length)
+
+    A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
+
+    # Set preconditioner 
+    if PC_partial is None:
+      PC_partial = self.build_block_diagonal_preconditioner(self.bodies, self.articulated, self.Nblobs, Nconstraints, self.eta, self.a, *args, **kwargs)
+    PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
+
+    # Scale RHS to norm 1
+    RHS_norm = np.linalg.norm(RHS)
+    if RHS_norm > 0:
+      RHS = RHS / RHS_norm
+    
+      # Solve preconditioned linear system
+      counter = gmres_counter(print_residual = self.print_residual)
+      #(sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      #self.det_iterations_count += counter.niter
+      (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
+      self.det_iterations_count += len(resnorms)
+    else:
+      sol_precond = np.zeros_like(RHS)
+
+    if save_first_guess:
+      self.first_guess = sol_precond
+
+    # Scale solution with RHS norm
+    if RHS_norm > 0:
+      sol_precond = sol_precond * RHS_norm
+    else:
+      sol_precond[:] = 0.0
+
+    # Return solution
+    return sol_precond
 
 
   def get_omega_one_roller(self):
