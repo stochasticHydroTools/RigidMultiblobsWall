@@ -64,7 +64,7 @@ if found_numba:
   if forces_numba_user_defined:
     del sys.modules['forces_numba']
     sys.modules['forces_numba'] = __import__('forces_numba_user_defined')
-    from . import forces_numba
+    import forces_numba
     
 
 def project_to_periodic_image(r, L):
