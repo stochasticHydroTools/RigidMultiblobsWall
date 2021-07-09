@@ -12,7 +12,6 @@ try:
   found_pycuda = True
 except ImportError:
   found_pycuda = False
-  print('pycuda not found')
 if found_pycuda:
   try:
     import pycuda.autoinit
