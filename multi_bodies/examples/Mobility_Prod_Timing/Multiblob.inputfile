@@ -1,0 +1,55 @@
+# Select integrator 
+scheme                                   deterministic_forward_euler
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       0.01
+n_steps                                  2500
+n_save                                   1
+
+# Set fluid viscosity eta, bouyant force g (pN) and blob radius (um)
+eta                                      0.957e-3 
+g                                        0.0303 
+blob_radius                              1.0155 
+
+# Stochastic parameters (in attojoules)
+kT                                       0.0040749841
+
+# solver tol
+solver_tolerance                         1.0e-4
+
+# Periodic distance computed to enforce 
+# an in-plane packing fraction of \phi=0.4
+# so L = sqrt(pi*(a^2)*N_particles/phi)
+periodic_length                          128.7923	128.7923	0
+
+# Set parameters for the blob-blob interation
+# repulsion strength and interation range for 
+# soft potential beween surfaces 
+# (e.g particle-particle or particle-wall) 
+repulsion_strength                       0.0326 
+debye_length                             0.0406 
+
+# Set interaction with the wall
+# repulsion strenght and interation range for 
+# lubrication potential [IGNORE THESE] 
+repulsion_strength_wall                  0.0163
+debye_length_wall                        1e-2
+
+seed					 1
+
+# Set output name
+output_name                              /home/hat/Misc_Codes/Test_Data_For_Rollers/One_Blob/FT_random 
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+#structure ../../Structures/blob.vertex ./Const_Torque_t_15.clones
+structure ../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex ./Const_Torque_t_15.clones 
+#structure ../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex ./Const_Torque_t_15.clones
+#structure ../../Structures/shell_N_162_Rg_0_9497_Rh_1.vertex ./Const_Torque_t_15.clones
