@@ -174,6 +174,14 @@ if __name__ == '__main__':
     
     r_vecs_blobs = np.concatenate([b.get_r_vectors() for b in bodies])
     
+    for vec in r_vecs_blobs:
+      for i in range(3):
+        if L[i] > 0:
+           while vec[i] < 0:
+             vec[i] += L[i]
+           while vec[i] > L[i]:
+             vec[i] -= L[i]
+    
     print('# of blobs: ' + str(len(r_vecs_blobs)))
     
 
