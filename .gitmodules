@@ -1,0 +1,3 @@
+[submodule "DoublyPeriodicStokes"]
+	path = DoublyPeriodicStokes
+	url = https://github.com/stochasticHydroTools/DoublyPeriodicStokes.git
