@@ -18,7 +18,6 @@ import time
 import copy
 import scipy.sparse as sp
 from sksparse.cholmod import cholesky
-
 # Add path to HydroGrid and import module
 # sys.path.append('../../HydroGrid/src/')
 
@@ -28,7 +27,6 @@ found_functions = False
 path_to_append = ''
 while found_functions is False:
   try:
-    from DPStokesTests.python_interface.common_interface_wrapper import FCMJoint as FCMJoint
     import multi_bodies_functions
     from mobility import mobility as mb
     from quaternion_integrator.quaternion import Quaternion
@@ -53,6 +51,9 @@ while found_functions is False:
     if len(path_to_append) > 21:
       print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
+
+
+from FCMJoint_MB import FCMJoint_MB
 
 def calc_slip(bodies, Nblobs):
   '''
@@ -660,7 +661,7 @@ if __name__ == '__main__':
     ymin = 0.0; ymax = L[1]
     zmin = 0.0; zmax = 9.1740639106166668
     # Initialize the solver with all the parameters
-    solver = FCMJoint(device)
+    solver = FCMJoint_MB(device)
     #Initialize can be called several times in order to change the parameters
     solver.Initialize(numberParticles=nP, hydrodynamicRadius=a, kernType=0,
                       domType=domType, has_torque=has_torque,
