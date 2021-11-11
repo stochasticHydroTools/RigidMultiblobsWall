@@ -272,7 +272,7 @@ if __name__ ==  '__main__':
       offset += b.Nblobs
     
     # Set linear operators 
-    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius, periodic_length=read.periodic_length)
+    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, constraints=[], r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius, periodic_length=read.periodic_length)
     A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
     # Set preconditioner
@@ -291,9 +291,9 @@ if __name__ ==  '__main__':
       N = np.linalg.pinv(np.dot(K.T, scla.cho_solve((L,lower), K, check_finite=False)))
       mobility_bodies[k] = N
 
-    # 4. Pack preconditioner
-    PC_partial = partial(multi_bodies.block_diagonal_preconditioner, bodies=bodies, mobility_bodies=mobility_bodies,
-                         mobility_inv_blobs=mobility_inv_blobs, Nblobs=Nblobs)
+    # 4. Pack preconditioner xxxx
+    r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    PC_partial = multi_bodies.build_block_diagonal_preconditioner(bodies, [], r_vectors_blobs, Nblobs, read.eta, read.blob_radius, step=0, update_PC=1)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Scale RHS to norm 1
