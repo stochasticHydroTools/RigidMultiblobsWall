@@ -89,7 +89,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
-  if mobility_vector_prod_implementation.find('python') > -1:
+  if mobility_vector_prod_implementation == 'python':
     grid_velocity = mob.mobility_vector_product_source_target_one_wall(r_vectors_blobs, 
                                                                        grid_coor, 
                                                                        lambda_blobs, 
@@ -97,17 +97,17 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                        radius_target, 
                                                                        eta, 
                                                                        *args, 
-                                                                       **kwargs) 
-  elif mobility_vector_prod_implementation == 'C++':
-    grid_velocity = mob.boosted_mobility_vector_product_source_target(r_vectors_blobs, 
-                                                                      grid_coor, 
-                                                                      lambda_blobs, 
-                                                                      radius_source, 
-                                                                      radius_target, 
-                                                                      eta, 
-                                                                      *args, 
-                                                                      **kwargs)
-  elif mobility_vector_prod_implementation.find('numba') > -1: 
+                                                                       **kwargs)
+  elif mobility_vector_prod_implementation == 'python_no_wall':
+    grid_velocity = mob.mobility_vector_product_source_target_unbounded(r_vectors_blobs, 
+                                                                        grid_coor, 
+                                                                        lambda_blobs, 
+                                                                        radius_source, 
+                                                                        radius_target, 
+                                                                        eta, 
+                                                                        *args, 
+                                                                        **kwargs)
+  elif mobility_vector_prod_implementation == 'numba':
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_numba(r_vectors_blobs, 
                                                                                    grid_coor, 
                                                                                    lambda_blobs, 
@@ -115,8 +115,17 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                                    radius_target, 
                                                                                    eta, 
                                                                                    *args, 
-                                                                                   **kwargs) 
-  else:
+                                                                                   **kwargs)
+  elif mobility_vector_prod_implementation == 'numba_no_wall':
+    grid_velocity = mob.no_wall_mobility_trans_times_force_source_target_numba(r_vectors_blobs, 
+                                                                               grid_coor, 
+                                                                               lambda_blobs, 
+                                                                               radius_source, 
+                                                                               radius_target, 
+                                                                               eta, 
+                                                                               *args, 
+                                                                               **kwargs)    
+  elif mobility_vector_prod_implementation == 'pycuda':
     grid_velocity = mob.single_wall_mobility_trans_times_force_source_target_pycuda(r_vectors_blobs, 
                                                                                     grid_coor, 
                                                                                     lambda_blobs, 
@@ -124,7 +133,11 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                                     radius_target, 
                                                                                     eta, 
                                                                                     *args, 
-                                                                                    **kwargs) 
+                                                                                    **kwargs)
+  else:
+    print('mobility_vector_prod_implementation = ', mobility_vector_prod_implementation)
+    print('The selected mobility_vector_prod_implementation cannot compute the velocity field')
+    return
   
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 
