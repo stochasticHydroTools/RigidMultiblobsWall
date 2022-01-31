@@ -387,7 +387,7 @@ if __name__ ==  '__main__':
     start_time = time.time()
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
     mobility_blobs = multi_bodies.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
-    resistance_blobs = np.linalg.inv(mobility_blobs)
+    resistance_blobs = np.linalg.pinv(mobility_blobs)
     K = multi_bodies.calc_K_matrix(bodies, Nblobs)
     resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
