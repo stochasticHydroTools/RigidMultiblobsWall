@@ -1336,7 +1336,7 @@ if __name__ == '__main__':
           name = output_name + '.blobs_mobility.' + str(step).zfill(8) + '.dat'
           np.savetxt(name, mobility_blobs, delimiter='  ')
         if read.save_body_mobility == 'True':
-          resistance_blobs = np.linalg.pinv(mobility_blobs)
+          resistance_blobs = np.linalg.inv(mobility_blobs)
           K = integrator.calc_K_matrix(bodies, Nblobs)
           resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
           mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
@@ -1425,7 +1425,7 @@ if __name__ == '__main__':
         name = output_name + '.blobs_mobility.' + str(step+1).zfill(8) + '.dat'
         np.savetxt(name, mobility_blobs, delimiter='  ')
       if read.save_body_mobility == 'True':
-        resistance_blobs = np.linalg.pinv(mobility_blobs)
+        resistance_blobs = np.linalg.inv(mobility_blobs)
         K = integrator.calc_K_matrix(bodies, Nblobs)
         resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
         mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
