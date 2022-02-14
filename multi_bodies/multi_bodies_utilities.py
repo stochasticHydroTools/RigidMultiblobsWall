@@ -84,7 +84,11 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,2] = np.reshape(zz, zz.size)
 
   # Set radius of blobs (= a) and grid nodes (= 0)
-  radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
+  radius_blobs = kwargs.get('radius_blobs')
+  if radius_blobs is not None:
+    radius_source = radius_blobs
+  else:
+    radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
   radius_target = np.ones(grid_coor.size // 3) * tracer_radius
 
   # Compute velocity field 
@@ -213,6 +217,12 @@ if __name__ ==  '__main__':
       # Append bodies to total bodies list
       bodies.append(b)
   bodies = np.array(bodies)
+
+  # Set blob_radius array
+  radius_blobs = []
+  for k, b in enumerate(bodies):
+    radius_blobs.append(b.blobs_radius)
+  radius_blobs = np.concatenate(radius_blobs, axis=0)    
 
   # Set some more variables
   num_of_body_types = len(body_types)
@@ -347,8 +357,8 @@ if __name__ ==  '__main__':
     if read.plot_velocity_field.size > 1: 
       print('plot_velocity_field')
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
-                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation, periodic_length=read.periodic_length)
-      
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation, periodic_length=read.periodic_length, radius_blobs=radius_blobs)
+
   # If scheme == resistance solve resistance problem 
   elif read.scheme == 'resistance': 
     start_time = time.time() 
@@ -381,7 +391,7 @@ if __name__ ==  '__main__':
       print('plot_velocity_field')
       lambda_blobs = np.reshape(force_blobs, (Nblobs, 3))
       plot_velocity_field(read.plot_velocity_field, r_vectors_blobs, lambda_blobs, read.blob_radius, read.eta, read.output_name, read.tracer_radius,
-                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation)
+                          mobility_vector_prod_implementation = read.mobility_vector_prod_implementation, radius_blobs=radius_blobs)
   
   elif read.scheme == 'body_mobility': 
     start_time = time.time()
