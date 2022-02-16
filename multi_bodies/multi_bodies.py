@@ -290,16 +290,6 @@ def C_matrix_vector_prod(bodies, constraints, vector, Nconstraints, C_constraint
 
 def C_matrix_T_vector_prod(bodies, constraints, vector, Nconstraints, C_constraints = None):
   '''
-<<<<<<< HEAD
-  Return the action of the linear operator of the rigid body on vector v.
-  The linear operator for free kinematics is
-  |  M   -K||lambda| = | slip + noise_1|
-  | -K^T  0||  U   |   | -F   + noise_2|
-  
-  and for prescribed kinematics
-  |  M    0||lambda| = | slip + KU + noise_1|
-  | -K^T  1||  F   |   |         0          |
-=======
   Compute the matrix vector product C^T*vector where
   C is the Jacobian of the velocity constraints.
   ''' 
@@ -332,7 +322,6 @@ def linear_operator_rigid(vector, bodies, constraints, r_vectors, eta, a, K_bodi
   |  M   -K  0  ||lambda| = | slip + noise_1|
   | -K^T  0  C^T||  U   |   | -F   + noise_2|
   |  0    C  0  || phi  |   |  B            |
->>>>>>> articulated
   ''' 
   # Reserve memory for the solution and create some variables
   L = kwargs.get('periodic_length')
