@@ -29,6 +29,11 @@ while found_functions is False:
     from read_input import read_vertex_file
     from read_input import read_clones_file
     from read_input import read_slip_file
+    from read_input import read_velocity_file
+    from read_input import read_constraints_file
+    from read_input import read_vertex_file_list      
+    from constraint.constraint import Constraint
+    from articulated.articulated import Articulated
     import general_application_utils as utils
     found_functions = True
   except ImportError:
@@ -195,6 +200,7 @@ if __name__ ==  '__main__':
   bodies = []
   body_types = []
   body_names = []
+  blobs_offset = 0
   for ID, structure in enumerate(read.structures):
     print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
@@ -210,12 +216,97 @@ if __name__ ==  '__main__':
       b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config, read.blob_radius)
       b.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
       b.ID = read.structures_ID[ID]
+      # Compute the blobs offset for lambda in the whole system array
+      b.blobs_offset = blobs_offset
+      blobs_offset += b.Nblobs
       multi_bodies_functions.set_slip_by_ID(b, slip)
       if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
         b.prescribed_velocity = np.zeros(6)
       # Append bodies to total bodies list
       bodies.append(b)
+
+  # Set some variables
+  num_bodies_rigid = len(bodies)
+
+  # Create articulated bodies
+  articulated = []
+  constraints = []
+  bodies_offset = num_bodies_rigid
+  constraints_offset = 0
+  for ID, structure in enumerate(read.articulated):
+    print('Creating articulated = ', structure[1])
+    # Read vertex, clones and constraint files
+    struct_ref_config = read_vertex_file_list.read_vertex_file_list(structure[0], read.output_name)
+    num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])    
+    constraints_info = read_constraints_file.read_constraints_file(structure[2], read.output_name)
+    num_bodies_in_articulated = constraints_info[0]
+    num_constraints = constraints_info[1]
+    constraints_bodies = constraints_info[2]
+    constraints_links = constraints_info[3]
+    constraints_extra = constraints_info[4]
+    # Read slip file if it exists
+    slip = None
+    if(len(structure) > 3):
+      slip = read_slip_file.read_slip_file(structure[3])
+    body_types.append(num_bodies_struct)
+    body_names.append(read.articulated_ID[ID])
+    # Create each body of type structure
+    for i in range(num_bodies_struct):
+      subbody = i % num_bodies_in_articulated
+      b = body.Body(struct_locations[i], struct_orientations[i], struct_ref_config[subbody], read.blob_radius)
+      b.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
+      b.ID = read.articulated_ID[ID]
+      # Calculate body length for the RFD
+      if b.Nblobs > 2000:
+        b.body_length = 10.0
+      elif i == 0:
+        b.calc_body_length()
+      else:
+        b.body_length = bodies[-1].body_length
+      # Compute the blobs offset for lambda in the whole system array
+      b.blobs_offset = blobs_offset
+      blobs_offset += b.Nblobs
+      multi_bodies_functions.set_slip_by_ID(b, slip)
+      # Append bodies to total bodies list
+      bodies.append(b)
+
+    # Total number of constraints and articulated rigid bodies
+    num_constraints_total = num_constraints * (num_bodies_struct // num_bodies_in_articulated)
+   
+    # Create list of constraints
+    for i in range(num_constraints_total):
+      # Prepare info for constraint
+      subconstraint = i % num_constraints
+      articulated_body = i // num_constraints
+      bodies_indices = constraints_bodies[subconstraint] + num_bodies_in_articulated * articulated_body + bodies_offset
+      bodies_in_link = [bodies[bodies_indices[0]], bodies[bodies_indices[1]]]
+      parameters = constraints_links[subconstraint]
+
+      # Create constraint
+      c = Constraint(bodies_in_link, bodies_indices,  articulated_body, parameters, constraints_extra[subconstraint])
+      constraints.append(c)
+
+    # Create articulated rigid body
+    for i in range(num_bodies_struct // num_bodies_in_articulated):
+      bodies_indices = bodies_offset + i * num_bodies_in_articulated + np.arange(num_bodies_in_articulated, dtype=int)
+      bodies_in_articulated = bodies[bodies_indices[0] : bodies_indices[-1] + 1]
+      constraints_indices = constraints_offset + i * num_constraints + np.arange(num_constraints, dtype=int)
+      constraints_in_articulated = constraints[constraints_indices[0] : constraints_indices[-1] + 1]
+      art = Articulated(bodies_in_articulated,
+                        bodies_indices,
+                        constraints_in_articulated,
+                        constraints_indices,
+                        num_bodies_in_articulated,
+                        num_constraints,
+                        constraints_bodies,
+                        constraints_links,
+                        constraints_extra)
+      articulated.append(art)
+
+    # Update offsets
+    bodies_offset += num_bodies_struct
+    constraints_offset += num_constraints_total    
   bodies = np.array(bodies)
 
   # Set blob_radius array
@@ -278,11 +369,20 @@ if __name__ ==  '__main__':
                                                                                    repulsion_strength = read.repulsion_strength, 
                                                                                    debye_length = read.debye_length, 
                                                                                    periodic_length = read.periodic_length,
-                                                                                   omega_one_roller = read.omega_one_roller) 
+                                                                                   omega_one_roller = read.omega_one_roller)
+      
+    # Add the prescribed constraint velocity 
+    Nconstraints = len(constraints)
+    B = np.zeros((Nconstraints,3))
+    if Nconstraints>0:
+      for k, c in enumerate(constraints):
+        B[k] = - (c.links_deriv_updated[0:3] - c.links_deriv_updated[3:6])
 
     # Set right hand side
-    System_size = Nblobs * 3 + num_bodies * 6
-    RHS = np.reshape(np.concatenate([slip, -force_torque]), (System_size))
+    # System_size = self.Nblobs * 3 + len(self.bodies) * 6 + Nconstraints * 3 xxx
+    System_size = Nblobs * 3 + num_bodies * 6 + Nconstraints * 3
+    RHS = np.reshape(np.concatenate([slip.flatten(), -force_torque.flatten(), B.flatten()]), (System_size))
+    
     # If prescribed velocity modify RHS
     offset = 0
     for k, b in enumerate(bodies):
@@ -293,37 +393,31 @@ if __name__ ==  '__main__':
         # Set F to zero
         RHS[3*Nblobs+k*6 : 3*Nblobs+(k+1)*6] = 0.0
       offset += b.Nblobs
+
+    # Calculate K matrix
+    K = multi_bodies.calc_K_matrix_bodies(bodies, Nblobs)
+
+    # Calculate C matrix if any constraint
+    if Nconstraints > 0:
+      C = multi_bodies.calc_C_matrix_constraints(constraints)
+    else:
+      C = None
     
     # Set linear operators 
-    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, constraints=[], r_vectors=r_vectors_blobs, eta=read.eta, a=read.blob_radius, periodic_length=read.periodic_length)
+    linear_operator_partial = partial(multi_bodies.linear_operator_rigid, bodies=bodies, constraints=constraints, r_vectors=r_vectors_blobs,
+                                      eta=read.eta, a=read.blob_radius, K_bodies=K, C=C, periodic_length=read.periodic_length)
     A = spla.LinearOperator((System_size, System_size), matvec = linear_operator_partial, dtype='float64')
 
-    # Set preconditioner
-    mobility_inv_blobs = []
-    mobility_bodies = np.empty((len(bodies), 6, 6))
-    # Loop over bodies
-    for k, b in enumerate(bodies):
-      # 1. Compute blobs mobility and invert it
-      M = b.calc_mobility_blobs(read.eta, read.blob_radius)
-      L, lower = scla.cho_factor(M)
-      L = np.triu(L)
-      M_inv = scla.solve_triangular(L, scla.solve_triangular(L, np.eye(b.Nblobs * 3), trans='T', check_finite=False), check_finite=False)
-      mobility_inv_blobs.append(M_inv)
-      # 2. Compute body mobility
-      K = b.calc_K_matrix()
-      N = np.linalg.pinv(np.dot(K.T, scla.cho_solve((L,lower), K, check_finite=False)))
-      mobility_bodies[k] = N
-
-    # 4. Pack preconditioner xxxx
+    # 4. Pack preconditioner 
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
-    PC_partial = multi_bodies.build_block_diagonal_preconditioner(bodies, [], r_vectors_blobs, Nblobs, read.eta, read.blob_radius, step=0, update_PC=1)
+    PC_partial = multi_bodies.build_block_diagonal_preconditioner(bodies, articulated, r_vectors_blobs, Nblobs, read.eta, read.blob_radius, step=0, update_PC=1)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
 
     # Scale RHS to norm 1
     RHS_norm = np.linalg.norm(RHS)
     if RHS_norm > 0:
       RHS = RHS / RHS_norm
-    
+      
     # Solve preconditioned linear system # callback=make_callback()
     counter = gmres_counter(print_residual = args.print_residual)
     (sol_precond, info_precond) = utils.gmres(A, RHS, tol=read.solver_tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
