@@ -111,6 +111,14 @@ def bodies_external_torque(bodies, r_vectors, *args, **kwargs):
   '''
   
   ext_FT = np.zeros((len(bodies), 3))
+  trq = kwargs.get('mag_torque')
+  Omega = kwargs.get('B_field_freq')
+  beta = kwargs.get('beta_ang')
+  Mom = np.array([np.sin(beta)*np.cos(2*np.pi*Omega*time_s), np.sin(beta)*np.sin(2*np.pi*Omega*time_s), np.cos(beta)])
+  m0 = np.linalg.norm(Mom)
+  m = Mom/m0
+  
+  ext_FT = Trq*m*np.ones((len(bodies),3))
 
   return ext_FT
   
