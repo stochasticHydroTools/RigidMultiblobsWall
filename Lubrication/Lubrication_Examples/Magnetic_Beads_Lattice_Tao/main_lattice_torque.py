@@ -188,6 +188,7 @@ if __name__ == '__main__':
                           debye_length=read.debye_length,
                           periodic_length=read.periodic_length,
                           mag_force=mag_sign*1.0,
+                          mag_torque=mag_sign*np.sin(np.pi/6.0),
                           beta_ang=beta_t,  # 62.0*np.pi/180.0 worked and gave a semi stable helix #45.0*np.pi/180.0 worked for braid
                           B_field_freq=20,
                           time_s=time_s,
