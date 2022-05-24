@@ -1,3 +1,9 @@
 [submodule "DoublyPeriodicStokes"]
 	path = DoublyPeriodicStokes
 	url = git@github.com:stochasticHydroTools/DoublyPeriodicStokes.git
+[submodule "cRigid_cFibers/libMobility"]
+	path = cRigid_cFibers/libMobility
+	url = https://github.com/stochasticHydroTools/libMobility.git
+[submodule "libMobility"]
+	path = libMobility
+	url = https://github.com/stochasticHydroTools/libMobility.git
