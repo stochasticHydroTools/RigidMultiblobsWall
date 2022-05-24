@@ -29,4 +29,4 @@ zmax                                     8.0
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
-structure ./Structures/Cylinder_N_86_Lg_1_9384_Rg_0_1484.vertex /DP_config.clones 
+structure ../multi_bodies/Structures/Cylinder_N_86_Lg_1_9384_Rg_0_1484.vertex /DP_config.clones 
