@@ -1,0 +1,32 @@
+# Set time step, number of steps and save frequency
+dt                                       0.001
+n_steps                                  2500
+n_save                                   1
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      0.957e-3 
+g                                        0 
+blob_radius                              -1 
+
+# Stochastic parameters
+kT                                       0.0040749841
+solver_tolerance                         1.0e-4
+
+periodic_length                          16.180216	16.180216	0
+
+seed					 1
+
+# Set output name
+output_name                              /data/DP_run
+
+#Domian Params
+domType                                  RPB
+zmin                                     0.0
+##### For slit channel
+#zmax                                     1.0
+##### For open boundary
+zmax                                     8.0
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure ./Structures/Cylinder_N_86_Lg_1_9384_Rg_0_1484.vertex /DP_config.clones 
