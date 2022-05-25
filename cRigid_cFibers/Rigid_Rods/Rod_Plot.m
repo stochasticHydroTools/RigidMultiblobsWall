@@ -1,9 +1,9 @@
 
-cfg = dlmread('../../Structures/Cylinder_N_86_Lg_1_9384_Rg_0_1484.vertex');
+cfg = dlmread('../../multi_bodies/Structures/Cylinder_N_86_Lg_1_9384_Rg_0_1484.vertex');
 cfg(1,:) = [];
 cfg(cfg>1e4) = 0;
 
-A = dlmread(['DP_run.config']);
+A = dlmread(['./data/DP_run.config']);
 n_bods = round(A(1,1));
 rem = mod(length(A),n_bods+1);
 A(end-rem+1:end,:) = [];
