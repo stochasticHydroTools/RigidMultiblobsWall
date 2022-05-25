@@ -19,7 +19,12 @@ seed					 1
 # Set output name
 output_name                              /data/DP_run
 
-#Domian Params
+#Domian Params:
+# RPY: Rotne Prager
+# RBP: Rotne Prager with wall at z=0
+# DP: Doubly periodic (MUST SET z_max)
+# DPSC: Doubly periodic slit channel (MUST SET z_max)
+# DPBW: Doubly periodic bottom wall (MUST SET z_max)
 domType                                  RPB
 zmin                                     0.0
 ##### For slit channel
