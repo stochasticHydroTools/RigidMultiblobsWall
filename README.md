@@ -52,6 +52,7 @@ For usage see **doc/README.md**.
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
 * **Lubrication/** A small class which implements our fast lubrication corrected sheme for fluctuating colloidal suspensions above a wall. Instalation instructions are included in `./Lubrication/README.md`. The directory `./Lubrication/Lubrication_Examples` contains an example from [5], see documentation in `./Lubrication/Lubrication_Examples/Uniform_Rollers/README.md` as well as [6], see documentation `./Lubrication/Lubrication_Examples/Magnetic_Chain_With_Twist/README.md`. 
+* **cRigid_cFibers/** Two small classes which implement our rigid multiblob method in a fast C++ code, and our flexible fibers method in a similar C++ code.
 * **boomerang/**: older stochastic example from [1], see documentation `boomerang/README.md`.
 * **sphere/**: the folder contains an example to simulate a sphere
 whose center of mass is displaced from the geometric center
