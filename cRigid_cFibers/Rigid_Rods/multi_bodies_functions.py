@@ -115,7 +115,7 @@ def blob_external_forces(r_vectors, *args, **kwargs):
     sr_mask = h >= H_chan
     f[lr_mask,2] -= (repulsion_strength_wall / debye_length_wall) * np.exp(-(H_chan-h[lr_mask])/debye_length_wall)
     f[sr_mask,2] -= (repulsion_strength_wall / debye_length_wall)
-  if((domType == 'DPBW') or (domType == 'RPB')):
+  if((domType == 'DPBW') or (domType == 'RPB') or (domType == 'DPSC')):
     lr_mask = h > blob_radius
     sr_mask = h <= blob_radius
     f[lr_mask,2] += (repulsion_strength_wall / debye_length_wall) * np.exp(-(h[lr_mask]-blob_radius)/debye_length_wall)
