@@ -19,13 +19,12 @@ from scipy.spatial.transform import Rotation as pyrot
 found_functions = False
 path_to_append = './'
 sys.path.append('../')
-sys.path.append('../DoublyPeriodicStokes/python_interface/.')
-
 
 for i in range(10):
     path_to_append += '../'
     sys.path.append(path_to_append)
 
+import GridAndKernelConfig as interface
 import c_rigid_obj as cbodies
 from read_input import read_input
 from read_input import read_vertex_file
@@ -50,6 +49,7 @@ def intialize_DPStokes(zmin,zmax,Lx,Ly,radP,domType,kernTypes=2,optInd=0):
     elif domType == 'DPSC':
         mode = 'slit'
     
+    print(mode)
     cb.setParametersDP(nx, ny, nz, Lx, Ly, zmin, zmax, w[0], w_d[0], w[0]*beta[0], w_d[0]*beta_d[0], mode)
 
 
