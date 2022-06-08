@@ -99,13 +99,16 @@ auto createSolver(geometry geom, SpecialParameter parStar, PyParameters pyStar){
   if(geom == geometry::triply_periodic){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::triply_periodic; 
+    conf.dev = libmobility::device::gpu;
     auto pse = std::make_shared<PSE>(conf);
-    //pse->setParametersPSE(parStar.psi, {parStar.Lx, parStar.Ly, parStar.Lz});
+    pse->setParametersPSE(parStar.psi, parStar.Lx, parStar.Ly, parStar.Lz, 0.0); // last arg is shear
     solver = pse;
+    std::cout << "using PSE\n";
   }
   else if(geom == geometry::doubly_periodic){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::doubly_periodic; 
+    conf.dev = libmobility::device::gpu;
     auto dp = std::make_shared<DPStokes>(conf);
     //dp->initialize(pyStar, Np);
     dp->setParametersDPStokes(pyStar);
@@ -114,12 +117,14 @@ auto createSolver(geometry geom, SpecialParameter parStar, PyParameters pyStar){
   else if(geom == geometry::rpy){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::open; 
+    conf.dev = libmobility::device::gpu;
     auto nb = std::make_shared<NBody>(conf);
     solver = nb;
   }
   else if(geom == geometry::single_wall){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::single_wall; 
+    conf.dev = libmobility::device::gpu;
     auto nbw = std::make_shared<NBody_wall>(conf);
     nbw->setParametersNBody_wall(parStar.Lx, parStar.Ly, parStar.Lz);
     solver = nbw;
@@ -963,8 +968,11 @@ public:
 //         }
 //         else{
             if(DomainInt < 4){
+                std::cout << "before W_half\n";
                 solver->setPositions(r_vectors.data());
+                std::cout << "mid W_half\n";
                 solver->stochasticDisplacements(Out.data(), 1.0);
+                std::cout << "after W_half\n";
             }
             else{
                 Matrix Mob = rotne_prager_tensor(r_vectors);
@@ -1619,6 +1627,8 @@ PYBIND11_MODULE(c_rigid_obj, m) {
 	  "Set parameters for the module").
       def("setParametersDP", &CManyBodies::setParametersDP,
       "set parameters for DPSTokes module").
+      def("setParametersPSE", &CManyBodies::setParametersPSE,
+      "set Psi for PSE module").
       def("setBlkPC", &CManyBodies::setBlkPC,
 	  "set PC type").
       def("setWallPC", &CManyBodies::setWallPC,
