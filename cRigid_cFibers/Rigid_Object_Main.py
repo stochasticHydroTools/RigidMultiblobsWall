@@ -19,13 +19,12 @@ from scipy.spatial.transform import Rotation as pyrot
 found_functions = False
 path_to_append = './'
 sys.path.append('../')
-sys.path.append('../DoublyPeriodicStokes/python_interface/.')
-
 
 for i in range(10):
     path_to_append += '../'
     sys.path.append(path_to_append)
 
+import GridAndKernelConfig as interface
 import c_rigid_obj as cbodies
 from read_input import read_input
 from read_input import read_vertex_file
@@ -50,6 +49,8 @@ def intialize_DPStokes(zmin,zmax,Lx,Ly,radP,domType,kernTypes=2,optInd=0):
     elif domType == 'DPSC':
         mode = 'slit'
     
+    print(mode)
+    print('nz= '+str(nz))
     cb.setParametersDP(nx, ny, nz, Lx, Ly, zmin, zmax, w[0], w_d[0], w[0]*beta[0], w_d[0]*beta_d[0], mode)
 
 
@@ -179,6 +180,8 @@ if __name__ == '__main__':
             intialize_DPStokes(zmin,zmax,Lx,Ly,a,domType)
             DomainInt = 2
         elif domType == 'TP':
+            psi = 0.1/a
+            cb.setParametersPSE(psi)
             DomainInt = 3
         else:
             print('Domain type not supported') 
@@ -265,12 +268,13 @@ if __name__ == '__main__':
             r_vectors_new = np.array(cb.multi_body_pos())
             r_vectors_new = np.reshape(r_vectors_new, (Nbods*len(Cfg), 3))
             print('num rejected: '+str(num_rejects))
-            if(min(r_vectors_mid[:,2]) < a or max(r_vectors_mid[:,2]) > zmax-a):
-                num_rejects += 1
-                ########################
-                print('Bad Timestep!!')
-                cb.setConfig(Xs,Qs)
-                continue
+            if DomainInt == 1 or DomainInt == 2:
+                if(min(r_vectors_mid[:,2]) < a or max(r_vectors_mid[:,2]) > zmax-a):
+                    num_rejects += 1
+                    ########################
+                    print('Bad Timestep!!')
+                    cb.setConfig(Xs,Qs)
+                    continue
             
             if n >= 0 and (n % n_save == 0):
                 name = output_name + '.config'

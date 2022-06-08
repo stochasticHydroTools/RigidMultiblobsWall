@@ -36,11 +36,12 @@ using PSEParameters = PyParameters;
 #include"libMobility/include/MobilityInterface/lanczos.h"
 
 #include"libMobility/solvers/PSE/mobility.h"
-
-#include "DoublyPeriodicStokes/source/gpu/python_wrapper/uammd_interface.h"
+#include "libMobility/solvers/DPStokes/mobility.h"
 
 
 using real = libmobility::real;
+
+using PyParameters = uammd_dpstokes::PyParameters;
 
 typedef double real_c;
 
@@ -93,24 +94,37 @@ struct SpecialParameter{
 };
 
 enum class geometry{rpy, triply_periodic, single_wall, doubly_periodic};
-auto createSolver(geometry geom, SpecialParameter parStar){
+auto createSolver(geometry geom, SpecialParameter parStar, PyParameters pyStar){
   std::shared_ptr<libmobility::Mobility> solver;
   if(geom == geometry::triply_periodic){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::triply_periodic; 
+    conf.dev = libmobility::device::gpu;
     auto pse = std::make_shared<PSE>(conf);
-    //pse->setParametersPSE(parStar.psi, {parStar.Lx, parStar.Ly, parStar.Lz});
+    pse->setParametersPSE(parStar.psi, parStar.Lx, parStar.Ly, parStar.Lz, 0.0); // last arg is shear
     solver = pse;
+    std::cout << "using PSE\n";
+  }
+  else if(geom == geometry::doubly_periodic){
+    libmobility::Configuration conf; 
+    conf.periodicity=libmobility::periodicity_mode::doubly_periodic; 
+    conf.dev = libmobility::device::gpu;
+    auto dp = std::make_shared<DPStokes>(conf);
+    //dp->initialize(pyStar, Np);
+    dp->setParametersDPStokes(pyStar);
+    solver = dp;
   }
   else if(geom == geometry::rpy){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::open; 
+    conf.dev = libmobility::device::gpu;
     auto nb = std::make_shared<NBody>(conf);
     solver = nb;
   }
   else if(geom == geometry::single_wall){
     libmobility::Configuration conf; 
     conf.periodicity=libmobility::periodicity_mode::single_wall; 
+    conf.dev = libmobility::device::gpu;
     auto nbw = std::make_shared<NBody_wall>(conf);
     nbw->setParametersNBody_wall(parStar.Lx, parStar.Ly, parStar.Lz);
     solver = nbw;
@@ -121,22 +135,22 @@ auto createSolver(geometry geom, SpecialParameter parStar){
   return solver;
 }
 
-auto createSolverDP(PyParameters pyStar, int Np){
-    auto dpsolver = std::make_shared<DPStokesGlue>();
-    dpsolver->initialize(pyStar, Np);
-    return dpsolver;
-}
+// auto createSolverDP(PyParameters pyStar, int Np){
+//     auto dpsolver = std::make_shared<DPStokesGlue>();
+//     dpsolver->initialize(pyStar, Np);
+//     return dpsolver;
+// }
 
 
-  /*
-    mobilityUFRPY computes the 3x3 RPY mobility
-    between blobs i and j normalized with 8 pi eta a
-  */
-  void mobilityUFRPY(real_c rx, real_c ry, real_c rz,
+void mobilityUFRPY(real_c rx, real_c ry, real_c rz,
                    real_c &Mxx, real_c &Mxy, real_c &Mxz,
                    real_c &Myy, real_c &Myz, real_c &Mzz,
                    int i, int j,
                    real_c invaGPU){
+    /*
+        mobilityUFRPY computes the 3x3 RPY mobility
+        between blobs i and j normalized with 8 pi eta a
+    */
 
     real_c fourOverThree = real_c(4.0) / real_c(3.0);
 
@@ -181,22 +195,21 @@ auto createSolverDP(PyParameters pyStar, int Np){
       }
     }
     return;
-  }
+}
 
 
-  /*
-    mobilityUFSingleWallCorrection computes the 3x3 mobility correction due to a wall
-    between blobs i and j normalized with 8 pi eta a.
-    This uses the expression from the Swan and Brady paper for a finite size particle.
-    Mobility is normalize by 8*pi*eta*a.
-  */
-  void mobilityUFSingleWallCorrection(real_c rx, real_c ry, real_c rz,
+void mobilityUFSingleWallCorrection(real_c rx, real_c ry, real_c rz,
                                       real_c &Mxx, real_c &Mxy, real_c &Mxz,
                                       real_c &Myx, real_c &Myy, real_c &Myz,
                                       real_c &Mzx, real_c &Mzy, real_c &Mzz,
                                       int i, int j,
                                       real_c hj){
-
+    /*
+        mobilityUFSingleWallCorrection computes the 3x3 mobility correction due to a wall
+        between blobs i and j normalized with 8 pi eta a.
+        This uses the expression from the Swan and Brady paper for a finite size particle.
+        Mobility is normalize by 8*pi*eta*a.
+    */
     if(i == j){
       real_c invZi = real_c(1.0) / hj;
       real_c invZi3 = invZi * invZi * invZi;
@@ -240,8 +253,6 @@ class CManyBodies{
   Vector Lp;
   //PSEParameters par, par_Mhalf;
   std::shared_ptr<libmobility::Mobility> solver;
-  std::shared_ptr<DPStokesGlue> DPsolver;
-  std::shared_ptr<DPStokesGlue> DPsolver_PC;
   std::shared_ptr<LanczosStochasticDisplacements> lanczos; 
   PyParameters pyStar;
   SpecialParameter parStar;
@@ -346,19 +357,20 @@ public:
         std::cout << "using built in rpy implementation\n";
     }
     
-    if(DomainInt < 2){
+    if(DomainInt <= 3){
       libmobility::Parameters par;
       par.hydrodynamicRadius = {a};
       par.viscosity = eta;
       par.temperature = 0.0;
       par.numberParticles = numParts;
       parStar.Lx = Lp[0]; parStar.Ly = Lp[1]; parStar.Lz = Lp[2];
-      solver = createSolver(geom, parStar);
+      if(DomainInt == 3 and parStar.psi == -1.0){
+          std::cout << "you need to set psi before initializing\n";
+      }      
+      std::cout << "MODE OF SOLVER\n";
+      std::cout << pyStar.mode << "\n";
+      solver = createSolver(geom, parStar, pyStar);
       solver->initialize(par);
-    }
-    if(geom == geometry::doubly_periodic){
-      pyStar.viscosity = eta;
-      pyStar.hydrodynamicRadius = a;
     }
         
     
@@ -926,69 +938,17 @@ public:
         int sz = r_vectors.size();
         Vector U(sz);
         U.setZero();
-        if(geom == geometry::doubly_periodic){
-            if(not DPsolver){
-                int NP = sz/3;
-                DPsolver = createSolverDP(pyStar,NP);
-            }
-            DPsolver->setPositions(r_vectors.data());
-            DPsolver->Mdot(F.data(),nullptr,U.data(),nullptr);
+        if(DomainInt < 4){
+            //Matrix M = rotne_prager_tensor(r_vectors);
+            solver->setPositions(r_vectors.data());
+            solver->Mdot(F.data(),nullptr,U.data());
         }
         else{
-            if(DomainInt < 4){
-                //Matrix M = rotne_prager_tensor(r_vectors);
-                solver->setPositions(r_vectors.data());
-                solver->Mdot(F.data(),nullptr,U.data());
-            }
-            else{
-                Matrix M = rotne_prager_tensor(r_vectors);
-                DiagM B = make_damp_mat(r_vectors);
-                U = B * (M * (B * F));
-            }
+            Matrix M = rotne_prager_tensor(r_vectors);
+            DiagM B = make_damp_mat(r_vectors);
+            U = B * (M * (B * F));
         }
         return U;
-  }
-  
-  template<class AVector>
-  Vector apply_M_PC(AVector& F, std::vector<real_c>& r_vectors){
-        int sz = r_vectors.size();
-        Vector U(sz);
-        U.setZero();
-        if(geom == geometry::doubly_periodic){
-            if(not DPsolver_PC){
-                int NP = sz/3;
-                DPsolver_PC = createSolverDP(pyStar,NP);
-            }
-            DPsolver_PC->setPositions(r_vectors.data());
-            DPsolver_PC->Mdot(F.data(),nullptr,U.data(),nullptr);
-        }
-        else{
-            if(DomainInt < 4){
-                //Matrix M = rotne_prager_tensor(r_vectors);
-                solver->setPositions(r_vectors.data());
-                solver->Mdot(F.data(),nullptr,U.data());
-            }
-            else{
-                Matrix M = rotne_prager_tensor(r_vectors);
-                DiagM B = make_damp_mat(r_vectors);
-                U = B * (M * (B * F));
-            }
-        }
-        return U;
-  }
-  
-  Matrix Dense_M(std::vector<real_c>& r_vectors){
-    int Blk_sz = r_vectors.size();
-
-    Matrix Mob(Blk_sz,Blk_sz);
-    Matrix Id = Matrix::Identity(Blk_sz,Blk_sz);
-    Vector e_i(Blk_sz);
-    
-    for (int i = 0; i < N_blb; ++i) {
-        e_i = Id.col(i);
-        Mob.col(i) = apply_M_PC(e_i,r_vectors);
-    }
-    return Mob;
   }
   
   
@@ -998,21 +958,21 @@ public:
         // Make random vector
         Vector W = rand_vector(sz);
         Vector Out(sz);
-        if(geom == geometry::doubly_periodic){
-            if(not DPsolver){
-                DPsolver = createSolverDP(pyStar,(N_bod*N_blb));
-            }
-            if(not lanczos){
-                real tol = 1.0e-4;
-                lanczos = std::make_shared<LanczosStochasticDisplacements>((N_bod*N_blb), 1.0, tol);
-            } 
-            DPsolver->setPositions(r_vectors.data());
-            lanczos->stochasticDisplacements([this](const real*f, real*mv){DPsolver->Mdot(f, nullptr, mv, nullptr);}, Out.data(), 1.0); 
-        }
-        else{
+//         if(geom == geometry::doubly_periodic){
+//             if(not lanczos){
+//                 real tol = 1.0e-4;
+//                 lanczos = std::make_shared<LanczosStochasticDisplacements>((N_bod*N_blb), 1.0, tol);
+//             } 
+//             solver->setPositions(r_vectors.data());
+//             lanczos->stochasticDisplacements([this](const real*f, real*mv){solver->Mdot(f, nullptr, mv);}, Out.data(), 1.0); 
+//         }
+//         else{
             if(DomainInt < 4){
+                std::cout << "before W_half\n";
                 solver->setPositions(r_vectors.data());
+                std::cout << "mid W_half\n";
                 solver->stochasticDisplacements(Out.data(), 1.0);
+                std::cout << "after W_half\n";
             }
             else{
                 Matrix Mob = rotne_prager_tensor(r_vectors);
@@ -1022,8 +982,8 @@ public:
                 Matrix L = chol.matrixL();
                 Out = (L*W);
             }
-            
-        }
+//        }
+        
         
         //std::cout << "r_vecs: " << r_vectors[12] << "\n";
         //std::cout << "L: " << L.block<3,3>(24,0) << "\n";
@@ -1667,6 +1627,8 @@ PYBIND11_MODULE(c_rigid_obj, m) {
 	  "Set parameters for the module").
       def("setParametersDP", &CManyBodies::setParametersDP,
       "set parameters for DPSTokes module").
+      def("setParametersPSE", &CManyBodies::setParametersPSE,
+      "set Psi for PSE module").
       def("setBlkPC", &CManyBodies::setBlkPC,
 	  "set PC type").
       def("setWallPC", &CManyBodies::setWallPC,
