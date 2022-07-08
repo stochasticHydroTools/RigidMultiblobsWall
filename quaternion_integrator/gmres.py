@@ -1,10 +1,12 @@
 '''
 Wrapper for scipy gmres to use right preconditioner by David Stein at Flatiron Institute.
 '''
-
-
-from scipy.sparse.linalg.isolve.utils import make_system
-from scipy.sparse.linalg.isolve import _iterative
+try:
+  from scipy.sparse.linalg.isolve.utils import make_system
+  from scipy.sparse.linalg.isolve import _iterative
+except:
+  from scipy.sparse.linalg._isolve.utils import make_system
+  from scipy.sparse.linalg._isolve import _iterative
 from scipy._lib._util import _aligned_zeros
 import numpy as np
 import scipy
