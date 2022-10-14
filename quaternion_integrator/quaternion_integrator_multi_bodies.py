@@ -61,8 +61,8 @@ class QuaternionIntegrator(object):
     self.mobility_vector_prod = None    
     if tolerance is not None:
       self.tolerance = tolerance
-    return
     self.constraints = None
+    return
      
 
   def advance_time_step(self, dt, *args, **kwargs):
