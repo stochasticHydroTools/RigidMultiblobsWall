@@ -6,6 +6,7 @@
 //################################################################################
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <eigen3/Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <pybind11/numpy.h>
@@ -26,7 +27,6 @@ using PSEParameters = PyParameters;
 */
 
 #include"libMobility/solvers/NBody/mobility.h"
-#include"libMobility/solvers/NBody_wall/mobility.h"
 #include"libMobility/solvers/PSE/mobility.h"
 
 using real = libmobility::real;
@@ -62,29 +62,43 @@ typedef Eigen::Ref<const IVector> CstIRefVector;
 struct SpecialParameter{
   real psi = -1.0;
   real Lx = -1, Ly=-1, Lz=-1;
-  std::string algorithmForNBody = "default";
+  real shear = 0.0;
+  int NPartsPerBatch;
+  int NBatches;
 };
 
 enum class geometry{rpy, triply_periodic, single_wall};
 auto createSolver(geometry geom, SpecialParameter parStar){
   std::shared_ptr<libmobility::Mobility> solver;
   if(geom == geometry::triply_periodic){
-    libmobility::Configuration conf; 
-    conf.periodicity=libmobility::periodicity_mode::triply_periodic; 
-    auto pse = std::make_shared<PSE>(conf);
-    //pse->setParametersPSE(parStar.psi, {parStar.Lx, parStar.Ly, parStar.Lz});
+    auto pse = std::make_shared<PSE>(libmobility::Configuration{.periodicityX = libmobility::periodicity_mode::periodic,
+                                                                .periodicityY = libmobility::periodicity_mode::periodic,
+                                                                .periodicityZ = libmobility::periodicity_mode::periodic});
+    pse->setParametersPSE(PSE::PSEParameters{.psi = parStar.psi, .Lx = parStar.Lx, 
+                                                                              .Ly = parStar.Ly,
+                                                                              .Lz = parStar.Lz});
     solver = pse;
   }
   else if(geom == geometry::rpy){
-    libmobility::Configuration conf; 
-    conf.periodicity=libmobility::periodicity_mode::open; 
-    auto nb = std::make_shared<NBody>(conf);
+    //libmobility::Configuration conf; 
+    //conf.periodicity=libmobility::periodicity_mode::open; 
+    //auto nb = std::make_shared<NBody>(conf);
+    //solver = nb;
+    auto nb = std::make_shared<NBody>(libmobility::Configuration{.periodicityX = libmobility::periodicity_mode::open,
+                                                                .periodicityY = libmobility::periodicity_mode::open,
+                                                                .periodicityZ = libmobility::periodicity_mode::open});
+    nb->setParametersNBody(NBody::NBodyParameters{.Nbatch = parStar.NBatches, .NperBatch = parStar.NPartsPerBatch});
     solver = nb;
   }
   else if(geom == geometry::single_wall){
-    libmobility::Configuration conf; 
-    conf.periodicity=libmobility::periodicity_mode::single_wall; 
-    auto nbw = std::make_shared<NBody_wall>(conf);
+    //libmobility::Configuration conf; 
+    //conf.periodicity=libmobility::periodicity_mode::single_wall; 
+    //auto nbw = std::make_shared<NBody_wall>(conf);
+    //solver = nbw;
+    auto nbw = std::make_shared<NBody>(libmobility::Configuration{.periodicityX = libmobility::periodicity_mode::open,
+                                                                .periodicityY = libmobility::periodicity_mode::open,
+                                                                .periodicityZ = libmobility::periodicity_mode::single_wall});
+    nbw->setParametersNBody(NBody::NBodyParameters{.Nbatch = parStar.NBatches, .NperBatch = parStar.NPartsPerBatch});
     solver = nbw;
   }
   else{
@@ -202,13 +216,16 @@ auto createSolver(geometry geom, SpecialParameter parStar){
 
 class CManyFibers{
   real a, ds, dt, k_bend, M0, kBT, eta, Lp;
+  int num_parts;
   //PSEParameters par, par_Mhalf;
   std::shared_ptr<libmobility::Mobility> solver;
+  geometry geom;
   SpecialParameter parStar;
   bool clamp; // fibers clamped at one end or not
   Vector T_fix; // Ghost vector for clamped fibers (all use this same 3x1 for now)
   // Solver parameters
   real impl;
+  real impl_c;
   real alpha;// = 2.0*impl*M0;
   real scale_00; // = M0/(1.0+alpha);
   real scale_10; // = M0;
@@ -234,7 +251,7 @@ public:
     parStar.psi = psi;
   }
     
-  void setParameters(int numParts, real a, real ds, real dt, real k_bend, real M0, real impl, real kBT, real eta, real Lp, bool clamp, Vector& T_fix){
+  void setParameters(int DomainInt, int Nfib, int NblobPerFib, real a, real ds, real dt, real k_bend, real M0, real impl_c, real kBT, real eta, real Lp, bool clamp, Vector& T_fix){
     // TODO: Put the list of parameters into a structure
     this->a = a;
     this->ds = ds;
@@ -248,27 +265,68 @@ public:
     this->T_fix = T_fix;
     this->parametersSet = true;
     // solver parameters
-    this->impl = impl;
+    this->impl_c = impl_c;
+    this->impl = (impl_c*(dt*k_bend/(ds*ds*ds)));
     this->alpha = 2.0*impl*M0;
     this->scale_00 = M0/(1.0+alpha);
     this->scale_10 = M0;
     real K_scale = 2.0*ds;
     this->scale = (M0/(1+alpha))/(K_scale);
+    int numParts = NblobPerFib*Nfib;
+    this->num_parts = numParts;
     
-    
-    geometry geom = geometry::triply_periodic;
-    if(geom == geometry::single_wall){
-      PC_wall = true;
+    if(DomainInt == 0){
+        geom = geometry::rpy;
+        parStar.NBatches = Nfib;
+        parStar.NPartsPerBatch = NblobPerFib;
+        PC_wall = false;
+        std::cout << "using batch hydro (NO INTERFIBER HYDRO)\n";
     }
-    parStar.Lx = Lp; parStar.Ly = Lp; parStar.Lz = Lp;
+    else if(DomainInt == 1){
+        geom = geometry::rpy;
+        parStar.NBatches = 1;
+        parStar.NPartsPerBatch = numParts;
+        PC_wall = false;
+        std::cout << "using batch hydro (NO INTERFIBER HYDRO)\n";
+    }
+    else if(DomainInt == 2){
+        geom = geometry::single_wall;
+        parStar.NBatches = Nfib;
+        parStar.NPartsPerBatch = NblobPerFib;
+        PC_wall = true;
+        std::cout << "using batch hydro (NO INTERFIBER HYDRO)\n";
+    }
+    else if(DomainInt == 3){
+        geom = geometry::single_wall;
+        parStar.NBatches = 1;
+        parStar.NPartsPerBatch = numParts;
+        PC_wall = true;
+        std::cout << "using batch hydro (NO INTERFIBER HYDRO)\n";
+    }
+    else if(DomainInt == 4){
+        //geom = geometry::doubly_periodic;
+        std::cout << "doubly periodic not implemeneted yet\n";
+    }
+    else if(DomainInt == 5){
+        geom = geometry::triply_periodic;
+    }
+    else{
+        std::cout << "using built in rpy implementation\n";
+    }
+    
+    if(DomainInt <= 5){
+      libmobility::Parameters par;
+      par.hydrodynamicRadius = {a};
+      par.viscosity = eta;
+      par.temperature = 0.5;
+      par.numberParticles = numParts;
+      parStar.Lx = Lp; parStar.Ly = Lp; parStar.Lz = Lp;
+      if(DomainInt == 3 and parStar.psi == -1.0){
+          std::cout << "you need to set psi before initializing\n";
+    }
     solver = createSolver(geom, parStar);
-    libmobility::Parameters par;
-    par.hydrodynamicRadius = {a};
-    par.viscosity = eta;
-    par.temperature = 0.5;
-    par.numberParticles = numParts;
-    //par.boxSize = {Lp, Lp, Lp};
     solver->initialize(par);
+    }
   }
   
   void update_T_fix(Vector& T_fix){
@@ -331,6 +389,26 @@ public:
     return pos;
 
   }
+  
+  template<class AMatrix>
+  std::vector<real> end_to_end_distance(AMatrix& T){
+    const int N_lk = T.cols();
+    const int N_fib = T.rows()/3;
+    
+    std::vector<real> e_2_e;
+    e_2_e.reserve(N_fib);
+    for(int j = 0; j < N_fib; ++j){
+        Vector T_sum = Vector::Zero(3);
+        for(int k = 0; k < N_lk; ++k){
+            T_sum(0) += ds*T(3*j+0,k);
+            T_sum(1) += ds*T(3*j+1,k);
+            T_sum(2) += ds*T(3*j+2,k);
+        }
+        e_2_e.push_back(T_sum.norm());
+    }
+    return e_2_e;
+  }
+  
   
   template<class AVector, class AMatrix>
   Matrix Kinv_multi(AVector& Vel, AMatrix& U, AMatrix& V){
@@ -810,12 +888,12 @@ public:
     solver->setPositions(pos.data());
     
     //std::vector<real> MF(3*numberParticles, 0);
-    Eigen::VectorXf MF(3*numberParticles);
-    Eigen::VectorXf Ff = F.template cast <real> ();
+    Vector MF(3*numberParticles);
+    Vector Ff = F.template cast <real> ();
     
     
     
-    solver->Mdot(Ff.data(), nullptr, MF.data());
+    solver->Mdot(Ff.data(), MF.data());
     Vector MFd = MF.cast <double> ();
     return MFd;
   }
@@ -828,10 +906,10 @@ public:
     solver->setPositions(pos.data());
     
     //std::vector<real> MF(3*numberParticles, 0);
-    Eigen::VectorXf MF(3*numberParticles);
-    Eigen::VectorXf Ff = F.template cast <real> ();
+    Vector MF(3*numberParticles);
+    Vector Ff = F.template cast <real> ();
     
-    solver->Mdot(Ff.data(), nullptr, MF.data());
+    solver->Mdot(Ff.data(), MF.data());
     Vector MFd = MF.cast <double> ();
     return MFd;
   }
@@ -841,10 +919,10 @@ public:
     int numberParticles = pos.size()/3;
     solver->setPositions(pos.data());
     
-    Eigen::VectorXf Mhalf(3*numberParticles);
+    Vector Mhalf(3*numberParticles);
     
     real prefactor = 1.0;
-    solver->stochasticDisplacements(Mhalf.data(), prefactor);
+    solver->sqrtMdotW(Mhalf.data(), prefactor);
     Vector MhalfFd = Mhalf.cast <double> ();
     return MhalfFd;
   }
@@ -1233,6 +1311,60 @@ public:
     
   }
   
+  Vector calc_D2_W(RefMatrix& T_all){
+    ////////////////////////////////////////////////
+    // This computes D2*W
+    ///////////////////////////////////////////////
+    const int N_fib = T_all.rows()/3;
+    const int N_lk = T_all.cols();
+    int size = N_fib*(3+3*N_lk);
+    Vector D2W = Vector::Zero(N_fib*(3+3*N_lk));
+    
+    //////////////////////////////////////////////
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator (seed);
+    std::normal_distribution<double> distribution (0.0,1.0);
+    // Make random vector
+    Vector W = Vector::Zero(N_fib*(3+3*N_lk));
+    for(int k = 0; k < (size); ++k){
+        W[k] = distribution(generator);
+    }
+    /////////////////////////////////////////////
+
+    if(clamp){std::cout << "Backward Euler not implemented yet for clamped boundary conditions\n";std::exit(0);}
+    
+    real f_c = 1.0/(ds);
+    int offset=0;
+    for(int k = 0; k < N_fib; ++k){
+        offset = k*(3+3*N_lk);
+        for(int j = 0; j < (N_lk+1); ++j){
+            if((j==0) || (j==N_lk)){
+                for(int d = 0; d < 3; d++){
+                    D2W[offset + 3*j + d] = f_c*W[offset + 3*j + d];
+                }
+            }
+            else if(j == 1){
+                for(int d = 0; d < 3; d++){
+                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*j + d] - 2.0*W[offset + 3*(j - 1)+ d]);
+                }
+            }
+            else if(j == (N_lk-1)){
+                for(int d = 0; d < 3; d++){
+                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*j + d] - 2.0*W[offset + 3*(j + 1)+ d]);
+                }
+            }
+            else{
+                for(int d = 0; d < 3; d++){
+                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*(j-1) + d] - 2.0*W[offset + 3*j+ d] + W[offset + 3*(j+1)+ d]);
+                }
+            }
+        } //Loop j
+    } // Loop k
+    
+    return D2W;
+  }
+  
+  
   
   auto RHS_and_Midpoint(RefVector& Force, RefMatrix& T, RefMatrix& U, RefMatrix& V, RefVector& X_0){
     
@@ -1246,28 +1378,39 @@ public:
     V_h = V;
     X_0_h = X_0;
     Vector BI;
+    Vector BI_half;
+    
+    bool CN = true;
+    if(std::fabs(impl_c-1.0) < 1.0e-5){CN=false;}
     
     if(kBT > 1e-10){
         // Make Brownian increment for predictor and corrector steps
         Vector M_half_W1 = apply_Mhalf_W(T, X_0);
-        Vector M_half_W2 = apply_Mhalf_W(T, X_0);
-
         // Make M_RFD
         Vector M_RFD_vec = M_RFD(T, U, V, X_0);
-        
-        // Set predictor velocity
-        double c_1 = 2.0*std::sqrt((kBT/dt));
-        Vector BI_half = c_1*M_half_W1;
-        Matrix Om_half = Kinv_multi(BI_half, U, V);
-        
-        // Make RHS for final solve
-        BI = std::sqrt((kBT/dt))*(M_half_W1 - M_half_W2);
+        if(CN){
+            // Set predictor velocity
+            double c_1 = 2.0*std::sqrt((kBT/dt));
+            BI_half = c_1*M_half_W1;
+            // Make RHS for final solve
+            Vector M_half_W2 = apply_Mhalf_W(T, X_0);
+            BI = std::sqrt((kBT/dt))*(M_half_W1 - M_half_W2);
+        }
+        else{
+            //std::cout << "using BE!\n";
+            // Set predictor velocity
+            double c_1 = std::sqrt((2.0*kBT/dt));
+            BI_half = c_1*M_half_W1;
+            // Make RHS for final solve
+            Vector D2_W2 = calc_D2_W(T);
+            Vector M_D2_W2 = apply_M(D2_W2, T, X_0);
+            BI = std::sqrt((2.0*kBT/dt))*(M_half_W1 - std::sqrt(0.5*dt*ds*k_bend)*M_D2_W2);
+        }
         RHS += (kBT*M_RFD_vec) + BI;
-        
-
+        Matrix Om_half = Kinv_multi(BI_half, U, V);
         frame_rot(T_h, U_h, V_h, X_0_h, Om_half, (0.5*dt));
     }
-    std::cout << "RHS and Mid OUTPUS THE BI TOO!!!!!!!!!!!!!!!!!!\n";
+    //std::cout << "RHS and Mid OUTPUTS THE BI TOO!!!!!!!!!!!!!!!!!!\n";
     return std::make_tuple(RHS, T_h, U_h, V_h, X_0_h, BI);
     
   }
@@ -1705,6 +1848,8 @@ PYBIND11_MODULE(c_fibers_obj, m) {
 	  "Generate the RHS for the solve and the midpoint positions").
       def("multi_fiber_Pos", &CManyFibers::multi_fiber_Pos<RefMatrix&, RefVector& >,
 	  "Get the blob positions").
+      def("end_to_end_distance", &CManyFibers::end_to_end_distance<RefMatrix&>,
+	  "end_to_end_distance").
       def("frame_rot", &CManyFibers::frame_rot<RefMatrix&, RefVector&, RefMatrix& >,
 	  "Rotate the fibers and frame").
       def("apply_A_x_Banded_PC", &CManyFibers::apply_A_x_Banded_PC,
