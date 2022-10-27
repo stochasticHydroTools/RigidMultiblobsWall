@@ -1314,48 +1314,57 @@ public:
   Vector calc_D2_W(RefMatrix& T_all){
     ////////////////////////////////////////////////
     // This computes D2*W
+    // NOTE: D^2 is 3*(Nlk+1) X 3*(Nlk -1)
     ///////////////////////////////////////////////
     const int N_fib = T_all.rows()/3;
     const int N_lk = T_all.cols();
     int size = N_fib*(3+3*N_lk);
-    Vector D2W = Vector::Zero(N_fib*(3+3*N_lk));
+    int size_W = N_fib*(3*N_lk-3);
+    Vector D2W = Vector::Zero(size);
     
     //////////////////////////////////////////////
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
     std::normal_distribution<double> distribution (0.0,1.0);
     // Make random vector
-    Vector W = Vector::Zero(N_fib*(3+3*N_lk));
-    for(int k = 0; k < (size); ++k){
+    Vector W = Vector::Zero(size_W);
+    for(int k = 0; k < size_W; ++k){
         W[k] = distribution(generator);
     }
     /////////////////////////////////////////////
 
     if(clamp){std::cout << "Backward Euler not implemented yet for clamped boundary conditions\n";std::exit(0);}
     
-    real f_c = 1.0/(ds);
+    real f_c = 1.0;
     int offset=0;
+    int offset_w=0;
     for(int k = 0; k < N_fib; ++k){
         offset = k*(3+3*N_lk);
+        offset_w = k*(3*N_lk-3);
         for(int j = 0; j < (N_lk+1); ++j){
-            if((j==0) || (j==N_lk)){
+            if(j==0){
                 for(int d = 0; d < 3; d++){
-                    D2W[offset + 3*j + d] = f_c*W[offset + 3*j + d];
+                    D2W[offset + 3*j + d] = f_c*W[offset_w + d];
+                }
+            }
+            else if(j==N_lk){
+                for(int d = 0; d < 3; d++){
+                    D2W[offset + 3*j + d] = f_c*W[offset_w + 3*(N_lk-2) + d];
                 }
             }
             else if(j == 1){
                 for(int d = 0; d < 3; d++){
-                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*j + d] - 2.0*W[offset + 3*(j - 1)+ d]);
+                    D2W[offset + 3*j + d] = f_c*(W[offset_w + 3*j + d] - 2.0*W[offset_w + d]);
                 }
             }
             else if(j == (N_lk-1)){
                 for(int d = 0; d < 3; d++){
-                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*j + d] - 2.0*W[offset + 3*(j + 1)+ d]);
+                    D2W[offset + 3*j + d] = f_c*(W[offset_w + 3*(N_lk-3) + d] - 2.0*W[offset_w + 3*(N_lk-2) + d]);
                 }
             }
             else{
                 for(int d = 0; d < 3; d++){
-                    D2W[offset + 3*j + d] = f_c*(W[offset + 3*(j-1) + d] - 2.0*W[offset + 3*j+ d] + W[offset + 3*(j+1)+ d]);
+                    D2W[offset + 3*j + d] = f_c*(W[offset_w + 3*(j-2) + d] - 2.0*W[offset_w + 3*(j-1) + d] + W[offset_w + 3*j + d]);
                 }
             }
         } //Loop j
@@ -1364,6 +1373,28 @@ public:
     return D2W;
   }
   
+  
+  void test_D2_W(RefMatrix& T_all){
+    const int N_lk = T_all.cols();
+    const int N_fib = T_all.rows()/3;
+    
+    const int size_j = 3*N_lk+3;
+    const int size = N_fib*size_j;
+    Vector D2W; 
+    Matrix D4 = Matrix::Zero(size,size);
+    Matrix D4_avg = Matrix::Zero(size_j,size_j);
+    int count = 0;
+    for(int n = 0; n<1e6; ++n){
+        D2W = calc_D2_W(T_all);
+        D4 = D2W*D2W.transpose();
+        for(int k = 0; k < N_fib; ++k){
+            count++;
+            D4_avg += D4.block(k*size_j,k*size_j,size_j,size_j);
+        }
+    }
+    D4_avg *= (1.0/count);
+    std::cout << D4_avg.block(0,0,6,9) << "\n";
+  }
   
   
   auto RHS_and_Midpoint(RefVector& Force, RefMatrix& T, RefMatrix& U, RefMatrix& V, RefVector& X_0){
@@ -1402,9 +1433,10 @@ public:
             double c_1 = std::sqrt((2.0*kBT/dt));
             BI_half = c_1*M_half_W1;
             // Make RHS for final solve
+            //test_D2_W(T);
             Vector D2_W2 = calc_D2_W(T);
             Vector M_D2_W2 = apply_M(D2_W2, T, X_0);
-            BI = std::sqrt((2.0*kBT/dt))*(M_half_W1 - std::sqrt(0.5*dt*ds*k_bend)*M_D2_W2);
+            BI = std::sqrt((2.0*kBT/dt))*(M_half_W1 + std::sqrt(0.5*impl)*M_D2_W2);
         }
         RHS += (kBT*M_RFD_vec) + BI;
         Matrix Om_half = Kinv_multi(BI_half, U, V);
