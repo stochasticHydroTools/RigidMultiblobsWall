@@ -52,16 +52,16 @@ from mobility import mobility as mob
 if __name__ == '__main__':
   # Set parameters
   eta = 1e-03
-  name_U_A = './data/run_falgellated.bodies_velocities.average.dat'
-  name_v_S_A = './data/run_flagellated.step.average.sphere_radius.16.p.16.velocity_field_sphere.dat'
-  name_v_S_A_check = './data/run_flagellate.step.average.sphere_radius.12.p.32.velocity_field_sphere.dat'
+  name_U_A = 'data/run_squirmer.U_A.dat'
+  name_v_S_A = 'data/run_squirmer.shell_radius.4.v_S.p.16.dat'
+  name_v_S_A_check = 'data/run_squirmer.shell_radius.4.v_S.p.32.dat'
   blob_radius_B =  0.131
-  name_vertex_B = ['Structures/bacteria_rigid.shell_N_162_flagellum_L_10_alpha_0.35_d_0.262_shift_1.262.vertex']
+  name_vertex_B = ['../../Structures/shell_N_162_Rg_0_9497_Rh_1.vertex']
   name_clones_B = 'Structures/swimmer.clones'
-  skiprows_vertex_B = 3
+  skiprows_vertex_B = 1
   check_flow = True
   tolerance_force_free = 1e-10
-  output_prefix = './data/run_flagellated'
+  output_prefix = './data/run_squirmer'
 
   # Read swimmer A velocity
   U_A = np.loadtxt(name_U_A)

@@ -26,7 +26,6 @@ For example, at line 1585.
         r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
         
         # Plot flow in rectangular in the body frame of reference of body zero 
-        # if self.plot_velocity_field != 'None':
         if self.plot_velocity_field.size > 0:
           pvf.plot_velocity_field(self.plot_velocity_field,
                                   r_vectors_blobs,

@@ -20,6 +20,7 @@ import matplotlib as plt
 if __name__ == '__main__':
   # Set parameters
   name_vertex = '../../Structures/shell_N_2562_Rg_0_9888_Rh_1.vertex'
+  output_prefix = 'data/'
   B1 = 1
   B2 = 1
 
@@ -45,7 +46,7 @@ if __name__ == '__main__':
   v[:,2] = -vs * np.sin(theta) 
 
   # Save slip
-  name = 'squirmer_N_' + str(x.shape[0]) + '_B1_' + str(B1) + '_B2_' + str(B2) + '.slip'
+  name = output_prefix + 'squirmer_N_' + str(x.shape[0]) + '_B1_' + str(B1) + '_B2_' + str(B2) + '.slip'
   np.savetxt(name, v, delimiter='\t')
 
   # Normal component of slip

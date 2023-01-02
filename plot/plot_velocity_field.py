@@ -39,7 +39,6 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
 
   # Transform grid to the body frame of reference
   if frame_body is not None:
-    print('frame_body coord')
     grid_coor = utils.get_vectors_frame_body(grid_coor, body=frame_body)
 
   # Set radius of blobs (= a) and grid nodes (= 0)
@@ -88,7 +87,6 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
 
   # Tranform velocity to the body frame of reference
   if frame_body is not None:
-    print('frame_body vel')
     grid_velocity = utils.get_vectors_frame_body(grid_velocity, body=frame_body, translate=False, transpose=True)
   
   # Prepara data for VTK writer 

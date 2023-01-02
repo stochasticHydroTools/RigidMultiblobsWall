@@ -17,8 +17,8 @@ import sys
 
 if __name__ == '__main__':
   # Set parameters
-  name = './data/run_flagellated.bodies_velocities.dat'
-  output_name = './data/run_flagellated.bodies_velocities.average.dat'
+  name = 'data/run_flagellated.bodies_velocities.dat'
+  output_name = 'data/run_flagellated.bodies_velocities.average.dat'
 
   # Read input
   x = np.loadtxt(name)
