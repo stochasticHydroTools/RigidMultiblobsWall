@@ -2,6 +2,10 @@
 Measure velocity of a swimmer with a single flagellum using Higdon method.
 See The hydrodynamics of flagellar propulsion: helical waves, J. J. Higdon, JFM (94) 331 (1979).
 
+IMPORTANT: the velocity is printed in the laboratory frame of reference, 
+           to obtain the velocity in the body frame of reference the initial
+           orientation of the swimmer should be quaternion=(1,0,0,0).           
+
 How to use:
 1. Set parameters at the top of main.
 2. Run as python get_final_speed.py file_velocity.dat
