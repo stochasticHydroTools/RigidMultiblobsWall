@@ -33,8 +33,15 @@ if __name__ == '__main__':
 
   # Print instantaneous velocity
   print('Instantaneous velocities')
-  print('U                   = ', U_b)
-  print('omega               = ', omega_b, '\n')
+  print('U_body              = ', U_b)
+  print('omega_body          = ', omega_b, '\n')
+  print('U_flagellum         = ', U_f)
+  print('omega_flagellum     = ', omega_f, '\n')
+  omega_diff = omega_f - omega_b
+  speed_rotation_diff = np.linalg.norm(omega_diff)
+  print('omega_diff          = ', omega_diff)
+  print('speed_rotation_diff = ', speed_rotation_diff, '\n\n')
+
 
   # Compute average velocity with Higdon's method
   speed_b = np.dot(U_b, omega_f) / np.linalg.norm(omega_f)
@@ -47,8 +54,8 @@ if __name__ == '__main__':
   print('Average velocities')
   print('speed_b             = ', abs(speed_b))
   print('speed_rotation_b    = ', abs(speed_rotation_b))
-  print('U_frame             = ', U_frame)
-  print('omega_frame         = ', omega_frame)
+  print('U_body_frame        = ', U_frame)
+  print('omega_body_frame    = ', omega_frame)
   print('U*omega / |U||omega = ', np.dot(U_frame, omega_frame) / np.linalg.norm(U_frame) / np.linalg.norm(omega_frame))
   print()
   

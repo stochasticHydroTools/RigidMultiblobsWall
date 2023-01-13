@@ -1250,7 +1250,10 @@ if __name__ == '__main__':
   integrator.nonlinear_solver_tolerance = read.nonlinear_solver_tolerance
   integrator.plot_velocity_field = read.plot_velocity_field
   integrator.output_name = read.output_name
-  integrator.plot_velocity_field_shell = multi_bodies_functions.plot_velocity_field_shell
+  try:
+    integrator.plot_velocity_field_shell = multi_bodies_functions.plot_velocity_field_shell
+  except:
+    pass
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:
