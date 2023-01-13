@@ -5,12 +5,22 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <Eigen/Dense>
-#include <boost/python.hpp>
-#include "boost/python/numpy.hpp"
+#include <Eigen/Dense>  
 
-namespace bp = boost::python;
-namespace bn = boost::python::numpy;
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
+
+// double typedefs
+typedef Eigen::MatrixXd Matrix;
+
+// rigid types
+typedef Eigen::Vector3d Vector3;
+typedef Eigen::Matrix3d Matrix3;
+
+
+
 
 class Lubrication
 {
@@ -29,16 +39,16 @@ class Lubrication
   std::vector<double> Wall_MB_x;
   int FindNearestIndexLower(double r_norm, std::vector<double>& x);
   double LinearInterp(double r_norm, double xL, double xR, double yL, double yR);
-  void ResistMatrix(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat, Eigen::MatrixXd& R, bool inv, std::vector<double>& x, const std::vector< std::vector<double> >& vec_11, const std::vector< std::vector<double> >& vec_12);
-  void ATResistMatrix(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat, Eigen::MatrixXd& R);
-  Eigen::MatrixXd WallResistMatrix(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec);
-  Eigen::MatrixXd  ResistPairSup(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat);
-  Eigen::MatrixXd WallResistMatrixMB(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec);
-  Eigen::MatrixXd  ResistPairMB(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat);
+  void ResistMatrix(double r_norm, double mob_factor[3], Vector3 r_hat, Matrix& R, bool inv, std::vector<double>& x, const std::vector< std::vector<double> >& vec_11, const std::vector< std::vector<double> >& vec_12);
+  void ATResistMatrix(double r_norm, double mob_factor[3], Vector3 r_hat, Matrix& R);
+  Matrix WallResistMatrix(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec);
+  Matrix  ResistPairSup(double r_norm, double mob_factor[3], Vector3 r_hat);
+  Matrix WallResistMatrixMB(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec);
+  Matrix  ResistPairMB(double r_norm, double mob_factor[3], Vector3 r_hat);
   public:
-  void ResistPairSup_py(double r_norm, double a, double eta, bn::ndarray r_hat);
-  void ResistCOO(bp::list r_vectors, bp::list n_list, double a, double eta, double cutoff, double wall_cutoff, bn::ndarray periodic_length, bool Sup_if_true, bp::list data, bp::list rows, bp::list cols);
-  void ResistCOO_wall(bp::list r_vectors, double a, double eta, double wall_cutoff, bn::ndarray periodic_length, bool Sup_if_true, bp::list data, bp::list rows, bp::list cols);
+  void ResistPairSup_py(double r_norm, double a, double eta, py::array_t<double> r_hat);
+  void ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols);
+  void ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols);
   double debye_cut;
   Lubrication(double d_cut);
 };
@@ -46,7 +56,6 @@ class Lubrication
 Lubrication::Lubrication(double d_cut)
 {
   Py_Initialize();
-  bn::initialize();
   debye_cut = d_cut;
   std::string base_dir = __FILENAME__;
 //   std::cout << "++++++++++++++++++++++++++++\n";
@@ -162,7 +171,7 @@ double Lubrication::LinearInterp(double r_norm, double xL, double xR, double yL,
     return yL + dydx * ( r_norm - xL ); 
 }
 
-void Lubrication::ResistMatrix(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat, Eigen::MatrixXd& R, bool inv, std::vector< double >& x, const std::vector< std::vector< double > >& vec_11, const std::vector< std::vector< double > >& vec_12)
+void Lubrication::ResistMatrix(double r_norm, double mob_factor[3], Vector3 r_hat, Matrix& R, bool inv, std::vector< double >& x, const std::vector< std::vector< double > >& vec_11, const std::vector< std::vector< double > >& vec_12)
 {
   
     double X11A, Y11A, Y11B, X11C, Y11C; 
@@ -211,11 +220,11 @@ void Lubrication::ResistMatrix(double r_norm, double mob_factor[3], Eigen::Vecto
       Y12C = a_12[4];
     }
     
-    Eigen::Matrix3d squeezeMat = r_hat * r_hat.transpose();
-    Eigen::Matrix3d Eye;
+    Matrix3 squeezeMat = r_hat * r_hat.transpose();
+    Matrix3 Eye;
     Eye.setIdentity(3,3);
-    Eigen::Matrix3d shearMat = Eye - squeezeMat;
-    Eigen::Matrix3d vortMat;
+    Matrix3 shearMat = Eye - squeezeMat;
+    Matrix3 vortMat;
     vortMat << 0.0, r_hat[2], -r_hat[1],
                -r_hat[2], 0.0, r_hat[0],
                r_hat[1], -r_hat[0], 0.0;
@@ -250,7 +259,7 @@ void Lubrication::ResistMatrix(double r_norm, double mob_factor[3], Eigen::Vecto
     
 }
 
-void Lubrication::ATResistMatrix(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat, Eigen::MatrixXd& R)
+void Lubrication::ATResistMatrix(double r_norm, double mob_factor[3], Vector3 r_hat, Matrix& R)
 {
   
     double X11A, Y11A, Y11B, X11C, Y11C; 
@@ -269,11 +278,11 @@ void Lubrication::ATResistMatrix(double r_norm, double mob_factor[3], Eigen::Vec
     Y11C = 0.133333E1*(0.702834E0+(0.2E0)*log((1.0/epsilon))+(0.188E0)*epsilon*log((1.0/epsilon)));
     Y12C = 0.133333E1*((-0.27464E-1)+(0.5E-1)*log((1.0/epsilon))+(0.62E-1)*epsilon*log((1.0/epsilon)));
     
-    Eigen::Matrix3d squeezeMat = r_hat * r_hat.transpose();
-    Eigen::Matrix3d Eye;
+    Matrix3 squeezeMat = r_hat * r_hat.transpose();
+    Matrix3 Eye;
     Eye.setIdentity(3,3);
-    Eigen::Matrix3d shearMat = Eye - squeezeMat;
-    Eigen::Matrix3d vortMat;
+    Matrix3 shearMat = Eye - squeezeMat;
+    Matrix3 vortMat;
     vortMat << 0.0, r_hat[2], -r_hat[1],
                -r_hat[2], 0.0, r_hat[0],
                r_hat[1], -r_hat[0], 0.0;
@@ -304,7 +313,7 @@ void Lubrication::ATResistMatrix(double r_norm, double mob_factor[3], Eigen::Vec
     
 }
 
-Eigen::MatrixXd Lubrication::WallResistMatrix(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec)
+Matrix Lubrication::WallResistMatrix(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec)
 {
   
     double Xa, Ya, Yb, Xc, Yc; 
@@ -391,7 +400,7 @@ Eigen::MatrixXd Lubrication::WallResistMatrix(double r_norm, double mob_factor[3
     double XcPlus = fmax((Xc-4.0/3.0),0.0);
     double YcPlus = fmax((Yc-4.0/3.0),0.0);
     
-    Eigen::MatrixXd R(6,6);
+    Matrix R(6,6);
     R << mob_factor[0]*(Ya-1.), 0, 0, 0, mob_factor[1]*Yb, 0,
 	 0, mob_factor[0]*(Ya-1.), 0, -mob_factor[1]*Yb, 0, 0,
 	 0, 0, mob_factor[0]*(Xa-1.), 0, 0, 0,
@@ -409,7 +418,7 @@ Eigen::MatrixXd Lubrication::WallResistMatrix(double r_norm, double mob_factor[3
 }
 
 
-Eigen::MatrixXd Lubrication::WallResistMatrixMB(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec)
+Matrix Lubrication::WallResistMatrixMB(double r_norm, double mob_factor[3], std::vector< double >& x, const std::vector< std::vector< double > >& vec)
 {
   
     double Xa, Ya, Yb, Xc, Yc; 
@@ -460,7 +469,7 @@ Eigen::MatrixXd Lubrication::WallResistMatrixMB(double r_norm, double mob_factor
       Yc = a[4]; 
     }
     
-    Eigen::MatrixXd R(6,6);
+    Matrix R(6,6);
     R << mob_factor[0]*(Ya-1.), 0, 0, 0, mob_factor[1]*Yb, 0,
 	 0, mob_factor[0]*(Ya-1.), 0, -mob_factor[1]*Yb, 0, 0,
 	 0, 0, mob_factor[0]*(Xa-1.), 0, 0, 0,
@@ -478,13 +487,13 @@ Eigen::MatrixXd Lubrication::WallResistMatrixMB(double r_norm, double mob_factor
 }
 
 
-Eigen::MatrixXd Lubrication::ResistPairSup(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat)
+Matrix Lubrication::ResistPairSup(double r_norm, double mob_factor[3], Vector3 r_hat)
 {
     double AT_cutoff = (2+0.006-1e-8);
     double WS_cutoff = (2+0.1+1e-8);
     bool inv;
     double res_factor[3] = {1.0/mob_factor[0], 1.0/mob_factor[1], 1.0/mob_factor[2]};
-    Eigen::MatrixXd R(12,12);
+    Matrix R(12,12);
     
     double epsilon = r_norm-2.0;
     double tanh_fact = 1.0;
@@ -521,10 +530,10 @@ Eigen::MatrixXd Lubrication::ResistPairSup(double r_norm, double mob_factor[3], 
     return R;
 }
 
-Eigen::MatrixXd Lubrication::ResistPairMB(double r_norm, double mob_factor[3], Eigen::Vector3d r_hat)
+Matrix Lubrication::ResistPairMB(double r_norm, double mob_factor[3], Vector3 r_hat)
 {
     bool inv=false;
-    Eigen::MatrixXd R(12,12);
+    Matrix R(12,12);
     
     double epsilon = r_norm-2.0;
     double tanh_fact = 1.0;
@@ -548,34 +557,33 @@ Eigen::MatrixXd Lubrication::ResistPairMB(double r_norm, double mob_factor[3], E
     return R;
 }
 
-void Lubrication::ResistPairSup_py(double r_norm, double a, double eta, bn::ndarray r_hat)
+void Lubrication::ResistPairSup_py(double r_norm, double a, double eta, py::array_t<double> r_hat)
 {
-    Eigen::Vector3d r_hat_E; 
-    r_hat_E << bp::extract<double>(r_hat[0]), bp::extract<double>(r_hat[1]), bp::extract<double>(r_hat[2]);
+    Vector3 r_hat_E; 
+    r_hat_E << r_hat.at(0), r_hat.at(1), r_hat.at(2);
     double mob_factor[3] = {(6.0*M_PI*eta*a), (6.0*M_PI*eta*a*a), (6.0*M_PI*eta*a*a*a)};
-    Eigen::MatrixXd R = ResistPairSup(r_norm, mob_factor, r_hat_E);
+    Matrix R = ResistPairSup(r_norm, mob_factor, r_hat_E);
         {std::cout << "[" << mob_factor[0] << " " << mob_factor[1] << " " << mob_factor[2] << "]" << std::endl;}
 	{std::cout << "[" << r_hat_E[0] << " " << r_hat_E[1] << " " << r_hat_E[2] << "]" << std::endl;}
 	{std::cout << r_norm << "\n"; std::cout << R << std::endl; }
 }
 
-void Lubrication::ResistCOO(bp::list r_vectors, bp::list n_list, double a, double eta, double cutoff, double wall_cutoff, bn::ndarray periodic_length, bool Sup_if_true, bp::list data, bp::list rows, bp::list cols)
+void Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols)
 {
-  int num_bodies = bp::len(r_vectors);
+  int num_bodies = r_vectors.size();
   double mob_factor[3] = {(6.0*M_PI*eta*a), (6.0*M_PI*eta*a*a), (6.0*M_PI*eta*a*a*a)};
-  bn::ndarray L = bp::extract<bn::ndarray>(periodic_length);  
+  py::array_t<double> L = periodic_length;
   int k, num_neighbors;
-  Eigen::Vector3d r_jk, r_hat;
+  Vector3 r_jk, r_hat;
   double r_norm, height;
-  Eigen::MatrixXd R_pair, R_wall, R_pair_jj, R_pair_kk, R_pair_kj, R_pair_jk;
+  Matrix R_pair, R_wall, R_pair_jj, R_pair_kk, R_pair_kj, R_pair_jk;
   double R_val;
   double m_eps = 1e-12;
   
   for(int j = 0; j < num_bodies; j++)
   {
-    bn::ndarray r_j = bp::extract<bn::ndarray>(r_vectors[j]);
-    
-    height = bp::extract<double>(r_j[2]);
+    py::array_t<double> r_j = py::cast<py::array_t<double>>(r_vectors[j]);
+    height = r_j.at(2);
     height /= a;
     
       if(height < wall_cutoff)
@@ -600,25 +608,25 @@ void Lubrication::ResistCOO(bp::list r_vectors, bp::list n_list, double a, doubl
 	      rows.append(row+j*6);
 	      cols.append(col+j*6);
 	    }
-	  } // col
+	  } // col  
 	} // row
       }// if wall_cutoff
       
-      bp::list neighbors = bp::extract<bp::list>(n_list[j]);
-      num_neighbors = bp::len(neighbors);
+      py::array_t<int> neighbors = py::cast<py::array_t<int>>(n_list[j]);
+      num_neighbors = neighbors.size();
       if(num_neighbors == 0){continue;}
       
-      for(int k_ind = 0; k_ind < bp::len(neighbors); k_ind++)
+      for(int k_ind = 0; k_ind < neighbors.size(); k_ind++)
       {
-	k = bp::extract<int>(neighbors[k_ind]);
+	k = neighbors.at(k_ind);
 	
-	bn::ndarray r_k = bp::extract<bn::ndarray>(r_vectors[k]);
+	py::array_t<double> r_k = py::cast<py::array_t<double>>(r_vectors[k]);
 	for(int l = 0; l < 3; ++l)
 	{
-	  r_jk[l] = (bp::extract<double>(r_j[l]) - bp::extract<double>(r_k[l]));
-	  if(bp::extract<double>(L[l]) > 0)
+	  r_jk[l] = (r_j.at(l) - r_k.at(l));
+	  if(L.at(l) > 0)
 	  {
-	    r_jk[l] = r_jk[l] - int(r_jk[l] / bp::extract<double>(L[l]) + 0.5 * (int(r_jk[l]>0) - int(r_jk[l]<0))) * bp::extract<double>(L[l]);
+	    r_jk[l] = r_jk[l] - int(r_jk[l] / L.at(l) + 0.5 * (int(r_jk[l]>0) - int(r_jk[l]<0))) * L.at(l);
 	    r_jk[l] *= (1./a);
 	  }
 	}
@@ -696,21 +704,21 @@ void Lubrication::ResistCOO(bp::list r_vectors, bp::list n_list, double a, doubl
   
 }
 
-void Lubrication::ResistCOO_wall(bp::list r_vectors, double a, double eta, double wall_cutoff, bn::ndarray periodic_length, bool Sup_if_true, bp::list data, bp::list rows, bp::list cols)
+void Lubrication::ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols)
 {
-  int num_bodies = bp::len(r_vectors);
+  int num_bodies = r_vectors.size();
   double mob_factor[3] = {(6.0*M_PI*eta*a), (6.0*M_PI*eta*a*a), (6.0*M_PI*eta*a*a*a)};
-  bn::ndarray L = bp::extract<bn::ndarray>(periodic_length);  
+  py::array_t<double> L = periodic_length;
   double r_norm, height;
-  Eigen::MatrixXd R_wall;
+  Matrix R_wall;
   double R_val;
   double m_eps = 1e-12;
   
   for(int j = 0; j < num_bodies; j++)
   {
-    bn::ndarray r_j = bp::extract<bn::ndarray>(r_vectors[j]);
+    py::array_t<double> r_j = py::cast<py::array_t<double>>(r_vectors[j]);
     
-    height = bp::extract<double>(r_j[2]);
+    height = r_j.at(2);
     height /= a;
     
     if(height < wall_cutoff){continue;}
@@ -741,15 +749,15 @@ void Lubrication::ResistCOO_wall(bp::list r_vectors, double a, double eta, doubl
 }
 
 
-
-BOOST_PYTHON_MODULE(Lubrication_Class)
-{
-  //using namespace boost::python;
-  //boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-  bp::class_<Lubrication>("Lubrication",bp::init<double>(bp::args("d_cut"))) //
-      .def("ResistCOO",&Lubrication::ResistCOO)
-      .def("ResistCOO_wall",&Lubrication::ResistCOO_wall)
-      .def("ResistPairSup_py",&Lubrication::ResistPairSup_py);
+using namespace pybind11::literals;
+namespace py = pybind11;
+PYBIND11_MODULE(Lubrication_Class, m) {
+  m.doc() = "Lubrication class code";
+  py::class_<Lubrication>(m, "Lubrication")
+  .def(py::init<double>()) // Lubrication::Lubrication constructor
+  .def("ResistCOO", &Lubrication::ResistCOO)
+  .def("ResistCOO_wall", &Lubrication::ResistCOO_wall)
+  .def("ResistPairSup_py",&Lubrication::ResistPairSup_py);
 }
   
 // int main()
@@ -771,9 +779,9 @@ BOOST_PYTHON_MODULE(Lubrication_Class)
 // //   r_norm = 2.0084;
 // //   //r_norm += 1.0;
 // //   //bool inv = false;
-// //   Eigen::Vector3d r_hat(1.0,0.0,0.0);
-// //   //Eigen::MatrixXd R = Lub.ResistMatrix(r_norm, mob_factor, r_hat, inv, Lub.JO_x, Lub.mob_scalars_JO_11, Lub.mob_scalars_JO_12);
-// //   Eigen::MatrixXd R = Lub.ATResistMatrix(r_norm, mob_factor, r_hat);
+// //   Vector3 r_hat(1.0,0.0,0.0);
+// //   //Matrix R = Lub.ResistMatrix(r_norm, mob_factor, r_hat, inv, Lub.JO_x, Lub.mob_scalars_JO_11, Lub.mob_scalars_JO_12);
+// //   Matrix R = Lub.ATResistMatrix(r_norm, mob_factor, r_hat);
 // //   std::cout << std::setprecision(8) << R << std::endl;
 //   
 // 
@@ -788,7 +796,7 @@ BOOST_PYTHON_MODULE(Lubrication_Class)
 //   while(1){
 //       std::cin >> r_norm;
 //       double mob_factor[3] = {1.0,1.0,1.0};
-//       Eigen::MatrixXd R = Lub.WallResistMatrix(r_norm, mob_factor, Lub.Wall_2562_x, Lub.mob_scalars_wall_2562);
+//       Matrix R = Lub.WallResistMatrix(r_norm, mob_factor, Lub.Wall_2562_x, Lub.mob_scalars_wall_2562);
 //       std::cout << std::setprecision(8) << R << "\n";
 //   }
 //   return 0;
