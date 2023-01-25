@@ -206,8 +206,8 @@ if __name__ == '__main__':
   if True:
     # Recompute some variables of swimmer B and compare with swimmer A to see if both agree
     v_S_B = mob.no_wall_mobility_trans_times_force_source_target_numba(b_B.get_r_vectors(), r_sphere, lambda_B, blobs_radius_B, np.zeros(r_sphere.shape[0]), eta)
-    v_diff_2 = np.sqrt(np.sum(((v_S - v_S_B)**2).reshape((v_S.size // 3, 3)) * uv_weights[:,None]))
-    v_S_2 = np.sqrt(np.sum((v_S**2).reshape((v_S.size // 3, 3)) * uv_weights[:,None]))
+    v_diff_2 = np.sqrt(np.sum(((v_S - v_S_B)**2).reshape((v_S.size // 3, 3)) * uv_weights[:,None] * shell_radius**2))
+    v_S_2 = np.sqrt(np.sum((v_S**2).reshape((v_S.size // 3, 3)) * uv_weights[:,None] * shell_radius**2))
     print('lambda_B.norm      = %.4E' % np.linalg.norm(lambda_B))
     print('slip_B.norm        = %.4E' % np.linalg.norm(slip_B))
     print('|v_S|_2            = %.4E' % np.linalg.norm(v_S), '\n')
@@ -224,8 +224,8 @@ if __name__ == '__main__':
       p_check = int(np.sqrt(r_sphere_check.shape[0] // 2) - 1)
       uv, uv_weights = udf.parametrization(p_check)
       v_S_Large_B = mob.no_wall_mobility_trans_times_force_source_target_numba(b_B.get_r_vectors(), r_sphere_check, lambda_B, blobs_radius_B, np.zeros(r_sphere_check.shape[0]), eta)
-      v_diff_2 = np.sqrt(np.sum(((v_S_Large - v_S_Large_B)**2).reshape((v_S_Large.size // 3, 3)) * uv_weights[:,None]))        
-      v_S_2 = np.sqrt(np.sum((v_S_Large**2).reshape((v_S_Large.size // 3, 3)) * uv_weights[:,None]))
+      v_diff_2 = np.sqrt(np.sum(((v_S_Large - v_S_Large_B)**2).reshape((v_S_Large.size // 3, 3)) * uv_weights[:,None] * shell_radius**2))
+      v_S_2 = np.sqrt(np.sum((v_S_Large**2).reshape((v_S_Large.size // 3, 3)) * uv_weights[:,None] * shell_radius**2))
       print('Errors in check surface')
       print('|v_diff|_2         = ', v_diff_2)
       print('|v_diff|_infty     = ', np.linalg.norm(v_S_Large - v_S_Large_B, ord=np.inf))

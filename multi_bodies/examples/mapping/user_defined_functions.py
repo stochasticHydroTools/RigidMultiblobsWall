@@ -149,7 +149,7 @@ def plot_velocity_field_shell(r_vectors, lambda_blobs, blob_radius, eta, sphere_
   header = 'R=' + str(sphere_radius) + ', p=' + str(p) + ', N=' + str(uv_weights.size) + ', centered body=' + str(frame_body) + ', 7 Columns: grid point (x,y,z), quadrature weight, velocity (vx,vy,vz)'
   result = np.zeros((grid_coor.shape[0], 7))
   result[:,0:3] = grid_coor_ref
-  result[:,3] = uv_weights
+  result[:,3] = uv_weights * sphere_radius**2
   grid_velocity = grid_velocity.reshape((grid_velocity.size // 3, 3)) 
   result[:,4:] = grid_velocity
   np.savetxt(output, result, header=header) 
