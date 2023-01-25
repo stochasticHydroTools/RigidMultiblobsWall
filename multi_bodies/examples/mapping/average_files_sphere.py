@@ -10,9 +10,11 @@ if __name__ == '__main__':
   step_size = 1
   x_avg = None
 
+  N = 0
   for i in range(start,num_steps,step_size):
     name = prefix + str(i).zfill(8) + suffix
     print('name = ', name)
+    N += 1
 
     x = np.loadtxt(name)
     if x_avg is None:
@@ -20,7 +22,6 @@ if __name__ == '__main__':
     else:
       x_avg[:,4:] += x[:,4:]
 
-  N = (num_steps - start) // step_size
   print('N = ', N)
   x_avg[:,4:] /= N
   name = prefix + 'average' + suffix

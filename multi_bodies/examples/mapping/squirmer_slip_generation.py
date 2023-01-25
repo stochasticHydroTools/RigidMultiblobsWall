@@ -19,7 +19,7 @@ import matplotlib as plt
 
 if __name__ == '__main__':
   # Set parameters
-  name_vertex = '../../Structures/shell_N_2562_Rg_0_9888_Rh_1.vertex'
+  name_vertex = '../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex'
   output_prefix = 'data/'
   B1 = 1
   B2 = 1
@@ -47,7 +47,9 @@ if __name__ == '__main__':
 
   # Save slip
   name = output_prefix + 'squirmer_N_' + str(x.shape[0]) + '_B1_' + str(B1) + '_B2_' + str(B2) + '.slip'
-  np.savetxt(name, v, delimiter='\t')
+  with open(name, 'w') as f_handle:
+    f_handle.write(str(v.shape[0]) + '\n')
+    np.savetxt(f_handle, v, delimiter='\t')
 
   # Normal component of slip
   normal = np.zeros_like(r_blobs)
