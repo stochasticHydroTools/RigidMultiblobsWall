@@ -58,7 +58,7 @@ def parametrization(p):
   uv[:,1] = vv.flatten()
 
   # Weights precomputation
-  uw = w_gauss / np.sin(u)
+  uw = w_gauss # / np.sin(u)
   vw = np.ones(v.size) * 2 * np.pi / Nv  
   uuw, vvw = np.meshgrid(uw, vw, indexing = 'ij')
   
