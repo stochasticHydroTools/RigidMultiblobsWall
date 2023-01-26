@@ -1,0 +1,38 @@
+# Select integrator 
+scheme                                   deterministic_forward_euler
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       0.1
+n_steps                                  1
+n_save                                   1
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      0.05305164769 
+g                                        0.0
+blob_radius                              1.0
+
+periodic_length                          0.0	0.0	0.0
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0.0
+debye_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.0
+debye_length_wall                        1.0
+
+# Set output name
+output_name                              data/run
+save_body_mobility						 True
+save_blob_mobility						 True
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure blob.vertex tetra_test.clones
