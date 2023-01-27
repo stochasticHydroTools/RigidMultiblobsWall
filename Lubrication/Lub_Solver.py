@@ -56,15 +56,15 @@ class Lub_Solver(object):
         self.Delta_R_cut_wall = None
 
         # if domain is a 'single_wall'
-        self.mobility_trans_times_force_wall = mob.single_wall_mobility_trans_times_force_pycuda  # pycuda
-        self.mobility_trans_times_torque_wall = mob.single_wall_mobility_trans_times_torque_pycuda  # pycuda
-        self.mobility_rot_times_force_wall = mob.single_wall_mobility_rot_times_force_pycuda  # pycuda
-        self.mobility_rot_times_torque_wall = mob.single_wall_mobility_rot_times_torque_pycuda  # pycuda
+        self.mobility_trans_times_force_wall = mob.single_wall_mobility_trans_times_force_numba  # numba
+        self.mobility_trans_times_torque_wall = mob.single_wall_mobility_trans_times_torque_numba  # numba
+        self.mobility_rot_times_force_wall = mob.single_wall_mobility_rot_times_force_numba  # numba
+        self.mobility_rot_times_torque_wall = mob.single_wall_mobility_rot_times_torque_numba  # numba
         # if domain is a 'no_wall'
-        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_pycuda  # pycuda
-        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_pycuda  # pycuda
-        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_pycuda  # pycuda
-        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_pycuda  # pycuda
+        self.mobility_trans_times_force = mob.no_wall_mobility_trans_times_force_numba  # numba
+        self.mobility_trans_times_torque = mob.no_wall_mobility_trans_times_torque_numba  # numba
+        self.mobility_rot_times_force = mob.no_wall_mobility_rot_times_force_numba  # numba
+        self.mobility_rot_times_torque = mob.no_wall_mobility_rot_times_torque_numba  # numba
 
     def project_to_periodic_image(self, r, L):
         '''

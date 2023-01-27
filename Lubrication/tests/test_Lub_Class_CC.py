@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+sys.path.append('../')
 import Lubrication_Class as Lub_cc
 Lcc =  Lub_cc.Lubrication(0.01)
 r_hat = np.array([0.605965, -0.79543, 0.00988565])
