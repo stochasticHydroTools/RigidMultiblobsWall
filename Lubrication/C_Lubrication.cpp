@@ -52,10 +52,10 @@ class C_Lubrication
   double cutoff_wall = 1.0e10;
 
   public:
-  void Set_R_Mats(py::list r_vecs, py::list neighbors, double a, double eta, double cutoff, double cutoff_wall, py::array_t<double> periodic_length, bool Sup_if_true);
+  void Set_R_Mats(py::list r_vecs, py::list neighbors, double a, double eta, double cutoff, double cutoff_wall, std::vector<double> periodic_length, bool Sup_if_true);
   void ResistPairSup_py(double r_norm, double a, double eta, py::array_t<double> r_hat);
-  void ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols);
-  void ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols);
+  void ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, std::vector<double> periodic_length, bool Sup_if_true, std::vector<double>& data, std::vector<int>& rows, std::vector<int>& cols);
+  void ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, std::vector<double> periodic_length, bool Sup_if_true, std::vector<double>& data, std::vector<int>& rows, std::vector<int>& cols);
   double debye_cut;
   C_Lubrication(double d_cut);
 };
@@ -575,11 +575,11 @@ void C_Lubrication::ResistPairSup_py(double r_norm, double a, double eta, py::ar
 	{std::cout << r_norm << "\n"; std::cout << R << std::endl; }
 }
 
-void C_Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols)
+void C_Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, double eta, double cutoff, double wall_cutoff, std::vector<double> periodic_length, bool Sup_if_true, std::vector<double>& data, std::vector<int>& rows, std::vector<int>& cols)
 {
   int num_bodies = r_vectors.size();
   double mob_factor[3] = {(6.0*M_PI*eta*a), (6.0*M_PI*eta*a*a), (6.0*M_PI*eta*a*a*a)};
-  py::array_t<double> L = periodic_length;
+  std::vector<double> L = periodic_length;
   int k, num_neighbors;
   Vector3 r_jk, r_hat;
   double r_norm, height;
@@ -611,9 +611,9 @@ void C_Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, dou
 	    R_val = R_wall(row,col);
 	    if(fabs(R_val) > m_eps)
 	    {
-	      data.append(R_val);
-	      rows.append(row+j*6);
-	      cols.append(col+j*6);
+	      data.push_back(R_val);
+	      rows.push_back(row+j*6);
+	      cols.push_back(col+j*6);
 	    }
 	  } // col  
 	} // row
@@ -668,36 +668,36 @@ void C_Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, dou
 	      R_val = R_pair_jj(row,col);
 	      if(fabs(R_val) > m_eps)
 	      {
-		data.append(R_val);
-		rows.append(row+j*6);
-		cols.append(col+j*6);
+		data.push_back(R_val);
+		rows.push_back(row+j*6);
+		cols.push_back(col+j*6);
 	      }
 	      
 	      // kk block
 	      R_val = R_pair_kk(row,col);
 	      if(fabs(R_val) > m_eps)
 	      {
-		data.append(R_val);
-		rows.append(row+k*6);
-		cols.append(col+k*6);
+		data.push_back(R_val);
+		rows.push_back(row+k*6);
+		cols.push_back(col+k*6);
 	      }
 	      
 	      // jk block
 	      R_val = R_pair_jk(row,col);
 	      if(fabs(R_val) > m_eps)
 	      {
-		data.append(R_val);
-		rows.append(row+j*6);
-		cols.append(col+k*6);
+		data.push_back(R_val);
+		rows.push_back(row+j*6);
+		cols.push_back(col+k*6);
 	      }
 	      
 	      // kj block
 	      R_val = R_pair_kj(row,col);
 	      if(fabs(R_val) > m_eps)
 	      {
-		data.append(R_val);
-		rows.append(row+k*6);
-		cols.append(col+j*6);
+		data.push_back(R_val);
+		rows.push_back(row+k*6);
+		cols.push_back(col+j*6);
 	      }
 	      
 	    } // cols
@@ -711,11 +711,11 @@ void C_Lubrication::ResistCOO(py::list r_vectors, py::list n_list, double a, dou
   
 }
 
-void C_Lubrication::ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, py::array_t<double> periodic_length, bool Sup_if_true, py::list data, py::list rows, py::list cols)
+void C_Lubrication::ResistCOO_wall(py::list r_vectors, double a, double eta, double wall_cutoff, std::vector<double> periodic_length, bool Sup_if_true, std::vector<double>& data, std::vector<int>& rows, std::vector<int>& cols)
 {
   int num_bodies = r_vectors.size();
   double mob_factor[3] = {(6.0*M_PI*eta*a), (6.0*M_PI*eta*a*a), (6.0*M_PI*eta*a*a*a)};
-  py::array_t<double> L = periodic_length;
+  std::vector<double> L = periodic_length;
   double r_norm, height;
   Matrix R_wall;
   double R_val;
@@ -746,30 +746,31 @@ void C_Lubrication::ResistCOO_wall(py::list r_vectors, double a, double eta, dou
 	R_val = R_wall(row,col);
 	if(fabs(R_val) > m_eps)
 	{
-	  data.append(R_val);
-	  rows.append(row+j*6);
-	  cols.append(col+j*6);
+	  data.push_back(R_val);
+	  rows.push_back(row+j*6);
+	  cols.push_back(col+j*6);
 	}
       } // col
     } // row 
   } // j loop
 }
 
-void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, double eta, double cutoff, double cutoff_wall, py::array_t<double> periodic_length, bool Sup_if_true){
+void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, double eta, double cutoff, double cutoff_wall, std::vector<double> periodic_length, bool Sup_if_true){
 
   int num_particles = r_vecs.size();
 
   double small = 0.5*6.0*M_PI*eta*a*tolerance;
 
-  py::list data, rows, cols;
+  std::vector<double> data;
+  std::vector<int> rows, cols;
 
   ResistCOO(r_vecs, neighbors, a, eta, cutoff, cutoff_wall, periodic_length, false, data, rows, cols);
 
-  std::cout << "data size: " << data.size() << std::endl;
+  // std::cout << "c data size: " << data.size() << std::endl;
 
   Eigen::SparseMatrix<double> R_MB_coo_cut(6*num_particles, 6*num_particles);
   if(data.size() > 0){
-    std::cout << "nonzero data size: " << data.size() << std::endl;
+    // std::cout << "nonzero data size: " << data.size() << std::endl;
     std::vector<Eigen::Triplet<double>> triplets;
     triplets.reserve(data.size());
 
@@ -778,27 +779,28 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
     // }
 
     for(int i = 0; i < data.size(); i++){
-      triplets.push_back(Eigen::Triplet<double>(rows[i].cast<double>(), cols[i].cast<double>(), data[i].cast<double>()));
+      triplets.push_back(Eigen::Triplet<double>(rows.at(i), cols.at(i), data.at(i)));
     }
-    std::cout << "size: " << triplets.size() << std::endl;
+    // std::cout << "size: " << triplets.size() << std::endl;
 
     R_MB_coo_cut.setFromTriplets(triplets.begin(), triplets.end());
 
   } else{
-    std::cout << "making diag" << std::endl;
+    // std::cout << "making diag" << std::endl;
     // inserts a diag
     for(int i = 0; i < 6*num_particles; i++){ // said to be fast here: https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
       R_MB_coo_cut.insert(i, i) = small;
     }
   }
 
-  std::cout << Matrix(R_MB_coo_cut) << std::endl;
+  // std::cout << Matrix(R_MB_coo_cut) << std::endl;
+  // std::cout << "c nonzero size: " << R_MB_coo_cut.nonZeros() << std::endl;
 }
 
 
 using namespace pybind11::literals;
 namespace py = pybind11;
-PYBIND11_MODULE(C_Lubrication_Class, m) {
+PYBIND11_MODULE(C_Lubrication, m) {
   m.doc() = "C_Lubrication class code";
   py::class_<C_Lubrication>(m, "C_Lubrication")
   .def(py::init<double>()) // C_Lubrication::C_Lubrication constructor
