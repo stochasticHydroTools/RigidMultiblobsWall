@@ -17,6 +17,7 @@ namespace py = pybind11;
 
 // double typedefs
 typedef Eigen::MatrixXd Matrix;
+typedef Eigen::SparseMatrix<double> SpMatrix;
 
 // rigid types
 typedef Eigen::Vector3d Vector3;
@@ -70,11 +71,11 @@ class C_Lubrication
         bool Sup_if_true, std::vector<double>& data, std::vector<int>& rows, std::vector<int>& cols);
   double debye_cut;
   C_Lubrication(double d_cut);
-  Eigen::SparseMatrix<double> lub_print();
+  SpMatrix lub_print();
 
-  Eigen::SparseMatrix<double> R_blob;
-  Eigen::SparseMatrix<double> R_lub;
-  Eigen::SparseMatrix<double> Delta_R;
+  SpMatrix R_blob;
+  SpMatrix R_lub;
+  SpMatrix Delta_R;
 };
 
 C_Lubrication::C_Lubrication(double d_cut)
@@ -795,7 +796,7 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
 
   ResistCOO(r_vecs, neighbors, a, eta, cutoff, cutoff_wall, periodic_length, false, data, rows, cols);
 
-  Eigen::SparseMatrix<double> R_blob_cut(6*num_particles, 6*num_particles);
+  SpMatrix R_blob_cut(6*num_particles, 6*num_particles);
   if(data.size() > 0){
     std::vector<Eigen::Triplet<double>> triplets = makeTriplets(data, rows, cols);
     R_blob_cut.setFromTriplets(triplets.begin(), triplets.end());
@@ -808,18 +809,13 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
     }
   }
 
-
-  std::cout << "------------------- C++ --------------" << std::endl;
-
-  std::cout << "C++ R BLOB CUT NNZ: " << R_blob_cut.nonZeros() << std::endl;
-
   data.clear();
   rows.clear();
   cols.clear();
 
   ResistCOO_wall(r_vecs, a, eta, cutoff, periodic_length, false, data, rows, cols);
 
-  Eigen::SparseMatrix<double> R_blob_cut_wall(6*num_particles, 6*num_particles);
+  SpMatrix R_blob_cut_wall(6*num_particles, 6*num_particles);
   if(data.size() > 0){
     std::vector<Eigen::Triplet<double>> triplets = makeTriplets(data, rows, cols);
     R_blob_cut_wall.setFromTriplets(triplets.begin(), triplets.end());
@@ -830,11 +826,7 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
     }
   }
 
-  std::cout << "C++ R BLOB CUT WALL NNZ: " << R_blob_cut_wall.nonZeros() << std::endl;
-  
   C_Lubrication::R_blob = R_blob_cut + R_blob_cut_wall;
-  std::cout << Matrix(R_blob) << std::endl;
-  std::cout << "R BLOB IS COMPRESSED " << R_blob.isCompressed() <<  std::endl;
 
 
   data.clear();
@@ -843,14 +835,12 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
 
   ResistCOO(r_vecs, neighbors, a, eta, cutoff, cutoff_wall, periodic_length, true, data, rows, cols);
 
-  Eigen::SparseMatrix<double> R_lub_cut(6*num_particles, 6*num_particles);
+  SpMatrix R_lub_cut(6*num_particles, 6*num_particles);
   if(data.size() > 0){
     std::vector<Eigen::Triplet<double>> triplets = makeTriplets(data, rows, cols);
     R_lub_cut.setFromTriplets(triplets.begin(), triplets.end());
 
   } else{
-    // inserts a diag
-    // said to be fast creation method here: https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
     for(int i = 0; i < 6*num_particles; i++){
       R_lub_cut.insert(i, i) = small;
     }
@@ -862,7 +852,7 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
 
   ResistCOO_wall(r_vecs, a, eta, cutoff, periodic_length, true, data, rows, cols);
 
-  Eigen::SparseMatrix<double> R_lub_cut_wall(6*num_particles, 6*num_particles);
+  SpMatrix R_lub_cut_wall(6*num_particles, 6*num_particles);
   if(data.size() > 0){
     std::vector<Eigen::Triplet<double>> triplets = makeTriplets(data, rows, cols);
     R_lub_cut_wall.setFromTriplets(triplets.begin(), triplets.end());
@@ -876,13 +866,9 @@ void C_Lubrication::Set_R_Mats(py::list r_vecs, py::list neighbors, double a, do
   C_Lubrication::R_lub = R_lub_cut + R_lub_cut_wall;
 
   C_Lubrication::Delta_R = R_lub - R_blob;
-
-  std::cout << "C++ R BLOB NNZ: " << R_blob.nonZeros() << std::endl;
-  std::cout << "C++ R LUB NNZ: " << R_lub.nonZeros() << std::endl;
-  std::cout << "C++ DELTA R NNZ: " << Delta_R.nonZeros() << std::endl;
 }
 
-// helper that assembles the COO format Triplets used to make eigen matrices
+// helper that assembles the COO-like format Triplets used to make eigen matrices
 std::vector<Eigen::Triplet<double>> C_Lubrication::makeTriplets(const std::vector<double>& data, 
                                     const std::vector<int>& rows, const std::vector<int>& cols){
 
@@ -896,8 +882,8 @@ std::vector<Eigen::Triplet<double>> C_Lubrication::makeTriplets(const std::vecto
   return triplets;
 }
 
-Eigen::SparseMatrix<double> C_Lubrication::lub_print(){
-  return R_blob;
+SpMatrix C_Lubrication::lub_print(){
+  return Delta_R;
 }
 
 using namespace pybind11::literals;

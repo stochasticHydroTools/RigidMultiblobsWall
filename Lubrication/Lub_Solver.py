@@ -33,7 +33,7 @@ class Lub_Solver(object):
         # Location as np.array.shape = 3
         self.bodies = bodies
         self.periodic_length = periodic_length
-        self.tolerance = 1e-08
+        self.tolerance = 10e-04
         self.eta = eta
         self.a = a
         self.kT = 0.0041419464
