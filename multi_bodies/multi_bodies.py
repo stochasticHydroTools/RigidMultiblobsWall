@@ -1026,8 +1026,6 @@ if __name__ == '__main__':
   output_name = read.output_name 
   structures = read.structures
   structures_ID = read.structures_ID
-  # mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation) 
-  multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
@@ -1217,7 +1215,7 @@ if __name__ == '__main__':
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
-  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies) 
+  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
                                                g = g, 
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
@@ -1248,6 +1246,7 @@ if __name__ == '__main__':
   integrator.calc_C_matrix_constraints = calc_C_matrix_constraints
   integrator.articulated = articulated
   integrator.nonlinear_solver_tolerance = read.nonlinear_solver_tolerance
+  multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation, bodies=bodies)  
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:

@@ -37,8 +37,14 @@ The functions with the words `no_wall` use the Rotne-Prager function in unbounde
 The others include the wall corrections (Rotner-Prager-Blake tensor).
 
 ## 2. Blob-blob forces, wall-blob forces.
-Right now the steric forces between blobs and blobs and the wall assume that all the blobs have the same radius as
-given in the input file.
+Right now the steric forces between blobs and the wall assume that all the blobs have the same radius as given in the input file.
+The interaction between blobs with radius `a_i` and `a_j` can use the effective radius `a = (a_i + a_j) / 2` by setting in the inputfile the option
+
+```
+blob_blob_force_implementation           radii_numba
+```
+
+
 
 
 

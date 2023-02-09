@@ -245,7 +245,7 @@ def calc_one_blob_torques(r_vectors, *args, **kwargs):
   return np.zeros((Nblobs, 3)) 
 
 
-def set_blob_blob_forces(implementation):
+def set_blob_blob_forces(implementation, *args, **kwargs):
   '''
   Set the function to compute the blob-blob forces
   to the right function.
@@ -267,6 +267,14 @@ def set_blob_blob_forces(implementation):
     return forces_numba.calc_blob_blob_forces_numba
   elif implementation == 'tree_numba':
     return forces_numba.calc_blob_blob_forces_tree_numba
+  elif implementation == 'radii_numba':
+    # Get blobs radii
+    bodies = kwargs.get('bodies')
+    radius_blobs = []
+    for k, b in enumerate(bodies):
+      radius_blobs.append(b.blobs_radius)
+    radius_blobs = np.concatenate(radius_blobs, axis=0)    
+    return partial(forces_numba.calc_blob_blob_forces_radii_numba, radius_blobs=radius_blobs)
 
 
 def calc_blob_blob_forces_cpp(r_vectors, *args, **kwargs):
