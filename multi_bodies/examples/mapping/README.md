@@ -3,7 +3,7 @@ In this example we provide some utility codes to compute the optimum slip to map
 
 The theory is described in the paper
 
-1. **Add title**, H. Gidituri, G. Kabacaoglu, M. Ellero and F. Balboa Usabiaga. Add link.
+1. **Mapping flagellated swimmers to surface-slip driven swimmers**, H. Gidituri, G. Kabacaoglu, M. Ellero and F. Balboa Usabiaga. Arxiv (2023).
 
 
 ## 1. Compute squirmer slip
