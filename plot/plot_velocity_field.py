@@ -1,6 +1,7 @@
 
 import numpy as np
 from mobility import mobility as mob
+import general_application_utils as utils
 try:
   from pyevtk.hl import gridToVTK
 except ImportError:
@@ -14,7 +15,7 @@ except ImportError as e:
   print(e)
   pass
 
-def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, *args, **kwargs):
+def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, output, tracer_radius, radius_source = None, frame_body = None, *args, **kwargs):
   '''
   This function plots the velocity field to a grid using boost visit writer
   '''
@@ -36,13 +37,17 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_coor[:,1] = np.reshape(yy, yy.size)
   grid_coor[:,2] = np.reshape(zz, zz.size)
 
+  # Transform grid to the body frame of reference
+  if frame_body is not None:
+    grid_coor = utils.get_vectors_frame_body(grid_coor, body=frame_body)
+
   # Set radius of blobs (= a) and grid nodes (= 0)
-  radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius 
+  if radius_source is None:
+    radius_source = np.ones(r_vectors_blobs.size // 3) * blob_radius
   radius_target = np.ones(grid_coor.size // 3) * tracer_radius
 
   # Compute velocity field 
   mobility_vector_prod_implementation = kwargs.get('mobility_vector_prod_implementation')
-  print('mobility_vector_prod_implementation = ', mobility_vector_prod_implementation)
   if mobility_vector_prod_implementation == 'python':
     grid_velocity = mob.mobility_vector_product_source_target_one_wall(r_vectors_blobs, 
                                                                        grid_coor, 
@@ -78,7 +83,11 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                                                                     radius_target, 
                                                                                     eta, 
                                                                                     *args, 
-                                                                                    **kwargs) 
+                                                                                    **kwargs)
+
+  # Tranform velocity to the body frame of reference
+  if frame_body is not None:
+    grid_velocity = utils.get_vectors_frame_body(grid_velocity, body=frame_body, translate=False, transpose=True)
   
   # Prepara data for VTK writer 
   variables = [np.reshape(grid_velocity, grid_velocity.size)] 

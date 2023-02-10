@@ -1247,6 +1247,12 @@ if __name__ == '__main__':
   integrator.articulated = articulated
   integrator.nonlinear_solver_tolerance = read.nonlinear_solver_tolerance
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation, bodies=bodies)  
+  integrator.plot_velocity_field = read.plot_velocity_field
+  integrator.output_name = read.output_name
+  try:
+    integrator.plot_velocity_field_shell = multi_bodies_functions.plot_velocity_field_shell
+  except:
+    pass
 
   # Initialize HydroGrid library:
   if found_HydroGrid and read.call_HydroGrid:

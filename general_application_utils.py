@@ -14,7 +14,7 @@ import os
 import sys
 import time
 from functools import partial
-
+from quaternion_integrator.quaternion import Quaternion 
 
 
 # from quaternion_integrator.quaternion import Quaternion
@@ -635,4 +635,36 @@ def gmres(A, b, x0=None, tol=1e-05, restart=None, maxiter=None, xtype=None, M=No
   return x, info
 
 
+def get_vectors_frame_body(vector, body=None, translate=True, rotate=True, transpose=False):
+  '''
+  Get vector in the frame of reference of the body.
+  If body == None, use the lab frame of reference, i.e. do not translate or rotate anything.
+
+  Inputs:
+  vector = input vector to transform.
+  body = body to use as frame of reference.
+  translate = if translate==False, do not translate vectors but they can be rotated.
+  rotate = if rotated==False, do not rotate vectors but they can be translated.
+
+  Outputs:
+  vector_frame = vector in the body frame  of reference.
+  '''
+  if body is not None:
+    # Rotate to body frame of reference
+    if rotate:
+      R0 = body.orientation.rotation_matrix()
+      R0 = R0.T if transpose else R0
+      vector_frame = np.einsum('ij,kj->ki', R0, vector.reshape((vector.size // 3, 3)))
+      
+    else:
+      vector_frame = np.copy(vector.reshape((vector.size // 3, 3)))
+
+    # Translate to body frame of reference
+    if translate:
+      vector_frame += body.location
+      
+  else:
+    vector_frame = np.copy(vector)
+
+  return vector_frame
 
