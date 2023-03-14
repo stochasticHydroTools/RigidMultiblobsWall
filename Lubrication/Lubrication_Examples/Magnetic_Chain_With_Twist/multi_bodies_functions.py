@@ -392,9 +392,9 @@ def blob_blob_force(r, *args, **kwargs):
   
   offset = 2.0*a-2.0*firm_delta*a
   if r_norm > (offset):
-    force_torque = -((repulsion_strength_firm / debye_length_firm) * np.exp(-(r_norm-(offset)) / debye_length_firm) / np.maximum(r_norm, np.finfo(float).eps)) * r 
+    force_torque += -((repulsion_strength_firm / debye_length_firm) * np.exp(-(r_norm-(offset)) / debye_length_firm) / np.maximum(r_norm, np.finfo(float).eps)) * r 
   else:
-    force_torque = -((repulsion_strength_firm / debye_length_firm) / np.maximum(r_norm, np.finfo(float).eps)) * r;
+    force_torque += -((repulsion_strength_firm / debye_length_firm) / np.maximum(r_norm, np.finfo(float).eps)) * r;
     
   offset = 2.0*a
   if r_norm > (offset):
