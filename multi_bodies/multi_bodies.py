@@ -1053,10 +1053,12 @@ if __name__ == '__main__':
     # Read vertex and clones files
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    # Read slip file if it exists
+    # Read slip and Laplace files if it exist
     slip = None
+    Laplace = None
     if(len(structure) > 2):
-      slip = read_slip_file.read_slip_file(structure[2])
+      slip = read_slip_file.read_slip_file([file_name if file_name.endswith('.slip') >= 0 else _ for k, file_name in enumerate(structure[2:])][0])
+      Laplace = np.loadtxt(([file_name if file_name.endswith('.Laplace') >= 0 else _ for k, file_name in enumerate(structure[2:])][0]))
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
@@ -1079,6 +1081,12 @@ if __name__ == '__main__':
       if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
         b.prescribed_velocity = np.zeros(6)
+      # Save Laplace info if necessary
+      if Laplace is not None:
+        b.normals = np.copy(Laplace[:,0:3])
+        b.reaction_rate = np.copy(Laplace[:,3])
+        b.emitting_rate = np.copy(Laplace[:,4])
+        b.weight = np.copy(Laplace[:,5])
       # Append bodies to total bodies list
       bodies.append(b)
 
