@@ -35,7 +35,7 @@ plot_velocity_field                      -6 6 50 -6 6 50 -8 16 100
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
-structure Structures/bacteria_rigid.shell_N_162_flagellum_L_10_alpha_0.35_d_0.262_shift_1.262.vertex  Structures/bacteria_rigid.clones data/run_flagellated.slip.dat
+structure Structures/bacteria_rigid.shell_N_162_flagellum_L_10_alpha_0.35_d_0.262_shift_1.262.vertex  Structures/bacteria_rigid.clones data/run_flagellated.slip
 
 # Set output name
 save_clones                              one_file
