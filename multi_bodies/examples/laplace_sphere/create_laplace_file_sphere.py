@@ -39,5 +39,5 @@ weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
 
 # Save the corresponding '.laplace' file
 to_save = np.concatenate((normals, k_vec, alpha_vec, weights),axis=1)
-np.savetxt(filename + '.laplace',to_save)
+np.savetxt(filename + '.Laplace',to_save)
  
