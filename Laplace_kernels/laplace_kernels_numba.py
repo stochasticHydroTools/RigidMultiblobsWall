@@ -56,7 +56,7 @@ def no_wall_laplace_single_layer_operator_numba(r_vectors, field, weights):
         S = invr
            
       # 2. Compute product S * c           
-      res[i] += invr * c
+      res[i] += S * c
 
   return norm_fact * res
 
@@ -209,7 +209,7 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
 @njit(parallel=True, fastmath=True)
 def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
   ''' 
-  Returns the product of the Laplace dipole operator without normals to the concentration field on the particle's surface. Kernel in an unbounded domain.
+  Returns the product of the Laplace dipole operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
   
   This function uses numba.
   '''
@@ -270,3 +270,127 @@ def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
 
   return norm_fact * res.flatten()
 
+
+@njit(parallel=True, fastmath=True)
+def no_wall_laplace_single_layer_operator_source_target_numba(source, target, field, weights_source):
+  ''' 
+  Returns the product of the Laplace single layer operator applied to source points on a particle surface and evaluated at target points in space.
+  Kernel in an unbounded domain.
+  
+  This function uses numba.
+  '''
+  # Variables
+  num_targets = target.size // 3 
+  num_sources = source.size // 3 
+  source = source.reshape(num_sources, 3)
+  target = target.reshape(num_targets, 3)
+  res = np.zeros(num_sources)
+  norm_fact = 1.0 / (4.0 * np.pi)
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+
+    for j in range(num_sources):
+      # Multiply field by quadrature weight   
+      c = field[j] * weights_source[j]
+         
+      # Compute vector between particles i and j
+      rx = rxi - rx_src[j]
+      ry = ryi - ry_src[j]
+      rz = rzi - rz_src[j]
+                
+      # 1. Compute single layer kernel for pair i-j, if i==j kernel = 0
+      if i == j:
+        S = 0.0          
+   
+      else:
+        # Normalize distance with hydrodynamic radius
+        r2 = rx*rx + ry*ry + rz*rz
+        r = np.sqrt(r2)
+              
+        # TODO: We should not divide by zero 
+        invr = 1.0 / r
+
+        # Compute single layer kernel
+        S = invr
+           
+      # 2. Compute product S * c           
+      res[i] += S * c
+
+  return norm_fact * res
+
+@njit(parallel=True, fastmath=True)
+def no_wall_laplace_double_layer_operator_source_target_numba(source, target, field, weights_source, normals_source):
+  ''' 
+  Returns the product of the Laplace double layer operator applied to source points on a particle surface and evaluated at target points in space.
+  Kernel in an unbounded domain.
+  
+  This function uses numba.
+  '''
+  # Variables
+  num_targets = target.size // 3 
+  num_sources = source.size // 3 
+  source = source.reshape(num_sources, 3)
+  target = targnormals_et.reshape(num_targets, 3)
+  normals_source = normals_source.reshape(num_sources, 3)
+  res = np.zeros(num_sources)
+  norm_fact = -1.0 / (4.0 * np.pi)
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  nx_src = np.copy(normals_source[:,0])
+  ny_src = np.copy(normals_source[:,1])
+  nz_src = np.copy(normals_source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+
+    for j in range(num_sources):
+      # Multiply field by quadrature weight   
+      c = field[j] * weights_source[j]
+         
+      # Compute vector between particles i and j
+      rx = rxi - rx_src[j]
+      ry = ryi - ry_src[j]
+      rz = rzi - rz_src[j]
+                
+      nx = nx_src[j]
+      ny = ny_src[j]
+      nz = nz_src[j]
+               
+      # 1. Compute double layer kernel for pair i-j, if i==j kernel = 0
+      if i == j:
+        T = 0.0          
+ 
+      else:
+        # Normalize distance with hydrodynamic radius
+        r2 = rx*rx + ry*ry + rz*rz
+        r = np.sqrt(r2)
+              
+        # TODO: We should not divide by zero 
+        invr3 = 1.0 / r**3
+
+        # Compute double  layer kernel T_i * n_i
+        T =  invr3 * ( rx*nx + ry*ny + rz*nz )
+           
+      # 2. Compute product T_i * n_i * c           
+      res[i] += T * c
+
+  return norm_fact * res
