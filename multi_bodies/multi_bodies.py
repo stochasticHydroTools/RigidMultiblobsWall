@@ -1056,7 +1056,7 @@ if __name__ == '__main__':
     # Read slip file if it exists
     slip = None
     if(len(structure) > 2):
-      slip = read_slip_file.read_slip_file(structure[2])
+      slip = read_slip_file.read_slip_file([file_name if file_name.endswith('.slip') >= 0 else _ for k, file_name in enumerate(structure[2:])][0])
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
