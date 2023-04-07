@@ -1,0 +1,43 @@
+from __future__ import division, print_function
+import os
+import numpy as np
+import math as m
+import time
+import sys
+
+# Find project functions
+found_functions = False
+path_to_append = '' 
+while found_functions is False:
+  try: 
+    from read_input import read_vertex_file
+    found_functions = True 
+  except ImportError as exc:
+    sys.stderr.write('Error: failed to import settings module ({})\n'.format(exc))
+    path_to_append += '../'
+    print('searching functions in path ', path_to_append)
+    sys.path.append(path_to_append)
+    if len(path_to_append) > 21:
+      print('\nProjected functions not found. Edit path in create_laplace_file.py')
+      sys.exit()
+
+# Read vertex file to compute the normals
+path_to_vertex = './'
+filename  = "shell_N_12_Rg_0_7921_Rh_1"
+struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
+Nb = struct_ref_config.shape[0]
+Rg = np.linalg.norm(struct_ref_config[0,:])
+# Compute normals
+normals = struct_ref_config/Rg
+# Reaction rates
+k_vec = np.zeros((Nb,1))
+# Emission rates
+alpha_vec = np.ones((Nb,1))
+# Weights of each DOF based on a radius Rweight
+Rweight = 1.0
+weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
+
+# Save the corresponding '.laplace' file
+to_save = np.concatenate((normals, k_vec, alpha_vec, weights),axis=1)
+np.savetxt(filename + '.laplace',to_save)
+ 
