@@ -3,7 +3,7 @@
 # given in units of microns, seconds and miligrams.
 
 # Select scheme to integrate Brownian equations
-scheme                                   stochastic_Slip_Trapz
+scheme                                   deterministic_forward_euler
 
 # Select implementation to compute M and M*f
 # We recommend to use the C++ implementation which is faster,
