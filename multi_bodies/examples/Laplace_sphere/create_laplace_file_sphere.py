@@ -21,23 +21,30 @@ while found_functions is False:
       print('\nProjected functions not found. Edit path in create_laplace_file.py')
       sys.exit()
 
-# Read vertex file to compute the normals
-path_to_vertex = './'
-filename  = "shell_N_12_Rg_0_7921_Rh_1"
+# Read vertex file to compute the normals and parameters
+filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
+alpha = 0
+k = 1
+surface_mobility = 1
+
+# Read file
 struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
 Nb = struct_ref_config.shape[0]
 Rg = np.linalg.norm(struct_ref_config[0,:])
+
 # Compute normals
-normals = struct_ref_config/Rg
+normals = struct_ref_config / Rg
 # Reaction rates
-k_vec = np.zeros((Nb,1))
+k_vec = np.zeros((Nb,1)) * k
 # Emission rates
-alpha_vec = np.ones((Nb,1))
+alpha_vec = np.ones((Nb,1)) * alpha
+# Surface mobility
+surface_mobility_vec = np.ones((Nb,1)) * surface_mobility
 # Weights of each DOF based on a radius Rweight
 Rweight = 1.0
 weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
 
 # Save the corresponding '.laplace' file
-to_save = np.concatenate((normals, k_vec, alpha_vec, weights),axis=1)
-np.savetxt(filename + '.Laplace',to_save)
+to_save = np.concatenate((normals, k_vec, alpha_vec, surface_mobility_vec, weights), axis=1)
+np.savetxt(filename + '.Laplace', to_save, header='Columns: normals, reaction rate, emitting rate, surface mobility, weights')
  

@@ -216,7 +216,6 @@ def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
   # Variables
   N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
-  normals = normals.reshape(N, 3)
   res = np.zeros((N,3))
   norm_fact = -1.0 / (4.0 * np.pi)
 

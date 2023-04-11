@@ -2,6 +2,7 @@
 import argparse
 import numpy as np
 import scipy.linalg
+import scipy.sparse.linalg as spla
 import subprocess
 from shutil import copyfile
 from functools import partial
@@ -26,6 +27,7 @@ while found_functions is False:
   try:
     import multi_bodies_functions
     from mobility import mobility as mb
+    from Laplace_kernels import Laplace_kernels_numba as Laplace_kernels
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
     from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
@@ -54,6 +56,23 @@ while found_functions is False:
     if len(path_to_append) > 21:
       print('\nProjected functions not found. Edit path in multi_bodies.py')
       sys.exit()
+
+
+class gmres_counter(object):
+  '''
+  Callback generator to count iterations. 
+  '''
+  def __init__(self, print_residual = False):
+    self.print_residual = print_residual
+    self.niter = 0
+  def __call__(self, rk=None):
+    self.niter += 1
+    if self.print_residual is True:
+      if self.niter == 1:
+        print('gmres =  0 1')
+      print('gmres = ', self.niter, rk)
+    
+      
 def calc_slip(bodies, Nblobs, *args, **kwargs):
   '''
   Function to calculate the slip in all the blobs.
@@ -78,7 +97,74 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       slip_blobs = mb.single_wall_mobility_trans_times_torque_pycuda(r_vectors, torque_blobs, eta, a) 
     elif implementation == 'pycuda_no_wall':
       slip_blobs = mb.no_wall_mobility_trans_times_torque_pycuda(r_vectors, torque_blobs, eta, a) 
-    slip = np.reshape(-slip_blobs, (Nblobs, 3) ) 
+    slip = np.reshape(-slip_blobs, (Nblobs, 3) )
+
+  # Solve laplace equation
+  if Laplace is not None:
+    # Build arrays 
+    r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+    normals = np.zeros((Nblobs, 3))
+    reaction_rate = np.zeros(Nblobs)
+    emitting_rate = np.zeros(Nblobs)
+    surface_mobility = np.zeros(Nblobs)    
+    weights = np.zeros(Nblobs)
+    offset = 0
+    for k, b in enumerate(bodies): 
+      normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
+      reaction_rate[offset : offset+b.Nblobs] = b.reaction_rate
+      emitting_rate[offset : offset+b.Nblobs] = b.emitting_rate
+      surface_mobility[offset : offset+b.Nblobs] = b.surface_mobility      
+      weights[offset : offset+b.Nblobs] = b.weights
+
+    # Get background concentration (up to quadratic terms)
+    Hessian  = np.zeros((3,3))
+    Hessian[0, 0:3] = background_Laplace[4:7]
+    Hessian[1, 1:3] = background_Laplace[7:9]
+    Hessian[2, 2:2] = background_Laplace[9]
+    Hessian = Hessian + Hessian.T - np.diag(Hessian.diagonal())
+    c_background = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], r_vectors) \
+      + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
+    
+    # Build RHS 
+    RHS = 0.5 * c_background
+    RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate - reaction_rate * c_background / diffusion_coefficient, weights)
+    RHS -= Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals)
+    
+    # Build linear operator
+    def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
+      x = 0.5 * c
+      x += Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c, weights, normals)
+      x += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, reaction_rate * c / diffusion_coefficient, weights)
+      return x
+    
+    linear_operator_partial = partial(linear_operator_Laplace,
+                                      r_vectors = r_vectors,
+                                      normals = normals,
+                                      weights = weights,
+                                      reaction_rate = reaction_rate,
+                                      diffusion_coefficient = diffusion_coefficient)
+
+    A = spla.LinearOperator((Nblobs, Nblobs), matvec = linear_operator_partial, dtype='float64')
+  
+    # Call GMRES 
+    print_residual = True
+    tolerance = 1e-6
+    counter = gmres_counter(print_residual = print_residual)
+    (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
+
+    # Get total concentration
+    c += c_background
+
+    # Compute concentration gradient
+    grad_c = 2 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
+    grad_c[:,0] += background_Laplace[1]
+    grad_c[:,1] += background_Laplace[2]
+    grad_c[:,2] += background_Laplace[3]
+    grad_c -= 2 * Laplace_kernels.no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals).reshape((Nblobs, 3))
+    grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
+    
+    # Compute slip velocity
+    slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
  
   #2) Add prescribed slip 
   offset = 0
@@ -1026,6 +1112,8 @@ if __name__ == '__main__':
   output_name = read.output_name 
   structures = read.structures
   structures_ID = read.structures_ID
+  background_Laplace = read.background_Laplace
+  diffusion_coefficient = read.diffusion_coefficient
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
@@ -1057,8 +1145,12 @@ if __name__ == '__main__':
     slip = None
     Laplace = None
     if(len(structure) > 2):
-      slip = read_slip_file.read_slip_file([file_name if file_name.endswith('.slip') >= 0 else _ for k, file_name in enumerate(structure[2:])][0])
-      Laplace = np.loadtxt(([file_name if file_name.endswith('.Laplace') >= 0 else _ for k, file_name in enumerate(structure[2:])][0]))
+      slip_name = [file_name if file_name.endswith('.slip') else None for k, file_name in enumerate(structure[2:])][0]
+      if slip_name:
+        slip = read_slip_file.read_slip_file(slip_name)
+      Laplace_name = [file_name if file_name.endswith('.Laplace') else None for k, file_name in enumerate(structure[2:])][0]
+      if Laplace_name:
+        Laplace = np.loadtxt(Laplace_name)
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
@@ -1086,7 +1178,8 @@ if __name__ == '__main__':
         b.normals = np.copy(Laplace[:,0:3])
         b.reaction_rate = np.copy(Laplace[:,3])
         b.emitting_rate = np.copy(Laplace[:,4])
-        b.weight = np.copy(Laplace[:,5])
+        b.surface_mobility = np.copy(Laplace[:,5])
+        b.weights = np.copy(Laplace[:,6])
       # Append bodies to total bodies list
       bodies.append(b)
 
@@ -1497,3 +1590,5 @@ if __name__ == '__main__':
             + 'stochastic_iterations_count    = ' + str(integrator.stoch_iterations_count) + '\n'
             + 'nonlinear_iterations_count     = ' + str(nonlinear_counter) + '\n')
   print('\n\n\n# End')
+
+  
