@@ -156,10 +156,10 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     c += c_background
 
     # Compute concentration gradient
-    grad_c = 2 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
-    grad_c[:,0] += background_Laplace[1]
-    grad_c[:,1] += background_Laplace[2]
-    grad_c[:,2] += background_Laplace[3]
+    grad_c = 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
+    grad_c[:,0] += 2 * background_Laplace[1]
+    grad_c[:,1] += 2 * background_Laplace[2]
+    grad_c[:,2] += 2 * background_Laplace[3]
     grad_c -= 2 * Laplace_kernels.no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals).reshape((Nblobs, 3))
     grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
     
