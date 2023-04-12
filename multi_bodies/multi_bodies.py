@@ -115,6 +115,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       emitting_rate[offset : offset+b.Nblobs] = b.emitting_rate
       surface_mobility[offset : offset+b.Nblobs] = b.surface_mobility      
       weights[offset : offset+b.Nblobs] = b.weights
+      offset += b.Nblobs
 
     # Get background concentration (up to quadratic terms)
     Hessian  = np.zeros((3,3))
@@ -151,10 +152,20 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     tolerance = 1e-6
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
-
     # Get total concentration
     c += c_background
 
+    # Compute polarity
+    Nbodies = len(bodies)
+    polarity = np.zeros((Nbodies,3))
+    cnweights = np.einsum('ij,i->ij',normals,np.multiply(c,weights)) 
+    Rh = 1
+    offset = 0
+    for k, b in enumerate(bodies):
+      polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+      offset += b.Nblobs
+
+    print('polarity = ', polarity)
     # Compute concentration gradient
     grad_c = 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
     grad_c[:,0] += 2 * background_Laplace[1]
@@ -165,7 +176,15 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
- 
+
+    mean_slip  = np.zeros((Nbodies,3))
+    slip_weight = np.einsum('ij,i->ij',slip,weights)
+    offset = 0
+    for k, b in enumerate(bodies):
+      mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+      offset += b.Nblobs
+    print('mean_slip  = ', mean_slip)
+    
   #2) Add prescribed slip 
   offset = 0
   for b in bodies:
