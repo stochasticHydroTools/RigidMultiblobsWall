@@ -120,7 +120,7 @@ def no_wall_laplace_double_layer_operator_numba(r_vectors, field, weights, norma
   return norm_fact * res
 
 
-@njit(parallel=True, fastmath=True)
+@njit(parallel=False, fastmath=False)
 def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals):
   ''' 
   Returns the product of the derivative of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
@@ -153,24 +153,24 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
       # Multiply field by quadrature weight   
       c = field[j] * weights[j]
          
-      # Compute vector between particles i and j
-      rx = rxi - r_vectors[j,0]
-      ry = ryi - r_vectors[j,1]
-      rz = rzi - r_vectors[j,2]
-
       nx = nx_vec[j]
       ny = ny_vec[j]
       nz = nz_vec[j]
              
       # 1. Compute kernel for pair i-j, if i==j kernel = 0
       if i == j:
-        Lxx = 0.0          
-        Lxy = 0.0          
-        Lxz = 0.0          
-        Lyy = 0.0          
-        Lyz = 0.0          
+        Lxx = 0.0
+        Lxy = 0.0
+        Lxz = 0.0
+        Lyy = 0.0
+        Lyz = 0.0
    
       else:
+        # Compute vector between particles i and j
+        rx = rxi - r_vectors[j,0]
+        ry = ryi - r_vectors[j,1]
+        rz = rzi - r_vectors[j,2]
+
         # Normalize distance with hydrodynamic radius
         r2 = rx*rx + ry*ry + rz*rz
         r = np.sqrt(r2)
@@ -181,19 +181,19 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
         invr3 = invr2 * invr
 
         # Compute  kernel
-        c = -3.0 / invr2
-        Lxx = (1.0 + c*rx*rx) * invr3
-        Lxy = (      c*rx*ry) * invr3
-        Lxz = (      c*rx*rz) * invr3
-        Lyy = (1.0 + c*ry*ry) * invr3
-        Lyz = (      c*ry*rz) * invr3
+        factor_off_diagonal = -3.0 * invr2
+        Lxx = (1.0 + factor_off_diagonal * rx*rx) * invr3
+        Lxy = (      factor_off_diagonal * rx*ry) * invr3
+        Lxz = (      factor_off_diagonal * rx*rz) * invr3
+        Lyy = (1.0 + factor_off_diagonal * ry*ry) * invr3
+        Lyz = (      factor_off_diagonal * ry*rz) * invr3
 
       # Uses symmetries of the kernel
       Lyx = Lxy
       Lzx = Lxz
       Lzy = Lyz
-      Lzz = - Lxx - Lyy 
-         
+      Lzz = - Lxx - Lyy
+
       # 2. Compute product L_ij * n_j * c           
       resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c 
       resy_vec[i] += (Lyx * nx + Lyy * ny + Lyz * nz) * c 
