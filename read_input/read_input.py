@@ -93,8 +93,9 @@ class ReadInput(object):
     self.repulsion_strength_firm = float(self.options.get('repulsion_strength_firm') or 0.0)
     self.firm_delta = float(self.options.get('firm_delta') or 1e-02)
     self.Lub_Cut = float(self.options.get('Lub_Cut') or 4.5)
-    tmp_Laplace = np.fromstring(self.options.get('background_Laplace') or 'None', sep=' ')  
-    self.background_Laplace = np.hstack([tmp_Laplace, np.zeros(10 - tmp_Laplace.size)]).flatten()
+    tmp_Laplace = np.fromstring(self.options.get('background_Laplace') or 'None', sep=' ')
+    self.background_Laplace = np.hstack([tmp_Laplace, np.zeros(9 - tmp_Laplace.size)]).flatten()
+    print('self.background_Laplace = ', self.background_Laplace)
     self.diffusion_coefficient = float(self.options.get('diffusion_coefficient') or 1.0)
 
     # Create list with [vertex_file, clones_file] for each structure

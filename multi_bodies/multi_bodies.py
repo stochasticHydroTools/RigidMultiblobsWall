@@ -121,7 +121,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     Hessian  = np.zeros((3,3))
     Hessian[0, 0:3] = background_Laplace[4:7]
     Hessian[1, 1:3] = background_Laplace[7:9]
-    Hessian[2, 2:2] = background_Laplace[9]
+    Hessian[2, 2] = -Hessian[0,0] - Hessian[1,1]
     Hessian = Hessian + Hessian.T - np.diag(Hessian.diagonal())
     c_background = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], r_vectors) \
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
@@ -152,22 +152,36 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     tolerance = 1e-6
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
+
     # Get total concentration
     c += c_background
 
     # Compute polarity
     Nbodies = len(bodies)
     polarity = np.zeros((Nbodies,3))
-    cnweights = np.einsum('ij,i->ij',normals,np.multiply(c,weights)) 
+    cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights)) 
     Rh = 1
     offset = 0
     for k, b in enumerate(bodies):
       polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
       offset += b.Nblobs
+    print('polarity      = ', polarity)
 
-    print('polarity = ', polarity)
+    # Compute second moment
+    second_moment = np.zeros((Nbodies, 3, 3))
+    cnweights = np.einsum('ij,ik,i->ijk', normals, normals, np.multiply(c,weights)) - np.einsum('jk,i->ijk', np.identity(3), np.multiply(c,weights)) / 3.0
+    # print('cnweights = \n', cnweights)
+    offset = 0    
+    for k, b in enumerate(bodies):
+      second_moment[k] = np.sum(cnweights[offset:offset+b.Nblobs], axis=0) / (4 * np.pi * Rh**2)
+      offset += b.Nblobs
+    print('second_moment = \n', second_moment)
+    print('second_moment = \n', second_moment.flatten())
+    
+    print('\n\n')
     # Compute concentration gradient
-    grad_c = 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
+    grad_c = np.zeros((Nblobs, 3))
+    grad_c += 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
     grad_c[:,0] += 2 * background_Laplace[1]
     grad_c[:,1] += 2 * background_Laplace[2]
     grad_c[:,2] += 2 * background_Laplace[3]
@@ -183,7 +197,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     for k, b in enumerate(bodies):
       mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
       offset += b.Nblobs
-    print('mean_slip  = ', mean_slip)
+    print('mean_slip     = ', mean_slip)
     
   #2) Add prescribed slip 
   offset = 0
