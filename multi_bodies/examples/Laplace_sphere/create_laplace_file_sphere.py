@@ -24,11 +24,12 @@ while found_functions is False:
 # Read vertex file to compute the normals and parameters
 #filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
 #filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
-#filename  = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
+#filename = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
 filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
 alpha = 0
 k = 0
 surface_mobility = 1
+Rweight = 1
 
 # Read file
 struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
@@ -44,7 +45,6 @@ alpha_vec = np.ones((Nb,1)) * alpha
 # Surface mobility
 surface_mobility_vec = np.ones((Nb,1)) * surface_mobility
 # Weights of each DOF based on a radius Rweight
-Rweight = 1.0
 weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
 
 # Save the corresponding '.laplace' file
