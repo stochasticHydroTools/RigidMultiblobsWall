@@ -125,11 +125,20 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     Hessian = Hessian + Hessian.T - np.diag(Hessian.diagonal())
     c_background = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], r_vectors) \
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
+    print('mean(c_background) = ', np.mean(c_background))
     
     # Build RHS
-    RHS = c_background
-    RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
-    
+    use_eq_26 = True
+    if use_eq_26:
+      RHS = c_background
+      RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
+    else:
+      RHS = 0.5 * c_background
+      RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
+      RHS -= Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights)
+      RHS -= Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals)
+    print('mean(RHS)     = ', np.mean(RHS))
+      
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
       x = 0.5 * c
@@ -148,10 +157,15 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   
     # Call GMRES to get total concentration
     print_residual = True
-    tolerance = 1e-6
+    tolerance = 1e-10    
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
-
+    if use_eq_26 is False:
+      c += c_background
+    # c = c_background      
+    print('mean(c)       = ', np.mean(c))
+    
+    
     # Compute polarity
     Nbodies = len(bodies)
     polarity = np.zeros((Nbodies,3))
@@ -174,7 +188,6 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     print('second_moment = \n', second_moment)
     print('second_moment = \n', second_moment.flatten())
     
-    print('\n\n')
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
     grad_c += 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
@@ -182,8 +195,25 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c[:,1] += 2 * background_Laplace[2]
     grad_c[:,2] += 2 * background_Laplace[3]
     grad_c -= 2 * Laplace_kernels.no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals).reshape((Nblobs, 3))
-    grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
+    # grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
+    print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
+    print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
+    print('mean(normals) = ', np.sum(normals, axis=0))
+
+    # Compute total reaction rate 
+    total_reaction_rate = np.zeros(Nbodies)
+    offset = 0
+    for k, b in enumerate(bodies):
+      grad_c_dot_n = diffusion_coefficient * np.einsum('ij,ij,i->i', grad_c[offset:offset+b.Nblobs], normals[offset:offset+b.Nblobs], weights[offset:offset+b.Nblobs])
+      # grad_c_tang = grad_c - np.einsum('i,ij->ij', np.einsum('ij,ij->i', grad_c, normals), normals)
+      # print('grad_c_tang        = \n', grad_c_tang)
+      print('mean(grad_c_dot_n) = ', np.mean(grad_c_dot_n))
+      print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))      
+      total_reaction_rate[k] = np.sum(grad_c_dot_n)
+      offset += b.Nblobs
+    print('total rate    = ', total_reaction_rate)
     
+    print('\n\n')
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
 
