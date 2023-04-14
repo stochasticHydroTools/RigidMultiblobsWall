@@ -126,10 +126,9 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     c_background = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], r_vectors) \
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
     
-    # Build RHS 
-    RHS = 0.5 * c_background
-    RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate - reaction_rate * c_background / diffusion_coefficient, weights)
-    RHS -= Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals)
+    # Build RHS
+    RHS = c_background
+    RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
     
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
@@ -147,14 +146,11 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
 
     A = spla.LinearOperator((Nblobs, Nblobs), matvec = linear_operator_partial, dtype='float64')
   
-    # Call GMRES 
+    # Call GMRES to get total concentration
     print_residual = True
     tolerance = 1e-6
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
-
-    # Get total concentration
-    c += c_background
 
     # Compute polarity
     Nbodies = len(bodies)
