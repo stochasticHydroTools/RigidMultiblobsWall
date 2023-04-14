@@ -207,8 +207,16 @@ if __name__ ==  '__main__':
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     # Read slip file if it exists
     slip = None
+    Laplace = None
     if(len(structure) > 2):
-      slip = read_slip_file.read_slip_file(structure[2])
+      slip_name = [file_name if file_name.endswith('.slip') else None for k, file_name in enumerate(structure[2:])][0]
+      if slip_name:
+        slip = read_slip_file.read_slip_file(slip_name)
+      Laplace_name = [file_name if file_name.endswith('.Laplace') else None for k, file_name in enumerate(structure[2:])][0]
+      if Laplace_name:
+        Laplace = np.loadtxt(Laplace_name)
+
+#      slip = read_slip_file.read_slip_file(structure[2])
     body_types.append(num_bodies_struct)
     body_names.append(read.structures_ID[ID])
     # Creat each body of tyoe structure
@@ -497,6 +505,10 @@ if __name__ ==  '__main__':
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
+    
+    slip_mobility_bodies = np.dot(mobility_bodies, np.dot(K.T,resistance_blobs))
+    name = read.output_name + '.body_slip_mobility.dat'
+    np.savetxt(name, slip_mobility_bodies, delimiter='  ')
     print('Time to compute body mobility =', time.time() - start_time)
     
   elif (read.scheme == 'plot_velocity_field' and False):

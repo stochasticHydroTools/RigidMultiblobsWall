@@ -81,6 +81,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   a = kwargs.get('blob_radius')
   eta = kwargs.get('eta')
   g = kwargs.get('g')
+  Laplace_flag = kwargs.get('Laplace_flag')
+
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
   #1) Compute slip due to external torques on bodies with single blobs only
@@ -100,7 +102,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip = np.reshape(-slip_blobs, (Nblobs, 3) )
 
   # Solve laplace equation
-  if Laplace is not None:
+  if Laplace_flag is not None:
     # Build arrays 
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
     normals = np.zeros((Nblobs, 3))
@@ -1183,6 +1185,7 @@ if __name__ == '__main__':
         slip = read_slip_file.read_slip_file(slip_name)
       Laplace_name = [file_name if file_name.endswith('.Laplace') else None for k, file_name in enumerate(structure[2:])][0]
       if Laplace_name:
+        Laplace_flag = True
         Laplace = np.loadtxt(Laplace_name)
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
@@ -1344,7 +1347,8 @@ if __name__ == '__main__':
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
-                                 eta = a, 
+                                 eta = eta, 
+                                 Laplace_flag = Laplace_flag, 
                                  g = g) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
