@@ -22,14 +22,14 @@ while found_functions is False:
       sys.exit()
 
 # Read vertex file to compute the normals and parameters
-filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
+#filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
 #filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
-#filename  = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
-#filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
+#filename = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
+filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
 alpha = 0
 k = 0
 surface_mobility = 1
-Rweight = 1.0
+Rweight = 9.766578767440088e-01
 
 # Read file
 struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
@@ -49,5 +49,5 @@ weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
 
 # Save the corresponding '.laplace' file
 to_save = np.concatenate((normals, k_vec, alpha_vec, surface_mobility_vec, weights), axis=1)
-np.savetxt(filename + '.Laplace', to_save, header='Columns: normals, reaction rate, emitting rate, surface mobility, weights')
+np.savetxt(filename + '_weigths_Rg.Laplace', to_save, header='Columns: normals, reaction rate, emitting rate, surface mobility, weights')
  
