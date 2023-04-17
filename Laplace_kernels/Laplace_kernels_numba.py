@@ -283,7 +283,7 @@ def no_wall_laplace_single_layer_operator_source_target_numba(source, target, fi
   num_sources = source.size // 3 
   source = source.reshape(num_sources, 3)
   target = target.reshape(num_targets, 3)
-  res = np.zeros(num_sources)
+  res = np.zeros(num_targets)
   norm_fact = 1.0 / (4.0 * np.pi)
 
   # Copy to one dimensional vectors
@@ -340,9 +340,9 @@ def no_wall_laplace_double_layer_operator_source_target_numba(source, target, fi
   num_targets = target.size // 3 
   num_sources = source.size // 3 
   source = source.reshape(num_sources, 3)
-  target = targnormals_et.reshape(num_targets, 3)
+  target = target.reshape(num_targets, 3)
   normals_source = normals_source.reshape(num_sources, 3)
-  res = np.zeros(num_sources)
+  res = np.zeros(num_targets)
   norm_fact = -1.0 / (4.0 * np.pi)
 
   # Copy to one dimensional vectors
