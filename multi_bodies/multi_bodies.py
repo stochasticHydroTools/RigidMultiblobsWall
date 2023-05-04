@@ -210,7 +210,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     print('\n\n')
 
     # Compute concentration on a shell centered in the origin
-    if True:
+    if False:
       from mapping.user_defined_functions import parametrization, sphere
       
       # Create sphere
@@ -257,6 +257,20 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip_b = b.calc_slip()
     slip[offset:offset+b.Nblobs] += slip_b
     offset += b.Nblobs
+
+  if True:
+    # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
+    r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+    normals = np.zeros((Nblobs, 3))
+    weights = np.zeros(Nblobs)
+    offset = 0
+    for k, b in enumerate(bodies): 
+      normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
+      weights[offset : offset+b.Nblobs] = b.weights
+    # Applied second layer
+    Dslip = mb.no_wall_double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights).reshape((Nblobs, 3))
+    slip = 0.5 * slip + Dslip  
+    
   return slip
 
 
@@ -1230,12 +1244,12 @@ if __name__ == '__main__':
     slip = None
     Laplace = None
     if(len(structure) > 2):
-      slip_name = [file_name if file_name.endswith('.slip') else None for k, file_name in enumerate(structure[2:])][0]
-      if slip_name:
-        slip = read_slip_file.read_slip_file(slip_name)
-      Laplace_name = [file_name if file_name.endswith('.Laplace') else None for k, file_name in enumerate(structure[2:])][0]
-      if Laplace_name:
-        Laplace = np.loadtxt(Laplace_name)
+      for k, file_name in enumerate(structure[2:]):
+        if file_name.endswith('.slip'):
+          slip = read_slip_file.read_slip_file(file_name)
+        elif file_name.endswith('.Laplace'):
+          Laplace = np.loadtxt(file_name)
+
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
     # Create each body of type structure
