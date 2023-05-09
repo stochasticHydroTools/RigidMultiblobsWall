@@ -179,6 +179,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
       offset += b.Nblobs
     print('polarity      = ', polarity)
+    np.savetxt(output_name + '.polarity.dat', polarity)
 
     # Compute second moment
     second_moment = np.zeros((Nbodies, 3, 3))
@@ -189,6 +190,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       offset += b.Nblobs
     print('second_moment = \n', second_moment)
     print('second_moment = \n', second_moment.flatten())
+    np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshaped((Nbodies, 9)))    
     
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
@@ -252,8 +254,9 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       result[:,0:3] = grid_sphere
       result[:,3] = uv_weights * sphere_radius**2
       result[:,4] = c_sphere
-      np.savetxt(output_name_concentration, result, header=header)      
+      np.savetxt(output_name_concentration, result, header=header)
 
+      
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
     mean_slip  = np.zeros((Nbodies,3))
