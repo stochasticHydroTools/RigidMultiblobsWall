@@ -271,7 +271,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip[offset:offset+b.Nblobs] += slip_b
     offset += b.Nblobs
 
-  if False:
+  if True:
     # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
     if normals is None:
