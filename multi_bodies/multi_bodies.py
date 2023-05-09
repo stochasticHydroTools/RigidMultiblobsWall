@@ -81,7 +81,6 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   eta = kwargs.get('eta')
   g = kwargs.get('g')
   Laplace_flag = kwargs.get('Laplace_flag')
-
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
   #1) Compute slip due to external torques on bodies with single blobs only
@@ -101,6 +100,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip = np.reshape(-slip_blobs, (Nblobs, 3) )
 
   # Solve laplace equation
+  normals = None
   if Laplace_flag is not None:
     # Build arrays 
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
@@ -211,8 +211,16 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     print('total rate    = ', total_reaction_rate)   
     print('\n\n')
 
-    # Compute concentration on a shell centered in the origin
-    if False:
+    if True:
+      # Compute concentration on the blobs
+      output_name_concentration = output_name + '.concentration_on_blobs.dat'
+      result = np.zeros((Nblobs, 4))
+      result[:,0:3] = r_vectors
+      result[:,3] = c      
+      np.savetxt(output_name_concentration, result)
+
+    if True:
+      # Compute concentration on a shell centered in the origin
       from mapping.user_defined_functions import parametrization, sphere
       
       # Create sphere
@@ -263,12 +271,13 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   if True:
     # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
-    normals = np.zeros((Nblobs, 3))
-    weights = np.zeros(Nblobs)
-    offset = 0
-    for k, b in enumerate(bodies): 
-      normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
-      weights[offset : offset+b.Nblobs] = b.weights
+    if normals is None:
+      normals = np.zeros((Nblobs, 3))
+      weights = np.zeros(Nblobs)
+      offset = 0
+      for k, b in enumerate(bodies): 
+        normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
+        weights[offset : offset+b.Nblobs] = b.weights
     # Applied second layer
     Dslip = mb.no_wall_double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights).reshape((Nblobs, 3))
     slip = 0.5 * slip + Dslip  
@@ -1412,9 +1421,9 @@ if __name__ == '__main__':
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
-                                 eta = eta, 
-                                 Laplace_flag = Laplace_flag, 
-                                 g = g) 
+                                 eta = a, 
+                                 g = g,
+                                 Laplace_flag = Laplace_flag) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
