@@ -7,6 +7,7 @@ from shutil import copyfile
 from functools import partial
 import sys
 import time
+import ntpath
 try:
   import pickle as cpickle
 except:
@@ -82,6 +83,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   g = kwargs.get('g')
   Laplace_flag = kwargs.get('Laplace_flag')
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+
+  print('Laplace_flag = ', Laplace_flag)
 
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
@@ -268,7 +271,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip[offset:offset+b.Nblobs] += slip_b
     offset += b.Nblobs
 
-  if True:
+  if False:
     # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
     if normals is None:
@@ -1254,12 +1257,17 @@ if __name__ == '__main__':
     # Read slip and Laplace files if it exist
     slip = None
     Laplace = None
+    Laplace_flag = None
     if(len(structure) > 2):
       for k, file_name in enumerate(structure[2:]):
         if file_name.endswith('.slip'):
           slip = read_slip_file.read_slip_file(file_name)
+          head, tail = ntpath.split(file_name)
+          copyfile(name_file, output_name + '.' + tail)
         elif file_name.endswith('.Laplace'):
           Laplace = np.loadtxt(file_name)
+          head, tail = ntpath.split(file_name)
+          copyfile(file_name, output_name + '.' + tail)         
           Laplace_flag = True
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
