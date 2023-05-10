@@ -7,6 +7,7 @@ from shutil import copyfile
 from functools import partial
 import sys
 import time
+import ntpath
 try:
   import pickle as cpickle
 except:
@@ -81,8 +82,9 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   eta = kwargs.get('eta')
   g = kwargs.get('g')
   Laplace_flag = kwargs.get('Laplace_flag')
-
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
+
+  print('Laplace_flag = ', Laplace_flag)
 
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
@@ -101,6 +103,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip = np.reshape(-slip_blobs, (Nblobs, 3) )
 
   # Solve laplace equation
+  normals = None
   if Laplace_flag is not None:
     # Build arrays 
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
@@ -176,6 +179,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
       offset += b.Nblobs
     print('polarity      = ', polarity)
+    np.savetxt(output_name + '.polarity.dat', polarity)
 
     # Compute second moment
     second_moment = np.zeros((Nbodies, 3, 3))
@@ -186,6 +190,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       offset += b.Nblobs
     print('second_moment = \n', second_moment)
     print('second_moment = \n', second_moment.flatten())
+    np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshaped((Nbodies, 9)))    
     
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
@@ -211,8 +216,16 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     print('total rate    = ', total_reaction_rate)   
     print('\n\n')
 
-    # Compute concentration on a shell centered in the origin
-    if False:
+    if True:
+      # Compute concentration on the blobs
+      output_name_concentration = output_name + '.concentration_on_blobs.dat'
+      result = np.zeros((Nblobs, 4))
+      result[:,0:3] = r_vectors
+      result[:,3] = c      
+      np.savetxt(output_name_concentration, result)
+
+    if True:
+      # Compute concentration on a shell centered in the origin
       from mapping.user_defined_functions import parametrization, sphere
       
       # Create sphere
@@ -241,8 +254,9 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       result[:,0:3] = grid_sphere
       result[:,3] = uv_weights * sphere_radius**2
       result[:,4] = c_sphere
-      np.savetxt(output_name_concentration, result, header=header)      
+      np.savetxt(output_name_concentration, result, header=header)
 
+      
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
     mean_slip  = np.zeros((Nbodies,3))
@@ -263,12 +277,13 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   if True:
     # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
-    normals = np.zeros((Nblobs, 3))
-    weights = np.zeros(Nblobs)
-    offset = 0
-    for k, b in enumerate(bodies): 
-      normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
-      weights[offset : offset+b.Nblobs] = b.weights
+    if normals is None:
+      normals = np.zeros((Nblobs, 3))
+      weights = np.zeros(Nblobs)
+      offset = 0
+      for k, b in enumerate(bodies): 
+        normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
+        weights[offset : offset+b.Nblobs] = b.weights
     # Applied second layer
     Dslip = mb.no_wall_double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights).reshape((Nblobs, 3))
     slip = 0.5 * slip + Dslip  
@@ -1245,12 +1260,17 @@ if __name__ == '__main__':
     # Read slip and Laplace files if it exist
     slip = None
     Laplace = None
+    Laplace_flag = None
     if(len(structure) > 2):
       for k, file_name in enumerate(structure[2:]):
         if file_name.endswith('.slip'):
           slip = read_slip_file.read_slip_file(file_name)
+          head, tail = ntpath.split(file_name)
+          copyfile(name_file, output_name + '.' + tail)
         elif file_name.endswith('.Laplace'):
           Laplace = np.loadtxt(file_name)
+          head, tail = ntpath.split(file_name)
+          copyfile(file_name, output_name + '.' + tail)         
           Laplace_flag = True
     body_types.append(num_bodies_struct)
     body_names.append(structures_ID[ID])
@@ -1412,9 +1432,9 @@ if __name__ == '__main__':
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
-                                 eta = eta, 
-                                 Laplace_flag = Laplace_flag, 
-                                 g = g) 
+                                 eta = a, 
+                                 g = g,
+                                 Laplace_flag = Laplace_flag) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
