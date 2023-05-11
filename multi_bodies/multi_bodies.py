@@ -167,12 +167,11 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     if use_eq_26 is False:
       c += c_background
     print('mean(c)       = ', np.mean(c))
-    
-    
+
     # Compute polarity
     Nbodies = len(bodies)
     polarity = np.zeros((Nbodies,3))
-    cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights)) 
+    cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights))
     Rh = 1
     offset = 0
     for k, b in enumerate(bodies):
@@ -190,7 +189,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       offset += b.Nblobs
     print('second_moment = \n', second_moment)
     print('second_moment = \n', second_moment.flatten())
-    np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshaped((Nbodies, 9)))    
+    np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshape((Nbodies, 9)))    
     
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
@@ -202,7 +201,6 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
     print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
     print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
-    print('mean(normals) = ', np.sum(normals, axis=0))
 
     # Compute total reaction rate 
     total_reaction_rate = np.zeros(Nbodies)
@@ -213,7 +211,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))      
       total_reaction_rate[k] = np.sum(grad_c_dot_n)
       offset += b.Nblobs
-    print('total rate    = ', total_reaction_rate)   
+    print('total rate    = ', total_reaction_rate)
+    np.savetxt(output_name + '.total_reaction_rate.dat', total_reaction_rate)
     print('\n\n')
 
     if True:
