@@ -26,17 +26,15 @@ while found_functions is False:
       sys.exit()
 
 # Read vertex file to compute the normals and parameters
-# filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
-# filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
-# filename = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
-# filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
+#filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
+#filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
+#filename = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
+#filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
 filename  = "../../Structures/shell_N_2562_Rg_0_9888_Rh_1"
-alpha_0 = 0
-alpha_1 = 1
-k_0 = 0
-k_1 = 0
-surface_mobility_0 = 1
-surface_mobility_1 = 0
+#filename  = "../../Structures/shell_N_10242_Rg_0_994578_Rh_1"
+alpha = 0
+k = 0
+surface_mobility = 1
 Rweight = 1
 
 # Read file
