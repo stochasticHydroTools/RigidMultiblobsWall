@@ -10,11 +10,10 @@ except ImportError:
 
 
 @njit(parallel=True, fastmath=True)
-def no_wall_laplace_single_layer_operator_numba(r_vectors, field, weights):
+def Laplace_single_layer_operator_numba(r_vectors, field, weights, wall=0):
   ''' 
-  Returns the product of the Laplace single layer operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
-  
-  This function uses numba.
+  Returns the product of the Laplace single layer operator to the concentration field on the particle's surface. Kernel in an unbounded 
+  or half space domain.
   '''
   # Variables
   N = r_vectors.size // 3
@@ -45,27 +44,32 @@ def no_wall_laplace_single_layer_operator_numba(r_vectors, field, weights):
         S = 0.0          
    
       else:
-        # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
+        # Compute distance
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
         # TODO: We should not divide by zero 
         invr = 1.0 / r
 
         # Compute single layer kernel
         S = invr
+
+      if wall:
+        # Add wall contribution
+        rz = rzi + r_vectors[j,2]
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+        S += 1.0 / r
            
       # 2. Compute product S * c           
       res[i] += S * c
 
   return norm_fact * res
 
+
 @njit(parallel=True, fastmath=True)
-def no_wall_laplace_double_layer_operator_numba(r_vectors, field, weights, normals):
+def Laplace_double_layer_operator_numba(r_vectors, field, weights, normals, wall=0):
   ''' 
-  Returns the product of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
-  
-  This function uses numba.
+  Returns the product of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded 
+  of half space domain.
   '''
   # Variables
   N = r_vectors.size // 3
@@ -105,14 +109,25 @@ def no_wall_laplace_double_layer_operator_numba(r_vectors, field, weights, norma
  
       else:
         # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
         # TODO: We should not divide by zero 
         invr3 = 1.0 / r**3
 
         # Compute double  layer kernel T_i * n_i
         T =  invr3 * ( rx*nx + ry*ny + rz*nz )
+
+      if wall:
+        # Normalize distance with hydrodynamic radius
+        rz = rzi + r_vectors[j,2]        
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+              
+        # TODO: We should not divide by zero 
+        invr3 = 1.0 / r**3
+
+        # Compute double  layer kernel T_i * n_i
+        T +=  invr3 * ( rx*nx + ry*ny + rz*nz )
+
            
       # 2. Compute product T_i * n_i * c           
       res[i] += T * c
@@ -121,11 +136,10 @@ def no_wall_laplace_double_layer_operator_numba(r_vectors, field, weights, norma
 
 
 @njit(parallel=False, fastmath=False)
-def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals):
+def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals, wall=0):
   ''' 
-  Returns the product of the derivative of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
-  
-  This function uses numba.
+  Returns the product of the derivative of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded 
+  or half space domain.
   '''
   # Variables
   N = r_vectors.size // 3
@@ -172,8 +186,7 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
         rz = rzi - r_vectors[j,2]
 
         # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
         # TODO: We should not divide by zero 
         invr = 1.0 / r
@@ -188,12 +201,32 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
         Lyy = (1.0 + factor_off_diagonal * ry*ry) * invr3
         Lyz = (      factor_off_diagonal * ry*rz) * invr3
 
+      if wall:
+        # Compute vector between particles i and j
+        rz = rzi + r_vectors[j,2]
+
+        # Normalize distance with hydrodynamic radius
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+              
+        # TODO: We should not divide by zero 
+        invr = 1.0 / r
+        invr2 = invr * invr
+        invr3 = invr2 * invr
+
+        # Compute  kernel
+        factor_off_diagonal = -3.0 * invr2
+        Lxx += (1.0 + factor_off_diagonal * rx*rx) * invr3
+        Lxy += (      factor_off_diagonal * rx*ry) * invr3
+        Lxz += (      factor_off_diagonal * rx*rz) * invr3
+        Lyy += (1.0 + factor_off_diagonal * ry*ry) * invr3
+        Lyz += (      factor_off_diagonal * ry*rz) * invr3
+
       # Uses symmetries of the kernel
       Lyx = Lxy
       Lzx = Lxz
       Lzy = Lyz
       Lzz = - Lxx - Lyy
-
+      
       # 2. Compute product L_ij * n_j * c           
       resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c 
       resy_vec[i] += (Lyx * nx + Lyy * ny + Lyz * nz) * c 
@@ -207,11 +240,10 @@ def no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, field, weights,
 
 
 @njit(parallel=True, fastmath=True)
-def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
+def Laplace_dipole_operator_numba(r_vectors, field, weights, wall=0):
   ''' 
-  Returns the product of the Laplace dipole operator to the concentration field on the particle's surface. Kernel in an unbounded domain.
-  
-  This function uses numba.
+  Returns the product of the Laplace dipole operator to the concentration field on the particle's surface. Kernel in an unbounded 
+  or half space domain.
   '''
   # Variables
   N = r_vectors.size // 3
@@ -247,8 +279,7 @@ def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
         Tz = 0.0          
       else:
         # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
         # TODO: We should not divide by zero 
         invr3 = 1.0 / r**3
@@ -257,6 +288,20 @@ def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
         Tx = rx * invr3
         Ty = ry * invr3
         Tz = rz * invr3
+
+      if wall:
+        # Normalize distance with hydrodynamic radius
+        rz = rzi + r_vectors[j,2]
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+              
+        # TODO: We should not divide by zero 
+        invr3 = 1.0 / r**3
+        
+        # Compute kernel
+        Tx += rx * invr3
+        Ty += ry * invr3
+        Tz += rz * invr3
+        
          
       # 2. Compute product T_i * c           
       resx_vec[i] += Tx * c  
@@ -271,12 +316,10 @@ def no_wall_laplace_dipole_operator_numba(r_vectors, field, weights):
 
 
 @njit(parallel=True, fastmath=True)
-def no_wall_laplace_single_layer_operator_source_target_numba(source, target, field, weights_source):
+def Laplace_single_layer_operator_source_target_numba(source, target, field, weights_source, wall=0):
   ''' 
   Returns the product of the Laplace single layer operator applied to source points on a particle surface and evaluated at target points in space.
-  Kernel in an unbounded domain.
-  
-  This function uses numba.
+  Kernel in an unbounded or half space domain.
   '''
   # Variables
   num_targets = target.size // 3 
@@ -307,34 +350,45 @@ def no_wall_laplace_single_layer_operator_source_target_numba(source, target, fi
       rx = rxi - rx_src[j]
       ry = ryi - ry_src[j]
       rz = rzi - rz_src[j]
+
+      # Compute distance
+      r = np.sqrt(rx*rx + ry*ry + rz*rz)
                 
       # 1. Compute single layer kernel for pair i-j, if i==j kernel = 0
-      if i == j:
-        S = 0.0          
+      if r < 1e-12:
+        S = 0       
    
       else:
-        # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
               
         # TODO: We should not divide by zero 
         invr = 1.0 / r
 
         # Compute single layer kernel
         S = invr
-           
+
+      if wall:
+        # Compute distance
+        rz = rzi + rz_src[j]
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+              
+        # TODO: We should not divide by zero 
+        invr = 1.0 / r
+
+        # Compute single layer kernel
+        S += invr
+
+        
       # 2. Compute product S * c           
       res[i] += S * c
 
   return norm_fact * res
 
+
 @njit(parallel=True, fastmath=True)
-def no_wall_laplace_double_layer_operator_source_target_numba(source, target, field, weights_source, normals_source):
+def Laplace_double_layer_operator_source_target_numba(source, target, field, weights_source, normals_source, wall=0):
   ''' 
   Returns the product of the Laplace double layer operator applied to source points on a particle surface and evaluated at target points in space.
   Kernel in an unbounded domain.
-  
-  This function uses numba.
   '''
   # Variables
   num_targets = target.size // 3 
@@ -373,23 +427,35 @@ def no_wall_laplace_double_layer_operator_source_target_numba(source, target, fi
       nx = nx_src[j]
       ny = ny_src[j]
       nz = nz_src[j]
+
+      # Compute distance
+      r = np.sqrt(rx*rx + ry*ry + rz*rz)
                
       # 1. Compute double layer kernel for pair i-j, if i==j kernel = 0
-      if i == j:
-        T = 0.0          
+      if r < 1e-12:
+        T = 0       
  
       else:
-        # Normalize distance with hydrodynamic radius
-        r2 = rx*rx + ry*ry + rz*rz
-        r = np.sqrt(r2)
-              
+             
         # TODO: We should not divide by zero 
         invr3 = 1.0 / r**3
 
         # Compute double  layer kernel T_i * n_i
         T =  invr3 * ( rx*nx + ry*ny + rz*nz )
+
+      if wall:
+        rz = rzi + rz_src[j]
+        r = np.sqrt(rx*rx + ry*ry + rz*rz)
+      
+        # TODO: We should not divide by zero 
+        invr3 = 1.0 / r**3
+
+        # Compute double  layer kernel T_i * n_i
+        T +=  invr3 * ( rx*nx + ry*ny + rz*nz )
+        
            
       # 2. Compute product T_i * n_i * c           
       res[i] += T * c
 
   return norm_fact * res
+
