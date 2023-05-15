@@ -42,6 +42,7 @@ while found_functions is False:
     from constraint.constraint import Constraint
     from articulated.articulated import Articulated
     import general_application_utils as utils
+    from plot import plot_velocity_field as pvf
     try:
       import libCallHydroGrid as cc
       found_HydroGrid = True
@@ -84,7 +85,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   Laplace_flag = kwargs.get('Laplace_flag')
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
-  print('Laplace_flag = ', Laplace_flag)
+#  print('Laplace_flag = ', Laplace_flag)
 
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
@@ -129,7 +130,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     Hessian = Hessian + Hessian.T - np.diag(Hessian.diagonal())
     c_background = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], r_vectors) \
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
-    print('mean(c_background) = ', np.mean(c_background))
+#    print('mean(c_background) = ', np.mean(c_background))
     
     # Build RHS
     use_eq_26 = True
@@ -141,7 +142,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
       RHS -= Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights)
       RHS -= Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals)
-    print('mean(RHS)     = ', np.mean(RHS))
+#    print('mean(RHS)     = ', np.mean(RHS))
       
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
@@ -160,37 +161,46 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     A = spla.LinearOperator((Nblobs, Nblobs), matvec = linear_operator_partial, dtype='float64')
   
     # Call GMRES to get total concentration
-    print_residual = True
-    tolerance = 1e-10    
+    print_residual = False
+    tolerance = 1e-6   
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
     if use_eq_26 is False:
       c += c_background
-    print('mean(c)       = ', np.mean(c))
+    # print('mean(c)       = ', np.mean(c))
 
-    # Compute polarity
-    Nbodies = len(bodies)
-    polarity = np.zeros((Nbodies,3))
-    cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights))
-    Rh = 1
-    offset = 0
-    for k, b in enumerate(bodies):
-      polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
-      offset += b.Nblobs
-    print('polarity      = ', polarity)
-    np.savetxt(output_name + '.polarity.dat', polarity)
 
-    # Compute second moment
-    second_moment = np.zeros((Nbodies, 3, 3))
-    cnweights = np.einsum('ij,ik,i->ijk', normals, normals, np.multiply(c,weights)) - np.einsum('jk,i->ijk', np.identity(3), np.multiply(c,weights)) / 3.0
-    offset = 0    
-    for k, b in enumerate(bodies):
-      second_moment[k] = np.sum(cnweights[offset:offset+b.Nblobs], axis=0) / (4 * np.pi * Rh**2)
-      offset += b.Nblobs
-    print('second_moment = \n', second_moment)
-    print('second_moment = \n', second_moment.flatten())
-    np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshape((Nbodies, 9)))    
+    if len(plot_concentration_field) > 0:
+      # Save concentration field
+      if (step % n_save) == 0 and step >= 0:
+         name = output_name + '.c_field.' + str(step).zfill(8)
+         pvf.plot_concentration_field_pyVTK(plot_concentration_field, r_vectors, c, reaction_rate, diffusion_coefficient, emitting_rate, normals, weights, background_Laplace, name)
+
+    if False:
+      # Compute polarity
+      Nbodies = len(bodies)
+      polarity = np.zeros((Nbodies,3))
+      cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights))
+      Rh = 1
+      offset = 0
+      for k, b in enumerate(bodies):
+        polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('polarity      = ', polarity)
+      np.savetxt(output_name + '.polarity.dat', polarity)
     
+    if False:
+      # Compute second moment
+      second_moment = np.zeros((Nbodies, 3, 3))
+      cnweights = np.einsum('ij,ik,i->ijk', normals, normals, np.multiply(c,weights)) - np.einsum('jk,i->ijk', np.identity(3), np.multiply(c,weights)) / 3.0
+      offset = 0    
+      for k, b in enumerate(bodies):
+        second_moment[k] = np.sum(cnweights[offset:offset+b.Nblobs], axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('second_moment = \n', second_moment)
+      print('second_moment = \n', second_moment.flatten())
+      np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshape((Nbodies, 9)))    
+      
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
     grad_c += 4 * np.einsum('ij,jk->ik', r_vectors, Hessian)    
@@ -199,23 +209,26 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c[:,2] += 2 * background_Laplace[3]
     grad_c -= 2 * Laplace_kernels.no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals).reshape((Nblobs, 3))
     grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
-    print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
-    print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
 
-    # Compute total reaction rate 
-    total_reaction_rate = np.zeros(Nbodies)
-    offset = 0
-    for k, b in enumerate(bodies):
-      grad_c_dot_n = diffusion_coefficient * np.einsum('ij,ij,i->i', grad_c[offset:offset+b.Nblobs], normals[offset:offset+b.Nblobs], weights[offset:offset+b.Nblobs])
-      print('mean(grad_c_dot_n) = ', np.mean(grad_c_dot_n))
-      print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))      
-      total_reaction_rate[k] = np.sum(grad_c_dot_n)
-      offset += b.Nblobs
-    print('total rate    = ', total_reaction_rate)
-    np.savetxt(output_name + '.total_reaction_rate.dat', total_reaction_rate)
-    print('\n\n')
+    if False:
+      print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
+      print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
 
-    if True:
+    if False:
+      # Compute total reaction rate 
+      total_reaction_rate = np.zeros(Nbodies)
+      offset = 0
+      for k, b in enumerate(bodies):
+        grad_c_dot_n = diffusion_coefficient * np.einsum('ij,ij,i->i', grad_c[offset:offset+b.Nblobs], normals[offset:offset+b.Nblobs], weights[offset:offset+b.Nblobs])
+        print('mean(grad_c_dot_n) = ', np.mean(grad_c_dot_n))
+        print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))      
+        total_reaction_rate[k] = np.sum(grad_c_dot_n)
+        offset += b.Nblobs
+      print('total rate    = ', total_reaction_rate)
+      np.savetxt(output_name + '.total_reaction_rate.dat', total_reaction_rate)
+      print('\n\n')
+
+    if False:
       # Compute concentration on the blobs
       output_name_concentration = output_name + '.concentration_on_blobs.dat'
       result = np.zeros((Nblobs, 4))
@@ -223,7 +236,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       result[:,3] = c      
       np.savetxt(output_name_concentration, result)
 
-    if True:
+    if False:
       # Compute concentration on a shell centered in the origin
       from mapping.user_defined_functions import parametrization, sphere
       
@@ -258,14 +271,27 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
-    mean_slip  = np.zeros((Nbodies,3))
-    slip_weight = np.einsum('ij,i->ij',slip,weights)
-    offset = 0
-    for k, b in enumerate(bodies):
-      mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
-      offset += b.Nblobs
-    print('mean_slip     = ', mean_slip)
     
+    if True:
+      # Write slip for each blob
+      if (step % n_save) == 0 and step >= 0:
+        output_name_slip = output_name + '.slip_blobs.dat'
+        mode = 'w' if step == 0 else 'a'
+        with open(output_name_slip, mode) as f_handle:
+          np.savetxt(f_handle, slip.reshape((Nblobs, 3)))
+
+
+
+    if False:
+      # Compue mean slip
+      mean_slip  = np.zeros((Nbodies,3))
+      slip_weight = np.einsum('ij,i->ij',slip,weights)
+      offset = 0
+      for k, b in enumerate(bodies):
+        mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('mean_slip     = ', mean_slip)
+      
   #2) Add prescribed slip 
   offset = 0
   for b in bodies:
@@ -1229,6 +1255,7 @@ if __name__ == '__main__':
   structures_ID = read.structures_ID
   background_Laplace = read.background_Laplace
   diffusion_coefficient = read.diffusion_coefficient
+  plot_concentration_field = read.plot_concentration_field
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
 
   # Copy input file to output
@@ -1427,7 +1454,7 @@ if __name__ == '__main__':
     integrator.C_matrix_vector_prod = C_matrix_vector_prod 
     integrator.first_guess = np.zeros(num_bodies*6 + len(constraints)*3)
 
-    
+  integrator.n_save = n_save 
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
@@ -1471,6 +1498,7 @@ if __name__ == '__main__':
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation, bodies=bodies)  
   integrator.plot_velocity_field = read.plot_velocity_field
   integrator.output_name = read.output_name
+  integrator.mobility_vector_prod_implementation = read.mobility_vector_prod_implementation
   try:
     integrator.plot_velocity_field_shell = multi_bodies_functions.plot_velocity_field_shell
   except:

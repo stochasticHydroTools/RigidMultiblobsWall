@@ -90,7 +90,8 @@ class QuaternionIntegrator(object):
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
+      print('velocities = ')
+      print(velocities)
       # Update location orientation 
       for k, b in enumerate(self.bodies):
         b.location_new = b.location + velocities[6*k:6*k+3] * dt
@@ -157,6 +158,17 @@ class QuaternionIntegrator(object):
 
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+     
+      # Save particle velocities
+      step = kwargs.get('step')
+      if (step % self.n_save) == 0 and step >= 0:
+        print(step)
+        name = self.output_name + '.velocity.dat'
+        mode = 'w' if step == 0 else 'a'
+        with open(name, mode) as f_handle:  
+          np.savetxt(f_handle, velocities.reshape((len(self.bodies), 6)))  
+
+
 
       # Update location and orientation
       if self.first_step == False:
@@ -1374,6 +1386,8 @@ class QuaternionIntegrator(object):
     Nconstraints = len(self.constraints) 
     System_size = self.Nblobs * 3 + len(self.bodies) * 6 + Nconstraints * 3
 
+    step = kwargs.get('step')
+
     # Get blobs coordinates
     r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
@@ -1465,6 +1479,13 @@ class QuaternionIntegrator(object):
     for k, b in enumerate(self.bodies):
       if b.prescribed_kinematics is True:
         sol_precond[3*self.Nblobs + 6*k : 3*self.Nblobs + 6*(k+1)] = b.calc_prescribed_velocity()
+
+    # Save velocity_field
+    if len(self.plot_velocity_field) > 0: 
+       if (step % self.n_save) == 0 and step >= 0:
+         lambda_blobs = sol_precond[0 : 3 * self.Nblobs]
+         name = self.output_name + '.velocity_field.' + str(step).zfill(8)
+         pvf.plot_velocity_field_pyVTK(self.plot_velocity_field, r_vectors_blobs, lambda_blobs, self.a, self.eta, name, 0, mobility_vector_prod_implementation=self.mobility_vector_prod_implementation)        
 
     # Return solution
     return sol_precond
