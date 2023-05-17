@@ -83,9 +83,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   eta = kwargs.get('eta')
   g = kwargs.get('g')
   Laplace_flag = kwargs.get('Laplace_flag')
-  r_vectors = get_blobs_r_vectors(bodies, Nblobs)
-
-  print('Laplace_flag = ', Laplace_flag)
+  r_vectors = get_blobs_r_vectors(bodies, Nblobs) 
+  wall = 1 if kwargs.get('domain') == 'single_wall' else 0
 
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
@@ -136,19 +135,18 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     use_eq_26 = True
     if use_eq_26:
       RHS = c_background
-      RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
+      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
     else:
       RHS = 0.5 * c_background
-      RHS += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights)
-      RHS -= Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights)
-      RHS -= Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals)
-#    print('mean(RHS)     = ', np.mean(RHS))
+      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
+      RHS -= Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights, wall=wall)
+      RHS -= Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals, wall=wall)
       
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
       x = 0.5 * c
-      x += Laplace_kernels.no_wall_laplace_double_layer_operator_numba(r_vectors, c, weights, normals)
-      x += Laplace_kernels.no_wall_laplace_single_layer_operator_numba(r_vectors, reaction_rate * c / diffusion_coefficient, weights)
+      x += Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall)
+      x += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c / diffusion_coefficient, weights, wall=wall)
       return x
     
     linear_operator_partial = partial(linear_operator_Laplace,
@@ -207,8 +205,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c[:,0] += 2 * background_Laplace[1]
     grad_c[:,1] += 2 * background_Laplace[2]
     grad_c[:,2] += 2 * background_Laplace[3]
-    grad_c -= 2 * Laplace_kernels.no_wall_laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals).reshape((Nblobs, 3))
-    grad_c += 2 * Laplace_kernels.no_wall_laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights).reshape((Nblobs, 3))
+    grad_c -= 2 * Laplace_kernels.Laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall).reshape((Nblobs, 3))
+    grad_c += 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
 
     if False:
       print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
@@ -249,15 +247,17 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       # Compute concentration on sphere
       c_sphere = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], grid_sphere) \
         + np.einsum('ik,ik->i', grid_sphere, np.einsum('kj,ij->ik', Hessian, grid_sphere))
-      c_sphere -= Laplace_kernels.no_wall_laplace_single_layer_operator_source_target_numba(r_vectors,
-                                                                                            grid_sphere,
-                                                                                            reaction_rate * c / diffusion_coefficient - emitting_rate,
-                                                                                            weights)
-      c_sphere -= Laplace_kernels.no_wall_laplace_double_layer_operator_source_target_numba(r_vectors,
-                                                                                            grid_sphere,
-                                                                                            c,
-                                                                                            weights,
-                                                                                            normals)
+      c_sphere -= Laplace_kernels.Laplace_single_layer_operator_source_target_numba(r_vectors,
+                                                                                    grid_sphere,
+                                                                                    reaction_rate * c / diffusion_coefficient - emitting_rate,
+                                                                                    weights,
+                                                                                    wall=wall)
+      c_sphere -= Laplace_kernels.Laplace_double_layer_operator_source_target_numba(r_vectors,
+                                                                                    grid_sphere,
+                                                                                    c,
+                                                                                    weights,
+                                                                                    normals,
+                                                                                    wall=wall)
       
       # Write velocity field
       output_name_concentration = output_name + '.sphere_radius.' + str(sphere_radius) + '.p.'+ str(p) + '.concentration_field_sphere.dat'
@@ -1460,7 +1460,8 @@ if __name__ == '__main__':
                                  blob_radius = a, 
                                  eta = a, 
                                  g = g,
-                                 Laplace_flag = Laplace_flag) 
+                                 Laplace_flag = Laplace_flag,
+                                 domain = read.domain) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
   integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
