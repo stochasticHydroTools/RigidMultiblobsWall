@@ -85,7 +85,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   Laplace_flag = kwargs.get('Laplace_flag')
   r_vectors = get_blobs_r_vectors(bodies, Nblobs)
 
-#  print('Laplace_flag = ', Laplace_flag)
+  print('Laplace_flag = ', Laplace_flag)
 
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
@@ -161,8 +161,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     A = spla.LinearOperator((Nblobs, Nblobs), matvec = linear_operator_partial, dtype='float64')
   
     # Call GMRES to get total concentration
-    print_residual = False
-    tolerance = 1e-6   
+    print_residual = True
+    tolerance = read.solver_tolerance 
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
     if use_eq_26 is False:
@@ -1292,7 +1292,7 @@ if __name__ == '__main__':
         if file_name.endswith('.slip'):
           slip = read_slip_file.read_slip_file(file_name)
           head, tail = ntpath.split(file_name)
-          copyfile(name_file, output_name + '.' + tail)
+          copyfile(file_name, output_name + '.' + tail)
         elif file_name.endswith('.Laplace'):
           Laplace = np.loadtxt(file_name)
           head, tail = ntpath.split(file_name)
