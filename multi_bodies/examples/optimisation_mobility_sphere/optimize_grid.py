@@ -112,7 +112,7 @@ def double_layer_matrix_source_target_numba(source, target, normals, weights):
   return D*factor
 
 
-def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_ratio, choice_error, verbose):
+def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_error, verbose):
 
   MUF = Mob[0:3,0:3]
   MUT = Mob[0:3,3:6]
@@ -146,14 +146,11 @@ def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, c
 
   U_US, Sigma_US, VT_US = np.linalg.svd( MslipUS )
   U_OS, Sigma_OS, VT_OS = np.linalg.svd( MslipOS )
-
-  if choice_ratio == 'sqrt':
-    Nlow = MslipUS.shape[1]//3
-    ratio_US = np.sqrt(Nlow/Nref)
-    ratio_OS = ratio_US
-  elif choice_ratio == 'sigma':
-    ratio_US = np.linalg.norm(Sigma_US_ref)/np.linalg.norm(Sigma_US)
-    ratio_OS = np.linalg.norm(Sigma_OS_ref)/np.linalg.norm(Sigma_OS)
+  
+  # Compute scaling ratio between the two resolutions 
+  Nlow = MslipUS.shape[1]//3
+  ratio_US = np.sqrt(Nlow/Nref)
+  ratio_OS = ratio_US
 
   error_US = np.linalg.norm(Sigma_US_ref - ratio_US*Sigma_US)/np.linalg.norm(Sigma_US_ref)
   error_OS = np.linalg.norm(Sigma_OS_ref - ratio_OS*Sigma_OS)/np.linalg.norm(Sigma_OS_ref)
@@ -188,7 +185,7 @@ def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, c
  
   return error 
 
-def cost_function(x, N, Nref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref, Sigma_US_ref, Sigma_OS_ref, verbose):
+def cost_function(x, N, Nref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref, Sigma_US_ref, Sigma_OS_ref, verbose):
   S = x[0]
   a = x[1]
   
@@ -224,7 +221,7 @@ def cost_function(x, N, Nref, eta, double_layer, choice_ratio, choice_error, nor
     I2pD = Io2 + D
     Mob_slip = np.dot(Mob_slip,I2pD)
 
-  return error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_ratio, choice_error, verbose)
+  return error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_error, verbose)
 
 if __name__ ==  '__main__':
  eta = 1
@@ -234,10 +231,6 @@ if __name__ ==  '__main__':
  # Objective function uses either the 'sum' of all errors or the 'minmax'
  choice_error = 'sum'
  print('choice_error  = ', choice_error)
- # Scaling factor to compute the error on the singular values between ref and current mesh. 
- # scaling is either 'sqrt' or 'sigma' (see code above)
- choice_ratio = 'sqrt'
- print('choice_ratio  = ', choice_ratio)
 
  N = 642
  print('N = ', N)
@@ -293,7 +286,7 @@ if __name__ ==  '__main__':
  disp = True
 
  verbose = 1
- print(cost_function(xin, N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
+ print(cost_function(xin, N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
 
 
  result = scop.differential_evolution(cost_function,
@@ -301,11 +294,11 @@ if __name__ ==  '__main__':
                              maxiter = 1000,
                              tol = tol,
                              disp =  disp,
-                             args=(N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref, 0) ) 
+                             args=(N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref, 0) ) 
 
  print(result.x)
  print(result.message)
  print(result.nfev)
 
- print(cost_function(result.x, N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
+ print(cost_function(result.x, N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
 
