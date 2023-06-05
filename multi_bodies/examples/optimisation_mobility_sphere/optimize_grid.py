@@ -11,7 +11,12 @@ try:
   from numba import njit, prange
 except ImportError:
   print('numba not found')
-
+'''
+This script finds the optimal grid (S, a) that best approximates the mobility (N) and slip mobility (tilde{N}) of a rigid body with arbitrary shape with respect to a reference solution.
+ - S: scale factor that sets the size of the body (S=Rg for a sphere)
+ - a: radius of the blobs discretizing the body's surface
+The routine first reads the reference mobility matrices and then iterates to find the doublet (S,a) the minimizes the cost function that computes  the distance between the current mobility and the reference solution.
+'''
 
 # Find project functions
 found_functions = False
@@ -107,7 +112,7 @@ def double_layer_matrix_source_target_numba(source, target, normals, weights):
   return D*factor
 
 
-def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_ratio, choice_error, verbose):
+def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_error, verbose):
 
   MUF = Mob[0:3,0:3]
   MUT = Mob[0:3,3:6]
@@ -141,14 +146,11 @@ def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, c
 
   U_US, Sigma_US, VT_US = np.linalg.svd( MslipUS )
   U_OS, Sigma_OS, VT_OS = np.linalg.svd( MslipOS )
-
-  if choice_ratio == 'sqrt':
-    Nlow = MslipUS.shape[1]//3
-    ratio_US = np.sqrt(Nlow/Nref)
-    ratio_OS = ratio_US
-  elif choice_ratio == 'sigma':
-    ratio_US = np.linalg.norm(Sigma_US_ref)/np.linalg.norm(Sigma_US)
-    ratio_OS = np.linalg.norm(Sigma_OS_ref)/np.linalg.norm(Sigma_OS)
+  
+  # Compute scaling ratio between the two resolutions 
+  Nlow = MslipUS.shape[1]//3
+  ratio_US = np.sqrt(Nlow/Nref)
+  ratio_OS = ratio_US
 
   error_US = np.linalg.norm(Sigma_US_ref - ratio_US*Sigma_US)/np.linalg.norm(Sigma_US_ref)
   error_OS = np.linalg.norm(Sigma_OS_ref - ratio_OS*Sigma_OS)/np.linalg.norm(Sigma_OS_ref)
@@ -183,12 +185,12 @@ def error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, c
  
   return error 
 
-def cost_function(x, N, Nref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, Rg_orig, Mob_ref, Sigma_US_ref, Sigma_OS_ref, verbose):
-  Rg = x[0]
+def cost_function(x, N, Nref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref, Sigma_US_ref, Sigma_OS_ref, verbose):
+  S = x[0]
   a = x[1]
   
   mobility_blobs_implementation = 'python_no_wall'
-  struct_ref_config = struct_orig_config * Rg/Rg_orig
+  struct_ref_config = struct_orig_config * S/S_orig
 
   # Create rigid bodies
   bodies = []
@@ -219,7 +221,7 @@ def cost_function(x, N, Nref, eta, double_layer, choice_ratio, choice_error, nor
     I2pD = Io2 + D
     Mob_slip = np.dot(Mob_slip,I2pD)
 
-  return error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_ratio, choice_error, verbose)
+  return error_mobilities(Mob, Mob_slip, Mob_ref, Sigma_US_ref, Sigma_OS_ref, Nref, choice_error, verbose)
 
 if __name__ ==  '__main__':
  eta = 1
@@ -229,10 +231,6 @@ if __name__ ==  '__main__':
  # Objective function uses either the 'sum' of all errors or the 'minmax'
  choice_error = 'sum'
  print('choice_error  = ', choice_error)
- # Scaling factor to compute the error on the singular values between ref and current mesh. 
- # scaling is either 'sqrt' or 'sigma' (see code above)
- choice_ratio = 'sqrt'
- print('choice_ratio  = ', choice_ratio)
 
  N = 642
  print('N = ', N)
@@ -255,25 +253,25 @@ if __name__ ==  '__main__':
 
  # Load initial mesh to be optimised
  if N==12:
-   str_Rg_orig = '0_7921'
+   str_S_orig = '0_7921'
  elif N==42:
-   str_Rg_orig = '0_8913'
+   str_S_orig = '0_8913'
  elif N==162:
-   str_Rg_orig = '0_9497'
+   str_S_orig = '0_9497'
  elif N==642:
-   str_Rg_orig = '0_9767'
+   str_S_orig = '0_9767'
  elif N==2562:
-   str_Rg_orig = '0_9888'
+   str_S_orig = '0_9888'
  elif N==10242:
-   str_Rg_orig = '0_994578'
- orig_filename = '../../Structures/shell_N_' + str(N) + '_Rg_' + str_Rg_orig + '_Rh_1'
+   str_S_orig = '0_994578'
+ orig_filename = '../../Structures/shell_N_' + str(N) + '_Rg_' + str_S_orig + '_Rh_1'
  struct_orig_config = read_vertex_file.read_vertex_file(orig_filename + '.vertex')
- Rg_orig = np.linalg.norm(struct_orig_config[0,:])
+ S_orig = np.linalg.norm(struct_orig_config[0,:])
  Laplace_orig = np.loadtxt(orig_filename + '.Laplace')
  normals = np.copy(Laplace_orig[:,0:3])  
  weights = np.copy(Laplace_orig[:,6])
 
-###### ORIGINAL GRIDS ###############################################
+###### ORIGINAL GRIDS FOR SPHERES ###############################################
 # xin = [0.7921, 0.41642068286674966] # Initial grid for N=12
 # xin = [8.912655971483167e-01, 0.243553056072] # Initial grid for N=42
 
@@ -288,7 +286,7 @@ if __name__ ==  '__main__':
  disp = True
 
  verbose = 1
- print(cost_function(xin, N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, Rg_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
+ print(cost_function(xin, N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
 
 
  result = scop.differential_evolution(cost_function,
@@ -296,11 +294,11 @@ if __name__ ==  '__main__':
                              maxiter = 1000,
                              tol = tol,
                              disp =  disp,
-                             args=(N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, Rg_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref, 0) ) 
+                             args=(N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref, 0) ) 
 
  print(result.x)
  print(result.message)
  print(result.nfev)
 
- print(cost_function(result.x, N, Nb_ref, eta, double_layer, choice_ratio, choice_error, normals, weights, struct_orig_config, Rg_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
+ print(cost_function(result.x, N, Nb_ref, eta, double_layer, choice_error, normals, weights, struct_orig_config, S_orig, Mob_ref,Sigma_US_ref, Sigma_OS_ref,verbose))
 
