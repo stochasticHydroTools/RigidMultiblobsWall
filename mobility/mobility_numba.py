@@ -1656,7 +1656,7 @@ def mobility_trans_times_force_source_target_numba(source, target, force, radius
 
   
 @njit(parallel=True, fastmath=True)
-def double_layer_source_target_numba(source, target, normals, vector, weights):
+def double_layer_source_target_numba(source, target, normals, vector, weights, wall=0):
   '''
   Stokes double operator, diagonals are set to zero.
   '''
@@ -1683,7 +1683,7 @@ def double_layer_source_target_numba(source, target, normals, vector, weights):
   nx_vec = np.copy(normals[:,0])
   ny_vec = np.copy(normals[:,1])
   nz_vec = np.copy(normals[:,2])
-
+  
   # Loop over image boxes and then over particles
   for i in prange(num_targets):
     rxi = rx_trg[i]
@@ -1697,7 +1697,6 @@ def double_layer_source_target_numba(source, target, normals, vector, weights):
       ry = ryi - ry_src[j]
       rz = rzi - rz_src[j]
 
-
       # Compute interaction without wall
       r2 = rx*rx + ry*ry + rz*rz
       r = np.sqrt(r2)
@@ -1705,7 +1704,7 @@ def double_layer_source_target_numba(source, target, normals, vector, weights):
         continue
       r5 = r**5
               
-      # 2. Compute product T_ijk * n_k * v_j
+      # 1. Compute product T_ijk * n_k * v_j
       rxvx = rx * vx_vec[j]
       ryvy = ry * vy_vec[j]
       rzvz = rz * vz_vec[j]
@@ -1718,6 +1717,43 @@ def double_layer_source_target_numba(source, target, normals, vector, weights):
              ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
       uz += (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
              rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+
+      if wall:
+        # Vector from images below the wall (See Gimbutas 2015)
+        rz = rzi + rz_src[j]
+        r2 = rx*rx + ry*ry + rz*rz
+        r = np.sqrt(r2)
+        r3 = r**3
+        r5 = r**5
+
+        # 2. Compute product T_ijk * n_k * v_j        
+        rzvz = -rz * vz_vec[j]
+        rznz = -rz * nz_vec[j]
+        ux -= (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
+               rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
+        uy -= (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
+               ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
+        uz -= (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
+               rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+
+        # 
+        nv = nx_vec[j] * vx_vec[j] + ny_vec[j] * vy_vec[j] + nz_vec[j] * vz_vec[j]
+        rv = rx * vx_vec[j] + ry * vy_vec[j] - rz * vz_vec[j]
+        rn = rx * nx_vec[j] + ry * ny_vec[j] - rz * nz_vec[j]
+        vzI = -vz_vec[j]
+        nzI = -nz_vec[j]        
+        # Derivative dipole source
+        ux += -2 * rzi * nv * (          - rx * rz / r2) * weights[j] / r3
+        uy += -2 * rzi * nv * (          - ry * rz / r2) * weights[j] / r3
+        uz += -2 * rzi * nv * (1.0 / 3.0 - rz * rz / r2) * weights[j] / r3
+        # Derivative quadrupole source 
+        ux += -2 * rzi * rz_src[j] * (rx * nv + vx_vec[j] * rn + nx_vec[j] * rv - 5 * rx * rv * rn / r2) * weights[j] / r5
+        uy += -2 * rzi * rz_src[j] * (ry * nv + vy_vec[j] * rn + ny_vec[j] * rv - 5 * ry * rv * rn / r2) * weights[j] / r5
+        uz += -2 * rzi * rz_src[j] * (rz * nv + vzI       * rn + nzI       * rv - 5 * rz * rv * rn / r2) * weights[j] / r5
+        # Dipole source
+        uz += 2 * nv * rz * weights[j] / (3 * r3)
+        # Quadrupole source
+        uz += 2 * rz_src[j] * (-nv / 3 + rv * rn / r2) * weights[j] / r3
       
     u[i,0] = factor * ux
     u[i,1] = factor * uy
