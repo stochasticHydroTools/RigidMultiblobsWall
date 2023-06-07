@@ -126,7 +126,7 @@ def Laplace_double_layer_operator_numba(r_vectors, field, weights, normals, wall
         invr3 = 1.0 / r**3
 
         # Compute double  layer kernel T_i * n_i
-        T +=  invr3 * ( rx*nx + ry*ny + rz*nz )
+        T +=  invr3 * ( rx*nx + ry*ny - rz*nz )
 
            
       # 2. Compute product T_i * n_i * c           
@@ -135,7 +135,7 @@ def Laplace_double_layer_operator_numba(r_vectors, field, weights, normals, wall
   return norm_fact * res
 
 
-@njit(parallel=False, fastmath=False)
+@njit(parallel=True, fastmath=True)
 def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals, wall=0):
   ''' 
   Returns the product of the derivative of the Laplace double layer operator to the concentration field on the particle's surface. Kernel in an unbounded 
@@ -201,6 +201,17 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
         Lyy = (1.0 + factor_off_diagonal * ry*ry) * invr3
         Lyz = (      factor_off_diagonal * ry*rz) * invr3
 
+      # Uses symmetries of the kernel
+      Lyx = Lxy
+      Lzx = Lxz
+      Lzy = Lyz
+      Lzz = - Lxx - Lyy
+        
+      # 2. Compute product L_ij * n_j * c           
+      resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c 
+      resy_vec[i] += (Lyx * nx + Lyy * ny + Lyz * nz) * c 
+      resz_vec[i] += (Lzx * nx + Lzy * ny + Lzz * nz) * c
+
       if wall:
         # Compute vector between particles i and j
         rz = rzi + r_vectors[j,2]
@@ -215,22 +226,22 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
 
         # Compute  kernel
         factor_off_diagonal = -3.0 * invr2
-        Lxx += (1.0 + factor_off_diagonal * rx*rx) * invr3
-        Lxy += (      factor_off_diagonal * rx*ry) * invr3
-        Lxz += (      factor_off_diagonal * rx*rz) * invr3
-        Lyy += (1.0 + factor_off_diagonal * ry*ry) * invr3
-        Lyz += (      factor_off_diagonal * ry*rz) * invr3
+        Lxx = (1.0 + factor_off_diagonal * rx*rx) * invr3
+        Lxy = (      factor_off_diagonal * rx*ry) * invr3
+        Lxz = (      factor_off_diagonal * rx*rz) * invr3
+        Lyy = (1.0 + factor_off_diagonal * ry*ry) * invr3
+        Lyz = (      factor_off_diagonal * ry*rz) * invr3
 
-      # Uses symmetries of the kernel
-      Lyx = Lxy
-      Lzx = Lxz
-      Lzy = Lyz
-      Lzz = - Lxx - Lyy
-      
-      # 2. Compute product L_ij * n_j * c           
-      resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c 
-      resy_vec[i] += (Lyx * nx + Lyy * ny + Lyz * nz) * c 
-      resz_vec[i] += (Lzx * nx + Lzy * ny + Lzz * nz) * c 
+        # Uses symmetries of the kernel
+        Lyx = Lxy
+        Lzx = Lxz
+        Lzy = Lyz
+        Lzz = - Lxx - Lyy        
+        
+        # 2. Compute product L_ij * n_j * c           
+        resx_vec[i] += (Lxx * nx + Lxy * ny - Lxz * nz) * c 
+        resy_vec[i] += (Lyx * nx + Lyy * ny - Lyz * nz) * c 
+        resz_vec[i] += (Lzx * nx + Lzy * ny - Lzz * nz) * c 
 
     res[i,0] = resx_vec[i]
     res[i,1] = resy_vec[i]
@@ -301,7 +312,6 @@ def Laplace_dipole_operator_numba(r_vectors, field, weights, wall=0):
         Tx += rx * invr3
         Ty += ry * invr3
         Tz += rz * invr3
-        
          
       # 2. Compute product T_i * c           
       resx_vec[i] += Tx * c  
@@ -451,7 +461,7 @@ def Laplace_double_layer_operator_source_target_numba(source, target, field, wei
         invr3 = 1.0 / r**3
 
         # Compute double  layer kernel T_i * n_i
-        T +=  invr3 * ( rx*nx + ry*ny + rz*nz )
+        T +=  invr3 * ( rx*nx + ry*ny - rz*nz )
         
            
       # 2. Compute product T_i * n_i * c           
