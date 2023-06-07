@@ -76,7 +76,7 @@ def Laplace_double_layer_operator_numba(r_vectors, field, weights, normals, wall
   r_vectors = r_vectors.reshape(N, 3)
   normals = normals.reshape(N, 3)
   res = np.zeros(N)
-  norm_fact = -1.0 / (4.0 * np.pi)
+  norm_fact = 1.0 / (4.0 * np.pi)
 
   rx_vec = np.copy(r_vectors[:,0])
   ry_vec = np.copy(r_vectors[:,1])
@@ -146,7 +146,7 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
   r_vectors = r_vectors.reshape(N, 3)
   normals = normals.reshape(N, 3)
   res = np.zeros((N,3))
-  norm_fact = -1.0 / (4.0 * np.pi)
+  norm_fact = 1.0 / (4.0 * np.pi)
 
   rx_vec = np.copy(r_vectors[:,0])
   ry_vec = np.copy(r_vectors[:,1])
@@ -260,7 +260,7 @@ def Laplace_dipole_operator_numba(r_vectors, field, weights, wall=0):
   N = r_vectors.size // 3
   r_vectors = r_vectors.reshape(N, 3)
   res = np.zeros((N,3))
-  norm_fact = -1.0 / (4.0 * np.pi)
+  norm_fact = 1.0 / (4.0 * np.pi)
 
   rx_vec = np.copy(r_vectors[:,0])
   ry_vec = np.copy(r_vectors[:,1])
@@ -407,7 +407,7 @@ def Laplace_double_layer_operator_source_target_numba(source, target, field, wei
   target = target.reshape(num_targets, 3)
   normals_source = normals_source.reshape(num_sources, 3)
   res = np.zeros(num_targets)
-  norm_fact = -1.0 / (4.0 * np.pi)
+  norm_fact = 1.0 / (4.0 * np.pi)
 
   # Copy to one dimensional vectors
   rx_src = np.copy(source[:,0])
