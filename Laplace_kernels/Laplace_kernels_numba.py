@@ -166,10 +166,16 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
     for j in range(N):
       # Multiply field by quadrature weight   
       c = field[j] * weights[j]
-         
+
+      # Get normals
       nx = nx_vec[j]
       ny = ny_vec[j]
       nz = nz_vec[j]
+      
+      # Compute vector between particles i and j
+      rx = rxi - rx_vec[j]
+      ry = ryi - ry_vec[j]
+      rz = rzi - rz_vec[j]      
              
       # 1. Compute kernel for pair i-j, if i==j kernel = 0
       if i == j:
@@ -180,11 +186,6 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
         Lyz = 0.0
    
       else:
-        # Compute vector between particles i and j
-        rx = rxi - r_vectors[j,0]
-        ry = ryi - r_vectors[j,1]
-        rz = rzi - r_vectors[j,2]
-
         # Normalize distance with hydrodynamic radius
         r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
@@ -208,14 +209,14 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
       Lzz = - Lxx - Lyy
         
       # 2. Compute product L_ij * n_j * c           
-      resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c 
+      resx_vec[i] += (Lxx * nx + Lxy * ny + Lxz * nz) * c
       resy_vec[i] += (Lyx * nx + Lyy * ny + Lyz * nz) * c 
       resz_vec[i] += (Lzx * nx + Lzy * ny + Lzz * nz) * c
 
       if wall:
         # Compute vector between particles i and j
-        rz = rzi + r_vectors[j,2]
-
+        rz = rzi + r_vectors[j,2] 
+        
         # Normalize distance with hydrodynamic radius
         r = np.sqrt(rx*rx + ry*ry + rz*rz)
               
@@ -225,7 +226,7 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
         invr3 = invr2 * invr
 
         # Compute  kernel
-        factor_off_diagonal = -3.0 * invr2
+        factor_off_diagonal = -3.0 * invr2 
         Lxx = (1.0 + factor_off_diagonal * rx*rx) * invr3
         Lxy = (      factor_off_diagonal * rx*ry) * invr3
         Lxz = (      factor_off_diagonal * rx*rz) * invr3
@@ -236,16 +237,16 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
         Lyx = Lxy
         Lzx = Lxz
         Lzy = Lyz
-        Lzz = - Lxx - Lyy        
+        Lzz = - Lxx - Lyy 
         
-        # 2. Compute product L_ij * n_j * c           
+        # 2. Compute product L_ij * n_j * c 
         resx_vec[i] += (Lxx * nx + Lxy * ny - Lxz * nz) * c 
         resy_vec[i] += (Lyx * nx + Lyy * ny - Lyz * nz) * c 
-        resz_vec[i] += (Lzx * nx + Lzy * ny - Lzz * nz) * c 
+        resz_vec[i] += (Lzx * nx + Lzy * ny - Lzz * nz) * c        
 
-    res[i,0] = resx_vec[i]
-    res[i,1] = resy_vec[i]
-    res[i,2] = resz_vec[i]
+  res[:,0] = resx_vec[:]
+  res[:,1] = resy_vec[:]
+  res[:,2] = resz_vec[:]
 
   return norm_fact * res.flatten()
 
