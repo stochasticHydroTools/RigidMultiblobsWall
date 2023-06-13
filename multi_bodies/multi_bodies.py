@@ -158,7 +158,6 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     A = spla.LinearOperator((Nblobs, Nblobs), matvec = linear_operator_partial, dtype='float64')
   
     # Call GMRES to get total concentration
-    print_residual = True
     tolerance = read.solver_tolerance 
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
@@ -1237,6 +1236,7 @@ if __name__ == '__main__':
   parser.add_argument('--print-residual', action='store_true', help='print gmres and lanczos residuals')
   args=parser.parse_args()
   input_file = args.input_file
+  print_residual = args.print_residual
 
   # Read input file
   read = read_input.ReadInput(input_file)
@@ -1489,7 +1489,7 @@ if __name__ == '__main__':
   integrator.postprocess = multi_bodies_functions.postprocess
   integrator.periodic_length = read.periodic_length
   integrator.update_PC = read.update_PC
-  integrator.print_residual = args.print_residual
+  integrator.print_residual = print_residual
   integrator.rf_delta = read.rf_delta
   integrator.num_bodies_rigid = num_bodies_rigid
   integrator.constraints = constraints
