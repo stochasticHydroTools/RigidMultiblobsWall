@@ -134,7 +134,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     use_eq_26 = True
     if use_eq_26:
       RHS = c_background
-      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
+      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate / diffusion_coefficient, weights, wall=wall)
     else:
       RHS = 0.5 * c_background
       RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
@@ -170,7 +170,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
          name = output_name + '.c_field.' + str(step).zfill(8)
          pvf.plot_concentration_field_pyVTK(plot_concentration_field, r_vectors, c, reaction_rate, diffusion_coefficient, emitting_rate, normals, weights, background_Laplace, name)
 
-    if True:
+    if False:
       # Compute polarity
       Nbodies = len(bodies)
       polarity = np.zeros((Nbodies,3))
@@ -202,7 +202,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c[:,1] += 2 * background_Laplace[2]
     grad_c[:,2] += 2 * background_Laplace[3]
     grad_c += 2 * Laplace_kernels.Laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall).reshape((Nblobs, 3))
-    grad_c -= 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, emitting_rate - reaction_rate * c / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
+    grad_c -= 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, (emitting_rate - reaction_rate * c) / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
 
     if False:
       # Save gradient
@@ -250,7 +250,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
         + np.einsum('ik,ik->i', grid_sphere, np.einsum('kj,ij->ik', Hessian, grid_sphere))
       c_sphere -= Laplace_kernels.Laplace_single_layer_operator_source_target_numba(r_vectors,
                                                                                     grid_sphere,
-                                                                                    reaction_rate * c / diffusion_coefficient - emitting_rate,
+                                                                                    (reaction_rate * c - emitting_rate) / diffusion_coefficient,
                                                                                     weights,
                                                                                     wall=wall)
       c_sphere += Laplace_kernels.Laplace_double_layer_operator_source_target_numba(r_vectors,
