@@ -244,9 +244,9 @@ def Laplace_deriv_double_layer_operator_numba(r_vectors, field, weights, normals
         resy_vec[i] += (Lyx * nx + Lyy * ny - Lyz * nz) * c 
         resz_vec[i] += (Lzx * nx + Lzy * ny - Lzz * nz) * c        
 
-  res[:,0] = resx_vec[:]
-  res[:,1] = resy_vec[:]
-  res[:,2] = resz_vec[:]
+    res[i,0] = resx_vec[i]
+    res[i,1] = resy_vec[i]
+    res[i,2] = resz_vec[i]
 
   return norm_fact * res.flatten()
 
