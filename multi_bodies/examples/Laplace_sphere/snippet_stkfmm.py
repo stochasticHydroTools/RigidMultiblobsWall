@@ -117,7 +117,38 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
     return partial(mb.mobility_radii_trans_times_force, radius_blobs=radius_blobs, function=function)
 
 
-# CHANGE 5: Add these lines at the very top of __main__ in multi_bodies.py
+# CHANGE 5: Add this function to multi_bodies.py
+def set_double_layer_kernels(mult_order, pbc_string, max_pts, L=np.zeros(3), *args, **kwargs):
+  print('pbc_string = ', pbc_string)
+
+  if pbc_string == 'None':
+    pbc = PySTKFMM.PAXIS.NONE
+  elif pbc_string == 'PX':
+    pbc = PySTKFMM.PAXIS.PX
+  elif pbc_string == 'PXY':
+    pbc = PySTKFMM.PAXIS.PXY
+  elif pbc_string == 'PXYZ':
+    pbc = PySTKFMM.PAXIS.PXYZ
+  else:
+    print('Error while setting pbc for stkfmm!')
+
+  comm = kwargs.get('comm')
+  comm.Barrier()
+
+  # u, lapu kernel (4->6)
+  kernel = PySTKFMM.KERNEL.PVel
+
+  # Setup FMM
+  PVel = PySTKFMM.Stk3DFMM(mult_order, max_pts, pbc, kernel)
+  no_wall_double_layer_stkfmm_partial = partial(mb.double_layer_stkfmm,
+                                                PVel=PVel, 
+                                                L=L,
+                                                comm=kwargs.get('comm'))
+  return no_wall_double_layer_stkfmm_partial
+
+
+
+# CHANGE 6: Add these lines at the very top of __main__ in multi_bodies.py
   # MPI
   if PySTKFMM_found:
     comm = MPI.COMM_WORLD
@@ -126,7 +157,7 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
     comm = None
 
 
-# CHANGE 6: Inside the main replace the call to set_mobility_vector_prod with these lines
+# CHANGE 7: Inside the main replace the call to set_mobility_vector_prod with these lines
   mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, 
                                                   stkfmm_mult_order=read.stkfmm_mult_order, 
                                                   stkfmm_pbc=read.stkfmm_pbc,
@@ -134,7 +165,7 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
                                                   L=read.periodic_length,
                                                   comm=comm)
 
-# CHANGE 7: add to read_input.py
+# CHANGE 8: add to read_input.py
     # Info for STKFMM
     self.stkfmm_mult_order = int(self.options.get('stkfmm_mult_order') or 8)
     self.stkfmm_max_points = int(self.options.get('stkfmm_max_points') or 512)
@@ -142,7 +173,7 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
 
 
 
-# CHANGE 8: Add these lines at the top of mobility.py
+# CHANGE 9: Add these lines at the top of mobility.py
 import general_application_utils as utils
 # Try to import stkfmm library
 try:
@@ -152,7 +183,7 @@ except ImportError:
 
 
 
-# CHANGE 9, LAST CHANGE: Add the rest of the file to monility.py
+# CHANGE 10, LAST CHANGE: Add the rest of the file to mobility.py
 import scipy.spatial as scsp
 from numba import njit, prange
 
@@ -634,3 +665,102 @@ def fluid_velocity_overlap_correction_numba(r_source, r_target, force, eta, a, l
     u[i,2] = uz * norm_fact_f          
   return u.flatten()
 
+
+@utils.static_var('r_vectors_old', [])
+def double_layer_stkfmm(r, normals, field, weights, PVel, L=np.zeros(3), *args, **kwargs):
+  '''
+  Stokes double layer.
+  '''
+  
+  def project_to_periodic_image(r, L):
+    '''
+    Project a vector r to the minimal image representation
+    of size L=(Lx, Ly, Lz) and with a corner at (0,0,0). If 
+    any dimension of L is equal or smaller than zero the 
+    box is assumed to be infinite in that direction.
+    
+    If one dimension is not periodic shift all coordinates by min(r[:,i]) value.
+    '''
+    if L is not None:
+      for i in range(3):
+        if(L[i] > 0):
+          r[:,i] = r[:,i] - (r[:,i] // L[i]) * L[i]
+        else:
+          ri_min =  np.min(r[:,i])
+          if ri_min < 0:
+            r[:,i] -= ri_min
+    return r
+  
+  # Prepare coordinates
+  N = r.size // 3
+  r_vectors = np.copy(r)
+  r_vectors = project_to_periodic_image(r_vectors, L)
+ 
+  # Set tree if necessary
+  build_tree = True
+  if len(double_layer_stkfmm.r_vectors_old) > 0:
+    if np.array_equal(double_layer_stkfmm.r_vectors_old, r_vectors):
+      double_layer_stkfmm.r_vectors_old = np.copy(r_vectors)
+      build_tree = True
+  if build_tree:
+    # Build tree in STKFMM
+    if L[0] > 0:
+      x_min = 0
+      Lx_pvfmm = L[0]
+      Lx_cKDTree = L[0]
+    else:
+      x_min = np.min(r_vectors[:,0])
+      Lx_pvfmm = (np.max(r_vectors[:,0]) * 1.01 - x_min)
+      Lx_cKDTree = (np.max(r_vectors[:,0]) * 1.01 - x_min) * 10
+    if L[1] > 0:
+      y_min = 0
+      Ly_pvfmm = L[1]
+      Ly_cKDTree = L[1]
+    else:
+      y_min = np.min(r_vectors[:,1])
+      Ly_pvfmm = (np.max(r_vectors[:,1]) * 1.01 - y_min)
+      Ly_cKDTree = (np.max(r_vectors[:,1]) * 1.01 - y_min) * 10
+    if L[2] > 0:
+      z_min = 0
+      Lz_pvfmm = L[2]
+      Lz_cKDTree = L[2]
+    else:
+      z_min = np.min(r_vectors[:,2])
+      z_min = 0
+      Lz_pvfmm = (np.max(r_vectors[:,2]) * 1.01 - z_min)
+      Lz_cKDTree = (np.max(r_vectors[:,2]) * 1.01 - z_min) * 10
+
+    # Set box size for pvfmm
+    if L[0] > 0 or L[1] > 0 or L[2] > 0:
+      L_box = np.max(L)
+    else:
+      L_box = np.max([Lx_pvfmm, Ly_pvfmm, 2 * Lz_pvfmm])
+    
+    # Set box size for pvfmm
+    if L[0] > 0 or L[1] > 0 or L[2] > 0:
+      L_box = np.max(L)
+    else:
+      L_box = np.max([Lx_pvfmm, Ly_pvfmm, 2 * Lz_pvfmm])
+
+    # Buid FMM tree
+    PVel.set_box(np.array([x_min, y_min, z_min]), L_box)
+    # PVel.set_points(r_vectors, r_vectors, r_vectors)
+    PVel.set_points(np.zeros(0), r_vectors, r_vectors)
+    PVel.setup_tree(PySTKFMM.KERNEL.PVel)
+    
+  # Set double layer
+  trg_value = np.zeros((N, 4))
+  src_DL_value = np.einsum('bi,bj,b->bij', normals, field, weights).reshape((N, 9))
+  src_SL_value = np.zeros((N, 4))  
+  src_SL_value[:,3] = src_DL_value[:,0] + src_DL_value[:,4] + src_DL_value[:,8]
+
+  # Evaluate fmm; format c = trg_value[:,0], grad_c = trg_value[:,1:4]
+  PVel.clear_fmm(PySTKFMM.KERNEL.PVel)
+  # PVel.evaluate_fmm(PySTKFMM.KERNEL.PVel, np.zeros((N,4)), trg_value, src_DL_value)
+  PVel.evaluate_fmm(PySTKFMM.KERNEL.PVel, np.zeros(0), trg_value, src_DL_value)  
+  comm = kwargs.get('comm')
+  comm.Barrier()
+
+  # Return velocity
+  u = 2 * trg_value[:,1:4]
+  return u
