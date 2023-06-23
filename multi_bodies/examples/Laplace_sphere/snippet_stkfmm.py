@@ -751,6 +751,10 @@ def double_layer_stkfmm(r, normals, field, weights, PVel, L=np.zeros(3), *args, 
   # Set double layer
   trg_value = np.zeros((N, 4))
   src_DL_value = np.einsum('bi,bj,b->bij', normals, field, weights).reshape((N, 9))
+  trace = np.average(src_DL_value[:,0] + src_DL_value[:,4] + src_DL_value[:,8])
+  src_DL_value[:,0] -= trace / 3
+  src_DL_value[:,4] -= trace / 3
+  src_DL_value[:,8] -= trace / 3
   src_SL_value = np.zeros((N, 4))  
   src_SL_value[:,3] = src_DL_value[:,0] + src_DL_value[:,4] + src_DL_value[:,8]
 
