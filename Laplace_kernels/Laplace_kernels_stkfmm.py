@@ -77,13 +77,13 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
   N = r.size // 3
   r_vectors = np.copy(r)
   r_vectors = project_to_periodic_image(r_vectors, L)
- 
+
   # Set tree if necessary
   build_tree = True
   if len(Laplace_kernels_stkfmm.r_vectors_old) > 0:
     if np.array_equal(Laplace_kernels_stkfmm.r_vectors_old, r_vectors):
       Laplace_kernels_stkfmm.r_vectors_old = np.copy(r_vectors)
-      build_tree = True
+      build_tree = False
   if build_tree:
     # Build tree in STKFMM
     if L[0] > 0:
@@ -131,7 +131,8 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
 
   # Set single and double layer
   trg_value = np.zeros((N, 4))
-  src_SL_value = field_SL * weights 
+  src_SL_value = field_SL * weights
+  src_SL_value -= np.average(src_SL_value)
   src_DL_value = field_DL * weights[:,None] 
 
   # Evaluate fmm; format c = trg_value[:,0], grad_c = trg_value[:,1:4]

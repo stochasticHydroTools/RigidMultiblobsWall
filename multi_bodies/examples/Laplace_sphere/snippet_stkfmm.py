@@ -701,7 +701,7 @@ def double_layer_stkfmm(r, normals, field, weights, PVel, L=np.zeros(3), *args, 
   if len(double_layer_stkfmm.r_vectors_old) > 0:
     if np.array_equal(double_layer_stkfmm.r_vectors_old, r_vectors):
       double_layer_stkfmm.r_vectors_old = np.copy(r_vectors)
-      build_tree = True
+      build_tree = False
   if build_tree:
     # Build tree in STKFMM
     if L[0] > 0:
