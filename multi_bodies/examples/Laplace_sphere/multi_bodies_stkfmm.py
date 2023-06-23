@@ -92,7 +92,9 @@ class gmres_counter(object):
         print('gmres =  0 1')
       print('gmres = ', self.niter, rk)
     
-@utils.static_var('no_wall_Laplace_kernels_stkfmm_partial', [])      
+
+@utils.static_var('no_wall_Laplace_kernels_stkfmm_partial', [])
+@utils.static_var('no_wall_double_layer_stkfmm_partial', [])
 def calc_slip(bodies, Nblobs, *args, **kwargs):
   '''
   Function to calculate the slip in all the blobs.
@@ -110,15 +112,20 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     # Get stkfmm
     if len(calc_slip.no_wall_Laplace_kernels_stkfmm_partial) > 0:
       no_wall_Laplace_kernels_stkfmm_partial = calc_slip.no_wall_Laplace_kernels_stkfmm_partial
+      no_wall_double_layer_stkfmm_partial = calc_slip.no_wall_double_layer_stkfmm_partial      
     else:
       # Create STFMM object
       stkfmm_mult_order = 10
       stkfmm_pbc = 'None'
       stkfmm_max_points = 256
+      L = np.array([0, 0, 0])
       comm = kwargs.get('comm')
-      no_wall_Laplace_kernels_stkfmm_partial = Laplace_stkfmm.set_Laplace_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, comm=comm)
+      no_wall_Laplace_kernels_stkfmm_partial = Laplace_stkfmm.set_Laplace_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, L=L, comm=comm)
       calc_slip.no_wall_Laplace_kernels_stkfmm_partial = no_wall_Laplace_kernels_stkfmm_partial
-
+      
+      no_wall_double_layer_stkfmm_partial = set_double_layer_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, comm=comm)
+      calc_slip.no_wall_double_layer_stkfmm_partial = no_wall_double_layer_stkfmm_partial
+      
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
 
@@ -354,7 +361,10 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
         normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
         weights[offset : offset+b.Nblobs] = b.weights
     # Apply second layer
-    Dslip = mb.double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights, wall=wall).reshape((Nblobs, 3))
+    if use_stkfmm:
+      Dslip = no_wall_double_layer_stkfmm_partial(r_vectors, normals, slip, weights).reshape((Nblobs, 3))
+    else:
+      Dslip = mb.double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights, wall=wall).reshape((Nblobs, 3))
     slip = 0.5 * slip + Dslip  
     
   return slip
@@ -498,6 +508,36 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
       radius_blobs.append(b.blobs_radius)
     radius_blobs = np.concatenate(radius_blobs, axis=0)    
     return partial(mb.mobility_radii_trans_times_force, radius_blobs=radius_blobs, function=function)
+
+
+# CHANGE 5: Add this function to multi_bodies.py
+def set_double_layer_kernels(mult_order, pbc_string, max_pts, L=np.zeros(3), *args, **kwargs):
+  print('pbc_string = ', pbc_string)
+
+  if pbc_string == 'None':
+    pbc = PySTKFMM.PAXIS.NONE
+  elif pbc_string == 'PX':
+    pbc = PySTKFMM.PAXIS.PX
+  elif pbc_string == 'PXY':
+    pbc = PySTKFMM.PAXIS.PXY
+  elif pbc_string == 'PXYZ':
+    pbc = PySTKFMM.PAXIS.PXYZ
+  else:
+    print('Error while setting pbc for stkfmm!')
+
+  comm = kwargs.get('comm')
+  comm.Barrier()
+
+  # u, lapu kernel (4->6)
+  kernel = PySTKFMM.KERNEL.PVel
+
+  # Setup FMM
+  PVel = PySTKFMM.Stk3DFMM(mult_order, max_pts, pbc, kernel)
+  no_wall_double_layer_stkfmm_partial = partial(mb.double_layer_stkfmm,
+                                                PVel=PVel, 
+                                                L=L,
+                                                comm=kwargs.get('comm'))
+  return no_wall_double_layer_stkfmm_partial  
 
 
 def calc_K_matrix(bodies, Nblobs):
