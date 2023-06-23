@@ -123,7 +123,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       no_wall_Laplace_kernels_stkfmm_partial = Laplace_stkfmm.set_Laplace_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, L=L, comm=comm)
       calc_slip.no_wall_Laplace_kernels_stkfmm_partial = no_wall_Laplace_kernels_stkfmm_partial
       
-      no_wall_double_layer_stkfmm_partial = set_double_layer_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, comm=comm)
+      no_wall_double_layer_stkfmm_partial = set_double_layer_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, L=L, comm=comm)
       calc_slip.no_wall_double_layer_stkfmm_partial = no_wall_double_layer_stkfmm_partial
       
   #1) Compute slip due to external torques on bodies with single blobs only
