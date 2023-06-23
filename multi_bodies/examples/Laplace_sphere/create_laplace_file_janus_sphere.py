@@ -26,12 +26,12 @@ while found_functions is False:
 #filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
 #filename  = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
 filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
-alpha_F = 1
+alpha_F = 0
 alpha_B = 0
-k_F = 0
-k_B = 0
-surface_mobility_F = 1
-surface_mobility_B = 1
+k_F = 5
+k_B = 5
+surface_mobility_F = 5
+surface_mobility_B = 5
 
 # Read file
 struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
