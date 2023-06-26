@@ -132,7 +132,8 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
   # Set single and double layer
   trg_value = np.zeros((N, 4))
   src_SL_value = field_SL * weights
-  src_SL_value -= np.average(src_SL_value)
+  if np.any(L > 0):
+    src_SL_value -= np.average(src_SL_value)
   src_DL_value = field_DL * weights[:,None] 
 
   # Evaluate fmm; format c = trg_value[:,0], grad_c = trg_value[:,1:4]
