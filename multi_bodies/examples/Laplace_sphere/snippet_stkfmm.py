@@ -401,6 +401,9 @@ def mobility_trans_times_force_stkfmm(r, force, eta, a, rpy_fmm=None, L=np.array
   src_SL_value = np.zeros((N, 4))
   src_SL_value[:,0:3] = np.copy(force.reshape((N, 3)))
   src_SL_value[:,3] = a
+  if L[0] > 0 and L[2] == 0:
+    # Neutral charge for PX and PXY
+    src_SL_value[:,0:3] -= np.average(src_SL_value[:,0:3], axis=0)
     
   # Evaluate fmm; format p = trg_value[:,0], v = trg_value[:,1:4], Lap = trg_value[:,4:]
   rpy_fmm.clear_fmm(PySTKFMM.KERNEL.RPY)
@@ -547,6 +550,9 @@ def fluid_velocity_stkfmm(r_source, r_target, force, eta, a, rpy_fmm=None, L=np.
   src_SL_value = np.zeros((N_source, 4))
   src_SL_value[:,0:3] = np.copy(force.reshape((N_source, 3)))
   src_SL_value[:,3] = a
+  if L[0] > 0 and L[2] == 0:
+    # Neutral charge for PX and PXY
+    src_SL_value[:,0:3] -= np.average(src_SL_value[:,0:3], axis=0)
     
   # Evaluate fmm; format p = trg_value[:,0], v = trg_value[:,1:4], Lap = trg_value[:,4:]
   rpy_fmm.clear_fmm(PySTKFMM.KERNEL.RPY)
