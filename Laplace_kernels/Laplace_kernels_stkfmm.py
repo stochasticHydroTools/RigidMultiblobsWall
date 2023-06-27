@@ -103,7 +103,6 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
       Lz_pvfmm = L[2]
     else:
       z_min = np.min(r_vectors[:,2])
-      z_min = 0
       Lz_pvfmm = (np.max(r_vectors[:,2]) * 1.01 - z_min)
 
     # Set box size for pvfmm
