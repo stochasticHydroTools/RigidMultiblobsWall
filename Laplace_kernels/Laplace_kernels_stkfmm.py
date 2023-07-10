@@ -89,28 +89,21 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
     if L[0] > 0:
       x_min = 0
       Lx_pvfmm = L[0]
-      Lx_cKDTree = L[0]
     else:
       x_min = np.min(r_vectors[:,0])
       Lx_pvfmm = (np.max(r_vectors[:,0]) * 1.01 - x_min)
-      Lx_cKDTree = (np.max(r_vectors[:,0]) * 1.01 - x_min) * 10
     if L[1] > 0:
       y_min = 0
       Ly_pvfmm = L[1]
-      Ly_cKDTree = L[1]
     else:
       y_min = np.min(r_vectors[:,1])
       Ly_pvfmm = (np.max(r_vectors[:,1]) * 1.01 - y_min)
-      Ly_cKDTree = (np.max(r_vectors[:,1]) * 1.01 - y_min) * 10
     if L[2] > 0:
       z_min = 0
       Lz_pvfmm = L[2]
-      Lz_cKDTree = L[2]
     else:
       z_min = np.min(r_vectors[:,2])
-      z_min = 0
       Lz_pvfmm = (np.max(r_vectors[:,2]) * 1.01 - z_min)
-      Lz_cKDTree = (np.max(r_vectors[:,2]) * 1.01 - z_min) * 10
 
     # Set box size for pvfmm
     if L[0] > 0 or L[1] > 0 or L[2] > 0:
@@ -118,12 +111,6 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
     else:
       L_box = np.max([Lx_pvfmm, Ly_pvfmm, 2 * Lz_pvfmm])
     
-    # Set box size for pvfmm
-    if L[0] > 0 or L[1] > 0 or L[2] > 0:
-      L_box = np.max(L)
-    else:
-      L_box = np.max([Lx_pvfmm, Ly_pvfmm, 2 * Lz_pvfmm])
-
     # Buid FMM tree
     LapPGrad.set_box(np.array([x_min, y_min, z_min]), L_box)
     LapPGrad.set_points(r_vectors, r_vectors, r_vectors)
@@ -132,7 +119,8 @@ def Laplace_kernels_stkfmm(r, field_SL, field_DL, weights, LapPGrad, L=np.zeros(
   # Set single and double layer
   trg_value = np.zeros((N, 4))
   src_SL_value = field_SL * weights
-  src_SL_value -= np.average(src_SL_value)
+  if np.any(L > 0):
+    src_SL_value -= np.average(src_SL_value)
   src_DL_value = field_DL * weights[:,None] 
 
   # Evaluate fmm; format c = trg_value[:,0], grad_c = trg_value[:,1:4]

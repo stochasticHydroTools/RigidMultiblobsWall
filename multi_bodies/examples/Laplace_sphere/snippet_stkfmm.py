@@ -401,6 +401,9 @@ def mobility_trans_times_force_stkfmm(r, force, eta, a, rpy_fmm=None, L=np.array
   src_SL_value = np.zeros((N, 4))
   src_SL_value[:,0:3] = np.copy(force.reshape((N, 3)))
   src_SL_value[:,3] = a
+  if L[0] > 0 and L[2] == 0:
+    # Neutral charge for PX and PXY
+    src_SL_value[:,0:3] -= np.average(src_SL_value[:,0:3], axis=0)
     
   # Evaluate fmm; format p = trg_value[:,0], v = trg_value[:,1:4], Lap = trg_value[:,4:]
   rpy_fmm.clear_fmm(PySTKFMM.KERNEL.RPY)
@@ -547,6 +550,9 @@ def fluid_velocity_stkfmm(r_source, r_target, force, eta, a, rpy_fmm=None, L=np.
   src_SL_value = np.zeros((N_source, 4))
   src_SL_value[:,0:3] = np.copy(force.reshape((N_source, 3)))
   src_SL_value[:,3] = a
+  if L[0] > 0 and L[2] == 0:
+    # Neutral charge for PX and PXY
+    src_SL_value[:,0:3] -= np.average(src_SL_value[:,0:3], axis=0)
     
   # Evaluate fmm; format p = trg_value[:,0], v = trg_value[:,1:4], Lap = trg_value[:,4:]
   rpy_fmm.clear_fmm(PySTKFMM.KERNEL.RPY)
@@ -744,19 +750,20 @@ def double_layer_stkfmm(r, normals, field, weights, PVel, L=np.zeros(3), *args, 
 
     # Buid FMM tree
     PVel.set_box(np.array([x_min, y_min, z_min]), L_box)
-    # PVel.set_points(r_vectors, r_vectors, r_vectors)
     PVel.set_points(np.zeros(0), r_vectors, r_vectors)
     PVel.setup_tree(PySTKFMM.KERNEL.PVel)
     
   # Set double layer
   trg_value = np.zeros((N, 4))
   src_DL_value = np.einsum('bi,bj,b->bij', normals, field, weights).reshape((N, 9))
-  src_SL_value = np.zeros((N, 4))  
-  src_SL_value[:,3] = src_DL_value[:,0] + src_DL_value[:,4] + src_DL_value[:,8]
+  if np.any(L > 0):
+    trace = np.average(src_DL_value[:,0] + src_DL_value[:,4] + src_DL_value[:,8])
+    src_DL_value[:,0] -= trace / 3
+    src_DL_value[:,4] -= trace / 3
+    src_DL_value[:,8] -= trace / 3
 
   # Evaluate fmm; format c = trg_value[:,0], grad_c = trg_value[:,1:4]
   PVel.clear_fmm(PySTKFMM.KERNEL.PVel)
-  # PVel.evaluate_fmm(PySTKFMM.KERNEL.PVel, np.zeros((N,4)), trg_value, src_DL_value)
   PVel.evaluate_fmm(PySTKFMM.KERNEL.PVel, np.zeros(0), trg_value, src_DL_value)  
   comm = kwargs.get('comm')
   comm.Barrier()
