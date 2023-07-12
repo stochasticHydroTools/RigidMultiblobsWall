@@ -1700,8 +1700,6 @@ def double_layer_source_target_numba(source, target, normals, vector, weights, w
       # Compute interaction without wall
       r2 = rx*rx + ry*ry + rz*rz
       r = np.sqrt(r2)
-      if r < 1e-14:
-        continue
       r5 = r**5
               
       # 1. Compute product T_ijk * n_k * v_j
@@ -1711,13 +1709,17 @@ def double_layer_source_target_numba(source, target, normals, vector, weights, w
       rxnx = rx * nx_vec[j]
       ryny = ry * ny_vec[j]
       rznz = rz * nz_vec[j]
-      ux += (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
-             rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
-      uy += (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
-             ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
-      uz += (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
-             rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
 
+      # Do not compute self-interaction in undounded domain
+      if r > 1e-14:
+        ux += (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
+               rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
+        uy += (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
+               ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
+        uz += (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
+               rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+  
+      # Allows to compute self-interaction with image system
       if wall:
         # Vector from images below the wall (See Gimbutas 2015)
         rz = rzi + rz_src[j]
@@ -1735,7 +1737,6 @@ def double_layer_source_target_numba(source, target, normals, vector, weights, w
                ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
         uz -= (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
                rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
-
         # 
         nv = nx_vec[j] * vx_vec[j] + ny_vec[j] * vy_vec[j] + nz_vec[j] * vz_vec[j]
         rv = rx * vx_vec[j] + ry * vy_vec[j] - rz * vz_vec[j]
