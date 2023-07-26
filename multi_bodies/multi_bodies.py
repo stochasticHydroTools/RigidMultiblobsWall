@@ -1458,7 +1458,7 @@ if __name__ == '__main__':
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
-                                 eta = a, 
+                                 eta = eta, 
                                  g = g,
                                  Laplace_flag = Laplace_flag,
                                  domain = read.domain) 
