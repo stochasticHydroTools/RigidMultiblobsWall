@@ -1400,6 +1400,8 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
   ''' 
   Returns the pressure created by Stokeslets located at source in the positions
   of the targets. Stokeslets above an infinite no-slip wall.
+
+  See "A note on the image system for a stokeslet in a no-slip boundary", Blake (1971).
   '''
   # Variables
   Ns = source.size // 3
@@ -1457,7 +1459,7 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
               rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
               rz = rz + boxZ * Lz            
                
-            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
+            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) / r3
 
             # Add wall corrections
             rz = rzi + source[j,2]
@@ -1465,10 +1467,11 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
             r3 = r * r * r
             r5 = r3 * r * r
             
-            p[i] += -(force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
-            p[i] += -force[j,0] * 2*source[j,2] * (-3 * rz * rx / r5)
-            p[i] += -force[j,1] * 2*source[j,2] * (-3 * rz * ry / r5)
-            p[i] +=  force[j,2] * 2*source[j,2] * (-3 * rz * rz / r5 + 1.0 / r3)
+            p[i] += -(force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) / r3
+            p[i] += -force[j,0] * 2 * source[j,2] * (-3 * rz * rx / r5)
+            p[i] += -force[j,1] * 2 * source[j,2] * (-3 * rz * ry / r5)
+            p[i] +=  force[j,2] * 2 * source[j,2] * (-3 * rz * rz / r5 + 1.0 / r3)
+            p[i] = norm_fact_f * p[i]
 
   return p
 
