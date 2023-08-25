@@ -1,0 +1,46 @@
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       0.0005 #0.00025
+n_steps                                  500000
+n_save                                   20 #80
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      8.9e-04 #0.05305164769 
+g                                        0.0211 #0.0828
+blob_radius                              0.5
+
+# Stochastic parameters
+kT                                       0.0041419464
+solver_tolerance                         1.0e-4
+
+periodic_length                          0.0   0.0    0.0
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0.016
+debye_length                             0.05
+
+# Set interaction with the wall
+repulsion_strength_wall                  0.016 #0.0331
+debye_length_wall                        0.225
+
+# Set parameters for the firm-potential
+repulsion_strength_firm                  0.0162 #0.0331
+firm_delta                               5e-4 #1e-2
+
+# Set parameters for magnetic field
+B_freq                                   10				
+
+seed					 1
+
+# Set output name
+output_name                              ./data/test_BD_oscill_5pn_20_50hz_1
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure ./blob.vertex ./coors_50_layer10_rotxz30.clones
