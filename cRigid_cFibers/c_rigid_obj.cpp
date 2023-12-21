@@ -58,7 +58,7 @@ typedef Eigen::SparseMatrix<double> SparseM;
 typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagM;
 
 typedef Eigen::Triplet<double> Trip_d;
-typedef Eigen::SparseMatrix<double> SparseMd;
+typedef Eigen::SparseMatrix<double> SparseMat;
 
 // Rigid types
 typedef Eigen::Quaterniond Quat;
@@ -1300,7 +1300,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////
 
     template<class AVector>
-    SparseMd Outer_Product_Mat(AVector& r_vectors, bool transpose){
+    SparseMat Outer_Product_Mat(AVector& r_vectors, bool transpose){
         
         int size = N_bod*(3*N_blb);  
         
@@ -1383,7 +1383,7 @@ public:
             Rows = 3*N_bod*N_blb;
             Cols = 9*N_bod;
         }
-        SparseMd Outer(Rows,Cols);
+        SparseMat Outer(Rows,Cols);
         Outer.setFromTriplets(tripletList.begin(), tripletList.end());
         
         
@@ -1396,7 +1396,7 @@ public:
     
     Vector Apply_Outer_Product(RefVector& Lambda){
         std::vector<real_c> r_vec =  r_vecs_from_cfg(Xs,Qs);
-        SparseMd K_S = Outer_Product_Mat(r_vec, false);
+        SparseMat K_S = Outer_Product_Mat(r_vec, false);
         Vector out = K_S*Lambda;
         
         return out;
@@ -1432,7 +1432,7 @@ public:
         Matrix M_p_Inv = M_p.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_p_Inv = Kp.transpose()*M_p_Inv*Kp;
         Matrix N_p = N_p_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O_p = Outer_Product_Mat(r_vec_p, false);
+        SparseMat R_O_p = Outer_Product_Mat(r_vec_p, false);
         //std::cout << Xp[0] << "\n";
         //std::cout << Qp[0].w() << ' ' << Qp[0].x() << ' ' << Qp[0].y() << ' ' << Qp[0].z() << ' ' << "\n";
         //std::cout << "N_p\n";
@@ -1447,7 +1447,7 @@ public:
         Matrix M_m_Inv = M_m.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_m_Inv = Km.transpose()*M_m_Inv*Km;
         Matrix N_m = N_m_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O_m = Outer_Product_Mat(r_vec_m, false);
+        SparseMat R_O_m = Outer_Product_Mat(r_vec_m, false);
         
         for(int d = 0; d < 3; ++d){
             W[d] *= (1.0/L_scale);
@@ -1485,8 +1485,8 @@ public:
         std::tie(Qm,Xm) = update_X_Q(Win);
         std::vector<real_c> r_vec_m =  r_vecs_from_cfg(Xm,Qm);
         
-        SparseMd R_O_p = Outer_Product_Mat(r_vec_p, false);
-        SparseMd R_O_m = Outer_Product_Mat(r_vec_m, false);
+        SparseMat R_O_p = Outer_Product_Mat(r_vec_p, false);
+        SparseMat R_O_m = Outer_Product_Mat(r_vec_m, false);
         
         Vector out = (1.0/delta)*((R_O_p*W)-(R_O_m*W));
                 
@@ -1500,7 +1500,7 @@ public:
         Matrix M_Inv = M.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_Inv = KT*M_Inv*K;
         Matrix N = N_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O = Outer_Product_Mat(r_vec, false);
+        SparseMat R_O = Outer_Product_Mat(r_vec, false);
         Vector Var_Kill = R_O*(M_Inv*Mhalf_W - M_Inv*K*N*KT*(M_Inv*Mhalf_W));
         return Var_Kill;
     }
@@ -1511,13 +1511,13 @@ public:
         Matrix M_Inv = M.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_Inv = KT*M_Inv*K;
         Matrix N = N_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O = Outer_Product_Mat(r_vec, false);
+        SparseMat R_O = Outer_Product_Mat(r_vec, false);
         Vector Var_Kill = R_O*(M_Inv*K*N*KT*(M_Inv*Mhalf_W));
         return Var_Kill;
     }
     
     Vector Stresslet_Strat(std::vector<real_c>& pos_mid, RefVector& F){ 
-        SparseMd K_S = Outer_Product_Mat(pos_mid, false);
+        SparseMat K_S = Outer_Product_Mat(pos_mid, false);
         Matrix M_mid = rotne_prager_tensor(pos_mid);
         Matrix M_mid_Inv = M_mid.completeOrthogonalDecomposition().pseudoInverse();
         
@@ -1548,7 +1548,7 @@ public:
         Matrix M_Inv = M.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_Inv = KT*M_Inv*K;
         Matrix N = N_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O = Outer_Product_Mat(r_vec, false);
+        SparseMat R_O = Outer_Product_Mat(r_vec, false);
         
         std::vector<Quat> Qp;
         std::vector<Vector> Xp;
@@ -1568,7 +1568,7 @@ public:
         Matrix M_p_Inv = M_p.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_p_Inv = Kp.transpose()*M_p_Inv*Kp;
         Matrix N_p = N_p_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O_p = Outer_Product_Mat(r_vec_p, false);
+        SparseMat R_O_p = Outer_Product_Mat(r_vec_p, false);
         
         Win *= -1.0;
         
@@ -1579,7 +1579,7 @@ public:
         Matrix M_m_Inv = M_m.completeOrthogonalDecomposition().pseudoInverse();
         Matrix N_m_Inv = Km.transpose()*M_m_Inv*Km;
         Matrix N_m = N_m_Inv.completeOrthogonalDecomposition().pseudoInverse();
-        SparseMd R_O_m = Outer_Product_Mat(r_vec_m, false);
+        SparseMat R_O_m = Outer_Product_Mat(r_vec_m, false);
         
         Vector KNWv = K*N*Wv;
         Vector out1 = (1/delta)*(R_O*((M_p_Inv*KNWv)-(M_m_Inv*KNWv)));

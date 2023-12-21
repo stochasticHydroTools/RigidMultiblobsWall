@@ -4,21 +4,23 @@
 //################################################################################
 //################# Interfacing Eigen and Python without copying data ############
 //################################################################################
+#include <cmath>
+#include <omp.h>
+#include <lapacke.h>
+#include <chrono>
+#include <random>
+#include <vector>
+#include <iostream>
+#include <algorithm>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/eigen.h>
+
 #include <eigen3/Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <pybind11/numpy.h>
-#include <pybind11/eigen.h>
-#include <cmath>
-#include <omp.h>
-#include<lapacke.h>
-#include <chrono>
-#include <random>
-#include<vector>
-#include<iostream>
-#include<algorithm>
 
 /*
 #include"uammd_interface.h"
@@ -31,21 +33,41 @@ using PSEParameters = PyParameters;
 
 using real = libmobility::real;
 
+#ifdef DOUBLE_PRECISION
+    #define gbsv_ dgbsv_ 
+#else
+    #define gbsv_ sgbsv_
+#endif
 
+
+typedef Eigen::Vector<real, Eigen::Dynamic> Vector;
+typedef Eigen::Vector<real, 3> Vector3;
+typedef Eigen::Ref<Vector> RefVector;
+typedef Eigen::Ref<const Vector> CstRefVector;
+
+typedef Eigen::VectorXi IVector;
+typedef Eigen::Ref<IVector> IRefVector;
+typedef Eigen::Ref<const IVector> CstIRefVector;
+
+typedef Eigen::Matrix<real, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+typedef Eigen::Ref<Matrix, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> RefMatrix;
+typedef Eigen::SparseMatrix<real> SparseMat;
+
+typedef Eigen::Triplet<real> Trip;
 
 
 // Double Typedefs
-typedef Eigen::VectorXd Vector;
-typedef Eigen::Ref<Vector> RefVector;
-typedef Eigen::Ref<const Vector> CstRefVector;
-typedef Eigen::MatrixXd Matrix;
-typedef Eigen::Ref<Matrix, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> RefMatrix;
+// typedef Eigen::VectorXd Vector;
+// typedef Eigen::Ref<Vector> RefVector;
+// typedef Eigen::Ref<const Vector> CstRefVector;
+// typedef Eigen::MatrixXd Matrix;
+// typedef Eigen::Ref<Matrix, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> RefMatrix;
 
-typedef Eigen::Triplet<real> Trip;
-typedef Eigen::SparseMatrix<real> SparseM;
 
-typedef Eigen::Triplet<double> Trip_d;
-typedef Eigen::SparseMatrix<double> SparseMd;
+
+
+// typedef Eigen::Triplet<double> Trip;
+// typedef Eigen::SparseMatrix<double> SparseMat;
 // Float typedefs
 /*
 typedef Eigen::VectorXf Vector;
@@ -54,9 +76,6 @@ typedef Eigen::Ref<const Vector> CstRefVector;
 typedef Eigen::MatrixXf Matrix;
 typedef Eigen::Ref<Matrix, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> RefMatrix;
 */
-typedef Eigen::VectorXi IVector;
-typedef Eigen::Ref<IVector> IRefVector;
-typedef Eigen::Ref<const IVector> CstIRefVector;
 
 
 struct SpecialParameter{
@@ -335,7 +354,7 @@ public:
   
   std::vector<real> single_fiber_Pos(Matrix& T, Vector& X_0){
     const int N_lk = T.cols();
-    Eigen::Vector3d T_j, Sum;
+    Vector3 T_j, Sum;
     Sum[0] = X_0[0];
     Sum[1] = X_0[1];
     Sum[2] = X_0[2];
@@ -415,9 +434,9 @@ public:
     const int N_lk = U.cols();
     const int N_fib = U.rows()/3;
     
-    Eigen::Vector3d U_j, V_j;
-    Eigen::Vector3d Vel_j, Vel_jp1;
-    Eigen::Vector3d Dp;
+    Vector3 U_j, V_j;
+    Vector3 Vel_j, Vel_jp1;
+    Vector3 Dp;
     
     int offset = 3;
     if(clamp){offset = 0;}
@@ -469,7 +488,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   template<class AMatrix, class BVector>
-  SparseM Banded_rotne_prager_tensor(AMatrix& T, BVector& X_0, int bands) {
+  SparseMat Banded_rotne_prager_tensor(AMatrix& T, BVector& X_0, int bands) {
     
     std::vector<real> r_vectors = multi_fiber_Pos(T, X_0);
 
@@ -520,7 +539,7 @@ public:
             tripletList.push_back(Trip(i * 3 + 2, j * 3 + 2,Mzz));
         }
     }
-    SparseM mat(N,N);
+    SparseMat mat(N,N);
     mat.setFromTriplets(tripletList.begin(), tripletList.end());
     
     mat *= norm_fact_f;
@@ -528,7 +547,7 @@ public:
     return mat;
   }
 
-  SparseM Banded_D4_v(int Nparts){
+  SparseMat Banded_D4_v(int Nparts){
     const int Nm1 = Nparts-1;
     const int Nm2 = Nparts-2;
     
@@ -587,13 +606,13 @@ public:
             }
         }
     } // end i loop
-    SparseM mat(3*Nparts,3*Nparts);
+    SparseMat mat(3*Nparts,3*Nparts);
     mat.setFromTriplets(tripletList.begin(), tripletList.end());
     return mat;
   }
 
   template<class AMatrix>
-  SparseM Sparse_B_mat(AMatrix& T){
+  SparseMat Sparse_B_mat(AMatrix& T){
     //
     //Return result of B T = d_s( T t_hat )
     //        
@@ -631,7 +650,7 @@ public:
         tripletList.push_back(Trip(3*j+1, offset+j-1, T(1,j-1)));
         tripletList.push_back(Trip(3*j+2, offset+j-1, T(2,j-1)));
     }
-    SparseM mat(3*Nlk+3,Nlk+offset);
+    SparseMat mat(3*Nlk+3,Nlk+offset);
     mat.setFromTriplets(tripletList.begin(), tripletList.end());
     return mat;
   }
@@ -650,15 +669,15 @@ public:
     // I + impl*M_loc*D^4
     // ###############################
     // ###############################
-    SparseM RPY = Banded_rotne_prager_tensor(T, X_0, bands);
-    SparseM D4_v = Banded_D4_v(Nparts);
-    SparseM I_MD4_v = (RPY * D4_v).pruned();
+    SparseMat RPY = Banded_rotne_prager_tensor(T, X_0, bands);
+    SparseMat D4_v = Banded_D4_v(Nparts);
+    SparseMat I_MD4_v = (RPY * D4_v).pruned();
     for (int k = 0; k < I_MD4_v.rows(); ++k){
         I_MD4_v.coeffRef(k,k) += 1.0;
     }
     
     for (int k = 0; k < I_MD4_v.outerSize(); ++k){
-        for (SparseM::InnerIterator it(I_MD4_v,k); it; ++it)
+        for (SparseMat::InnerIterator it(I_MD4_v,k); it; ++it)
         {
             data.push_back(scale_00*it.value());
             row_idx.push_back(i_perm(it.row()));   // row index
@@ -673,10 +692,10 @@ public:
     // ###############################
     // ###############################
     const int OFFSET = 3*Nlk+3;
-    SparseM B_mat = Sparse_B_mat(T);
-    SparseM M_x_B = (RPY * B_mat).pruned();
+    SparseMat B_mat = Sparse_B_mat(T);
+    SparseMat M_x_B = (RPY * B_mat).pruned();
     for (int k = 0; k < M_x_B.outerSize(); ++k){
-        for (SparseM::InnerIterator it(M_x_B,k); it; ++it)
+        for (SparseMat::InnerIterator it(M_x_B,k); it; ++it)
         {
             data.push_back(-1.0*it.value());
             row_idx.push_back(i_perm(it.row()));   // row index
@@ -690,7 +709,7 @@ public:
     // ###############################
     // ###############################
     for (int k = 0; k < B_mat.outerSize(); ++k){
-        for (SparseM::InnerIterator it(B_mat,k); it; ++it)
+        for (SparseMat::InnerIterator it(B_mat,k); it; ++it)
         {
             data.push_back(-scale_10*it.value());
             row_idx.push_back(i_perm(OFFSET+it.col()));   // row index
@@ -739,7 +758,7 @@ public:
     int ierr;
     
     // solve system
-    dgbsv_(&n, &kl, &ku, &nrhs, & *AB.data(), &ldab, ipiv, & *RHS_p.data(), &n, &ierr);
+    gbsv_(&n, &kl, &ku, &nrhs, & *AB.data(), &ldab, ipiv, & *RHS_p.data(), &n, &ierr);
     if(ierr != 0){std::cout << "lapack did bad" << std::endl;}
                 
     // Extract solution
@@ -894,7 +913,7 @@ public:
     
     
     solver->Mdot(Ff.data(), MF.data());
-    Vector MFd = MF.cast <double> ();
+    Vector MFd = MF.cast <real> ();
     return MFd;
   }
   
@@ -910,7 +929,7 @@ public:
     Vector Ff = F.template cast <real> ();
     
     solver->Mdot(Ff.data(), MF.data());
-    Vector MFd = MF.cast <double> ();
+    Vector MFd = MF.cast <real> ();
     return MFd;
   }
 
@@ -923,7 +942,7 @@ public:
     
     real prefactor = 1.0;
     solver->sqrtMdotW(Mhalf.data(), prefactor);
-    Vector MhalfFd = Mhalf.cast <double> ();
+    Vector MhalfFd = Mhalf.cast <real> ();
     return MhalfFd;
   }
   
@@ -981,7 +1000,7 @@ public:
     int Nlk = U.cols();
     Vector out = Vector::Zero(3*Nlk+3);
     
-    Eigen::Vector3d U_j, V_j, TxOm;
+    Vector3 U_j, V_j, TxOm;
     
     int offset = 0;
     
@@ -1137,8 +1156,8 @@ public:
   void frame_rot(AMatrix& T_all, AMatrix& U_all, AMatrix& V_all, BVector& X_0_all, BMatrix& Om, double delta){
     const int N_fib = T_all.rows()/3;
     const int N_lk = T_all.cols();
-    Eigen::Vector3d T_j, U_j, V_j;
-    Eigen::Vector3d Omega_j, axis;
+    Vector3 T_j, U_j, V_j;
+    Vector3 Omega_j, axis;
     
     double mag_O, theta, s_th, c_th;
     
@@ -1460,7 +1479,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
   
   template<class AVector>
-  SparseMd Outer_Product_Mat(AVector& r_vectors, const int N_fib, const int N_blb, bool transpose){
+  SparseMat Outer_Product_Mat(AVector& r_vectors, const int N_fib, const int N_blb, bool transpose){
     
     int size = N_fib*(3*N_blb);  
       
@@ -1471,7 +1490,7 @@ public:
     //Outer_right.setZero();
     //Trace.setZero();
     
-    std::vector<Trip_d> tripletList;
+    std::vector<Trip> tripletList;
     
     Vector r_k(3);
     Vector COM_j(3);
@@ -1507,25 +1526,25 @@ public:
                 Trace(9*j+8,j*3*N_blb+3*k+d) = (-1.0/3.0)*r_k[d];
                 */
                 if(!transpose){
-                    tripletList.push_back(Trip_d(9*j+d+0, j*3*N_blb+3*k+0, static_cast<double>(r_k[d])));
-                    tripletList.push_back(Trip_d(9*j+d+3, j*3*N_blb+3*k+1, static_cast<double>(r_k[d])));
-                    tripletList.push_back(Trip_d(9*j+d+6, j*3*N_blb+3*k+2, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(9*j+d+0, j*3*N_blb+3*k+0, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(9*j+d+3, j*3*N_blb+3*k+1, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(9*j+d+6, j*3*N_blb+3*k+2, static_cast<double>(r_k[d])));
                     // make traceless
                     /*
-                    tripletList.push_back(Trip_d(9*j+0,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
-                    tripletList.push_back(Trip_d(9*j+4,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
-                    tripletList.push_back(Trip_d(9*j+8,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(9*j+0,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(9*j+4,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(9*j+8,j*3*N_blb+3*k+d, static_cast<double>((-1.0/3.0)*r_k[d])));
                     */
                 }
                 else{
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+0, 9*j+d+0, static_cast<double>(r_k[d])));
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+1, 9*j+d+3, static_cast<double>(r_k[d])));
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+2, 9*j+d+6, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+0, 9*j+d+0, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+1, 9*j+d+3, static_cast<double>(r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+2, 9*j+d+6, static_cast<double>(r_k[d])));
                     // make traceless
                     /*
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+d, 9*j+0, static_cast<double>((-1.0/3.0)*r_k[d])));
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+d, 9*j+4, static_cast<double>((-1.0/3.0)*r_k[d])));
-                    tripletList.push_back(Trip_d(j*3*N_blb+3*k+d, 9*j+8, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+d, 9*j+0, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+d, 9*j+4, static_cast<double>((-1.0/3.0)*r_k[d])));
+                    tripletList.push_back(Trip(j*3*N_blb+3*k+d, 9*j+8, static_cast<double>((-1.0/3.0)*r_k[d])));
                     */
                 }
                 
@@ -1543,7 +1562,7 @@ public:
         Rows = 3*N_fib*N_blb;
         Cols = 9*N_fib;
     }
-    SparseMd Outer(Rows,Cols);
+    SparseMat Outer(Rows,Cols);
     Outer.setFromTriplets(tripletList.begin(), tripletList.end());
     
     
@@ -1561,7 +1580,7 @@ public:
     const int N_fib = T.rows()/3;
     const int N_blb = N_lk+1;
     
-    SparseMd K_S_T = Outer_Product_Mat(r_vectors, N_fib, N_blb, true);
+    SparseMat K_S_T = Outer_Product_Mat(r_vectors, N_fib, N_blb, true);
     //std::cout << K_S_T.rows() << ' ' << K_S_T.cols() << "\n";
     //std::cout << E.rows() << ' ' << E.cols() << "\n";
     Vector E_out = K_S_T * E;
@@ -1575,7 +1594,7 @@ public:
     const int N_fib = T.rows()/3;
     const int N_blb = N_lk+1;
     
-    SparseMd K_S = Outer_Product_Mat(r_vectors, N_fib, N_blb, false);
+    SparseMat K_S = Outer_Product_Mat(r_vectors, N_fib, N_blb, false);
     
     
     const int size_j = 3*N_lk+3;
@@ -1605,7 +1624,7 @@ public:
     const int N_fib = T.rows()/3;
     const int N_blb = N_lk+1;
     
-    SparseMd K_S = Outer_Product_Mat(r_vectors, N_fib, N_blb, false);
+    SparseMat K_S = Outer_Product_Mat(r_vectors, N_fib, N_blb, false);
     
     Vector S_out = K_S * Lambda;
     return S_out;
@@ -1777,7 +1796,7 @@ public:
   }
   
   Vector Stresslet_Strat(std::vector<real>& pos_mid, RefVector& F, const int N_fib, const int N_blb){ 
-        SparseMd K_S = Outer_Product_Mat(pos_mid, N_fib, N_blb, false);
+        SparseMat K_S = Outer_Product_Mat(pos_mid, N_fib, N_blb, false);
         Matrix M_mid = M_dense(pos_mid);
         Matrix M_mid_Inv = M_mid.completeOrthogonalDecomposition().pseudoInverse();
         
