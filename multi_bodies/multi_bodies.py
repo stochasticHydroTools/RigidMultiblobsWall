@@ -131,15 +131,8 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
     
     # Build RHS
-    use_eq_26 = True
-    if use_eq_26:
-      RHS = c_background
-      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate / diffusion_coefficient, weights, wall=wall)
-    else:
-      RHS = 0.5 * c_background
-      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
-      RHS -= Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights, wall=wall)
-      RHS -= Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals, wall=wall)
+    RHS = c_background
+    RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate / diffusion_coefficient, weights, wall=wall)
       
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
@@ -161,40 +154,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     tolerance = read.solver_tolerance 
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
-    if use_eq_26 is False:
-      c += c_background
 
-    if len(plot_concentration_field) > 0:
-      # Save concentration field
-      if (step % n_save) == 0 and step >= 0:
-         name = output_name + '.c_field.' + str(step).zfill(8)
-         pvf.plot_concentration_field_pyVTK(plot_concentration_field, r_vectors, c, reaction_rate, diffusion_coefficient, emitting_rate, normals, weights, background_Laplace, name)
-
-    if False:
-      # Compute polarity
-      Nbodies = len(bodies)
-      polarity = np.zeros((Nbodies,3))
-      cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights))
-      Rh = 1
-      offset = 0
-      for k, b in enumerate(bodies):
-        polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
-        offset += b.Nblobs
-      print('polarity      = ', polarity)
-      np.savetxt(output_name + '.polarity.dat', polarity)
-    
-    if False:
-      # Compute second moment
-      second_moment = np.zeros((Nbodies, 3, 3))
-      cnweights = np.einsum('ij,ik,i->ijk', normals, normals, np.multiply(c,weights)) - np.einsum('jk,i->ijk', np.identity(3), np.multiply(c,weights)) / 3.0
-      offset = 0    
-      for k, b in enumerate(bodies):
-        second_moment[k] = np.sum(cnweights[offset:offset+b.Nblobs], axis=0) / (4 * np.pi * Rh**2)
-        offset += b.Nblobs
-      print('second_moment = \n', second_moment)
-      print('second_moment = \n', second_moment.flatten())
-      np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshape((Nbodies, 9)))    
-      
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
     grad_c += 4 * np.einsum('ij,jk->ik', r_vectors, Hessian) 
@@ -203,94 +163,10 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     grad_c[:,2] += 2 * background_Laplace[3]
     grad_c += 2 * Laplace_kernels.Laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall).reshape((Nblobs, 3))
     grad_c -= 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, (emitting_rate - reaction_rate * c) / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
-
-    if False:
-      # Save gradient
-      np.savetxt(output_name + '.grad_c.dat', grad_c)
-    
-    if False:
-      print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
-      print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
-
-    if False:
-      # Compute total reaction rate 
-      total_reaction_rate = np.zeros(Nbodies)
-      offset = 0
-      for k, b in enumerate(bodies):
-        grad_c_dot_n = diffusion_coefficient * np.einsum('ij,ij,i->i', grad_c[offset:offset+b.Nblobs], normals[offset:offset+b.Nblobs], weights[offset:offset+b.Nblobs])
-        print('mean(grad_c_dot_n) = ', np.mean(grad_c_dot_n))
-        print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))
-        print('grad_c_dot_n = \n', grad_c_dot_n)
-        total_reaction_rate[k] = np.sum(grad_c_dot_n)
-        offset += b.Nblobs
-      print('total rate    = ', total_reaction_rate)
-      np.savetxt(output_name + '.total_reaction_rate.dat', total_reaction_rate)
-      print('\n\n')
-
-    if False:
-      # Compute concentration on the blobs
-      output_name_concentration = output_name + '.concentration_on_blobs.dat'
-      result = np.zeros((Nblobs, 4))
-      result[:,0:3] = r_vectors
-      result[:,3] = c      
-      np.savetxt(output_name_concentration, result)
-
-    if False:
-      # Compute concentration on a shell centered in the origin
-      from mapping.user_defined_functions import parametrization, sphere
-      
-      # Create sphere
-      p = 32
-      sphere_radius = 10
-      uv, uv_weights = parametrization(p)
-      grid_sphere = sphere(sphere_radius, uv)
-
-      # Compute concentration on sphere
-      c_sphere = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], grid_sphere) \
-        + np.einsum('ik,ik->i', grid_sphere, np.einsum('kj,ij->ik', Hessian, grid_sphere))
-      c_sphere -= Laplace_kernels.Laplace_single_layer_operator_source_target_numba(r_vectors,
-                                                                                    grid_sphere,
-                                                                                    (reaction_rate * c - emitting_rate) / diffusion_coefficient,
-                                                                                    weights,
-                                                                                    wall=wall)
-      c_sphere += Laplace_kernels.Laplace_double_layer_operator_source_target_numba(r_vectors,
-                                                                                    grid_sphere,
-                                                                                    c,
-                                                                                    weights,
-                                                                                    normals,
-                                                                                    wall=wall)
-      
-      # Write velocity field
-      output_name_concentration = output_name + '.sphere_radius.' + str(sphere_radius) + '.p.'+ str(p) + '.concentration_field_sphere.dat'
-      header = 'R=' + str(sphere_radius) + ', p=' + str(p) + ', N=' + str(uv_weights.size) + ', 5 Columns: grid point (x,y,z), quadrature weight, concentration'
-      result = np.zeros((grid_sphere.shape[0], 5))
-      result[:,0:3] = grid_sphere
-      result[:,3] = uv_weights * sphere_radius**2
-      result[:,4] = c_sphere
-      np.savetxt(output_name_concentration, result, header=header)
-
       
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
     
-    if False:
-      # Write slip for each blob
-      if (step % n_save) == 0 and step >= 0:
-        output_name_slip = output_name + '.slip_blobs.dat'
-        mode = 'w' if step == 0 else 'a'
-        with open(output_name_slip, mode) as f_handle:
-          np.savetxt(f_handle, slip.reshape((Nblobs, 3)))
-
-    if False:
-      # Compue mean slip
-      mean_slip  = np.zeros((Nbodies,3))
-      slip_weight = np.einsum('ij,i->ij',slip,weights)
-      offset = 0
-      for k, b in enumerate(bodies):
-        mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
-        offset += b.Nblobs
-      print('mean_slip     = ', mean_slip)
-      
   #2) Add prescribed slip 
   offset = 0
   for b in bodies:
