@@ -611,25 +611,6 @@ if __name__ ==  '__main__':
     np.savetxt(name, slip_mobility_bodies_double_layer, delimiter='  ')
     print('Time to compute body mobility =', time.time() - start_time)
 
-    '''
-    # Sanity check 
-    slip = np.zeros((Nblobs, 3))
-    #2) Add prescribed slip 
-    offset = 0
-    for b in bodies:
-      slip_b = b.calc_slip()
-      slip[offset:offset+b.Nblobs] += slip_b
-      offset += b.Nblobs
-    slip_col = slip.reshape(3*Nblobs,1)
-    print('Mob_slip*slip= ')
-    print(np.dot(slip_mobility_bodies,slip_col))
-    Dslip = mob.no_wall_double_layer_source_target_numba(r_vectors_blobs, r_vectors_blobs, normals, slip, weights).reshape((Nblobs, 3))
-    print('Mob_slip*(Dslip +0.5*slip)= ')
-    print(np.dot(slip_mobility_bodies,0.5*slip_col+Dslip.reshape((3*Nblobs,1))))
-    print('Mob_slip_dl*slip= ')
-    print(np.dot(slip_mobility_bodies_double_layer,slip_col))
-    '''
-
   elif (read.scheme == 'plot_velocity_field' and False):
     print('plot_velocity_field')
     # Compute slip 
