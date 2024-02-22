@@ -1,3 +1,10 @@
+'''
+Utility code to create the Laplace file of a Janus sphere.
+
+Set the vertex file to read and in the parameters 
+the colloidal radius (Rweight) and the emitting rate (alpha),
+reaction rate (k), surface mobility in each hemisphere (_F and _B).
+'''
 from __future__ import division, print_function
 import os
 import numpy as np
@@ -22,16 +29,18 @@ while found_functions is False:
       sys.exit()
 
 # Read vertex file to compute the normals and parameters
-#filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
-#filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
-#filename  = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
-filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
+# filename  = "../../Structures/shell_N_12_Rg_0_7921_Rh_1"
+filename  = "../../Structures/shell_N_42_Rg_0_8913_Rh_1"
+# filename  = "../../Structures/shell_N_162_Rg_0_9497_Rh_1"
+# filename  = "../../Structures/shell_N_642_Rg_0_9767_Rh_1"
 alpha_F = 0
 alpha_B = 0
 k_F = 5
 k_B = 5
 surface_mobility_F = 5
 surface_mobility_B = 5
+Rweight = 1.0
+
 
 # Read file
 struct_ref_config = read_vertex_file.read_vertex_file(filename + '.vertex')
@@ -45,7 +54,7 @@ k_vec = np.zeros((Nb,1))
 # Emission rates
 alpha_vec = np.zeros((Nb,1)) 
 # Surface mobility
-surface_mobility_vec = np.zeros((Nb,1)) 
+surface_mobility_vec = np.zeros((Nb,1))
 
 for k in range(Nb):
   if struct_ref_config[k,2]>0:
@@ -65,7 +74,6 @@ print('mean(k_vec) = ', np.mean(k_vec))
 print('mean(surface_mobility_vec) = ', np.mean(surface_mobility_vec))
 
 # Weights of each DOF based on a radius Rweight
-Rweight = 1.0
 weights = 4.0 * np.pi * Rweight**2 / Nb * np.ones((Nb,1))
 
 # Save the corresponding '.laplace' file
