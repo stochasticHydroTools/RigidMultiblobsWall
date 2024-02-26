@@ -13,6 +13,11 @@ import subprocess
 from functools import partial
 import sys
 import time
+# Try to import numba
+try:
+  from numba import njit, prange
+except ImportError:
+  print('numba not found')
 
 # Find project functions
 found_functions = False
@@ -164,6 +169,7 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
   grid_z = np.concatenate([grid_z, [grid[1,2]]])
 
   
+  
 
   # Write velocity field
   visit_writer.boost_write_rectilinear_mesh(name,      # File's name
@@ -178,6 +184,79 @@ def plot_velocity_field(grid, r_vectors_blobs, lambda_blobs, blob_radius, eta, o
                                             varnames,  # Variables' names
                                             variables) # Variables
   return
+
+@njit(parallel=True, fastmath=True)
+def double_layer_matrix_source_target_numba(source, target, normals, weights):
+  '''
+  Stokes double operator, diagonals are set to zero.
+  '''
+  # Prepare vectors
+  num_targets = target.size // 3
+  num_sources = source.size // 3
+  source = source.reshape(num_sources, 3)
+  target = target.reshape(num_targets, 3)
+  normals = normals.reshape(num_sources, 3)
+  D = np.zeros((3*num_targets,3*num_sources))
+  factor = -3.0 / (4.0 * np.pi)
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+  nx_vec = np.copy(normals[:,0])
+  ny_vec = np.copy(normals[:,1])
+  nz_vec = np.copy(normals[:,2])
+
+  # Loop over image boxes and then over particles
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+
+    for j in range(num_sources):
+      # Compute vector between particles i and j
+      rx = rxi - rx_src[j]
+      ry = ryi - ry_src[j]
+      rz = rzi - rz_src[j]
+
+
+      # Compute interaction without wall
+      r2 = rx*rx + ry*ry + rz*rz
+      r = np.sqrt(r2)
+      if r < 1e-14:
+        continue
+      r5 = r**5
+
+      # 2. Compute product T_ijk * n_k 
+      rxnx = rx * nx_vec[j]
+      ryny = ry * ny_vec[j]
+      rznz = rz * nz_vec[j]
+      rdotn = rxnx + ryny + rznz
+      facr5 = rdotn * weights[j] / r5
+      Dxx = rx * rx * facr5
+      Dyx = ry * rx * facr5
+      Dzx = rz * rx * facr5
+      Dyy = ry * ry * facr5
+      Dzy = rz * ry * facr5
+      Dzz = rz * rz * facr5
+      Dxy = Dyx 
+      Dxz = Dzx 
+      Dyz = Dzy 
+      
+      D[3*i,3*j] = Dxx
+      D[3*i,3*j+1] = Dxy
+      D[3*i,3*j+2] = Dxz
+      D[3*i+1,3*j] = Dyx
+      D[3*i+1,3*j+1] = Dyy
+      D[3*i+1,3*j+2] = Dyz
+      D[3*i+2,3*j] = Dzx
+      D[3*i+2,3*j+1] = Dzy
+      D[3*i+2,3*j+2] = Dzz
+
+  return D*factor
 
 
 if __name__ ==  '__main__':
@@ -205,10 +284,16 @@ if __name__ ==  '__main__':
     print('Creating structures = ', structure[1])
     struct_ref_config = read_vertex_file.read_vertex_file(structure[0])
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
-    # Read slip file if it exists
-    slip = None
+    # Read slip and Laplace files if it exist
+    slip = None 
+    Laplace = None 
     if(len(structure) > 2):
-      slip = read_slip_file.read_slip_file(structure[2])
+      for k, file_name in enumerate(structure[2:]):
+        if file_name.endswith('.slip'):
+          slip = read_slip_file.read_slip_file(file_name)
+        elif file_name.endswith('.Laplace'):
+          Laplace = np.loadtxt(file_name)
+          Laplace_flag = True 
     body_types.append(num_bodies_struct)
     body_names.append(read.structures_ID[ID])
     # Creat each body of tyoe structure
@@ -223,6 +308,12 @@ if __name__ ==  '__main__':
       if ID >= read.num_free_bodies:
         b.prescribed_kinematics = True
         b.prescribed_velocity = np.zeros(6)
+      if Laplace is not None:
+        b.normals = np.copy(Laplace[:,0:3])
+        b.reaction_rate = np.copy(Laplace[:,3])
+        b.emitting_rate = np.copy(Laplace[:,4])
+        b.surface_mobility = np.copy(Laplace[:,5])
+        b.weights = np.copy(Laplace[:,6])
       # Append bodies to total bodies list
       bodies.append(b)
 
@@ -323,6 +414,7 @@ if __name__ ==  '__main__':
   multi_bodies_functions.calc_blob_blob_forces = multi_bodies_functions.set_blob_blob_forces(read.blob_blob_force_implementation)
   multi_bodies_functions.calc_body_body_forces_torques = multi_bodies_functions.set_body_body_forces_torques(read.body_body_force_torque_implementation)
   multi_bodies.mobility_blobs = multi_bodies.set_mobility_blobs(read.mobility_blobs_implementation)
+
 
   # Write bodies information
   with open(read.output_name + '.bodies_info', 'w') as f:
@@ -490,15 +582,35 @@ if __name__ ==  '__main__':
   elif read.scheme == 'body_mobility': 
     start_time = time.time()
     r_vectors_blobs = multi_bodies.get_blobs_r_vectors(bodies, Nblobs)
+    if Laplace_flag is not None:
+      # Build arrays 
+      normals = np.zeros((Nblobs, 3))
+      weights = np.zeros(Nblobs)
+      offset = 0
+      for k, b in enumerate(bodies):
+        normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
+        weights[offset : offset+b.Nblobs] = b.weights
+        offset += b.Nblobs
+
     mobility_blobs = multi_bodies.mobility_blobs(r_vectors_blobs, read.eta, read.blob_radius)
     resistance_blobs = np.linalg.inv(mobility_blobs)
     K = multi_bodies.calc_K_matrix(bodies, Nblobs)
-    resistance_bodies = np.dot(K.T, np.dot(resistance_blobs, K))
     mobility_bodies = np.linalg.pinv(np.dot(K.T, np.dot(resistance_blobs, K)))
     name = read.output_name + '.body_mobility.dat'
     np.savetxt(name, mobility_bodies, delimiter='  ')
+   
+    slip_mobility_bodies = np.dot(mobility_bodies, np.dot(K.T,resistance_blobs))
+    name = read.output_name + '.body_slip_mobility.dat'
+    np.savetxt(name, slip_mobility_bodies, delimiter='  ')
+
+    Io2 = np.eye(3*Nblobs)*0.5 
+    D = double_layer_matrix_source_target_numba(r_vectors_blobs, r_vectors_blobs, normals, weights)
+    I2pD = Io2 + D 
+    slip_mobility_bodies_double_layer = np.dot(slip_mobility_bodies,I2pD)
+    name = read.output_name + '.body_slip_mobility_double_layer.dat'
+    np.savetxt(name, slip_mobility_bodies_double_layer, delimiter='  ')
     print('Time to compute body mobility =', time.time() - start_time)
-    
+
   elif (read.scheme == 'plot_velocity_field' and False):
     print('plot_velocity_field')
     # Compute slip 

@@ -1356,3 +1356,15 @@ def mobility_radii_trans_times_force(r_vectors, force, eta, a, radius_blobs, fun
   '''
   return function(r_vectors, r_vectors, force, radius_blobs, radius_blobs, eta, *args, **kwargs)
 
+def double_layer_source_target_numba(source, target, normals, vector, weights, *args, **kwargs):
+  '''
+  Returns the product of the second layer operator with a vector.
+  The diagonal terms are set to zero.
+
+  This function uses numba.
+  '''
+
+  wall = kwargs.get('wall', 0)
+  velocities = mobility_numba.double_layer_source_target_numba(source, target, normals, vector, weights, wall=wall)
+
+  return velocities

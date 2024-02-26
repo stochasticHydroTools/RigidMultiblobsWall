@@ -1,0 +1,39 @@
+# Select integrator 
+scheme                                   deterministic_adams_bashforth
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            python_no_wall
+mobility_vector_prod_implementation      python_no_wall
+domain                                   no_wall
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           None
+
+# Set time step, number of steps and save frequency
+dt                                       0.1
+n_steps                                  1
+n_save                                   1
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1.0 
+g                                        0
+blob_radius                              0.243553056072
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0
+debye_length                             1.0
+
+# Set interaction with the wall
+repulsion_strength_wall                  0
+debye_length_wall                        1.0
+
+# Set Laplace options
+background_Laplace                       1
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+structure ../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex  ../../Structures/shell.clones ../../Structures/shell_N_42_Rg_0_8913_Rh_1.Laplace
+
+# Set output name
+save_clones                              one_file
+output_name                              run

@@ -19,10 +19,10 @@ import matplotlib as plt
 
 if __name__ == '__main__':
   # Set parameters
-  name_vertex = '../../Structures/shell_N_42_Rg_0_8913_Rh_1.vertex'
-  output_prefix = 'data/'
+  name_vertex = '../../Structures/shell_N_12_Rg_0_7921_Rh_1.vertex'
+  output_prefix = './'
   B1 = 1
-  B2 = 1
+  B2 = 0
 
   # Read vertex file
   r_blobs = np.loadtxt(name_vertex, skiprows=1)

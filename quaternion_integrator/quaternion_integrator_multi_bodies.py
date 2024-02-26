@@ -184,6 +184,81 @@ class QuaternionIntegrator(object):
 
     return
 
+
+  def deterministic_midpoint(self, dt, *args, **kwargs): 
+    ''' 
+    Take a time step of length dt using the deterministic forward Euler scheme. 
+    The function uses gmres to solve the rigid body equations.
+
+    The linear and angular velocities are sorted like
+    velocities = (v_1, w_1, v_2, w_2, ...)
+    where v_i and w_i are the linear and angular velocities of body i.
+    ''' 
+    while True: 
+      # Call preprocess
+      preprocess_result = self.preprocess(self.bodies)
+      
+      # Save initial configuration
+      for k, b in enumerate(self.bodies):
+        np.copyto(b.location_old, b.location)
+        b.orientation_old = copy.copy(b.orientation)
+
+      # Compute M at time level n
+      r_vectors_blobs_n = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
+        
+      # Build preconditioner
+      PC_partial = self.build_block_diagonal_preconditioner(self.bodies,
+                                                            self.articulated,
+                                                            r_vectors_blobs_n,
+                                                            self.Nblobs,
+                                                            self.eta,
+                                                            self.a,
+                                                            periodic_length=self.periodic_length,
+                                                            update_PC = self.update_PC,
+                                                            step = kwargs.get('step'))
+      
+      # Solve mobility problem
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, PC_partial=PC_partial, step = kwargs.get('step'), dt = dt)
+
+     
+      # Extract velocities
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))      
+      
+      # Update location orientation to midpoint
+      for k, b in enumerate(self.bodies):
+        b.location = b.location_old + velocities[6*k:6*k+3] * dt * 0.5
+        quaternion_dt = Quaternion.from_rotation((velocities[6*k+3:6*k+6]) * dt * 0.5)
+        b.orientation = quaternion_dt * b.orientation_old
+
+      # Check positions, if invalid continue 
+      if self.check_positions(new = 'current', old = 'old', update_in_success = False, update_in_failure = True, domain = self.domain) is False:
+        continue       
+
+      # Solve mobility problem at the corrector step  
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, 
+                                                save_first_guess = True,
+                                                PC_partial = PC_partial,
+                                                step = kwargs.get('step') + 0.5,
+                                                dt = dt)
+
+      # Extract velocities
+      velocities_mid = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      # Update location orientation 
+      for k, b in enumerate(self.bodies):
+        b.location_new = b.location_old + velocities_mid[6*k:6*k+3] * dt
+        quaternion_dt = Quaternion.from_rotation((velocities_mid[6*k+3:6*k+6]) * dt)
+        b.orientation_new = quaternion_dt * b.orientation_old
+       
+      # Call postprocess
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid, return
+      if self.check_positions(new = 'new', old = 'old', update_in_success = True, update_in_failure = True, domain = self.domain) is True:
+        return
+    return
+  
+
   def stochastic_EM(self, dt, *args, **kwargs): 
     ''' 
     Take a time step of length dt using a Euler Maruyama (EM) scheme.

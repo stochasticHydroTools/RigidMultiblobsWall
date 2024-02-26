@@ -1400,6 +1400,8 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
   ''' 
   Returns the pressure created by Stokeslets located at source in the positions
   of the targets. Stokeslets above an infinite no-slip wall.
+
+  See "A note on the image system for a stokeslet in a no-slip boundary", Blake (1971).
   '''
   # Variables
   Ns = source.size // 3
@@ -1457,7 +1459,7 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
               rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
               rz = rz + boxZ * Lz            
                
-            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
+            p[i] += (force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) / r3
 
             # Add wall corrections
             rz = rzi + source[j,2]
@@ -1465,10 +1467,11 @@ def single_wall_pressure_Stokeslet_numba(source, target, force, L):
             r3 = r * r * r
             r5 = r3 * r * r
             
-            p[i] += -(force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) * norm_fact_f / r3
-            p[i] += -force[j,0] * 2*source[j,2] * (-3 * rz * rx / r5)
-            p[i] += -force[j,1] * 2*source[j,2] * (-3 * rz * ry / r5)
-            p[i] +=  force[j,2] * 2*source[j,2] * (-3 * rz * rz / r5 + 1.0 / r3)
+            p[i] += -(force[j,0] * rx + force[j,1] * ry + force[j,2] * rz) / r3
+            p[i] += -force[j,0] * 2 * source[j,2] * (-3 * rz * rx / r5)
+            p[i] += -force[j,1] * 2 * source[j,2] * (-3 * rz * ry / r5)
+            p[i] +=  force[j,2] * 2 * source[j,2] * (-3 * rz * rz / r5 + 1.0 / r3)
+            p[i] = norm_fact_f * p[i]
 
   return p
 
@@ -1655,3 +1658,109 @@ def mobility_trans_times_force_source_target_numba(source, target, force, radius
   return u.flatten()
 
   
+@njit(parallel=True, fastmath=True)
+def double_layer_source_target_numba(source, target, normals, vector, weights, wall=0):
+  '''
+  Stokes double operator, diagonals are set to zero.
+  '''
+  # Prepare vectors
+  num_targets = target.size // 3
+  num_sources = source.size // 3
+  source = source.reshape(num_sources, 3)
+  target = target.reshape(num_targets, 3)
+  vector = vector.reshape(num_sources, 3)
+  normals = normals.reshape(num_sources, 3)  
+  u = np.zeros((num_targets, 3))
+  factor = -3.0 / (4.0 * np.pi) 
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+  vx_vec = np.copy(vector[:,0])
+  vy_vec = np.copy(vector[:,1])
+  vz_vec = np.copy(vector[:,2])
+  nx_vec = np.copy(normals[:,0])
+  ny_vec = np.copy(normals[:,1])
+  nz_vec = np.copy(normals[:,2])
+  
+  # Loop over image boxes and then over particles
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+
+    ux, uy, uz = 0, 0, 0
+    for j in range(num_sources):
+      # Compute vector between particles i and j
+      rx = rxi - rx_src[j]
+      ry = ryi - ry_src[j]
+      rz = rzi - rz_src[j]
+
+      # Compute interaction without wall
+      r2 = rx*rx + ry*ry + rz*rz
+      r = np.sqrt(r2)
+      r5 = r**5
+              
+      # 1. Compute product T_ijk * n_k * v_j
+      rxvx = rx * vx_vec[j]
+      ryvy = ry * vy_vec[j]
+      rzvz = rz * vz_vec[j]
+      rxnx = rx * nx_vec[j]
+      ryny = ry * ny_vec[j]
+      rznz = rz * nz_vec[j]
+
+      # Do not compute self-interaction in undounded domain
+      if r > 1e-14:
+        ux += (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
+               rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
+        uy += (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
+               ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
+        uz += (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
+               rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+  
+      # Allows to compute self-interaction with image system
+      if wall:
+        # Vector from images below the wall (See Gimbutas 2015)
+        rz = rzi + rz_src[j]
+        r2 = rx*rx + ry*ry + rz*rz
+        r = np.sqrt(r2)
+        r3 = r**3
+        r5 = r**5
+
+        # 2. Compute product T_ijk * n_k * v_j        
+        rzvz = -rz * vz_vec[j]
+        rznz = -rz * nz_vec[j]
+        ux -= (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
+               rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
+        uy -= (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
+               ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
+        uz -= (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
+               rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+        # 
+        nv = nx_vec[j] * vx_vec[j] + ny_vec[j] * vy_vec[j] + nz_vec[j] * vz_vec[j]
+        rv = rx * vx_vec[j] + ry * vy_vec[j] - rz * vz_vec[j]
+        rn = rx * nx_vec[j] + ry * ny_vec[j] - rz * nz_vec[j]
+        vzI = -vz_vec[j]
+        nzI = -nz_vec[j]        
+        # Derivative dipole source
+        ux += -2 * rzi * nv * (          - rx * rz / r2) * weights[j] / r3
+        uy += -2 * rzi * nv * (          - ry * rz / r2) * weights[j] / r3
+        uz += -2 * rzi * nv * (1.0 / 3.0 - rz * rz / r2) * weights[j] / r3
+        # Derivative quadrupole source 
+        ux += -2 * rzi * rz_src[j] * (rx * nv + vx_vec[j] * rn + nx_vec[j] * rv - 5 * rx * rv * rn / r2) * weights[j] / r5
+        uy += -2 * rzi * rz_src[j] * (ry * nv + vy_vec[j] * rn + ny_vec[j] * rv - 5 * ry * rv * rn / r2) * weights[j] / r5
+        uz += -2 * rzi * rz_src[j] * (rz * nv + vzI       * rn + nzI       * rv - 5 * rz * rv * rn / r2) * weights[j] / r5
+        # Dipole source
+        uz += 2 * nv * rz * weights[j] / (3 * r3)
+        # Quadrupole source
+        uz += 2 * rz_src[j] * (-nv / 3 + rv * rn / r2) * weights[j] / r3
+      
+    u[i,0] = factor * ux
+    u[i,1] = factor * uy
+    u[i,2] = factor * uz
+
+  return u.flatten()

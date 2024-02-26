@@ -23,7 +23,7 @@ Parameters:
 
 Outputs:
 1. output_prefix.blob_forces_B.dat: all blobs forces
-2. output_prefix.slip.dat: slip on all blobs
+2. output_prefix.slip: slip on all blobs
 3. output_prefix.s.p.16.shell_radius.4.0.dat: singular values of the matrix defining the least squared problem.
 '''
 import numpy as np
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     slip_B = np.dot(M_B, lambda_B) - np.dot(K_B, U_A)
 
     # Save active slip
-    with open(output_prefix + '.slip.dat', 'w') as f_handle:
+    with open(output_prefix + '.slip', 'w') as f_handle:
       f_handle.write(str(slip_B.size // 3) + '\n')
       np.savetxt(f_handle, slip_B.reshape((slip_B.size // 3, 3)))
 

@@ -16,6 +16,24 @@ except:
   except:
     import _pickle as cpickle
 
+# CHANGE 1: Add to the top of multi_bodies.py these lines with the right path to STKFMM
+try:
+  from mpi4py import MPI
+except ImportError:
+  print('It didn\'t find mpi4py!')
+
+# CHANGE 2: Add path for PySTKFMM
+sys.path.append('/home/fbalboa/sfw/FMM2/STKFMM-lib-gnu/lib/python/')
+PySTKFMM_found = False
+
+# CHANGE 3: Load STKFMM
+try:
+  import PySTKFMM
+  PySTKFMM_found = True
+except ImportError:
+  print('STKFMM library not found')
+    
+
 # Add path to HydroGrid and import module
 # sys.path.append('../../HydroGrid/src/')
 
@@ -28,6 +46,7 @@ while found_functions is False:
     import multi_bodies_functions
     from mobility import mobility as mb
     from Laplace_kernels import Laplace_kernels_numba as Laplace_kernels
+    from Laplace_kernels import Laplace_kernels_stkfmm as Laplace_stkfmm
     from quaternion_integrator.quaternion import Quaternion
     from quaternion_integrator.quaternion_integrator_multi_bodies import QuaternionIntegrator
     from quaternion_integrator.quaternion_integrator_rollers import QuaternionIntegratorRollers
@@ -73,7 +92,9 @@ class gmres_counter(object):
         print('gmres =  0 1')
       print('gmres = ', self.niter, rk)
     
-      
+
+@utils.static_var('no_wall_Laplace_kernels_stkfmm_partial', [])
+@utils.static_var('no_wall_double_layer_stkfmm_partial', [])
 def calc_slip(bodies, Nblobs, *args, **kwargs):
   '''
   Function to calculate the slip in all the blobs.
@@ -85,7 +106,26 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
   Laplace_flag = kwargs.get('Laplace_flag')
   r_vectors = get_blobs_r_vectors(bodies, Nblobs) 
   wall = 1 if kwargs.get('domain') == 'single_wall' else 0
+  use_stkfmm = True
 
+  if use_stkfmm:
+    # Get stkfmm
+    if len(calc_slip.no_wall_Laplace_kernels_stkfmm_partial) > 0:
+      no_wall_Laplace_kernels_stkfmm_partial = calc_slip.no_wall_Laplace_kernels_stkfmm_partial
+      no_wall_double_layer_stkfmm_partial = calc_slip.no_wall_double_layer_stkfmm_partial      
+    else:
+      # Create STFMM object
+      stkfmm_mult_order = 10
+      stkfmm_pbc = 'None'
+      stkfmm_max_points = 256
+      L = np.array([0, 0, 0])
+      comm = kwargs.get('comm')
+      no_wall_Laplace_kernels_stkfmm_partial = Laplace_stkfmm.set_Laplace_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, L=L, comm=comm)
+      calc_slip.no_wall_Laplace_kernels_stkfmm_partial = no_wall_Laplace_kernels_stkfmm_partial
+      
+      no_wall_double_layer_stkfmm_partial = set_double_layer_kernels(stkfmm_mult_order, stkfmm_pbc, stkfmm_max_points, L=L, comm=comm)
+      calc_slip.no_wall_double_layer_stkfmm_partial = no_wall_double_layer_stkfmm_partial
+      
   #1) Compute slip due to external torques on bodies with single blobs only
   torque_blobs = multi_bodies_functions.calc_one_blob_torques(r_vectors, blob_radius = a, g = g) 
 
@@ -131,14 +171,29 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
       + np.einsum('ik,ik->i', r_vectors, np.einsum('kj,ij->ik', Hessian, r_vectors))
     
     # Build RHS
-    RHS = c_background
-    RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate / diffusion_coefficient, weights, wall=wall)
+    use_eq_26 = True
+    if use_eq_26:
+      RHS = c_background
+      if use_stkfmm:
+        tmp, _ = no_wall_Laplace_kernels_stkfmm_partial(r_vectors, emitting_rate / diffusion_coefficient, normals * 0, weights)
+        RHS += tmp
+      else:
+        RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate / diffusion_coefficient, weights, wall=wall)
+    else:
+      RHS = 0.5 * c_background
+      RHS += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, emitting_rate, weights, wall=wall)
+      RHS -= Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c_background / diffusion_coefficient, weights, wall=wall)
+      RHS -= Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c_background, weights, normals, wall=wall)
       
     # Build linear operator
     def linear_operator_Laplace(c, r_vectors, normals, weights, reaction_rate, diffusion_coefficient):
       x = 0.5 * c
-      x -= Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall)
-      x += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c / diffusion_coefficient, weights, wall=wall)
+      if use_stkfmm:
+        tmp, _ = no_wall_Laplace_kernels_stkfmm_partial(r_vectors, reaction_rate * c / diffusion_coefficient, -c[:,None] * normals, weights)
+        x += tmp
+      else:
+        x -= Laplace_kernels.Laplace_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall)
+        x += Laplace_kernels.Laplace_single_layer_operator_numba(r_vectors, reaction_rate * c / diffusion_coefficient, weights, wall=wall)
       return x
     
     linear_operator_partial = partial(linear_operator_Laplace,
@@ -154,19 +209,140 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     tolerance = read.solver_tolerance 
     counter = gmres_counter(print_residual = print_residual)
     (c, info_precond) = utils.gmres(A, RHS, tol=tolerance,  maxiter=1000, restart=200, callback=counter)
+    if use_eq_26 is False:
+      c += c_background
 
+    if len(plot_concentration_field) > 0:
+      # Save concentration field
+      if (step % n_save) == 0 and step >= 0:
+         name = output_name + '.c_field.' + str(step).zfill(8)
+         pvf.plot_concentration_field_pyVTK(plot_concentration_field, r_vectors, c, reaction_rate, diffusion_coefficient, emitting_rate, normals, weights, background_Laplace, name)
+
+    if True:
+      # Compute polarity
+      Nbodies = len(bodies)
+      polarity = np.zeros((Nbodies,3))
+      cnweights = np.einsum('ij,i->ij',normals, np.multiply(c,weights))
+      Rh = 1
+      offset = 0
+      for k, b in enumerate(bodies):
+        polarity[k,:] = np.sum(cnweights[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('polarity      = ', polarity)
+      np.savetxt(output_name + '.polarity.dat', polarity)
+    
+    if True:
+      # Compute second moment
+      second_moment = np.zeros((Nbodies, 3, 3))
+      cnweights = np.einsum('ij,ik,i->ijk', normals, normals, np.multiply(c,weights)) - np.einsum('jk,i->ijk', np.identity(3), np.multiply(c,weights)) / 3.0
+      offset = 0    
+      for k, b in enumerate(bodies):
+        second_moment[k] = np.sum(cnweights[offset:offset+b.Nblobs], axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('second_moment = \n', second_moment)
+      print('second_moment = \n', second_moment.flatten())
+      np.savetxt(output_name + '.concentration_second_moment.dat', second_moment.reshape((Nbodies, 9)))    
+      
     # Compute concentration gradient
     grad_c = np.zeros((Nblobs, 3))
     grad_c += 4 * np.einsum('ij,jk->ik', r_vectors, Hessian) 
     grad_c[:,0] += 2 * background_Laplace[1]
     grad_c[:,1] += 2 * background_Laplace[2]
     grad_c[:,2] += 2 * background_Laplace[3]
-    grad_c += 2 * Laplace_kernels.Laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall).reshape((Nblobs, 3))
-    grad_c -= 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, (emitting_rate - reaction_rate * c) / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
+    if use_stkfmm:
+      _, tmp = no_wall_Laplace_kernels_stkfmm_partial(r_vectors, (emitting_rate - reaction_rate * c) / diffusion_coefficient, c[:,None] * normals, weights)
+      grad_c -= 2 * tmp
+    else:
+      grad_c += 2 * Laplace_kernels.Laplace_deriv_double_layer_operator_numba(r_vectors, c, weights, normals, wall=wall).reshape((Nblobs, 3))
+      grad_c -= 2 * Laplace_kernels.Laplace_dipole_operator_numba(r_vectors, (emitting_rate - reaction_rate * c) / diffusion_coefficient, weights, wall=wall).reshape((Nblobs, 3))
+
+    if True:
+      # Save gradient
+      np.savetxt(output_name + '.grad_c.dat', grad_c)
+    
+    if False:
+      print('mean(grad_c)  = ', np.mean(grad_c, axis=0))
+      print('norm(grad_c)  = ', np.linalg.norm(grad_c, axis=0))  
+
+    if False:
+      # Compute total reaction rate 
+      total_reaction_rate = np.zeros(Nbodies)
+      offset = 0
+      for k, b in enumerate(bodies):
+        grad_c_dot_n = diffusion_coefficient * np.einsum('ij,ij,i->i', grad_c[offset:offset+b.Nblobs], normals[offset:offset+b.Nblobs], weights[offset:offset+b.Nblobs])
+        print('mean(grad_c_dot_n) = ', np.mean(grad_c_dot_n))
+        print('norm(grad_c_dot_n) = ', np.linalg.norm(grad_c_dot_n))
+        print('grad_c_dot_n = \n', grad_c_dot_n)
+        total_reaction_rate[k] = np.sum(grad_c_dot_n)
+        offset += b.Nblobs
+      print('total rate    = ', total_reaction_rate)
+      np.savetxt(output_name + '.total_reaction_rate.dat', total_reaction_rate)
+      print('\n\n')
+
+    if True:
+      # Compute concentration on the blobs
+      output_name_concentration = output_name + '.concentration_on_blobs.dat'
+      result = np.zeros((Nblobs, 4))
+      result[:,0:3] = r_vectors
+      result[:,3] = c      
+      np.savetxt(output_name_concentration, result)
+
+    if False:
+      # Compute concentration on a shell centered in the origin
+      from mapping.user_defined_functions import parametrization, sphere
+      
+      # Create sphere
+      p = 32
+      sphere_radius = 10
+      uv, uv_weights = parametrization(p)
+      grid_sphere = sphere(sphere_radius, uv)
+
+      # Compute concentration on sphere
+      c_sphere = background_Laplace[0] + np.einsum('j,ij->i', background_Laplace[1:4], grid_sphere) \
+        + np.einsum('ik,ik->i', grid_sphere, np.einsum('kj,ij->ik', Hessian, grid_sphere))
+      c_sphere -= Laplace_kernels.Laplace_single_layer_operator_source_target_numba(r_vectors,
+                                                                                    grid_sphere,
+                                                                                    (reaction_rate * c - emitting_rate) / diffusion_coefficient,
+                                                                                    weights,
+                                                                                    wall=wall)
+      c_sphere += Laplace_kernels.Laplace_double_layer_operator_source_target_numba(r_vectors,
+                                                                                    grid_sphere,
+                                                                                    c,
+                                                                                    weights,
+                                                                                    normals,
+                                                                                    wall=wall)
+      
+      # Write velocity field
+      output_name_concentration = output_name + '.sphere_radius.' + str(sphere_radius) + '.p.'+ str(p) + '.concentration_field_sphere.dat'
+      header = 'R=' + str(sphere_radius) + ', p=' + str(p) + ', N=' + str(uv_weights.size) + ', 5 Columns: grid point (x,y,z), quadrature weight, concentration'
+      result = np.zeros((grid_sphere.shape[0], 5))
+      result[:,0:3] = grid_sphere
+      result[:,3] = uv_weights * sphere_radius**2
+      result[:,4] = c_sphere
+      np.savetxt(output_name_concentration, result, header=header)
+
       
     # Compute slip velocity
     slip += surface_mobility[:,None] * (grad_c - np.einsum('ij,i->ij', normals, np.einsum('ik,ik->i', normals, grad_c)))
     
+    if True:
+      # Write slip for each blob
+      if (step % n_save) == 0 and step >= 0:
+        output_name_slip = output_name + '.slip_blobs.dat'
+        mode = 'w' if step == 0 else 'a'
+        with open(output_name_slip, mode) as f_handle:
+          np.savetxt(f_handle, slip.reshape((Nblobs, 3)))
+
+    if False:
+      # Compue mean slip
+      mean_slip  = np.zeros((Nbodies,3))
+      slip_weight = np.einsum('ij,i->ij',slip,weights)
+      offset = 0
+      for k, b in enumerate(bodies):
+        mean_slip[k,:] = np.sum(slip_weight[offset:offset+b.Nblobs],axis=0) / (4 * np.pi * Rh**2)
+        offset += b.Nblobs
+      print('mean_slip     = ', mean_slip)
+      
   #2) Add prescribed slip 
   offset = 0
   for b in bodies:
@@ -174,7 +350,7 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
     slip[offset:offset+b.Nblobs] += slip_b
     offset += b.Nblobs
 
-  if False:
+  if True:
     # Apply double layer, slip_RHS = 0.5 * slip + D[slip]
     r_vectors = get_blobs_r_vectors(bodies, Nblobs)
     if normals is None:
@@ -185,7 +361,10 @@ def calc_slip(bodies, Nblobs, *args, **kwargs):
         normals[offset : offset+b.Nblobs] = utils.get_vectors_frame_body(b.normals, body=b, translate=False, rotate=True, transpose=False)
         weights[offset : offset+b.Nblobs] = b.weights
     # Apply second layer
-    Dslip = mb.double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights, wall=wall).reshape((Nblobs, 3))
+    if use_stkfmm:
+      Dslip = no_wall_double_layer_stkfmm_partial(r_vectors, normals, slip, weights).reshape((Nblobs, 3))
+    else:
+      Dslip = mb.double_layer_source_target_numba(r_vectors, r_vectors, normals, slip, weights, wall=wall).reshape((Nblobs, 3))
     slip = 0.5 * slip + Dslip  
     
   return slip
@@ -230,17 +409,10 @@ def set_mobility_blobs(implementation):
     return  mb.boosted_free_surface_mobility
 
 
+# CHANGE 4: Replace this function in multi_bodies.py
 def set_mobility_vector_prod(implementation, *args, **kwargs):
   '''
-  Set the function to compute the matrix-vector
-  product (M*F) with the mobility defined at the blob 
-  level to the right implementation.
-  
-  The implementations in numba, pycuda and C++ are much faster than the
-  python implementation. 
-  Depending on the computer the fastest implementation will be the C++ or the pycuda codes.
-  To use the pycuda implementation is necessary to have installed pycuda and a GPU with CUDA capabilities. 
-  To use the C++ implementation the user has to compile the file mobility/mobility.cpp.  
+  New function with STKFMM call.
   ''' 
   # Implementations without wall
   if implementation == 'python_no_wall':
@@ -249,6 +421,35 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
     return mb.no_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba_no_wall':
     return mb.no_wall_mobility_trans_times_force_numba
+  elif implementation == 'stkfmm_no_wall':
+    # STKFMM parameters
+    mult_order = kwargs.get('stkfmm_mult_order')
+    pbc_string = kwargs.get('stkfmm_pbc')
+    max_pts = kwargs.get('stkfmm_max_points')
+    if pbc_string == 'None':
+      pbc = PySTKFMM.PAXIS.NONE
+    elif pbc_string == 'PX':
+      pbc = PySTKFMM.PAXIS.PX
+    elif pbc_string == 'PXY':
+      pbc = PySTKFMM.PAXIS.PXY
+    elif pbc_string == 'PXYZ':
+      pbc = PySTKFMM.PAXIS.PXYZ
+    else:
+      print('Error while setting pbc for stkfmm!')
+
+    # u, lapu kernel (4->6)
+    kernel = PySTKFMM.KERNEL.RPY
+
+    # Setup FMM
+    rpy_fmm = PySTKFMM.Stk3DFMM(mult_order, max_pts, pbc, kernel)
+    no_wall_mobility_trans_times_force_stkfmm_partial = partial(mb.mobility_trans_times_force_stkfmm, 
+                                                                rpy_fmm=rpy_fmm, 
+                                                                L=kwargs.get('L'),
+                                                                wall=False,
+                                                                comm=kwargs.get('comm'))
+    return no_wall_mobility_trans_times_force_stkfmm_partial
+
+  
   # Implementations with wall
   elif implementation == 'python':
     return mb.single_wall_fluid_mobility_product
@@ -258,6 +459,32 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
     return mb.single_wall_mobility_trans_times_force_pycuda
   elif implementation == 'numba':
     return mb.single_wall_mobility_trans_times_force_numba
+  elif implementation == 'stkfmm_single_wall':
+    # STKFMM parameters
+    mult_order = kwargs.get('stkfmm_mult_order')
+    pbc_string = kwargs.get('stkfmm_pbc')
+    max_pts = kwargs.get('stkfmm_max_points')
+    if pbc_string == 'None':
+      pbc = PySTKFMM.PAXIS.NONE
+    elif pbc_string == 'PX':
+      pbc = PySTKFMM.PAXIS.PX
+    elif pbc_string == 'PXY':
+      pbc = PySTKFMM.PAXIS.PXY
+    elif pbc_string == 'PXYZ':
+      pbc = PySTKFMM.PAXIS.PXYZ
+
+    # u, lapu kernel (4->6)
+    kernel = PySTKFMM.KERNEL.RPY
+
+    # Setup FMM
+    rpy_fmm = PySTKFMM.StkWallFMM(mult_order, max_pts, pbc, kernel)
+    no_wall_mobility_trans_times_force_stkfmm_partial = partial(mb.mobility_trans_times_force_stkfmm, 
+                                                                rpy_fmm=rpy_fmm, 
+                                                                L=kwargs.get('L'),
+                                                                wall=True,
+                                                                comm=kwargs.get('comm'))
+    return no_wall_mobility_trans_times_force_stkfmm_partial
+  
   # Implementations free surface
   elif implementation == 'pycuda_free_surface':
     return mb.free_surface_mobility_trans_times_force_pycuda
@@ -281,6 +508,36 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
       radius_blobs.append(b.blobs_radius)
     radius_blobs = np.concatenate(radius_blobs, axis=0)    
     return partial(mb.mobility_radii_trans_times_force, radius_blobs=radius_blobs, function=function)
+
+
+# CHANGE 5: Add this function to multi_bodies.py
+def set_double_layer_kernels(mult_order, pbc_string, max_pts, L=np.zeros(3), *args, **kwargs):
+  print('pbc_string = ', pbc_string)
+
+  if pbc_string == 'None':
+    pbc = PySTKFMM.PAXIS.NONE
+  elif pbc_string == 'PX':
+    pbc = PySTKFMM.PAXIS.PX
+  elif pbc_string == 'PXY':
+    pbc = PySTKFMM.PAXIS.PXY
+  elif pbc_string == 'PXYZ':
+    pbc = PySTKFMM.PAXIS.PXYZ
+  else:
+    print('Error while setting pbc for stkfmm!')
+
+  comm = kwargs.get('comm')
+  comm.Barrier()
+
+  # u, lapu kernel (4->6)
+  kernel = PySTKFMM.KERNEL.PVel
+
+  # Setup FMM
+  PVel = PySTKFMM.Stk3DFMM(mult_order, max_pts, pbc, kernel)
+  no_wall_double_layer_stkfmm_partial = partial(mb.double_layer_stkfmm,
+                                                PVel=PVel, 
+                                                L=L,
+                                                comm=kwargs.get('comm'))
+  return no_wall_double_layer_stkfmm_partial  
 
 
 def calc_K_matrix(bodies, Nblobs):
@@ -1106,6 +1363,14 @@ def build_block_diagonal_preconditioner_articulated_single_blobs(bodies, articul
 
 
 if __name__ == '__main__':
+  # CHANGE 5: Add these lines at the very top of __main__ in multi_bodies.py
+  # MPI
+  if PySTKFMM_found:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+  else:
+    comm = None
+  
   # Get command line arguments
   parser = argparse.ArgumentParser(description='Run a multi-body simulation and save trajectory.')
   parser.add_argument('--input-file', dest='input_file', type=str, default='data.main', help='name of the input file')
@@ -1334,14 +1599,22 @@ if __name__ == '__main__':
   integrator.calc_slip = partial(calc_slip,
                                  implementation = read.mobility_vector_prod_implementation, 
                                  blob_radius = a, 
-                                 eta = eta, 
+                                 eta = a, 
                                  g = g,
                                  Laplace_flag = Laplace_flag,
-                                 domain = read.domain) 
+                                 domain = read.domain,
+                                 comm = comm) 
   integrator.get_blobs_r_vectors = get_blobs_r_vectors 
   integrator.mobility_blobs = set_mobility_blobs(read.mobility_blobs_implementation)
-  integrator.mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
-  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, bodies=bodies)
+
+  # CHANGE 6: Inside the main replace the call to set_mobility_vector_prod with these lines
+  mobility_vector_prod = set_mobility_vector_prod(read.mobility_vector_prod_implementation, 
+                                                  stkfmm_mult_order=read.stkfmm_mult_order, 
+                                                  stkfmm_pbc=read.stkfmm_pbc,
+                                                  stkfmm_max_points=read.stkfmm_max_points,
+                                                  L=read.periodic_length,
+                                                  comm=comm)  
+  integrator.mobility_vector_prod = mobility_vector_prod 
   integrator.force_torque_calculator = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies, 
                                                g = g, 
                                                repulsion_strength_wall = read.repulsion_strength_wall, 
