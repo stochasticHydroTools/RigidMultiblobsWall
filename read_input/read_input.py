@@ -99,7 +99,6 @@ class ReadInput(object):
     self.domType = str(self.options.get('domType') or 'RPB')
     tmp_Laplace = np.fromstring(self.options.get('background_Laplace') or 'None', sep=' ')
     self.background_Laplace = np.hstack([tmp_Laplace, np.zeros(9 - tmp_Laplace.size)]).flatten()
-    print('self.background_Laplace = ', self.background_Laplace)
     self.diffusion_coefficient = float(self.options.get('diffusion_coefficient') or 1.0)
 
     # Create list with [vertex_file, clones_file] for each structure
