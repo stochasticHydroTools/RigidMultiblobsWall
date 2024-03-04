@@ -1,9 +1,9 @@
 # Chiral phoretic microrotors
-Example to simulate chiral phoretic microrotors with sprinkle shapes as in Ref.
+Example to simulate two chiral phoretic microrotors with same shape and surface properties as in Ref.
 
 To run this example do:
 
-1. Run the utility code `create_sprinkler_vertex_file.py` to generate the files that describe a sprinkle shape colloid.
+1. (Optional)  Run the utility code `create_sprinkler_vertex_file.py` to generate the files that discretize a chiral colloid with "sprinkler" shape.
 It generates two files, a `.vertex` file with the position of the blobs/nodes discretizing the colloids and
 a `.Laplace` file with the surface normals, reaction rate, emitting rate, surface mobility, weights to solve the Laplace equation.
 The geometric parameters of the colloid can be changed up the top of the `main` function.
