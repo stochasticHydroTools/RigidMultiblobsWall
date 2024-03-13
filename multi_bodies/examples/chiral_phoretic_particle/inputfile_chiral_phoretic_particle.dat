@@ -32,9 +32,10 @@ repulsion_strength_wall                     0.0
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
-structure ../../Structures/sprinkler_N_60_La_5_00_Lb_5_00_W_1_00.vertex  ../../Structures/two_sprinklers.clones   ../../Structures/sprinkler_N_60_La_5_00_Lb_5_00_W_1_00.Laplace
+structure ../../Structures/sprinkler_N_72_La_5_00_Lb_5_00_W_1_00.vertex  ../../Structures/two_sprinklers.clones   ../../Structures/sprinkler_N_72_La_5_00_Lb_5_00_W_1_00_k_0_00_alpha_1_00_surf_mob_1_00.Laplace
+
 
 # Set output name
-output_name                              data/run_sprinkler
+output_name                              data/run_chiral_phoretic_particle
 save_clones				                       one_file
 
