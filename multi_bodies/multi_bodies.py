@@ -1154,6 +1154,7 @@ if __name__ == '__main__':
   body_types = []
   body_names = []
   blobs_offset = 0
+  Laplace_flag = None  
   for ID, structure in enumerate(structures):
     print('Creating structures = ', structure[1])
     # Read vertex and clones files
@@ -1162,7 +1163,6 @@ if __name__ == '__main__':
     # Read slip and Laplace files if it exist
     slip = None
     Laplace = None
-    Laplace_flag = None
     if(len(structure) > 2):
       for k, file_name in enumerate(structure[2:]):
         if file_name.endswith('.slip'):
