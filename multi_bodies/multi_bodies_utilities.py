@@ -286,7 +286,8 @@ if __name__ ==  '__main__':
     num_bodies_struct, struct_locations, struct_orientations = read_clones_file.read_clones_file(structure[1])
     # Read slip and Laplace files if it exist
     slip = None 
-    Laplace = None 
+    Laplace = None
+    Laplace_flag = None    
     if(len(structure) > 2):
       for k, file_name in enumerate(structure[2:]):
         if file_name.endswith('.slip'):
@@ -603,12 +604,13 @@ if __name__ ==  '__main__':
     name = read.output_name + '.body_slip_mobility.dat'
     np.savetxt(name, slip_mobility_bodies, delimiter='  ')
 
-    Io2 = np.eye(3*Nblobs)*0.5 
-    D = double_layer_matrix_source_target_numba(r_vectors_blobs, r_vectors_blobs, normals, weights)
-    I2pD = Io2 + D 
-    slip_mobility_bodies_double_layer = np.dot(slip_mobility_bodies,I2pD)
-    name = read.output_name + '.body_slip_mobility_double_layer.dat'
-    np.savetxt(name, slip_mobility_bodies_double_layer, delimiter='  ')
+    if Laplace_flag:
+      Io2 = np.eye(3*Nblobs)*0.5 
+      D = double_layer_matrix_source_target_numba(r_vectors_blobs, r_vectors_blobs, normals, weights)
+      I2pD = Io2 + D 
+      slip_mobility_bodies_double_layer = np.dot(slip_mobility_bodies,I2pD)
+      name = read.output_name + '.body_slip_mobility_double_layer.dat'
+      np.savetxt(name, slip_mobility_bodies_double_layer, delimiter='  ')
     print('Time to compute body mobility =', time.time() - start_time)
 
   elif (read.scheme == 'plot_velocity_field' and False):
