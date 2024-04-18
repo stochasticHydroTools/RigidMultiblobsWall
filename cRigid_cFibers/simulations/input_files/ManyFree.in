@@ -1,0 +1,17 @@
+n_fibers 1000
+n_blobs_per_fiber 100
+fiber_length 2.0
+ds 0.02 # L_f*eps_hat
+blob_radius 0.017850767583006067 # a = a_hat/1.1204
+eta 0.1
+solver RPY
+time_stepper BE
+kbt 0.004142
+k_bend 0.008284 # L_f*kBT
+mobility_scale 2.9719533040026596 # 1/(6pi*eta*a)
+### alpha 0 # ((ds^3)/M0)/k_bend
+alpha_factor 1 # sets dt = alpha*alpha_factor
+save_end_to_end 1 # 0 False, 1 True
+n_save_end_to_end 1
+end_to_end_file manyFree_e2e.txt
+save_posistions 0
