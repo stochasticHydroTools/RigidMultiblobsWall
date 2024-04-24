@@ -251,6 +251,7 @@ def single_wall_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *arg
     velocities = B.dot(velocities)
   return velocities
 
+
 def in_plane_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
   '''
   Returns the product of the mobility at the blob level by the force
@@ -526,6 +527,24 @@ def single_wall_mobility_trans_times_force_source_target_pycuda(source, target, 
   # Compute B.T * M * B * vector
   if overlap_target is True:
     velocities = B_target.dot(velocities)
+  return velocities
+
+
+def free_surface_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs):
+  '''
+  Returns the product of the mobility at the blob level by the force   on the blobs.
+  Mobility for particles near a free stress surface.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the Blake paper point particle result.
+
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes.
+
+  This function uses pycuda.
+  '''
+  # Get effective height
+  velocities = mobility_pycuda.free_surface_mobility_trans_times_force_pycuda(r_vectors, force, eta, a, *args, **kwargs)
   return velocities
 
 
@@ -1262,7 +1281,6 @@ def single_wall_mobility_rot_times_force_numba(r_vectors, force, eta, a, *args, 
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
   
-  This function uses pycuda.
   '''
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   # Get effective height
@@ -1306,7 +1324,6 @@ def single_wall_mobility_rot_times_torque_numba(r_vectors, torque, eta, a, *args
   For blobs overlaping the wall we use
   Compute M = B^T * M_tilde(z_effective) * B.
 
-  This function uses pycuda.
   '''
   L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
   # Get effective height
@@ -1366,5 +1383,47 @@ def double_layer_source_target_numba(source, target, normals, vector, weights, *
 
   wall = kwargs.get('wall', 0)
   velocities = mobility_numba.double_layer_source_target_numba(source, target, normals, vector, weights, wall=wall)
+
+  return velocities
+
+
+def free_surface_mobility_trans_times_force_numba(r_vectors, force, eta, a, *args, **kwargs):
+  ''' 
+  Returns the product of the mobility at the blob level by the force  on the blobs.
+  Mobility for particles near a free surface. This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the 
+  Blake paper point particle result. 
+   
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes. 
+
+  This function uses numba.
+  '''
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+  velocities = mobility_numba.free_surface_mobility_trans_times_force_numba(r_vectors, force, eta, a, L)
+  return velocities
+
+
+def free_surface_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, *args, **kwargs):
+  '''
+  Returns the product of the mobility at the blob level by the force on the blobs.
+  Mobility for particles near a free surface.  This uses the expression from
+  the Swan and Brady paper for a finite size particle, as opposed to the
+  Blake paper point particle result.
+
+  If a component of periodic_length is larger than zero the
+  space is assume to be pseudo-periodic in that direction. In that case
+  the code will compute the interactions M*f between particles in
+  the minimal image convection and also in the first neighbor boxes.
+
+  This function uses numba.
+  '''
+  # Get domain size for Pseudo-PBC
+  L = kwargs.get('periodic_length', np.array([0.0, 0.0, 0.0]))
+
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.free_surface_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L=L)
 
   return velocities

@@ -261,6 +261,8 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
   # Implementations free surface
   elif implementation == 'pycuda_free_surface':
     return mb.free_surface_mobility_trans_times_force_pycuda
+  elif implementation == 'numba_free_surface':
+    return mb.free_surface_mobility_trans_times_force_numba
   # Implementations different radii
   elif implementation.find('radii') > -1:
     # Get right function
@@ -274,6 +276,8 @@ def set_mobility_vector_prod(implementation, *args, **kwargs):
       function = mb.mobility_vector_product_source_target_one_wall
     elif implementation == 'radii_no_wall':
       function = mb.mobility_vector_product_source_target_unbounded
+    if implementation == 'radii_numba_free_surface':
+      function = mb.free_surface_mobility_trans_times_force_source_target_numba
     # Get blobs radii
     bodies = kwargs.get('bodies')
     radius_blobs = []

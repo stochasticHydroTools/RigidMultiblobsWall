@@ -1764,3 +1764,328 @@ def double_layer_source_target_numba(source, target, normals, vector, weights, w
     u[i,2] = factor * uz
 
   return u.flatten()
+
+
+@njit(parallel=True, fastmath=True)
+def free_surface_mobility_trans_times_force_numba(r_vectors, force, eta, a, L):
+  ''' 
+  Returns the product of the mobility at the blob level to the force 
+  on the blobs. Mobility for particles above a free surface.
+  
+  This function uses numba.
+  '''
+  # Variables
+  N = r_vectors.size // 3
+  r_vectors = r_vectors.reshape(N, 3)
+  force = force.reshape(N, 3)
+  u = np.zeros((N, 3))
+  fourOverThree = 4.0 / 3.0
+  inva = 1.0 / a
+  norm_fact_f = 1.0 / (8.0 * np.pi * eta * a)
+
+  # Determine if the space is pseudo-periodic in any dimension
+  # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  periodic_x = 0
+  periodic_y = 0
+  periodic_z = 0 
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
+  if Lx > 0:
+    periodic_x = 1
+  if Ly > 0:
+    periodic_y = 1
+  if Lz > 0:
+    periodic_z = 1
+    
+  rx_vec = np.copy(r_vectors[:,0])
+  ry_vec = np.copy(r_vectors[:,1])
+  rz_vec = np.copy(r_vectors[:,2])
+  fx_vec = np.copy(force[:,0])
+  fy_vec = np.copy(force[:,1])
+  fz_vec = np.copy(force[:,2])
+  ux_vec = np.zeros(N)
+  uy_vec = np.zeros(N)
+  uz_vec = np.zeros(N)
+    
+  # Loop over image boxes and then over particles
+  for i in prange(N):
+    rxi = rx_vec[i]
+    ryi = ry_vec[i]
+    rzi = rz_vec[i]
+    for boxX in range(-periodic_x, periodic_x+1):
+      for boxY in range(-periodic_y, periodic_y+1):
+        for boxZ in range(-periodic_z, periodic_z+1):
+          for j in range(N):
+	  
+            # Compute vector between particles i and j
+            rx = rxi - rx_vec[j]
+            ry = ryi - ry_vec[j]
+            rz = rzi - rz_vec[j]
+
+            # Project a vector r to the extended unit cell
+            # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+            # any dimension of L is equal or smaller than zero the 
+            # box is assumed to be infinite in that direction.
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
+               
+            # 1. Compute mobility for pair i-j, if i==j use self-interation
+            j_image = j
+            if boxX != 0 or boxY != 0 or boxZ != 0:
+              j_image = -1           
+
+            rx = rx * inva 
+            ry = ry * inva
+            rz = rz * inva
+            if i == j_image:
+              Mxx = fourOverThree
+              Mxy = 0
+              Mxz = 0
+              Myy = Mxx
+              Myz = 0
+              Mzz = Mxx           
+            else:
+              # Normalize distance with hydrodynamic radius
+              r2 = rx*rx + ry*ry + rz*rz
+              r = np.sqrt(r2)
+              
+              # TODO: We should not divide by zero 
+              invr = 1.0 / r
+              invr2 = invr * invr
+
+              if r > 2:
+                c1 = 1.0 + 2.0 / (3.0 * r2)
+                c2 = (1.0 - 2.0 * invr2) * invr2
+                Mxx = (c1 + c2*rx*rx) * invr
+                Mxy = (     c2*rx*ry) * invr
+                Mxz = (     c2*rx*rz) * invr
+                Myy = (c1 + c2*ry*ry) * invr
+                Myz = (     c2*ry*rz) * invr
+                Mzz = (c1 + c2*rz*rz) * invr 
+              else:
+                c1 = fourOverThree * (1.0 - 0.28125 * r) # 9/32 = 0.28125
+                c2 = fourOverThree * 0.09375 * invr      # 3/32 = 0.09375
+                Mxx = c1 + c2 * rx*rx 
+                Mxy =      c2 * rx*ry 
+                Mxz =      c2 * rx*rz 
+                Myy = c1 + c2 * ry*ry 
+                Myz =      c2 * ry*rz 
+                Mzz = c1 + c2 * rz*rz 
+                
+            Myx = Mxy
+            Mzx = Mxz
+            Mzy = Myz
+
+            # Free surface correction
+            rz = (rzi + rz_vec[j]) * inva
+
+            # Normalize distance with hydrodynamic radius
+            r2 = rx*rx + ry*ry + rz*rz
+            r = np.sqrt(r2)
+              
+            # TODO: We should not divide by zero 
+            invr = 1.0 / r
+            invr2 = invr * invr
+
+            if r > 2:
+              c1 = 1.0 + 2.0 / (3.0 * r2)
+              c2 = (1.0 - 2.0 * invr2) * invr2
+              Mxx_image = (c1 + c2*rx*rx) * invr
+              Mxy_image = (     c2*rx*ry) * invr
+              Mxz_image = (     c2*rx*rz) * invr
+              Myy_image = (c1 + c2*ry*ry) * invr
+              Myz_image = (     c2*ry*rz) * invr
+              Mzz_image = (c1 + c2*rz*rz) * invr 
+            else:
+              c1 = fourOverThree * (1.0 - 0.28125 * r) # 9/32 = 0.28125
+              c2 = fourOverThree * 0.09375 * invr      # 3/32 = 0.09375
+              Mxx_image = c1 + c2 * rx*rx 
+              Mxy_image =      c2 * rx*ry 
+              Mxz_image =      c2 * rx*rz 
+              Myy_image = c1 + c2 * ry*ry 
+              Myz_image =      c2 * ry*rz 
+              Mzz_image = c1 + c2 * rz*rz 
+
+            # Add both mobilities
+            Mxx = Mxx + Mxx_image
+            Mxy = Mxy + Mxy_image
+            Mxz = Mxz - Mxz_image
+            Myx = Myx + Mxy_image
+            Myy = Myy + Myy_image
+            Myz = Myz - Myz_image
+            Mzx = Mzx + Mxz_image
+            Mzy = Mzy + Myz_image
+            Mzz = Mzz - Mzz_image
+
+            # 2. Compute product M_ij * F_j           
+            ux_vec[i] += (Mxx * fx_vec[j] + Mxy * fy_vec[j] + Mxz * fz_vec[j]) * norm_fact_f
+            uy_vec[i] += (Myx * fx_vec[j] + Myy * fy_vec[j] + Myz * fz_vec[j]) * norm_fact_f
+            uz_vec[i] += (Mzx * fx_vec[j] + Mzy * fy_vec[j] + Mzz * fz_vec[j]) * norm_fact_f
+
+    u[i,0] = ux_vec[i]
+    u[i,1] = uy_vec[i]
+    u[i,2] = uz_vec[i]
+
+  return u.flatten()
+
+
+@njit(parallel=True, fastmath=True)
+def free_surface_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L):
+  '''
+  Flow created on target blobs by force applied on source blobs. 
+  Blobs can have different radius.
+  '''
+  # Prepare vectors
+  num_targets = target.size // 3
+  num_sources = source.size // 3
+  source = source.reshape(num_sources, 3)
+  target = target.reshape(num_targets, 3)
+  force = force.reshape(num_sources, 3)
+  u = np.zeros((num_targets, 3))
+  fourOverThree = 4.0 / 3.0
+  norm_fact_f = 1.0 / (8.0 * np.pi * eta)
+  
+  # Determine if the space is pseudo-periodic in any dimension
+  # We use a extended unit cell of length L=3*(Lx, Ly, Lz)
+  periodic_x = 0
+  periodic_y = 0
+  periodic_z = 0 
+  Lx = L[0]
+  Ly = L[1]
+  Lz = L[2]
+  if Lx > 0:
+    periodic_x = 1
+  if Ly > 0:
+    periodic_y = 1
+  if Lz > 0:
+    periodic_z = 1
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+  fx_vec = np.copy(force[:,0])
+  fy_vec = np.copy(force[:,1])
+  fz_vec = np.copy(force[:,2])
+
+  # Loop over image boxes and then over particles
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+    a = radius_target[i]
+    ux, uy, uz = 0, 0, 0
+    for boxX in range(-periodic_x, periodic_x+1):
+      for boxY in range(-periodic_y, periodic_y+1):
+        for boxZ in range(-periodic_z, periodic_z+1):
+          for j in range(num_sources):
+            b = radius_source[j]
+            
+            # Compute vector between particles i and j
+            rx = rxi - rx_src[j]
+            ry = ryi - ry_src[j]
+            rz = rzi - rz_src[j]
+
+            # Project a vector r to the extended unit cell
+            # centered around (0,0,0) and of size L=3*(Lx, Ly, Lz). If 
+            # any dimension of L is equal or smaller than zero the 
+            # box is assumed to be infinite in that direction.
+            if Lx > 0:
+              rx = rx - int(rx / Lx + 0.5 * (int(rx>0) - int(rx<0))) * Lx
+              rx = rx + boxX * Lx
+            if Ly > 0:
+              ry = ry - int(ry / Ly + 0.5 * (int(ry>0) - int(ry<0))) * Ly
+              ry = ry + boxY * Ly 
+            if Lz > 0:
+              rz = rz - int(rz / Lz + 0.5 * (int(rz>0) - int(rz<0))) * Lz
+              rz = rz + boxZ * Lz            
+
+            # Compute interaction without wall
+            r2 = rx*rx + ry*ry + rz*rz
+            r = np.sqrt(r2)
+            
+            if r > (a + b):
+              a2 = a * a
+              b2 = b * b
+              C1 = (1 + (b2+a2) / (3 * r2)) / r
+              C2 = ((1 - (b2+a2) / r2) / r2) / r
+            elif r > abs(b-a):
+              r3 = r2 * r
+              C1 = ((16*(b+a)*r3 - np.power(np.power(b-a,2) + 3*r2,2)) / (32*r3)) * fourOverThree / (b * a)
+              C2 = ((3*np.power(np.power(b-a,2)-r2, 2) / (32*r3)) / r2) * fourOverThree / (b * a)
+            else:
+              largest_radius = a if a > b else b
+              C1 = fourOverThree / largest_radius
+              C2 = 0             
+
+            Mxx = C1 + C2 * rx * rx;
+            Mxy =      C2 * rx * ry;
+            Mxz =      C2 * rx * rz;
+            Myy = C1 + C2 * ry * ry;
+            Myz =      C2 * ry * rz;
+            Mzz = C1 + C2 * rz * rz;
+            Myx = Mxy
+            Mzx = Mxz
+            Mzy = Myz
+
+            # Image correction
+            rz = (rzi + rz_src[j])          
+            r2 = rx*rx + ry*ry + rz*rz
+            r = np.sqrt(r2)
+            
+            if r > (a + b):
+              a2 = a * a
+              b2 = b * b
+              C1 = (1 + (b2+a2) / (3 * r2)) / r
+              C2 = ((1 - (b2+a2) / r2) / r2) / r
+            elif r > abs(b-a):
+              r3 = r2 * r
+              C1 = ((16*(b+a)*r3 - np.power(np.power(b-a,2) + 3*r2,2)) / (32*r3)) * fourOverThree / (b * a)
+              C2 = ((3*np.power(np.power(b-a,2)-r2, 2) / (32*r3)) / r2) * fourOverThree / (b * a)
+            else:
+              largest_radius = a if a > b else b
+              C1 = fourOverThree / largest_radius
+              C2 = 0             
+
+            Mxx_image = C1 + C2 * rx * rx;
+            Mxy_image =      C2 * rx * ry;
+            Mxz_image =      C2 * rx * rz;
+            Myy_image = C1 + C2 * ry * ry;
+            Myz_image =      C2 * ry * rz;
+            Mzz_image = C1 + C2 * rz * rz;
+            Myx_image = Mxy
+            Mzx_image = Mxz
+            Mzy_image = Myz
+            
+            # Add both mobilities
+            Mxx = Mxx + Mxx_image
+            Mxy = Mxy + Mxy_image
+            Mxz = Mxz - Mxz_image
+            Myx = Myx + Mxy_image
+            Myy = Myy + Myy_image
+            Myz = Myz - Myz_image
+            Mzx = Mzx + Mxz_image
+            Mzy = Mzy + Myz_image
+            Mzz = Mzz - Mzz_image
+              
+            # 2. Compute product M_ij * F_j           
+            ux += (Mxx * fx_vec[j] + Mxy * fy_vec[j] + Mxz * fz_vec[j]) * norm_fact_f
+            uy += (Myx * fx_vec[j] + Myy * fy_vec[j] + Myz * fz_vec[j]) * norm_fact_f
+            uz += (Mzx * fx_vec[j] + Mzy * fy_vec[j] + Mzz * fz_vec[j]) * norm_fact_f
+
+    u[i,0] = ux
+    u[i,1] = uy
+    u[i,2] = uz
+
+  return u.flatten()

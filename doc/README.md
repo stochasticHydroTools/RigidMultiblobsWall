@@ -269,7 +269,8 @@ corrections (Rotner-Prager-Blake tensor) as explained in the introduction.
 
 * `mobility_vector_prod_implementation`: Options: `python`, `numba`,
 `pycuda`, `C++`, `python_no_wall`, `numba_no_wall`, `pycuda_no_wall`, `radii_python`,
-`radii_python_no_wall`, `radii_numba`, `radii_numba_no_wall` and `radii_pycuda`.
+`radii_python_no_wall`, `radii_numba`, `radii_numba_no_wall`, `radii_pycuda`,
+`pycuda_free_surface`, `numba_free_surface` and `radii_numba_free_surface`.
 It selects the implementation to compute the matrix vector product
 **Mf**.
 The options ended with `_no_wall` use the Rotne-Prager tensor, the others include wall
