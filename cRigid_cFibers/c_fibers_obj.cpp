@@ -6,7 +6,13 @@
 // ################################################################################
 #include <cmath>
 #include <omp.h>
+
+#ifdef USE_MKL
+#include <mkl.h>
+#else
 #include <lapacke.h>
+#endif
+
 #include <chrono>
 #include <random>
 #include <vector>
@@ -18,7 +24,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/eigen.h>
 
-#include <eigen3/Eigen/Eigen>
+// #include <eigen3/Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -30,7 +36,6 @@ using PSEParameters = PyParameters;
 
 #include "libMobility/solvers/NBody/mobility.h"
 #include "libMobility/solvers/PSE/mobility.h"
-
 using real = libmobility::real;
 
 // macro uses different fortran solver based on double/single precision compilation
@@ -225,10 +230,14 @@ void mobilityUFSingleWallCorrection(real rx, real ry, real rz,
 
 class CManyFibers
 {
+public:
+  std::string precision;
+private:
+  std::shared_ptr<libmobility::Mobility> solver;
+
   real a, ds, dt, k_bend, M0, kBT, eta, Lp;
   int num_parts;
   // PSEParameters par, par_Mhalf;
-  std::shared_ptr<libmobility::Mobility> solver;
   geometry geom;
   SpecialParameter parStar;
   bool clamp;   // fibers clamped at one end or not
@@ -253,9 +262,9 @@ class CManyFibers
   bool parametersSet = false;
   // tbb::global_control tbbControl;
 public:
-  // CFibers():
-  //   tbbControl(tbb::global_control::max_allowed_parallelism, 3){
-  // }
+  CManyFibers(){
+    this->precision = libmobility::Mobility::precision;
+  }
 
   void setParametersPSE(real psi)
   {
@@ -340,9 +349,11 @@ public:
       par.viscosity = eta;
       par.temperature = 0.5;
       par.numberParticles = numParts;
+
       parStar.Lx = Lp;
       parStar.Ly = Lp;
       parStar.Lz = Lp;
+
       if (DomainInt == 3 and parStar.psi == -1.0)
       {
         std::cout << "you need to set psi before initializing\n";
@@ -398,19 +409,20 @@ public:
     pos.reserve(size);
     Matrix T_j(3, N_lk);
     Vector X_0_j(3);
-    for (int j = 0; j < N_fib; ++j)
+    for (int j = 0; j < N_fib; ++j) // along each fiber
     {
-      for (int k = 0; k < N_lk; ++k)
+      for (int k = 0; k < N_lk; ++k) // for each blob
       {
-        T_j(0, k) = T(3 * j + 0, k);
+        T_j(0, k) = T(3 * j + 0, k); // get its tangent vector
         T_j(1, k) = T(3 * j + 1, k);
         T_j(2, k) = T(3 * j + 2, k);
-        //
-        X_0_j(0) = X_0(3 * j + 0);
+                                   // TODO why is the below inside the k loop?
+        X_0_j(0) = X_0(3 * j + 0); // get starting point of tangent vector.
         X_0_j(1) = X_0(3 * j + 1);
         X_0_j(2) = X_0(3 * j + 2);
       }
-      pos_j = single_fiber_Pos(T_j, X_0_j);
+      // each pos_j has length 3*(N_link + 1)
+      pos_j = single_fiber_Pos(T_j, X_0_j); // calculate position of each blob by moving along tangent vecs
       pos.insert(pos.end(), pos_j.begin(), pos_j.end());
     }
     return pos;
@@ -2057,6 +2069,7 @@ PYBIND11_MODULE(c_fibers_obj, m) {
       def(py::init()).
       def("setParameters", &CManyFibers::setParameters,
 	  "Set parameters for the module").
+      def("setParametersPSE", &CManyFibers::setParametersPSE).
       def("update_T_fix", &CManyFibers::update_T_fix,
       "update ghost tangent").
       def("RHS_and_Midpoint", &CManyFibers::RHS_and_Midpoint,
@@ -2084,5 +2097,6 @@ PYBIND11_MODULE(c_fibers_obj, m) {
       def("Kill_Variance", &CManyFibers::Kill_Variance,
 	  "Kill_Variance").
       def("Stresslet_KsF", &CManyFibers::Stresslet_KsF,
-	  "Calculate the K_s*F");
+	  "Calculate the K_s*F")
+      .def_readonly("precision", &CManyFibers::precision);
 }

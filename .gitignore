@@ -19,8 +19,8 @@
 
 # Input files #
 ###############
-
+build/
 
 # Exclude some folders #
 ########################
-
+.vscode/

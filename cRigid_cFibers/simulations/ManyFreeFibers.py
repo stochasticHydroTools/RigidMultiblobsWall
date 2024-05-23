@@ -1,17 +1,21 @@
-import argparse
+# import argparse
 import numpy as np
-import scipy.linalg as la
-import scipy.spatial as spatial
+# import scipy.linalg as la
+# import scipy.spatial as spatial
 import scipy.sparse.linalg as spla
-import subprocess
-from functools import partial
+# import subprocess
+# from functools import partial
 import sys
 import time
-import copy
-import scipy.sparse as sp
-from sksparse.cholmod import cholesky
+# import copy
+# import scipy.sparse as sp
+# from sksparse.cholmod import cholesky
 import pyamg
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+
+# import os
+# bin_dir = os.path.dirname(__file__) + "/bin"
+sys.path.insert(0, "../") # needs to contain the .so file from compilation
 import RigidFibers
 
 # Find project functions
@@ -100,6 +104,9 @@ def put_r_vecs_in_periodic_box(r_vecs, L):
 
 
 if __name__ == '__main__':
+
+    # exit()
+    print("RUNNING")
 
     rf = RigidFibers.RigidFibers("./input_files/ManyFree.in", __file__)
     cf = rf.cf

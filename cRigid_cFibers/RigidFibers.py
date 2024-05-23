@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 import shutil
 
-import c_fibers_obj as cfibers
+import fibers.c_fibers_obj as fibers
 
 class RigidFibers(object):
     '''
@@ -16,6 +16,8 @@ class RigidFibers(object):
         ''' Construnctor takes the name of the input file and name of simulation file'''
         self.input_file = fname
         self.options = {}
+        self.cf = fibers.CManyFibers()
+        self.precision = np.float32 if self.cf.precision == "float" else np.float64
 
 
         if calling_script_name.find("/") != -1: # parses out absolute path
@@ -66,7 +68,7 @@ class RigidFibers(object):
             case "pse": # triply periodic
                 self.domainInt = 5
             case _:
-                raise Exception(f"Solver \'{self.Solver}\' not found")
+                raise Exception(f"Solver \'{self.solver}\' not found")
             
         match self.time_stepper.lower():
             case "cn":
@@ -122,14 +124,16 @@ class RigidFibers(object):
             self.L_p = -1 # needs to get set for C constructor
 
 
-        # other unusual params
-        precision = str(self.options.get('precision') or 'double')
-        match precision.lower():
-            case "double":
-                self.precision = np.float64
-            case "single":
-                self.precision = np.float32
+        # currently we set precision based on how libmobility is compiled
+        # precision = str(self.options.get('precision') or 'double')
+        # match precision.lower():
+        #     case "double":
+        #         self.precision = np.float64
+        #     case "single":
+        #         self.precision = np.float32
 
+
+        # other unusual params
         self.clamp = bool(self.options.get("clamp" or False))
         if self.clamp:
             fixed_tangent = self.options.get("fixed_tangent" or None)
@@ -141,7 +145,6 @@ class RigidFibers(object):
         else:
             self.T_fix = np.array([0.0,1.0,0.0], dtype=self.precision) # still needed in C constructor
 
-        self.cf = cfibers.CManyFibers()
         self.cf.setParameters(self.domainInt, self.N_fibers, self.N_blobs, 
                             self.a, self.ds, self.dt, self.k_bend, self.M0,
                             self.impl_c, self.kBT, self.eta,
