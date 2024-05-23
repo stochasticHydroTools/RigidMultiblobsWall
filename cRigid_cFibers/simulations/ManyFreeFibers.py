@@ -145,6 +145,9 @@ if __name__ == '__main__':
     ###########################################
     ###########################################
 
+    All_Taus = All_Taus.astype(rf.precision)
+    All_X = All_X.astype(rf.precision)
+
     pos = cf.multi_fiber_Pos(All_Taus,All_X)
     pos = np.reshape(pos, (Nfibs, N_links+1, 3))
 
