@@ -394,7 +394,8 @@ class QuaternionIntegrator(object):
       # Set linear operators 
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       linear_operator_partial = partial(self.linear_operator, 
-                                        bodies=self.bodies, 
+                                        bodies=self.bodies,
+                                        constraints=self.constraints, 
                                         r_vectors=r_vectors_blobs, 
                                         eta=self.eta, 
                                         a=self.a, 
@@ -504,7 +505,8 @@ class QuaternionIntegrator(object):
       # Set linear operators 
       r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
       linear_operator_partial = partial(self.linear_operator, 
-                                        bodies=self.bodies, 
+                                        bodies=self.bodies,
+                                        constraints=self.constraints, 
                                         r_vectors=r_vectors_blobs, 
                                         eta=self.eta, 
                                         a=self.a, 
