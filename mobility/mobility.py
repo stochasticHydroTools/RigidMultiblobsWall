@@ -1427,3 +1427,16 @@ def free_surface_mobility_trans_times_force_source_target_numba(source, target, 
   velocities = mobility_numba.free_surface_mobility_trans_times_force_source_target_numba(source, target, force, radius_source, radius_target, eta, L=L)
 
   return velocities
+
+
+def no_wall_double_layer_source_target_numba(source, target, normals, vector, weights, blob_radius, *args, **kwargs):
+  '''
+  Returns the product of the second layer operator with a vector.
+  The diagonal terms are set to zero.
+
+  This function uses numba.
+  '''
+  # Compute M_tilde * B * force
+  velocities = mobility_numba.double_layer_rpy_source_target_numba(source, target, normals, vector, weights, blob_radius)
+
+  return velocities
