@@ -832,6 +832,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
   K_bodies = []
   C_art_bodies = []
   P_bodies = []
+  xi_vec_bodies = []
   res_art_bodies = []
 
   if(kwargs.get('step') % kwargs.get('update_PC') == 0) or len(build_block_diagonal_preconditioner.mobility_bodies) == 0:
@@ -849,6 +850,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         xi_vec[0::3] = xi
         xi_vec[1::3] = xi
         xi_vec[2::3] = xi
+        xi_vec_bodies.append(xi_vec)
         P_body = b.calc_P_matrix()
         P_bodies.append(P_body)
         xi_P = np.einsum('i,ij->ij', xi_vec, P_body)
@@ -902,7 +904,8 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
     res_art_bodies = build_block_diagonal_preconditioner.res_art_bodies
     mobility_inv_blobs = build_block_diagonal_preconditioner.mobility_inv_blobs 
 
-  def block_diagonal_preconditioner(vector, bodies = None, articulated = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, P_bodies = None, Nblobs = None):
+  def block_diagonal_preconditioner(vector, bodies = None, articulated = None, mobility_bodies = None, mobility_inv_blobs = None, K_bodies = None, P_bodies = None,
+                                    xi_vec_bodies = None, Nblobs = None):
     '''
     Apply the block diagonal preconditioner.
     '''
@@ -928,8 +931,9 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         result[3*offset : 3*(offset + b.Nblobs)] = Lambda
         result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = U_unconst
 
-        # 5. Solve slip_length * lambda + u_s = RHS xxx
-        result[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)] = -P_matrix_vector_prod([b], Lambda, b.Nblobs, P_bodies = [P_bodies[k]]).flatten() + \
+        # 5. Solve slip_length * lambda + u_s = RHS 
+        result[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)] = \
+          -xi_vec_bodies[k] * P_matrix_vector_prod([b], Lambda, b.Nblobs, P_bodies = [P_bodies[k]]).flatten() + \
           vector[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)]
 
       if b.prescribed_kinematics is True:
@@ -989,6 +993,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
                                                   mobility_inv_blobs = mobility_inv_blobs, 
                                                   K_bodies = K_bodies,
                                                   P_bodies = P_bodies,
+                                                  xi_vec_bodies = xi_vec_bodies, 
                                                   Nblobs = Nblobs)
   return block_diagonal_preconditioner_partial
 
