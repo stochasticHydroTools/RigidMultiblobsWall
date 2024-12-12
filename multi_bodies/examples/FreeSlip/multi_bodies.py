@@ -507,34 +507,25 @@ def linear_operator_rigid(vector, bodies, constraints, r_vectors, eta, a, K_bodi
   
   # Compute the "u_s" part
   us = vector[Ncomp_blobs+6*Nbodies : Ncomp_tot]
-
-  #print('us = ', us)
-  #print('a  = ', a)
-  #print('vector = ', vector.shape)
   
   DslipUs = no_wall_double_layer(r_vectors, r_vectors, normals, us, weights, a) # D * us
   P_times_us = P_matrix_vector_prod(bodies, us, Nblobs, P_bodies = P_bodies)    # P * us
   
-  res[0:Ncomp_blobs] = mobility_times_lambda - 0.5*(np.reshape(K_times_U,(3*Nblobs))) - Dslip.flatten() - DslipUs.flatten() - 0.5*us  #M*lambda - 0.5K*U - DK*U - D*u_s - 0.5I*u_s
+  res[0:Ncomp_blobs] = mobility_times_lambda - 0.5*(np.reshape(K_times_U,(3*Nblobs))) - Dslip.flatten() - DslipUs.flatten() - 0.5*us  # M*lambda - 0.5K*U - DK*U - D*u_s - 0.5I*u_s
   res[Ncomp_blobs+6*Nbodies:Ncomp_tot] = np.reshape(P_times_lambda,(3*Nblobs)) + us # xi*Pll*lambda + Pll*u_s
 
   # We never have articulated constraints here
   res[Ncomp_blobs : Ncomp_blobs+Ncomp_bodies] = np.reshape(-K_T_times_lambda, (Ncomp_bodies))
 
 
-  # # Modify to account for prescribed kinematics
-  # offset = 0
-  # for k, b in enumerate(bodies):
-  #   if b.prescribed_kinematics is True:
-  #     res[3*offset : 3*(offset+b.Nblobs)] = (mobility_times_lambda[3*offset : 3*(offset+b.Nblobs)]
-  #                                            - DslipUs[3*offset : 3*(offset+b.Nblobs)] - 0.5*I[3*offset : 3*(offset+b.Nblobs)])  #M*lambda - D*u_s - 0.5I*u_s
-  #     res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
-  #   offset += b.Nblobs
-    
-  # # Compute the "constraint velocity: B" part if any
-  # if Nconstraints > 0:
-  #   C_times_U = C_matrix_vector_prod(bodies, constraints, v[Nblobs:Nblobs+2*Nbodies], Nconstraints, C_constraints = C_constraints)
-  #   res[Ncomp_blobs+Ncomp_bodies:Ncomp_tot] = np.reshape(C_times_U , (Ncomp_phi))
+  # Modify to account for prescribed kinematics
+  offset = 0
+  for k, b in enumerate(bodies):
+    if b.prescribed_kinematics is True:
+      res[3*offset : 3*(offset+b.Nblobs)] = (mobility_times_lambda[3*offset : 3*(offset+b.Nblobs)]
+                                             - DslipUs[3*offset : 3*(offset+b.Nblobs)] - 0.5*us[3*offset : 3*(offset+b.Nblobs)])  # M*lambda - D*u_s - 0.5*u_s
+      res[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6] += vector[Ncomp_blobs + k*6: Ncomp_blobs + (k+1)*6]
+      offset += b.Nblobs   
   
   return res
 
@@ -1507,7 +1498,8 @@ if __name__ == '__main__':
   for k, b in enumerate(bodies):
     weights[offset : offset + b.Nblobs] = b.weights
     slip_lengths[offset : offset + b.Nblobs] = b.slip_lengths
-    offset += b.Nblobs 
+    offset += b.Nblobs
+  integrator.weights = weights
   integrator.linear_operator = partial(linear_operator_rigid, weights=weights, slip_lengths=slip_lengths, no_wall_double_layer=no_wall_double_layer) 
   
   # Initialize HydroGrid library:

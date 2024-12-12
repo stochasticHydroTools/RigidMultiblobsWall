@@ -91,9 +91,9 @@ class QuaternionIntegrator(object):
       
       # Extract velocities
       velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
-
+    
       if True:
-        name = self.output_name + '.bodies_velocity.dat'
+        name = self.output_name + '.bodies_velocities.dat'
         step = kwargs.get('step')
         mode = 'w' if kwargs.get('step') == 0 else 'a'
         with open(name, mode) as f_handle:
@@ -1478,10 +1478,13 @@ class QuaternionIntegrator(object):
       # Calculate slip on blobs
       if self.calc_slip is not None:
         slip = self.calc_slip(self.bodies, self.Nblobs)
+        Dslip = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, slip, self.weights, self.a)
+        slip = 0.5 * slip.flatten() + Dslip
       else:
         slip = np.zeros((self.Nblobs, 3))
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
+
       # Add noise to the force/torque
       if noise_FT is not None:
         force_torque += noise_FT
@@ -1498,7 +1501,8 @@ class QuaternionIntegrator(object):
         if b.prescribed_kinematics is True:
           # Add K*U to Right Hand side 
           KU = np.dot(b.calc_K_matrix(), b.calc_prescribed_velocity())
-          RHS[3*offset : 3*(offset+b.Nblobs)] += KU.flatten()
+          DKU = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, KU, self.weights, self.a)
+          RHS[3*offset : 3*(offset+b.Nblobs)] += 0.5 * KU.flatten() + DKU
           # Set F to zero
           RHS[3*self.Nblobs+k*6 : 3*self.Nblobs+(k+1)*6] = 0.0
         offset += b.Nblobs
@@ -1535,7 +1539,6 @@ class QuaternionIntegrator(object):
     if PC_partial is None:
       PC_partial = self.build_block_diagonal_preconditioner(self.bodies, self.articulated, r_vectors_blobs, self.Nblobs, self.eta, self.a, *args, **kwargs)
     PC = spla.LinearOperator((System_size, System_size), matvec = PC_partial, dtype='float64')
-    # PC = None
 
     # Scale RHS to norm 1
     RHS_norm = np.linalg.norm(RHS)
@@ -1544,7 +1547,7 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, callback=counter)
+      (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=300, restart=300, callback=counter)
       self.det_iterations_count += counter.niter
       # (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
       # self.det_iterations_count += len(resnorms)
