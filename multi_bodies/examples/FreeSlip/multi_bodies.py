@@ -488,13 +488,6 @@ def linear_operator_rigid(vector, bodies, constraints, r_vectors, eta, a, K_bodi
   normals = kwargs.get('normals')
   P_bodies = kwargs.get('P_bodies')
   xi = slip_lengths / (eta * weights)
-
-  #print('xi = ', xi)
-  #print('P_bodies = ', P_bodies)
-  #print('normals = ', normals)
-  #print('weights = ', weights)
-
-  # sys.exit()
   
   # Compute the "lambda" part
   mobility_times_lambda = mobility_vector_prod(r_vectors, vector[0:Ncomp_blobs], eta, a, *args, **kwargs)        # M * lambda
@@ -940,7 +933,7 @@ def build_block_diagonal_preconditioner(bodies, articulated, r_vectors, Nblobs, 
         result[3*Nblobs + 6*k : 3*Nblobs + 6*(k+1)] = F
 
         # 5. Solve slip_length * lambda + u_s = RHS
-        result[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)] = -Pll_matrix_vector_prod([b], Lambda, b.Nblobs, Pll_body = None).flatten() + \
+        result[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)] = -P_matrix_vector_prod([b], Lambda, b.Nblobs, P_bodies = [P_bodies[k]]).flatten() + \
           vector[offset_slip + 3*offset : offset_slip + 3*(offset + b.Nblobs)]        
       offset += b.Nblobs
 
@@ -1301,7 +1294,7 @@ if __name__ == '__main__':
         b.emitting_rate = np.copy(Laplace[:,4])
         b.surface_mobility = np.copy(Laplace[:,5])
         b.weights = np.copy(Laplace[:,6])
-      if slip_length is not None: # xxxxx
+      if slip_length is not None: 
         b.normals = np.copy(slip_length[:,0:3])
         b.slip_lengths = np.copy(slip_length[:,3])
         b.weights = np.copy(slip_length[:,4])
