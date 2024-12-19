@@ -1,0 +1,48 @@
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       6.2500e-5
+n_steps                                  2000000
+n_save                                   160 
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      8.9e-04 
+g                                        0.28041 
+blob_radius                              2.25
+
+# Stochastic parameters
+kT                                       0.0041419464
+solver_tolerance                         1.0e-4
+
+periodic_length                          0.0   0.0    0.0
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0
+debye_length                             0.225
+
+# Set interaction with the wall
+repulsion_strength_wall                  0 
+debye_length_wall                        0.225
+
+# Set parameters for the firm-potential
+repulsion_strength_firm                  0.0331 
+firm_delta                               1e-3 
+
+
+#seed					 2
+
+# Set output name
+output_name                              ./data/WithInduced_B0_0p92_B_z_0p535_step_0p0_5_10_5s_max_0p67_perm_8p6aJ_per_mT_mutual_dipole_no_mut_E_or_B
+
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+#######################################################
+#structure ./blob.vertex ./suspension_diamond_N_4_random.clones
+structure ./blob.vertex ./suspension_ladder_N_6_random.clones
+#structure ./blob.vertex ./suspension_rhombus_N_12_random.clones
