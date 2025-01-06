@@ -23,7 +23,7 @@ from sksparse.cholmod import cholesky
 found_functions = False
 path_to_append = ''
 sys.path.append('../../')
-sys.path.append('../../../LanczosAlgorithm/python/')
+sys.path.append('../../../')
 while found_functions is False:
     try:
         from Lub_Solver import Lub_Solver as LS
@@ -73,8 +73,15 @@ if __name__ == '__main__':
     subprocess.call(["cp", input_file, output_name + '.inputfile'])
 
     # Set random generator state
-    if read.random_state is not None:
-        with open(read.random_state, 'rb') as f:
+    random_f_name = structures[0][1]
+    random_f_name = random_f_name[:-7]
+    random_f_name = random_f_name[1:]
+    random_f_name = './random_states' + random_f_name + '.random_state'
+    print(random_f_name)
+    import os.path
+    print(os.path.exists(random_f_name))
+    if os.path.exists(random_f_name):
+        with open(random_f_name, 'rb') as f:
             np.random.set_state(cpickle.load(f))
     elif read.seed is not None:
         np.random.seed(int(read.seed))
@@ -169,6 +176,30 @@ if __name__ == '__main__':
         t0 = time.time()
         time_s = n*dt
 
+        # to convert B_z to E_z, multiply by 2.034707874856431e5 Vpp/m/mT
+
+        if random_f_name[-16:-13] == 'eq1':
+            B_z = 0.63 # in mT
+            if time_s >= 5:
+                B_z = 0.64
+            if time_s >= 10:
+                B_z = 0.65
+            if time_s >= 15:
+                sys.exit()
+        elif random_f_name[-16:-13] == 'eq2':
+            B_z = 0.6425 # in mT
+            if time_s >= 14:
+                sys.exit()
+        else:
+            B_z = 0.55 # in mT
+            if time_s >= 10:
+                sys.exit()
+
+        print('+++++++++++++++++++++++++++')
+        print('B_z = ', B_z)
+        print('+++++++++++++++++++++++++++')
+
+
         FT_calc = partial(multi_bodies_functions.force_torque_calculator_sort_by_bodies,
                           g=read.g,
                           repulsion_strength_firm=repulsion_strength_delta,
@@ -182,6 +213,7 @@ if __name__ == '__main__':
                           B_field_freq=80, #50,
                           mu_dipole=mu_dipole,
                           B_0=B_0,
+                          B_z=B_z,
                           time_s=time_s,
                           a=a)
 
@@ -206,7 +238,7 @@ if __name__ == '__main__':
                 else:
                     status = 'a'
                 with open(name, status) as f_ID:
-                    f_ID.write(str(body_types[i]) + '\n')
+                    f_ID.write(str(body_types[i]) + '\t' + str(B_z) + '\n')
                     for j in range(body_types[i]):
                         orientation = bodies[body_offset +
                                              j].orientation.entries

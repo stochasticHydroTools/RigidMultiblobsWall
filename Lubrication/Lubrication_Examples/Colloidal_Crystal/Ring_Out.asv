@@ -50,7 +50,7 @@ show_beads = 1;
 k = 0;
 
 Ntime = length(A)/n_bods;
-for i = Ntime 
+for i = 1:Ntime 
     i
     k = k+1;
     clf

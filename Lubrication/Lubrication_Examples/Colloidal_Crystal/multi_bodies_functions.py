@@ -329,9 +329,9 @@ def blob_blob_force_numba(r_vectors, r_vectors_images, moments, E_mom, E_mom_ima
             force[i,k] += -((repulsion_strength / debye_length) / np.maximum(r_norm, 1.0e-12)) * dr[k]
 
 
-  print('mean forces and torques')
-  print(np.mean(force))
-  print(np.mean(torque))
+  # print('mean forces and torques')
+  # print(np.mean(force))
+  # print(np.mean(torque))
 
   for i in prange(N):
     torque[i,:] += B_torque[i,:]
@@ -534,7 +534,6 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
 
   mu_dipole = kwargs.get('mu_dipole')
   B_0 = kwargs.get('B_0')
-  #RB_0 = 40.25
   RB_0 = 48.22
   mu_induced = RB_0*B_0 
   # https://www.wolframalpha.com/input?i=convert+4*pi*%282.25+um%29%5E3+*+1.27+*%281+Militesla%29%2F%283*%284*pi*1e-7%29+Henry%2Fm%29+in+attoJoules%2FMilitessla
@@ -547,12 +546,7 @@ def force_torque_calculator_sort_by_bodies(bodies, r_vectors, *args, **kwargs):
   # https://www.wolframalpha.com/input?i=%283%2F%284*pi%29%29*+%281+attoJoule+%2Fmillitesla+%29%5E2+*+%284*pi*1e-7+Henry%2Fm%29+%2F+%281+um%29%5E4+to+pN
   
 
-  tstrt = 5.0 
-  B_z = 0.535
-  if time_s>=tstrt:
-    B_z = 0.645
-  if time_s>=3*tstrt:
-    B_z = 0.67
+  B_z = kwargs.get('B_z')
 
   m_z = RB_0*B_z
   C_z = 0.3 #

@@ -1,0 +1,48 @@
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++
+mobility_vector_prod_implementation      pycuda
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           python
+
+# Set time step, number of steps and save frequency
+dt                                       6.2500e-5
+n_steps                                  2000000
+n_save                                   160 
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      8.9e-04 
+g                                        0.28041 
+blob_radius                              2.25
+
+# Stochastic parameters
+kT                                       0.0041419464
+solver_tolerance                         1.0e-4
+
+periodic_length                          0.0   0.0    0.0
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0
+debye_length                             0.225
+
+# Set interaction with the wall
+repulsion_strength_wall                  0 
+debye_length_wall                        0.225
+
+# Set parameters for the firm-potential
+repulsion_strength_firm                  0.0331 
+firm_delta                               1e-3 
+
+# Set output name
+output_name                              ../data/Rhombus_Simulation
+
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+#############################################################################
+#### Uncomment for the first 10s of dipole equilibriation ####
+structure ../blob.vertex ./suspension_rhombus_N_12_random.clones
+#### Uncomment for 15s of evolution to final sigma config ####
+#structure ../blob.vertex ./suspension_rhombus_N_12_random_eq1.clones
+#### Uncomment for final 14s of holding final sigma config ####
+#structure ../blob.vertex ./suspension_rhombus_N_12_random_eq2.clones

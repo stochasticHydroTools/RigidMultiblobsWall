@@ -33,16 +33,13 @@ debye_length_wall                        0.225
 repulsion_strength_firm                  0.0331 
 firm_delta                               1e-3 
 
-
-#seed					 2
+seed                                     19
 
 # Set output name
-output_name                              ./data/WithInduced_B0_0p92_B_z_0p535_step_0p0_5_10_5s_max_0p67_perm_8p6aJ_per_mT_mutual_dipole_no_mut_E_or_B
+output_name                              ../data/Ladder_Simulation
 
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
 #######################################################
-#structure ./blob.vertex ./suspension_diamond_N_4_random.clones
-structure ./blob.vertex ./suspension_ladder_N_6_random.clones
-#structure ./blob.vertex ./suspension_rhombus_N_12_random.clones
+structure ../blob.vertex ./suspension_ladder_N_6_random.clones
