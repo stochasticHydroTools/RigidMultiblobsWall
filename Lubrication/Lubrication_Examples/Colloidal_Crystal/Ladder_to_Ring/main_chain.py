@@ -181,11 +181,11 @@ if __name__ == '__main__':
         if time_s >= 7:
             B_z = 0.635
         if time_s >= 22:
-            B_z = 0.636
+            B_z = 0.645
         if time_s >= 30:
-            B_z = 0.637
+            B_z = 0.655
         if time_s >= 38:
-            B_z = 0.638
+            B_z = 0.665
         if time_s >= 46:
             B_z = 0.67
         if time_s >= 54:

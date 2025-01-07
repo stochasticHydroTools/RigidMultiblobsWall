@@ -33,7 +33,7 @@ debye_length_wall                        0.225
 repulsion_strength_firm                  0.0331 
 firm_delta                               1e-3 
 
-seed                                     19
+seed                                     1
 
 # Set output name
 output_name                              ../data/Ladder_Simulation

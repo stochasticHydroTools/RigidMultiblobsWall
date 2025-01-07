@@ -13,16 +13,28 @@ a = 2.25;
 [sx, sy, sz] = sphere(50);
 
 
-
-% vid_name = 'Rhombus_Simulation';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% Un-comment for sigma sim %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+vid_name = 'Rhombus_Simulation';
+%%% the first 10s of dipole equilibriation %%%
 % NAME ='suspension_rhombus_N_12_random';
+%%% 15s of evolution to final sigma config %%%
 % NAME ='suspension_rhombus_N_12_random_eq1';
-% NAME ='suspension_rhombus_N_12_random_eq2';
-% f_name = ['./data/' vid_name '.' NAME '.config'];
-
-vid_name = 'Ladder_Simulation';
-NAME ='suspension_ladder_N_6_random';
+%%% 14s of holding final sigma config %%%
+NAME ='suspension_rhombus_N_12_random_eq2';
 f_name = ['./data/' vid_name '.' NAME '.config'];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% Un-comment for ring sim %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% vid_name = 'Ladder_Simulation';
+% NAME ='suspension_ladder_N_6_random';
+% f_name = ['./data/' vid_name '.' NAME '.config'];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 L = 128.0;
@@ -89,7 +101,7 @@ for i = Ntime
 
     for j = 1:length(x)
         if show_beads==1
-        fcol = 0.3*[1 1 1];
+        fcol = [0.0 0.85 0.99]; %0.3*[1 1 1];
         h = surface(x(j)+a*sx,y(j)+a*sy,z(j)+a*sz,'facecolor',fcol,'edgecolor','none');
         set(h,'FaceLighting','gouraud',...%'facealpha',0.2, ...
         'AmbientStrength',0.3, ...
@@ -117,11 +129,17 @@ for i = Ntime
         v = V(:,3);
         tv = V(:,2);
         ev = V(:,1);
-        hA1 = mArrow3([x(j); y(j); z(j)],[x(j); y(j); z(j)]+1.3*a*v,'color',[0.8 0.8 0.8],'stemWidth',0.1*a);
-        hold all
-        hA2 = mArrow3([x(j); y(j); z(j)],[x(j); y(j); z(j)]+1.3*a*tv,'color',[0.8 0.8 0.8],'stemWidth',0.1*a);
-        hold all
-        hA3 = mArrow3([x(j); y(j); z(j)],[x(j); y(j); z(j)]+1.4*a*ev,'color','m','stemWidth',0.2*a);
+        % hA1 = mArrow3([x(j); y(j); z(j)],[x(j); y(j); z(j)]+1.3*a*v,'color',[0.8 0.8 0.8],'stemWidth',0.1*a);
+        % hold all
+        % hA2 = mArrow3([x(j); y(j); z(j)],[x(j); y(j); z(j)]+1.3*a*tv,'color',[0.8 0.8 0.8],'stemWidth',0.1*a);
+        % hold all
+        hA3 = mArrow3([x(j); y(j); z(j)+2*a]-1*a*ev,[x(j); y(j); z(j)+2*a]+1*a*ev,'color',[0.45 0.1 1.0],'stemWidth',0.1*a,'tipWidth',0.2*a);
+        hA3.FaceLighting = 'phong';
+        hA3.AmbientStrength = 0.7;
+        hA3.DiffuseStrength = 1.0;
+        hA3.SpecularStrength = 0.9;
+        hA3.SpecularExponent = 5;
+        hA3.BackFaceLighting = 'unlit';
         hold all
         out_vs(j,:) = ev;
 
@@ -131,11 +149,24 @@ for i = Ntime
 
 
 
-    camlight
+    rr = 25;
+
+    zz = 45;
+    lcol = 0.3*[255,255,255]./255;
+    Nlights = 5;
+    for ith = 0:Nlights-1
+        th = ith*(2*pi/Nlights);
+        lpos = [rr*cos(th) rr*sin(th) zz];
+        light('Position',lpos,'Style','local','color',lcol)
+    end
+  
+    %camlight
+
 
     B_z = B_z_history(i);
-    title(['t = ' num2str((i-1)*dt) ', $$B_z = $$' num2str(B_z)])
-    
+    %title(['t = ' num2str((i-1)*dt) ', $$B_z = $$' num2str(B_z)])
+    E_z = 2.034707874856431e5*B_z;
+    title(['t = ' num2str((i-1)*dt) ' (s), $$E_z = $$' num2str(round(E_z,2)) ' $$V_{pp}/m$$'])
 
 
     drawnow
