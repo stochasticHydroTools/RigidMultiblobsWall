@@ -15,10 +15,17 @@ or
 ```
 OMP_NUM_THREADS=1 OMP_PROC_BIND=false python main_chain.py --input-file inputfile_suspension.dat
 ```
-which can be much faster on some systems. Each example directory contains relevant notes on the individual example.
+which can be much faster on some systems. The `Rhombus_to_Sigma` to sigma example must be run in 3 stages, all of which require specific seeds (storred in the `random_states` sub-directory) to achieve the desired final configuration. To run different stages, simply coment/uncomment the relevant initial configuration in the input file `inputfile_suspension.dat` e.g
+```
+#### Uncomment for the first 10s of dipole equilibriation ####
+structure ../blob.vertex ./suspension_rhombus_N_12_random.clones
+```
+and the correct random state will be used automatically. Other examples e.g `Ladder_to_Ring` are less sensitive and only require one stange/one random state. 
 
+In each example, the main file `main_chain.py` contains the logic for the trajectory of values of the repulsive field E_z.
 
-Data from will be placed in the `./data` directory and can be visualized with the MATLAB code `Ring_Out.m`.
+After running each stage of each example, data will be placed in the `./data` directory and can be visualized with the MATLAB code `Plot_Data.m`. Follow the comments in this MATLAB code to vizualize different cases.
+
 The MATLAB code uses `mArrow3.m` -- an arrow rendering code from MATLAB file exchange:
 
 Georg Stillfried (2025). mArrow3.m - easy-to-use 3D arrow (https://www.mathworks.com/matlabcentral/fileexchange/25372-marrow3-m-easy-to-use-3d-arrow), MATLAB Central File Exchange. Retrieved January 7, 2025. 
