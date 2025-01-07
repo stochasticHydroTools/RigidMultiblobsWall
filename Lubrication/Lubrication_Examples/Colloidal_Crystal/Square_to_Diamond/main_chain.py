@@ -23,7 +23,7 @@ from sksparse.cholmod import cholesky
 found_functions = False
 path_to_append = ''
 sys.path.append('../../')
-sys.path.append('../../../LanczosAlgorithm/python/')
+sys.path.append('../../../')
 while found_functions is False:
     try:
         from Lub_Solver import Lub_Solver as LS
@@ -177,23 +177,11 @@ if __name__ == '__main__':
         time_s = n*dt
 
         # to convert B_z to E_z, multiply by 2.034707874856431e5 Vpp/m/mT
-
-        if random_f_name[-16:-13] == 'eq1':
-            B_z = 0.63 # in mT
-            if time_s >= 5:
-                B_z = 0.64
-            if time_s >= 10:
-                B_z = 0.65
-            if time_s >= 15:
-                sys.exit()
-        elif random_f_name[-16:-13] == 'eq2':
-            B_z = 0.6425 # in mT
-            if time_s >= 14:
-                sys.exit()
-        else:
-            B_z = 0.55 # in mT
-            if time_s >= 10:
-                sys.exit()
+        B_z = 0.535 # in mT
+        if time_s >= 7:
+            B_z = 0.645
+        if time_s >= 24:
+            sys.exit()
 
         print('+++++++++++++++++++++++++++')
         print('B_z = ', B_z)

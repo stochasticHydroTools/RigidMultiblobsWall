@@ -16,14 +16,14 @@ a = 2.25;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%% Un-comment for sigma sim %%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-vid_name = 'Rhombus_Simulation';
+% vid_name = 'Rhombus_Simulation';
 %%% the first 10s of dipole equilibriation %%%
 % NAME ='suspension_rhombus_N_12_random';
 %%% 15s of evolution to final sigma config %%%
 % NAME ='suspension_rhombus_N_12_random_eq1';
 %%% 14s of holding final sigma config %%%
-NAME ='suspension_rhombus_N_12_random_eq2';
-f_name = ['./data/' vid_name '.' NAME '.config'];
+% NAME ='suspension_rhombus_N_12_random_eq2';
+% f_name = ['./data/' vid_name '.' NAME '.config'];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -35,6 +35,16 @@ f_name = ['./data/' vid_name '.' NAME '.config'];
 % f_name = ['./data/' vid_name '.' NAME '.config'];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% Un-comment for square sim %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+vid_name = 'Square_Simulation';
+NAME ='suspension_diamond_N_4_random';
+f_name = ['./data/' vid_name '.' NAME '.config'];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 
 L = 128.0;
@@ -166,7 +176,7 @@ for i = Ntime
     B_z = B_z_history(i);
     %title(['t = ' num2str((i-1)*dt) ', $$B_z = $$' num2str(B_z)])
     E_z = 2.034707874856431e5*B_z;
-    title(['t = ' num2str((i-1)*dt) ' (s), $$E_z = $$' num2str(round(E_z,2)) ' $$V_{pp}/m$$'])
+    title(['t = ' num2str((i-1)*dt) ' (s), $$E_z = $$' num2str(round(E_z,2)) ' $$V/m$$'])
 
 
     drawnow

@@ -33,17 +33,13 @@ debye_length_wall                        0.225
 repulsion_strength_firm                  0.0331 
 firm_delta                               1e-3 
 
-#seed                                     19
-#5 # works ok till end with B_z = 0.6425
-#9 # works well till 12 with B_z = 0.6425
+seed                                     1
 
 # Set output name
-output_name                              ./data/Rhombus_Run
+output_name                              ../data/Square_Simulation
 
 
 # Load rigid bodies configuration, provide
 # *.vertex and *.clones files
 #######################################################
-#structure ./blob.vertex ./suspension_diamond_N_4_random.clones
-#structure ./blob.vertex ./suspension_ladder_N_6_random.clones
-structure ./blob.vertex ./suspension_rhombus_N_12_random_eq2.clones
+structure ../blob.vertex ./suspension_diamond_N_4_random.clones
