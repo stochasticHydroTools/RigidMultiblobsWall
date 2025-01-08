@@ -1,4 +1,4 @@
-# Colloidal Crystals
+# Colloidal Quasicrystals
 Author: Brennan Sprinkle
 
 This example contains the code to reproduce the simulation data shown in 
