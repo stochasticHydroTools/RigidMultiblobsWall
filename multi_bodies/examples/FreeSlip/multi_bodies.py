@@ -1477,7 +1477,14 @@ if __name__ == '__main__':
   # Prepare linear operator and other function for slip boundary conditions (bc)
   integrator.slip_mode = True
   if read.mobility_vector_prod_implementation.find('stkfmm') >= 0:
-    no_wall_double_layer = set_double_layer_kernels(read.stkfmm_mult_order, read.stkfmm_pbc, read.stkfmm_max_points, L=read.periodic_length, comm=comm)     
+    no_wall_double_layer = set_double_layer_kernels(read.stkfmm_mult_order, read.stkfmm_pbc, read.stkfmm_max_points, L=read.periodic_length, comm=comm)
+    no_wall_double_layer = set_double_layer_kernels('PVelLaplacian',
+                                                    read.stkfmm_mult_order,
+                                                    read.stkfmm_pbc,
+                                                    read.stkfmm_max_points,
+                                                    L=read.periodic_length,
+                                                    blob_radius=read.blob_radius,
+                                                    comm=comm)  
   else:
     no_wall_double_layer = mb.no_wall_double_layer_source_target_numba
   integrator.no_wall_double_layer = mb.no_wall_double_layer_source_target_numba  
