@@ -1486,7 +1486,7 @@ if __name__ == '__main__':
                                                     comm=comm)  
   else:
     no_wall_double_layer = mb.no_wall_double_layer_source_target_numba
-  integrator.no_wall_double_layer = mb.no_wall_double_layer_source_target_numba  
+  integrator.no_wall_double_layer = no_wall_double_layer
   integrator.slip_boundary_conditions_flag = slip_boundary_conditions_flag
   integrator.calc_P_matrix_bodies = calc_P_matrix_bodies
   integrator.get_normals = get_normals

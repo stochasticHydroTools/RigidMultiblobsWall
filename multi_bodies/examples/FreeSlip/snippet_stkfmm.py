@@ -144,11 +144,10 @@ def set_double_layer_kernels(implementation, mult_order, pbc_string, max_pts, L=
 
   # Setup FMM
   PVel = PySTKFMM.Stk3DFMM(mult_order, max_pts, pbc, kernel)
-  function_partial = partial(mob.double_layer_stkfmm,
+  function_partial = partial(mb.double_layer_stkfmm,
                              PVel=PVel, 
                              L=L,
                              kernel=kernel,
-                             blob_radius=blob_radius,
                              comm=kwargs.get('comm'))  
   return function_partial
  
@@ -678,7 +677,7 @@ def fluid_velocity_overlap_correction_numba(r_source, r_target, force, eta, a, l
 
 
 @utils.static_var('r_vectors_old', [])
-def double_layer_stkfmm(r, normals, field, weights, PVel, L=np.zeros(3), kernel=None, blob_radius=0, *args, **kwargs):
+def double_layer_stkfmm(r, r_null, normals, field, weights, blob_radius, PVel, L=np.zeros(3), kernel=None, *args, **kwargs):
   '''
   Stokes double layer.
   '''

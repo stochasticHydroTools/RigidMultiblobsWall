@@ -1479,7 +1479,7 @@ class QuaternionIntegrator(object):
       if self.calc_slip is not None:
         slip = self.calc_slip(self.bodies, self.Nblobs)
         Dslip = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, slip, self.weights, self.a)
-        slip = 0.5 * slip.flatten() + Dslip
+        slip = 0.5 * slip.flatten() + Dslip.flatten()
       else:
         slip = np.zeros((self.Nblobs, 3))
       # Calculate force-torque on bodies
