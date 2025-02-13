@@ -231,4 +231,29 @@ class Body(object):
     return self.body_length
 
 
+  def get_normals(self, orientation = None):
+    '''
+    Return normals in the laboratory frame of reference.
+    '''
+    rotation_matrix = self.orientation.rotation_matrix()
+    return np.dot(self.normals, rotation_matrix.T)
+
     
+  def calc_P_matrix(self):
+    '''
+    Return the projection matrix
+    P = (I - (n * n.T))
+    with shape (3*Nblobs, 3).
+    '''
+    # Area_inverse = self.Nblobs / (4 * np.pi)
+    P = np.zeros((3*self.Nblobs, 3*self.Nblobs))
+    normals = self.get_normals()
+    I = np.eye(3)
+    
+    for i in range(0, self.Nblobs):
+      P[3*i:3*(i+1), 3*i:3*(i+1)] = I - np.outer(normals[i], normals[i])     
+    return P
+
+
+
+  

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
+sys.path.append('../')
 import mobility as mob
-
 
 
 if __name__ == '__main__':

@@ -2089,3 +2089,82 @@ def free_surface_mobility_trans_times_force_source_target_numba(source, target, 
     u[i,2] = uz
 
   return u.flatten()
+
+
+@njit(parallel=True, fastmath=True)
+def double_layer_rpy_source_target_numba(source, target, normals, vector, weights, blob_radius):
+  '''
+  Stokes double operator, diagonals are set to zero.
+  '''
+  # Prepare vectors
+  num_targets = target.size // 3
+  num_sources = source.size // 3
+  source = source.reshape(num_sources, 3)
+  target = target.reshape(num_targets, 3)
+  vector = vector.reshape(num_sources, 3)
+  normals = normals.reshape(num_sources, 3)  
+  u = np.zeros((num_targets, 3))
+  factor = -3.0 / (4.0 * np.pi) 
+
+  # Copy to one dimensional vectors
+  rx_src = np.copy(source[:,0])
+  ry_src = np.copy(source[:,1])
+  rz_src = np.copy(source[:,2])
+  rx_trg = np.copy(target[:,0])
+  ry_trg = np.copy(target[:,1])
+  rz_trg = np.copy(target[:,2])
+  vx_vec = np.copy(vector[:,0])
+  vy_vec = np.copy(vector[:,1])
+  vz_vec = np.copy(vector[:,2])
+  nx_vec = np.copy(normals[:,0])
+  ny_vec = np.copy(normals[:,1])
+  nz_vec = np.copy(normals[:,2])
+
+  # Loop over image boxes and then over particles
+  for i in prange(num_targets):
+    rxi = rx_trg[i]
+    ryi = ry_trg[i]
+    rzi = rz_trg[i]
+
+    ux, uy, uz = 0, 0, 0
+    for j in range(num_sources):
+      # Compute vector between particles i and j
+      rx = rxi - rx_src[j]
+      ry = ryi - ry_src[j]
+      rz = rzi - rz_src[j]
+
+
+      # Compute interaction without wall
+      r2 = rx*rx + ry*ry + rz*rz
+      r = np.sqrt(r2)
+      if r < 1e-14:
+        continue
+      r5 = r**5
+              
+      # 2. Compute product T_ijk * n_k * v_j
+      rxvx = rx * vx_vec[j]
+      ryvy = ry * vy_vec[j]
+      rzvz = rz * vz_vec[j]
+      rxnx = rx * nx_vec[j]
+      ryny = ry * ny_vec[j]
+      rznz = rz * nz_vec[j]
+      ux += (1 - 10 * blob_radius**2 / (3 * r2)) * (rx * rxnx * rxvx + rx * rxnx * ryvy + rx * rxnx * rzvz + rx * ryny * rxvx + rx * ryny * ryvy + rx * ryny * rzvz + rx * rznz * rxvx +
+                                                    rx * rznz * ryvy + rx * rznz * rzvz) * weights[j] / r5
+      uy += (1 - 10 * blob_radius**2 / (3 * r2)) * (ry * rxnx * rxvx + ry * rxnx * ryvy + ry * rxnx * rzvz + ry * ryny * rxvx + ry * ryny * ryvy + ry * ryny * rzvz + ry * rznz * rxvx +
+                                                    ry * rznz * ryvy + ry * rznz * rzvz) * weights[j] / r5
+      uz += (1 - 10 * blob_radius**2 / (3 * r2)) * (rz * rxnx * rxvx + rz * rxnx * ryvy + rz * rxnx * rzvz + rz * ryny * rxvx + rz * ryny * ryvy + rz * ryny * rzvz + rz * rznz * rxvx +
+                                                    rz * rznz * ryvy + rz * rznz * rzvz) * weights[j] / r5
+
+      tmp1 = nx_vec[j] * vx_vec[j] + ny_vec[j] * vy_vec[j] + nz_vec[j] * vz_vec[j]
+      tmp2 = rx * vx_vec[j] + ry * vy_vec[j] + rz * vz_vec[j]
+      tmp3 = rx * nx_vec[j] + ry * ny_vec[j] + rz * nz_vec[j]
+      
+      ux += (2.0 * blob_radius**2 / 3.0) * (tmp1 * rx + tmp2 * nx_vec[j] + tmp3 * vx_vec[j]) * weights[j] / r5
+      uy += (2.0 * blob_radius**2 / 3.0) * (tmp1 * ry + tmp2 * ny_vec[j] + tmp3 * vy_vec[j]) * weights[j] / r5
+      uz += (2.0 * blob_radius**2 / 3.0) * (tmp1 * rz + tmp2 * nz_vec[j] + tmp3 * vz_vec[j]) * weights[j] / r5
+      
+    u[i,0] = factor * ux
+    u[i,1] = factor * uy
+    u[i,2] = factor * uz
+
+  return u.flatten()
