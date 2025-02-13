@@ -43,6 +43,10 @@ A. Donev, The Journal of Chemical Physics, **147**, 244103 (2017)
 
 6. **Reconfigurable microbots folded from simple colloidal chains** by T. Yang, B. Sprinkle, Y. Guo, J. Qian, D. Hua, A. Donev, D. W.M. Marr, and N. Wu, PNAS, 202007255, 2020 [DOI](http://dx.doi.org/10.1073/pnas.2007255117)
 
+7. **A numerical method for suspensions of articulated bodies in viscous flows**, F. Balboa Usabiaga and B. Delmotte,
+Journal of Computational Physics, **464**, 111365 (2022) [DOI](https://doi.org/10.1016/j.jcp.2022.111365)
+
+
 Several example scripts for simulating immersed rigid bodies near a single
 wall are present in subfolders.
 
