@@ -1143,10 +1143,12 @@ if __name__ == '__main__':
   copyfile(input_file,output_name + '.inputfile')
 
   # Save commit to a file
-  if True:
+  try:
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True).stdout.decode('utf-8')
     with open(output_name + '.git', 'w') as f:
       f.write(str(commit))
+  except:
+    pass
 
   # Set random generator state
   if read.random_state is not None:
