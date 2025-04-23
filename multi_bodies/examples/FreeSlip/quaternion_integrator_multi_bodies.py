@@ -1473,28 +1473,41 @@ class QuaternionIntegrator(object):
     # Get blobs coordinates
     r_vectors_blobs = self.get_blobs_r_vectors(self.bodies, self.Nblobs)
 
+    # Calculate K matrix
+    K = self.calc_K_matrix_bodies(self.bodies, self.Nblobs)
+
     # If RHS = None set RHS = [slip, -force_torque, B ]
     if RHS is None:
       # Calculate slip on blobs
       if self.calc_slip is not None:
         slip = self.calc_slip(self.bodies, self.Nblobs)
-        Dslip = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, slip, self.weights, self.a)
-        slip = 0.5 * slip.flatten() + Dslip.flatten()
+        slip_rigid = np.zeros_like(slip)
+        offset = 0
+        for k, b in enumerate(self.bodies):
+          average_flow_on_body = np.dot(K[k].T, slip[offset : (offset+b.Nblobs)].flatten()) / b.Nblobs
+          slip_rigid[offset : (offset+b.Nblobs)] = np.dot(K[k], average_flow_on_body).reshape((b.Nblobs, 3))
+          offset += b.Nblobs
+        Dslip = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, slip_rigid, self.weights, self.a)
+        slip = slip.flatten() - 0.5 * slip_rigid.flatten() + Dslip.flatten()
       else:
         slip = np.zeros((self.Nblobs, 3))
+
       # Calculate force-torque on bodies
       force_torque = self.force_torque_calculator(self.bodies, r_vectors_blobs)
 
       # Add noise to the force/torque
       if noise_FT is not None:
         force_torque += noise_FT
+
       # Add the prescribed constraint velocity 
       B = np.zeros((Nconstraints,3))
       if Nconstraints>0:
         for k, c in enumerate(self.constraints):
           B[k] = - (c.links_deriv_updated[0:3] - c.links_deriv_updated[3:6])
+
       # Set right hand side
       RHS = np.reshape(np.concatenate([slip.flatten(), -force_torque.flatten(), B.flatten(), Bslip]), (System_size))
+
       # If prescribed velocity modify RHS
       offset = 0
       for k, b in enumerate(self.bodies):
@@ -1503,6 +1516,7 @@ class QuaternionIntegrator(object):
           KU = np.dot(b.calc_K_matrix(), b.calc_prescribed_velocity())
           DKU = self.no_wall_double_layer(r_vectors_blobs, r_vectors_blobs, normals, KU, self.weights, self.a)
           RHS[3*offset : 3*(offset+b.Nblobs)] += 0.5 * KU.flatten() + DKU
+
           # Set F to zero
           RHS[3*self.Nblobs+k*6 : 3*self.Nblobs+(k+1)*6] = 0.0
         offset += b.Nblobs
@@ -1510,10 +1524,6 @@ class QuaternionIntegrator(object):
     # Add noise to the slip
     if noise is not None:
       RHS[0:r_vectors_blobs.size] -= noise
-
-
-    # Calculate K matrix
-    K = self.calc_K_matrix_bodies(self.bodies, self.Nblobs)
 
     # Calculate C matrix if any constraint
     if Nconstraints > 0:
@@ -1547,10 +1557,10 @@ class QuaternionIntegrator(object):
 
       # Solve preconditioned linear system
       counter = gmres_counter(print_residual = self.print_residual)
-      (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=300, restart=300, callback=counter)
-      self.det_iterations_count += counter.niter
-      # (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=1000, restart=60, verbose=self.print_residual, convergence='presid')
-      # self.det_iterations_count += len(resnorms)
+      # (sol_precond, info_precond) = utils.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=300, restart=300, callback=counter)
+      # self.det_iterations_count += counter.niter
+      (sol_precond, infos, resnorms) = gmres.gmres(A, RHS, x0=x0, tol=self.tolerance, M=PC, maxiter=300, restart=300, verbose=self.print_residual, convergence='presid')
+      self.det_iterations_count += len(resnorms)
     else:
       sol_precond = np.zeros_like(RHS)
 
@@ -1847,6 +1857,87 @@ class QuaternionIntegrator(object):
 
     # Return true or false
     return valid_configuration
+
+
+  def load_trajectory(self, dt, *args, **kwargs):
+    '''
+    Take a time step of length dt using the deterministic forward Euler scheme.
+    The function uses gmres to solve the rigid body equations. 
+    The linear and angular velocities are sorted like 
+    velocities = (v_1, w_1, v_2, w_2, ...) 
+    where v_i and w_i are the linear and angular velocities of body i. 
+    '''
+    while True:
+      # Load config
+
+      # Solve mobility problem 
+      sol_precond = self.solve_mobility_problem(x0 = self.first_guess, save_first_guess = True, update_PC = self.update_PC, step = kwargs.get('step'))
+
+      # Extract velocities 
+      velocities = np.reshape(sol_precond[3*self.Nblobs: 3*self.Nblobs + 6*len(self.bodies)], (len(self.bodies) * 6))
+
+      step = kwargs.get('step')
+      if (step % self.n_save == 0) and (step >= 0):
+        name = self.output_name + '.bodies_velocities.dat'
+        mode = 'w' if kwargs.get('step') == 0 else 'a'
+        with open(name, mode) as f_handle:
+          f_handle.write(str(len(self.bodies)) + '\n')
+          np.savetxt(f_handle, velocities.reshape((len(self.bodies), 6)))
+
+          # Extract blob forces and blob positions 
+          blob_forces = sol_precond[0 : 3 * self.Nblobs].reshape((self.Nblobs, 3))
+          r_vectors = self.get_blobs_r_vectors(self.bodies, self.Nblobs).reshape((self.Nblobs, 3))
+
+          # Compute stress                                                                                                       
+          stress = np.einsum('bi, bj -> ij', r_vectors, blob_forces)
+
+          # Save stress    
+          name = self.output_name + '.stress.dat'
+          mode = 'w' if kwargs.get('step') == 0 else 'a'
+          with open(name, mode) as f_handle:
+            np.savetxt(f_handle, stress.reshape((1, 9)))
+
+          # Compute stress symmetric
+          stress_symmetric = 0.5 * (np.einsum('bi, bj -> ij', r_vectors, blob_forces) + np.einsum('bi, bj -> ij', blob_forces, r_vectors))
+
+          # Save stress    
+          name = self.output_name + '.stress_symmetric.dat'
+          mode = 'w' if kwargs.get('step') == 0 else 'a'
+          with open(name, mode) as f_handle:
+            np.savetxt(f_handle, stress_symmetric.reshape((1, 9)))
+
+          # Compute stress Wang2019
+          offset = 0
+          stress_wang2019 = np.zeros((3,3))
+          for k, b in enumerate(self.bodies):
+            stress_k = 0.5 * (np.einsum('bi, bj -> ij', r_vectors[offset:offset+b.Nblobs] - b.location, blob_forces[offset:offset+b.Nblobs]) + 
+                              np.einsum('bi, bj -> ij', blob_forces[offset:offset+b.Nblobs], r_vectors[offset:offset+b.Nblobs] - b.location))
+            fk = np.dot(b.calc_K_matrix().T, blob_forces[offset:offset+b.Nblobs].flatten())[0:3]
+            stress_wang2019 += stress_k + np.outer(b.location, fk)
+            offset += b.Nblobs
+
+          # Save stress    
+          name = self.output_name + '.stress_wang2019e.dat'
+          mode = 'w' if kwargs.get('step') == 0 else 'a'
+          with open(name, mode) as f_handle:
+            np.savetxt(f_handle, stress_wang2019.reshape((1, 9)))
+
+
+      # Load config 
+      step += 1
+      for k, b in enumerate(self.bodies):
+        orientation = self.x_config[step, k, 3:7]
+        orientation_norm = np.linalg.norm(orientation)
+        b.location_new = self.x_config[step, k, 0:3] 
+        b.orientation_new = Quaternion(orientation / orientation_norm)
+
+      # Call postprocess 
+      postprocess_result = self.postprocess(self.bodies)
+
+      # Check positions, if valid, return 
+      if self.check_positions(new = 'new', old = 'current', update_in_success = True, domain = self.domain) is True:
+        return
+    return
 
 
 class gmres_counter(object):
