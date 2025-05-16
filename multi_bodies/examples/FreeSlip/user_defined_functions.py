@@ -41,7 +41,7 @@ def flow_resolved_coord(r, *args, **kwargs):
   IMPORTANT: edit the variables flow_magnitude and radius_effect to the desired values.
   '''
   # Set slip options
-  flow_magnitude = 1
+  flow_magnitude = 0
   
   # Flow along x, gradiend along z
   N = r.size // 3  
