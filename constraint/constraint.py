@@ -38,6 +38,8 @@ class Constraint(object):
     self.links_deriv = np.zeros(6)
     self.links_deriv_updated = np.zeros(6)
 
+    print('AAA self.articulated_body = ', self.articulated_body)
+    
 
   def calc_rot_link_matrix(self):
     ''' 
@@ -101,10 +103,7 @@ class Constraint(object):
     '''
     Rotate links to current orientation.
     '''
-    if len(self.constraint_extra) == 0:
-      self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
-      self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
-    else:
+    if len(self.constraint_extra) > 0:
       t = time
 
       # Evaluate link and its time derivative in the body frame of reference
@@ -121,13 +120,16 @@ class Constraint(object):
       self.links_deriv[4] = ne.evaluate(self.constraint_extra[10])
       self.links_deriv[5] = ne.evaluate(self.constraint_extra[11])
 
-      # Rotate links and its derivative to the laboratory frame of reference
-      self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
-      self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+      # Rotate links derivative to the laboratory frame of reference
       self.links_deriv_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links_deriv[0:3])
       if self.ind_bodies[0] != self.ind_bodies[1]:
         self.links_deriv_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links_deriv[3:6])
       else:
         self.links_deriv_updated[3:6] = 0
+
+    # Rotate links and its derivative to the laboratory frame of reference
+    self.links_updated[0:3] = np.dot(self.bodies[0].orientation.rotation_matrix(), self.links[0:3])
+    self.links_updated[3:6] = np.dot(self.bodies[1].orientation.rotation_matrix(), self.links[3:6])
+        
     return
     

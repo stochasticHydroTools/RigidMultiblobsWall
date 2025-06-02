@@ -31,7 +31,7 @@ class Articulated(object):
     # List of the constraints in articulated rigid body and indices
     self.constraints = constraints
     self.ind_constraints = ind_constraints
-
+    
     # Number of rigid bodies 
     self.num_bodies = num_bodies
 
@@ -526,10 +526,7 @@ class Articulated(object):
     '''
 
     for i in range(self.num_constraints):
-      if len(self.constraints_extra[i]) == 0:
-        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i,0:3])
-        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i,3:6])
-      else:
+      if len(self.constraints_extra[i]) > 0:
         t = time
       
         # Evaluate link and its time derivative in the body frame of reference
@@ -540,7 +537,8 @@ class Articulated(object):
         self.constraints_links[i,4] = ne.evaluate(self.constraints_extra[i][4])
         self.constraints_links[i,5] = ne.evaluate(self.constraints_extra[i][5])
 
-        # Rotate links and its derivative to the laboratory frame of reference
-        self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i,0:3])
-        self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i,3:6])
+      # Rotate links derivative to the laboratory frame of reference
+      self.constraints_links_updated[i,0:3] = np.dot(self.bodies[self.constraints_bodies_indices[i,0]].orientation.rotation_matrix(), self.constraints_links[i,0:3])
+      self.constraints_links_updated[i,3:6] = np.dot(self.bodies[self.constraints_bodies_indices[i,1]].orientation.rotation_matrix(), self.constraints_links[i,3:6])
+        
     return

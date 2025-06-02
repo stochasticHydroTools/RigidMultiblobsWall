@@ -1,0 +1,46 @@
+# Select integrator 
+scheme                                   articulated_deterministic_forward_euler
+
+# Select implementation to compute M and M*f
+mobility_blobs_implementation            C++_no_wall
+mobility_vector_prod_implementation      radii_numba_no_wall
+domain                                   no_wall
+
+# Select implementation to compute the blobs-blob interactions
+blob_blob_force_implementation           None
+
+# Set motor torque
+body_body_force_torque_implementation    python
+omega_one_roller                         0        0         1
+
+# Set time step, number of steps and save frequency
+dt                                       0.01
+n_steps                                  100
+n_save                                   1
+update_PC                                1
+solver_tolerance                         1e-08
+nonlinear_solver_tolerance               1e-12
+
+# Set fluid viscosity (eta), gravity (g) and blob radius
+eta                                      1e-03 
+g                                        0 
+blob_radius                              0.0245
+
+# Set parameters for the blob-blob interation
+repulsion_strength                       0
+debye_length                             0.01310
+
+# Set interaction with the wall
+repulsion_strength_wall                  0 
+debye_length_wall                        0.01310
+
+
+# Load rigid bodies configuration, provide
+# *.vertex and *.clones files
+articulated                              Structures/bacteria.list_vertex   Structures/bacteria.clones   Structures/bacteria.const
+
+
+# Set output name
+save_clones                              one_file
+output_name                              run
+
