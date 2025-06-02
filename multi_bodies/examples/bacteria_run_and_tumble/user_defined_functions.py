@@ -97,7 +97,7 @@ def update_links_new(self, time=0):
       if time - self.constraints[i].tumbling_time <= tumbling_period:
 
         # Angle of the flagella respect its equilibrium direction
-        alpha = 0.333 * np.pi * (np.sin(np.pi * (time - self.constraints[i].tumbling_time) / tumbling_period))**2
+        alpha = max_angle * np.pi * (np.sin(np.pi * (time - self.constraints[i].tumbling_time) / tumbling_period))**2
       
         # Set tilted flagellum
         self.constraints_links[i,0] =       l01 * (np.sin(alpha))
@@ -135,7 +135,7 @@ def update_links_new(self, time=0):
     if time - self.tumbling_time <= tumbling_period:
 
       # Angle of the flagella respect its equilibrium direction
-      alpha = 0.333 * np.pi * (np.sin(np.pi * (time - self.tumbling_time) / tumbling_period))**2     
+      alpha = max_angle * np.pi * (np.sin(np.pi * (time - self.tumbling_time) / tumbling_period))**2     
 
       # Set tilted flagellum
       self.links[0] =       l01 * (np.sin(alpha))**2
