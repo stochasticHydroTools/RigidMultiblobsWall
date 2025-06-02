@@ -2,7 +2,7 @@
 scheme                                   articulated_deterministic_forward_euler
 
 # Select implementation to compute M and M*f
-mobility_blobs_implementation            C++_no_wall
+mobility_blobs_implementation            python_no_wall
 mobility_vector_prod_implementation      radii_numba_no_wall
 domain                                   no_wall
 
