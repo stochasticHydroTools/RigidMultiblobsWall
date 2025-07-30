@@ -52,6 +52,9 @@ wall are present in subfolders.
 
 For usage see **doc/README.md**.
 
+### Requirements
+The current version of the code is compatible with `python 3.8` and `scipy 1.10`.
+
 ### Software organization
 * **doc/**: documentation.
 * **body/**: it contains a class to handle a single rigid body.
